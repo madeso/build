@@ -1,0 +1,1 @@
+Instead of keeping my crappy build scripts to build various things in a dropbox folder somewhere, I might aswell dump in a github project so I get version control and others can be subjected to the horrors (or might find it useful)
