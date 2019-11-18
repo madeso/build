@@ -22,17 +22,30 @@ class Build(Enum):
         Shared = 4
 
 
+def determine_real_filename(pa: str) -> str:
+    p = pa
+    if os.path.isfile(p):
+        return p
+    p = pa + ".vcxproj"
+    if os.path.isfile(p):
+        return p
+    p = pa + ".csproj"
+    if os.path.isfile(p):
+        return p
+    return ""
+
+
 class Project:
-    def __init__(self, Solution: 'Solution', Name: str, Path: str, Id: str):
+    def __init__(self, solution: 'Solution', name: str, path: str, guid: str):
         self.DisplayName = ""
         self.Type = Build.Unknown
-        self.deps: typing.List['Project'] = []
-        self.sdeps: typing.List[str] = []
+        self.dependencies: typing.List['Project'] = []
+        self.named_dependencies: typing.List[str] = []
 
-        self.Solution = Solution
-        self.Name = Name
-        self.Path = Path
-        self.Id = Id
+        self.Solution = solution
+        self.Name = name
+        self.Path = path
+        self.Id = guid
 
     @property
     def Name(self) -> str:
@@ -47,42 +60,41 @@ class Project:
 
     def resolve(self, projects: typing.Dict[str, 'Project']):
         # print("Resolving ", self.Name, len(self.sdeps))
-        for ss in self.sdeps:
-            s = ss.lower()
+        for dependency in self.named_dependencies:
+            s = dependency.lower()
             if s in projects:
-                self.deps.append(projects[s])
+                self.dependencies.append(projects[s])
             else:
                 # todo(Gustav): look into theese warnings...!
                 # print("Missing reference ", s)
                 pass
 
-    def loadInformation(self):
-        p = Gen(self.Path)
+    def load_information(self):
+        p = determine_real_filename(self.Path)
         if p == "":
             return
         if not os.path.isfile(p):
             print("Unable to open project file: ", p)
             return
         document = ET.parse(p)
-        doc = document.getroot()
-        namespace = get_namespace(doc)
-        l = []
-        """:type : list[string]"""
-        for n in doc.findall("{0}VisualStudioProject/{0}Configurations/{0}Configuration[@ConfigurationType]".format(namespace)):
-            v = n.attrib["ConfigurationType"]
-            if v in l is False:
-                l.append(v)
+        root_element = document.getroot()
+        namespace = get_namespace(root_element)
+        configurations:typing.List[str] = []
+        for n in root_element.findall("{0}VisualStudioProject/{0}Configurations/{0}Configuration[@ConfigurationType]".format(namespace)):
+            configuration_type = n.attrib["ConfigurationType"]
+            if configuration_type in configurations is False:
+                configurations.append(configuration_type)
         self.Type = Build.Unknown
 
-        if len(l) != 0:
-            suggestedType = l[0]
-            if suggestedType == "2":
+        if len(configurations) != 0:
+            suggested_type = configurations[0]
+            if suggested_type == "2":
                 self.Type = Build.Shared
-            elif suggestedType == "4":
+            elif suggested_type == "4":
                 self.Type = Build.Static
-            elif suggestedType == "1":
+            elif suggested_type == "1":
                 self.Type = Build.Application
-        for n in doc.findall("./{0}PropertyGroup/{0}OutputType".format(namespace)):
+        for n in root_element.findall("./{0}PropertyGroup/{0}OutputType".format(namespace)):
             inner_text = n.text.strip().lower()
             if inner_text == "winexe":
                 self.Type = Build.Application
@@ -92,26 +104,13 @@ class Project:
                 self.Type = Build.Shared
             else:
                 print("Unknown build type in ", p, ": ", inner_text)
-        for n in doc.findall("./{0}ItemGroup/{0}ProjectReference/{0}Project".format(namespace)):
+        for n in root_element.findall("./{0}ItemGroup/{0}ProjectReference/{0}Project".format(namespace)):
             inner_text = n.text.strip()
-            self.sdeps_append(inner_text)
+            self.add_named_dependency(inner_text)
 
-    def sdeps_append(self, dep: str):
-        self.sdeps.append(dep.lower())
+    def add_named_dependency(self, dep: str):
+        self.named_dependencies.append(dep.lower())
         pass
-
-
-def Gen(pa: str) -> str:
-    p = pa
-    if os.path.isfile(p):
-        return p
-    p = pa + ".vcxproj"
-    if os.path.isfile(p):
-        return p
-    p = pa + ".csproj"
-    if os.path.isfile(p):
-        return p
-    return ""
 
 
 def get_namespace(element):
@@ -124,54 +123,56 @@ def get_namespace(element):
 # ======================================================================================================================
 
 class Solution:
-    projects = {}
+    projects: typing.Dict[str, Project] = {}
     Name = ""
-    includes = []
+    includes: typing.List[str] = []
     reverseArrows = False
-    """ @type projects: dict[string, Project] """
-    """ @type includes: list[string] """
 
-    def __init__(self, slnpath: str, exclude: typing.List[str], simplify: bool, reverseArrows: bool):
-        self.reverseArrows = reverseArrows
-        self.setup(slnpath, exclude, simplify)
+    def __init__(self, solution_path: str, exclude: typing.List[str], simplify: bool, reverse_arrows: bool):
+        self.reverseArrows = reverse_arrows
+        self.setup(solution_path, exclude, simplify)
 
-    def setup(self, slnpath: str, exclude: typing.List[str], dosimplify: bool):
+    def setup(self, solution_path: str, exclude: typing.List[str], do_simplify: bool):
         self.includes = exclude
-        self.Name = os.path.basename(os.path.splitext(slnpath)[0])
-        with open(slnpath) as f:
+        self.Name = os.path.basename(os.path.splitext(solution_path)[0])
+        with open(solution_path) as f:
             lines = f.readlines()
-        currentProject = None
-        depProject = None
+        current_project = None
+        dependency_project = None
         for line in lines:
             if line.startswith("Project"):
-                eq = line.find('=')
-                data = line[eq + 1:].split(",")  # , StringSplitOptions.RemoveEmptyEntries)
+                equal_index = line.find('=')
+                data = line[equal_index + 1:].split(",")  # , StringSplitOptions.RemoveEmptyEntries)
                 name = data[0].strip().strip('"').strip()
-                relativepath = data[1].strip().strip('"').strip()
-                id = data[2].strip().strip('"').strip()
-                currentProject = Project(Solution=self, Name=name, Path=os.path.join(os.path.dirname(slnpath), relativepath), Id=id)
-                self.projects[currentProject.Id.lower()] = currentProject
+                relative_path = data[1].strip().strip('"').strip()
+                project_guid = data[2].strip().strip('"').strip()
+                current_project = Project(
+                    solution=self,
+                    name=name,
+                    path=os.path.join(os.path.dirname(solution_path), relative_path),
+                    guid=project_guid
+                )
+                self.projects[current_project.Id.lower()] = current_project
             elif line == "EndProject":
-                currentProject = None
-                depProject = None
+                current_project = None
+                dependency_project = None
             elif line.strip() == "ProjectSection(ProjectDependencies) = postProject":
-                depProject = currentProject
-            elif depProject != None and line.strip().startswith("{"):
-                id = line.split("=")[0].strip()
-                depProject.sdeps_append(id)
+                dependency_project = current_project
+            elif dependency_project is not None and line.strip().startswith("{"):
+                project_guid = line.split("=")[0].strip()
+                dependency_project.add_named_dependency(project_guid)
         for project_id, p in self.projects.items():
-            p.loadInformation()
-        if dosimplify:
+            p.load_information()
+        if do_simplify:
             self.simplify()
         for project_id, p in self.projects.items():
             p.resolve(self.projects)
 
-    @property
-    def Graphviz(self) -> typing.Iterable[str]:
+    def generate_graphviz_source_lines(self) -> typing.Iterable[str]:
         yield "digraph " + self.Name.replace("-", "_") + " {"
         yield "/* projects */"
         for _, pro in self.projects.items():
-            if self.Exclude(pro.DisplayName):
+            if self.should_exclude_project(pro.DisplayName):
                 continue
             decoration = "label=\"" + pro.DisplayName + "\""
             shape = "plaintext"
@@ -185,59 +186,57 @@ class Solution:
             yield " " + pro.Name + " [" + decoration + "]" + ";"
         yield ""
         yield "/* dependencies */"
-        addspace = False
-        for _, p in self.projects.items():
-            if len(p.deps) == 0:
-                # print("not enough ", p.Name)
+        first_project = True
+        for _, project in self.projects.items():
+            if len(project.dependencies) == 0:
+                # print("not enough ", project.Name)
                 continue
-            if self.Exclude(p.Name):
+            if self.should_exclude_project(project.Name):
                 continue
-            if addspace:
+            if not first_project:
                 yield ""
             else:
-                addspace = True
-            for s in p.deps:
-                if self.Exclude(s.DisplayName):
+                first_project = False
+            for dependency in project.dependencies:
+                if self.should_exclude_project(dependency.DisplayName):
                     continue
                 if self.reverseArrows:
-                    yield " " + s.Name + " -> " + p.Name + ";"
+                    yield " " + dependency.Name + " -> " + project.Name + ";"
                 else:
-                    yield " " + p.Name + " -> " + s.Name + ";"
+                    yield " " + project.Name + " -> " + dependency.Name + ";"
         yield "}"
 
-    def Exclude(self, p: str) -> bool:
+    def should_exclude_project(self, project_name: str) -> bool:
         if self.includes is not None:
             for s in self.includes:
-                if s.lower().strip() == p.lower().strip():
+                if s.lower().strip() == project_name.lower().strip():
                     return True
         return False
 
-    def writeGraphviz(self, targetFile: str):
-        with open(targetFile, 'w') as f:
-            for line in self.Graphviz:
+    def write_graphviz(self, target_file: str):
+        lines = list(self.generate_graphviz_source_lines())
+        with open(target_file, 'w') as f:
+            for line in lines:
                 f.write(line + "\n")
 
     def simplify(self):
-        for _, pe in self.projects.items():
-            self.ssimplify(pe)
+        for _, project in self.projects.items():
+            dependencies = []
+            for dependency_name in project.named_dependencies:
+                if not self.has_dependency(project, dependency_name, False):
+                    dependencies.append(dependency_name)
+            project.named_dependencies = dependencies
 
-    def ssimplify(self, p: Project):
-        deps = []
-        for d in p.sdeps:
-            if not self.hasDependency(p, d, False):
-                deps.append(d)
-        p.sdeps = deps
-
-    def hasDependency(self, p: Project, sd: str, self_reference: bool) -> bool:
-        for d in p.sdeps:
-            if self_reference and d == sd:
+    def has_dependency(self, project: Project, dependency_name: str, self_reference: bool) -> bool:
+        for current_name in project.named_dependencies:
+            if self_reference and current_name == dependency_name:
                 return True
-            if self.hasDependency(self.projects[d], sd, True):
+            if self.has_dependency(self.projects[current_name], dependency_name, True):
                 return True
         return False
 
 
-def IsValidFile(lines: typing.List[str]) -> bool:
+def is_valid_file(lines: typing.List[str]) -> bool:
     for line in lines:
         if line == "Microsoft Visual Studio Solution File, Format Version 10.00":
             return True
@@ -249,13 +248,13 @@ def IsValidFile(lines: typing.List[str]) -> bool:
 # ======================================================================================================================
 
 
-def getFile(source: str, target: str, format: str) -> str:
+def getFile(source: str, target: str, image_format: str) -> str:
     my_target = target
     if my_target.strip() == "" or my_target.strip() == "?":
         my_target = os.path.splitext(source)[0]
     if os.path.isdir(my_target):
         my_target = os.path.join(my_target, os.path.splitext(os.path.basename(source))[0])
-    my_format = format
+    my_format = image_format
     if my_format.strip() == "" or my_format.strip() == "?":
         my_format = "svg"
     f = my_target + "." + my_format
@@ -268,26 +267,31 @@ def GetProjects(source: str) -> typing.Iterable[str]:
         yield p.Value.Name
 
 
-def graphviz(targetFile: str, format: str, style: str):
-    cmdline = ["dot", targetFile+".graphviz", "-T" + format, "-K" + style, "-O" + targetFile + "." + format]
+def run_graphviz(target_file: str, image_format: str, graphviz_layout: str):
+    cmdline = [
+        "dot",
+        target_file + ".graphviz", "-T" + image_format,
+        "-K" + graphviz_layout,
+        "-O" + target_file + "." + image_format
+    ]
     print("Running graphviz ", cmdline)
     s = subprocess.call(cmdline)
 
 
-def logic(solutionFilePath: str, exlude: typing.List[str], targetFile: str, format: str, simplify: bool, style: str, reverseArrows: bool):
-    s = Solution(solutionFilePath, exlude, simplify, reverseArrows)
-    s.writeGraphviz(targetFile + ".graphviz")
-    graphviz(targetFile, format, style)
+def logic(path_to_solution_file: str, exclude: typing.List[str], target_file: str, image_format: str, simplify: bool, graphviz_layout: str, reverse_arrows: bool):
+    s = Solution(path_to_solution_file, exclude, simplify, reverse_arrows)
+    s.write_graphviz(target_file + ".graphviz")
+    run_graphviz(target_file, image_format, graphviz_layout)
 
 
-def toGraphviz(source: str, target: str, format: str, exclude: typing.List[str], simplify: bool, style: bool, reverseArrows: bool):
+def to_graphviz(path_to_solution_file: str, target: str, image_format: str, exclude: typing.List[str], simplify: bool, graphviz_layout: bool, reverse_arrows: bool):
     my_target = target or ""
     if my_target.strip() == "" or my_target.strip() == "?":
-        my_target = os.path.splitext(source)[0]
-    my_format = format or ""
+        my_target = os.path.splitext(path_to_solution_file)[0]
+    my_format = image_format or ""
     if my_format.strip() == "" or my_format.strip() == "?":
         my_format = "svg"
-    logic(source, exclude or [], my_target, my_format, simplify, style or "dot", reverseArrows)
+    logic(path_to_solution_file, exclude or [], my_target, my_format, simplify, graphviz_layout or "dot", reverse_arrows)
 
 
 # ======================================================================================================================
@@ -307,4 +311,4 @@ if __name__ == "__main__":
     parser.add_argument('--reverse', dest='reverse', action='store_const', const=True, default=False, help='reverse arrows')
 
     args = parser.parse_args()
-    toGraphviz(args.solution, args.target, args.format, args.exclude, args.simplify, args.style, args.reverse)
+    to_graphviz(args.solution, args.target, args.format, args.exclude, args.simplify, args.style, args.reverse)
