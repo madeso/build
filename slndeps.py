@@ -294,21 +294,33 @@ def to_graphviz(path_to_solution_file: str, target: str, image_format: str, excl
     logic(path_to_solution_file, exclude or [], my_target, my_format, simplify, graphviz_layout or "dot", reverse_arrows)
 
 
+def handle_generate(args):
+    to_graphviz(args.solution, args.target, args.format, args.exclude, args.simplify, args.style, args.reverse)
+
+
 # ======================================================================================================================
 # main
 # ======================================================================================================================
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Generate a solution dependency file')
-    # parser.add_argument('cmd', help='the command to execute')
-    parser.add_argument('solution', help='the solution')
+    parser = argparse.ArgumentParser(description='Visual Studio solution dependency tool')
+    sub_parsers = parser.add_subparsers(dest='command_name', title='Commands', help='', metavar='<command>')
 
-    parser.add_argument('--target', help='the target')
-    parser.add_argument('--format', help='the format')
-    parser.add_argument('--exclude', help='projects to exclude', nargs='*')
-    parser.add_argument('--simplify', dest='simplify', action='store_const', const=True, default=False, help='simplify output')
-    parser.add_argument('--style', help='the style')
-    parser.add_argument('--reverse', dest='reverse', action='store_const', const=True, default=False, help='reverse arrows')
+    sub = sub_parsers.add_parser('generate', help='Generate a solution dependency file')
+
+    sub.add_argument('solution', help='the solution')
+
+    sub.add_argument('--target', help='the target')
+    sub.add_argument('--format', help='the format')
+    sub.add_argument('--exclude', help='projects to exclude', nargs='*')
+    sub.add_argument('--simplify', dest='simplify', action='store_const', const=True, default=False, help='simplify output')
+    sub.add_argument('--style', help='the style')
+    sub.add_argument('--reverse', dest='reverse', action='store_const', const=True, default=False, help='reverse arrows')
+    sub.set_defaults(func=handle_generate)
 
     args = parser.parse_args()
-    to_graphviz(args.solution, args.target, args.format, args.exclude, args.simplify, args.style, args.reverse)
+    if args.command_name is not None:
+        args.func(args)
+    else:
+        parser.print_help()
+
