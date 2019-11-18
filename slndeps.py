@@ -52,7 +52,9 @@ class Project:
             if s in projects:
                 self.deps.append(projects[s])
             else:
-                print("Missing reference ", s)
+                # todo(Gustav): look into theese warnings...!
+                # print("Missing reference ", s)
+                pass
 
     def loadInformation(self):
         p = Gen(self.Path)
