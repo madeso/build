@@ -39,8 +39,8 @@ class BuildEnviroment:
     
     def add_options(self, parser: argparse.ArgumentParser):
         """add the build environment to an argparse parser"""
-        parser.add_argument('--compiler', type=str, default=None, help=f'compiler to use {default_or_required_string(self.compiler, btargs.compiler_to_string)}', choices=btargs.all_compiler_names(), required=self.compiler is None)
-        parser.add_argument('--platform', type=str, default=None, help=f'platform to use {default_or_required_string(self.platform, btargs.platform_to_string)}', choices=btargs.all_platform_names(), required=self.platform is None)
+        parser.add_argument('--compiler', type=str.lower, default=None, help=f'compiler to use {default_or_required_string(self.compiler, btargs.compiler_to_string)}', choices=btargs.all_compiler_names(), required=self.compiler is None)
+        parser.add_argument('--platform', type=str.lower, default=None, help=f'platform to use {default_or_required_string(self.platform, btargs.platform_to_string)}', choices=btargs.all_platform_names(), required=self.platform is None)
 
     def update_from_args(self, args: argparse.Namespace):
         """update the build environment from an argparse namespace"""
