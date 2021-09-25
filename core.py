@@ -31,6 +31,9 @@ def flush():
     """flushes stdout"""
     sys.stdout.flush()
 
+def file_exists(path: str) -> bool:
+    """checks if a file exists"""
+    return os.path.isfile(path)
 
 def is_windows() -> bool:
     """is the script runnning on a windows system?"""

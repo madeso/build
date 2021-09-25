@@ -1,9 +1,10 @@
 #!/usr/bin/python3
 """provides compiler and plaform enum and argparse related functions"""
 
-import buildtools.core as core
-
+import typing
 from enum import Enum
+
+import buildtools.core as core
 
 
 class Compiler(Enum):
@@ -20,59 +21,87 @@ class Platform(Enum):
     X64 = 2
 
 
-def add_compiler(parser):
-    """add compiler argument to argparse parser"""
-    parser.add_argument('compiler', help='The compiler to use.')
+COMPILER_NAME_VS2015 = 'vs2015'
+COMPILER_NAME_VS2017 = 'vs2017'
+COMPILER_NAME_VS2019 = 'vs2019'
+COMPILER_NAME_WINDOWS_2016 = 'windows-2016'
+COMPILER_NAME_WINDOWS_2019 = 'windows-2019'
 
 
-def add_platform(parser):
-    """add platform argument to argparse parser"""
-    parser.add_argument('platform', help='The platform to build for.')
-
-
-def get_compiler(args) -> Compiler:
-    """get the compiler from the argparse arguments"""
-    compiler_name = args.compiler
-
-    if compiler_name == 'vs2015':
+def compiler_from_name(compiler_name: str, print_error: bool) -> typing.Optional[Compiler]:
+    if compiler_name.lower() == COMPILER_NAME_VS2015:
         return Compiler.VS2015
 
-    if compiler_name == 'vs2017':
+    elif compiler_name.lower() == COMPILER_NAME_VS2017:
         return Compiler.VS2017
 
-    if compiler_name == 'vs2019':
+    elif compiler_name.lower() == COMPILER_NAME_VS2019:
         return Compiler.VS2019
 
     # github actions installed compiler
-    if compiler_name == 'windows-2016':
+    elif compiler_name.lower() == COMPILER_NAME_WINDOWS_2016:
         return Compiler.VS2017
-    if compiler_name == 'windows-2019':
+    elif compiler_name.lower() == COMPILER_NAME_WINDOWS_2019:
         return Compiler.VS2019
 
-    print('Unknown compiler: ', compiler_name, flush=True)
-    return Compiler.VS2019
+    if print_error:
+        print('Unknown compiler: ', compiler_name, flush=True)
+    return None
 
 
-def get_platform(args) -> Platform:
-    """get the platform from the argparse arguments"""
-    platform = args.platform
-    if platform == 'auto':
+def all_compiler_names():
+    """returns a list of all compiler names"""
+    return [COMPILER_NAME_VS2015, COMPILER_NAME_VS2017, COMPILER_NAME_VS2019, COMPILER_NAME_WINDOWS_2016, COMPILER_NAME_WINDOWS_2019]
+
+
+def compiler_to_string(compiler: Compiler) -> str:
+    if compiler == Compiler.VS2015:
+        return COMPILER_NAME_VS2015
+    elif compiler == Compiler.VS2017:
+        return COMPILER_NAME_VS2017
+    elif compiler == Compiler.VS2019:
+        return COMPILER_NAME_VS2019
+    else:
+        return "<unknown compiler>"
+
+PLATFORM_AUTO = 'auto'
+PLATFORM_WIN32 = 'win32'
+PLATFORM_WIN64 = 'win64'
+PLATFORM_WIN64_ALT = 'x64'
+
+def platform_from_name(platform: str, print_error: bool) -> typing.Optional[Platform]:
+    if platform.lower() == PLATFORM_AUTO:
         return Platform.AUTO
 
-    if platform.lower() == 'win32':
+    if platform.lower() == PLATFORM_WIN32:
         return Platform.WIN32
 
-    if platform.lower() in ['x64', 'win64']:
+    if platform.lower() in [PLATFORM_WIN64, PLATFORM_WIN64_ALT]:
         return Platform.X64
 
-    print('Unknown platform: ', platform, flush=True)
-    return Platform.AUTO
+    if print_error:
+        print('Unknown platform: ', platform, flush=True)
+    return None
 
+
+def all_platform_names():
+    """returns a list of all platform names"""
+    return [PLATFORM_AUTO, PLATFORM_WIN32, PLATFORM_WIN64, PLATFORM_WIN64_ALT]
+
+def platform_to_string(platform: Platform) -> str:
+    if platform == Platform.AUTO:
+        return PLATFORM_AUTO
+    elif platform == Platform.WIN32:
+        return PLATFORM_WIN32
+    elif platform == Platform.X64:
+        return PLATFORM_WIN64
+    else:
+        return "<unknown platform>"
 
 #####################################################
 
 
-def get_msbuild_toolset(compiler: Compiler) -> str:
+def get_msbuild_toolset(compiler: Compiler) -> typing.Optional[str]:
     """get the msbuild tooselt name from the compiler"""
     if compiler == Compiler.VS2015:
         return 'v140'
@@ -83,7 +112,7 @@ def get_msbuild_toolset(compiler: Compiler) -> str:
     if compiler == Compiler.VS2019:
         return 'v142'
 
-    return 'invalid_compiler'
+    return None
 
 
 def is_64bit(platform: Platform) -> bool:
@@ -100,7 +129,7 @@ def is_64bit(platform: Platform) -> bool:
     return False
 
 
-def platform_as_string(platform: Platform):
+def platform_as_string(platform: Platform) -> str:
     """returns either a 64 or a 32 bit string identification"""
     if is_64bit(platform):
         return 'x64'
