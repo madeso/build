@@ -134,6 +134,7 @@ def default_data(name: str) -> Data:
 
 def save_build(build: BuildEnviroment, data: Data):
     """save the build environment to the settings file"""
+    os.makedirs(data.build_base_dir, exist_ok=True)
     build.save_to_file(data.get_path_to_settings())
 
 ###############################################################################
