@@ -14,14 +14,23 @@ def install_dependency_sdl2(deps, root, build, generator: cmake.Generator):
     core.print_dashes()
     print('Installing dependency sdl2', flush=True)
     url = "https://www.libsdl.org/release/SDL2-2.0.8.zip"
+    
     zip_file = os.path.join(deps, 'sdl2.zip')
-    if not core.dir_exist(root):
+    if not core.file_exists(zip_file):
         core.verify_dir_exist(root)
         core.verify_dir_exist(deps)
         print('downloading sdl2', flush=True)
         core.download_file(url, zip_file)
+    else:
+        print('SDL2 zip file exist, not downloading again...', flush=True)
+
+    if not core.file_exists(os.path.join(root, 'INSTALL.txt')):
         core.extract_zip(zip_file, root)
         core.move_files(os.path.join(root, 'SDL2-2.0.8'), root)
+    else:
+        print('SDL2 is unzipped, not unzipping again')
+    
+    if not core.file_exists(os.path.join(build, 'SDL2.sln')):
         project = cmake.CMake(build_folder=build, source_folder=root, generator=generator)
         # project.make_static_library()
         # this is defined by the standard library so don't add it

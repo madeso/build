@@ -65,12 +65,17 @@ def verify_dir_exist(path: str):
 
 def download_file(url: str, path: str):
     """download file if not already downloaded"""
-    if not os.path.isfile(path):
-        print("Downloading ", path, flush=True)
-        with urllib.request.urlopen(url) as response, open(path, 'wb') as out_file:
-            shutil.copyfileobj(response, out_file)
-    else:
-        print("Already downloaded", path, flush=True)
+    try:
+        if not os.path.isfile(path):
+            print("Downloading ", path, flush=True)
+            with urllib.request.urlopen(url) as response, open(path, 'wb') as out_file:
+                shutil.copyfileobj(response, out_file)
+        else:
+            print("Already downloaded", path, flush=True)
+    except urllib.error.URLError as e:
+        error_message = e.reason
+        print(f'ERROR: downloading {url}: {error_message}', flush=True)
+        sys.exit(-42)
 
 
 def extract_zip(zip_file, target_folder):
