@@ -41,23 +41,37 @@ class BuildEnviroment:
         """add the build environment to an argparse parser"""
         parser.add_argument('--compiler', type=str.lower, default=None, help=f'compiler to use {default_or_required_string(self.compiler, btargs.compiler_to_string)}', choices=btargs.all_compiler_names(), required=self.compiler is None)
         parser.add_argument('--platform', type=str.lower, default=None, help=f'platform to use {default_or_required_string(self.platform, btargs.platform_to_string)}', choices=btargs.all_platform_names(), required=self.platform is None)
+        parser.add_argument('--force', action='store_true', help='force the compiler and platform to be changed')
 
     def update_from_args(self, args: argparse.Namespace):
         """update the build environment from an argparse namespace"""
+        failure = False
         if args.compiler is not None:
             new_compiler = btargs.compiler_from_name(args.compiler, True)
             if self.compiler is not None and self.compiler != new_compiler:
-                print(f'ERROR: Compiler was previosly {self.compiler} but was set via argument to {new_compiler}')
-                self.compiler = None
+                if args.force:
+                    print(f'WARNING: Compiler changed via argument from {btargs.compiler_to_string(self.compiler)} to {btargs.compiler_to_string(new_compiler)}')
+                    self.compiler = new_compiler
+                else:
+                    print(f'ERROR: Compiler changed via argument from {btargs.compiler_to_string(self.compiler)} to {btargs.compiler_to_string(new_compiler)}')
+                    failure = True
             else:
                 self.compiler = new_compiler
         if args.platform is not None:
             new_platform = btargs.platform_from_name(args.platform, True)
             if self.platform is not None and self.platform != new_platform:
-                print(f'ERROR: Platform was previosly {self.platform} but was set via argument to {new_platform}')
-                self.platform = None
+                if args.force:
+                    print(f'WARNING: Platform changed via argument from {btargs.platform_to_string(self.platform)} to {btargs.platform_to_string(new_platform)}')
+                    self.platform = new_platform
+                else:
+                    print(f'ERROR: Platform changed via argument from {btargs.platform_to_string(self.platform)} to {btargs.platform_to_string(new_platform)}')
+                    failure = True
             else:
                 self.platform = new_platform
+        
+        if failure:
+            print('ERROR: Build environment is invalid')
+            exit(-2)
     
     def validate(self):
         """validate the build environment"""
