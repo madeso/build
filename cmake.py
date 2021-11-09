@@ -3,8 +3,48 @@
 
 import subprocess
 import typing
+import shutil
+import os
 
 import buildtools.core as core
+
+
+def find_cmake_in_registry() -> typing.Optional[str]:
+    try:
+        import winreg
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Kitware\CMake')
+        value, _ = winreg.QueryValueEx(key, 'InstallDir')
+        r = os.path.join(value, 'bin', 'cmake.exe')
+        if os.path.exists(r):
+            print(f'Found CMake from registry at: {r}')
+            return r
+        else:
+            print(f"Found path to cmake in registry ({r}) but it didn't exist")
+            return None
+    except OSError:
+        print('CMake not found in registry.')
+        return None
+
+
+def find_cmake_in_path() -> typing.Optional[str]:
+    cmake_executable = shutil.which('cmake')
+    if cmake_executable is not None:
+        if os.path.exists(cmake_executable):
+            print(f'CMake executable found in PATH: {cmake_executable}')
+            return cmake_executable
+        else:
+            print(f"Found path to cmake in path ({cmake_executable}) but it didn't exist")
+            return None
+    else:
+        print('CMake executable not found in PATH.')
+        return None
+
+
+def find_cmake_executable() -> typing.Optional[str]:
+    cmake = find_cmake_in_path()
+    if cmake is None:
+        cmake = find_cmake_in_registry()
+    return cmake
 
 
 class Argument:  # pylint: disable=too-few-public-methods
@@ -56,7 +96,11 @@ class CMake:
 
     def config(self, only_print: bool = False):
         """run cmake configure step"""
-        command = ['cmake']
+        cmake = find_cmake_executable()
+        if cmake is None:
+            raise Exception('CMake executable not found')
+
+        command = [cmake]
         for arg in self.arguments:
             argument = arg.format_cmake_argument()
             print('Setting CMake argument for config', argument, flush=True)
@@ -79,7 +123,11 @@ class CMake:
 
     def build_cmd(self, install: bool):
         """run cmake build step"""
-        cmd = ['cmake', '--build', '.']
+        cmake = find_cmake_executable()
+        if cmake is None:
+            raise Exception('CMake executable not found')
+
+        cmd = [cmake, '--build', '.']
         if install:
             cmd.append('--target')
             cmd.append('install')
