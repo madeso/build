@@ -63,6 +63,9 @@ def visual_studio_generator(compiler: args.Compiler, platform: args.Platform) ->
     if compiler == args.Compiler.VS2019:
         arch = 'x64' if args.is_64bit(platform) else 'Win32'
         return cmake.Generator('Visual Studio 16 2019', arch)
+    if compiler == args.Compiler.VS2022:
+        arch = 'x64' if args.is_64bit(platform) else 'Win32'
+        return cmake.Generator('Visual Studio 17 2022', arch)
     raise Exception('Invalid compiler')
 
 

@@ -12,6 +12,7 @@ class Compiler(Enum):
     VS2015 = 1
     VS2017 = 2
     VS2019 = 3
+    VS2022 = 4
 
 
 class Platform(Enum):
@@ -24,6 +25,7 @@ class Platform(Enum):
 COMPILER_NAME_VS2015 = 'vs2015'
 COMPILER_NAME_VS2017 = 'vs2017'
 COMPILER_NAME_VS2019 = 'vs2019'
+COMPILER_NAME_VS2022 = 'vs2022'
 COMPILER_NAME_WINDOWS_2016 = 'windows-2016'
 COMPILER_NAME_WINDOWS_2019 = 'windows-2019'
 
@@ -37,6 +39,8 @@ def compiler_from_name(compiler_name: str, print_error: bool) -> typing.Optional
 
     elif compiler_name.lower() == COMPILER_NAME_VS2019:
         return Compiler.VS2019
+    elif compiler_name.lower() == COMPILER_NAME_VS2022:
+        return Compiler.VS2022
 
     # github actions installed compiler
     elif compiler_name.lower() == COMPILER_NAME_WINDOWS_2016:
@@ -51,7 +55,7 @@ def compiler_from_name(compiler_name: str, print_error: bool) -> typing.Optional
 
 def all_compiler_names():
     """returns a list of all compiler names"""
-    return [COMPILER_NAME_VS2015, COMPILER_NAME_VS2017, COMPILER_NAME_VS2019, COMPILER_NAME_WINDOWS_2016, COMPILER_NAME_WINDOWS_2019]
+    return [COMPILER_NAME_VS2015, COMPILER_NAME_VS2017, COMPILER_NAME_VS2019, COMPILER_NAME_VS2022, COMPILER_NAME_WINDOWS_2016, COMPILER_NAME_WINDOWS_2019]
 
 
 def compiler_to_string(compiler: Compiler) -> str:
@@ -61,6 +65,8 @@ def compiler_to_string(compiler: Compiler) -> str:
         return COMPILER_NAME_VS2017
     elif compiler == Compiler.VS2019:
         return COMPILER_NAME_VS2019
+    elif compiler == Compiler.VS2022:
+        return COMPILER_NAME_VS2022
     else:
         return "<unknown compiler>"
 
