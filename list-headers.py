@@ -104,7 +104,7 @@ def group_commands(commands: Commands, depth: int) -> typing.Iterable[Statement]
 
 def parse_to_statements(lines: typing.Iterable[str]) -> typing.List[Statement]:
     only_commands = filter(lambda ls: ls.startswith('#'), lines)
-    cmd = (ls.strip('#').strip().split(' ', maxsplit=1) for ls in only_commands)
+    cmd = (ls.strip('#').strip().split(maxsplit=1) for ls in only_commands)
     commands = Commands(Command(p[0], p[1] if len(p)>1 else '') for p in cmd)
     return list(group_commands(commands, 0))
 
@@ -112,7 +112,7 @@ def parse_to_statements(lines: typing.Iterable[str]) -> typing.List[Statement]:
 def is_pragma_once(command: Command) -> bool:
     if command.name != 'pragma':
         return False
-    args = command.value.split(' ', maxsplit=1)
+    args = command.value.split(maxsplit=1)
     return args[0] == 'once'
 
 
@@ -128,6 +128,8 @@ class State:
             self.on_pragma(command, include_dirs, depth, filename)
         elif command.name == 'define':
             self.on_define(command, include_dirs, depth, filename)
+        elif command.name == 'undef':
+            self.on_undef(command, include_dirs, depth, filename)
         elif command.name == 'include':
             self.on_include(command, include_dirs, depth, filename)
         else:
@@ -137,16 +139,36 @@ class State:
         if is_pragma_once(command):
             return
         else:
-            print(f'{indent_for_depth(depth)}unknown pragma: {command.value}')
+            fun = command.value.split('(', maxsplit=1)[0].strip()
+            if fun == 'pack':
+                pass
+            elif fun == 'comment':
+                pass
+            elif fun == 'warning':
+                pass
+            elif fun == 'error':
+                pass
+            elif fun == 'message':
+                pass
+            else:
+                print(f'{indent_for_depth(depth)}unknown pragma({fun}): {command.value}')
     
     def on_define(self, command: Command, include_dirs: typing.List[str], depth: int, filename: str):
-        args = command.value.split(' ')
+        args = command.value.split()
         self.defines[args[0]] = args[1] if len(args) > 1 else ''
     
+    def on_undef(self, command: Command, include_dirs: typing.List[str], depth: int, filename: str):
+        args = command.value.split()
+        name = args[0]
+        if name in self.defines:
+            del self.defines[name]
+    
     def on_include(self, command: Command, include_dirs: typing.List[str], depth: int, filename: str):
-        relative_file_name = command.value.split(' ')[0].strip()[1:-1].strip()
+        file_part = command.value.split()[0].strip()
+        relative_file_name = file_part[1:-1].strip()
+        include_current_folder = file_part.startswith('"')
 
-        full_path = find_file(relative_file_name, include_dirs)
+        full_path = find_file(relative_file_name, include_dirs if include_current_folder else self.include_dirs_without_current)
 
         if full_path is None:
             self.on_not_found(relative_file_name, filename, depth)
@@ -158,7 +180,7 @@ class State:
         folder = os.path.dirname(filename)
         include_dirs = [folder] + self.include_dirs_without_current
         with open(filename, 'r') as f:
-            statements = parse_to_statements(line.lstrip() for line in f)
+            statements = parse_to_statements(line.lstrip() for line in remove_cpp_comments(f))
             self.process_statements(statements, include_dirs, depth, filename)
 
     def process_statements(self, statements: typing.List[Statement], include_dirs: typing.List[str], depth: int, filename: str):
@@ -298,6 +320,46 @@ def exclude_files(counts, folders: typing.Iterable[str]):
             counts.pop(f)
 
 
+def read_sln_projects(sln_file: str) -> typing.List[str]:
+    sln_dir = os.path.dirname(sln_file)
+    projects = []
+
+    for line in open(sln_file):
+        line = line.strip()
+        if not line.startswith('Project('):
+            continue
+        eq = line.find('=')
+        if eq == -1:
+            continue
+        values = [p.strip(' "') for p in line[eq+2:].split(',')]
+        if len(values) < 1:
+            continue
+        
+        project_name = values[0]
+        project_file = os.path.join(sln_dir, values[1])
+        if os.path.isfile(project_file):
+            projects.append(project_file)
+    
+    return projects
+
+
+def remove_cpp_comments(lines: typing.Iterable[str]) -> typing.Iterable[str]:
+    # todo(Gustav)
+    in_comment = False
+    for line in lines:
+        if in_comment:
+            if '*/' in line:
+                in_comment = False
+                # todo(Gustav): yield part of line
+            else:
+                continue
+        elif '/*' in line:
+            # todo(Gustav): yield part of line
+            in_comment = True
+            continue
+        else:
+            yield line
+
 ###############################################################################
 
 def indent_for_depth(depth: int) -> str:
@@ -380,21 +442,30 @@ def handle_file_in_project(args):
             print(f'{indent_for_depth(1)}{include_file} ({count})')
 
 
+def projet_files(filename: str) -> typing.List[str]:
+    if filename.endswith('.sln'):
+        return read_sln_projects(filename)
+    else:
+        return [filename]
 
 
 def all_in(args):
-    project_file = os.path.abspath(args.project)
-    project = find_files_in_vcxproj(project_file)
-
-    config = project.configs[0]
-
     counts = collections.Counter()
     number_of_files = 0
 
-    for file in project.source_files:
-        file_counts = collect_include_headers(file, defines=config.defines, include_dirs=config.include_dirs)
-        counts.update(file_counts)
-        number_of_files += 1
+
+    for project_file in projet_files(os.path.abspath(args.project)):
+        print(f'{project_file}...')
+        project = find_files_in_vcxproj(project_file)
+
+        config = project.configs[0]
+
+        for file in project.source_files:
+            if args.debug:
+                print(f'{indent_for_depth(1)}{file}')
+            file_counts = collect_include_headers(file, defines=config.defines, include_dirs=config.include_dirs)
+            counts.update(file_counts)
+            number_of_files += 1
 
     exclude_files(counts, (os.path.abspath(f) for f in args.exclude))
 
@@ -409,6 +480,19 @@ def all_in(args):
         print(f'{indent_for_depth(1)}{include_file} ({count}) ({percentage:.1f}%)')
 
 
+def handle_ls_proj_in_sln(args):
+    sln_file = os.path.abspath(args.sln)
+    
+    if not os.path.isfile(sln_file):
+        print(f'{sln_file} does not exist')
+        return
+
+    projects = read_sln_projects(sln_file)
+
+    print('Projects:')
+    for project in projects:
+        print(f'{indent_for_depth(1)}{project}')
+    print()
 
 
 
@@ -437,7 +521,12 @@ def main():
     all_file_parser.add_argument('project', help='project file')
     all_file_parser.add_argument('--count', type=int, default=10, help='number of most common includes to print')
     all_file_parser.add_argument('--exclude', nargs='*', help='folders to exclude', default=[])
+    all_file_parser.add_argument('--debug', action='store_true', help='print debug info')
     all_file_parser.set_defaults(func=lambda args: all_in(args))
+
+    sln_parser = subs.add_parser('sln', help='list projects in a vs solution file')
+    sln_parser.add_argument('sln', help='solution file')
+    sln_parser.set_defaults(func=lambda args: handle_ls_proj_in_sln(args))
 
     args = parser.parse_args()
     args.func(args)
