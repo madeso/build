@@ -450,11 +450,13 @@ def projet_files(filename: str) -> typing.List[str]:
 
 
 def all_in(args):
-    counts = collections.Counter()
-    number_of_files = 0
-
-
     for project_file in projet_files(os.path.abspath(args.project)):
+        number_of_files = 0
+        counts = collections.Counter()
+
+        print()
+        print()
+        print()
         print(f'{project_file}...')
         project = find_files_in_vcxproj(project_file)
 
@@ -467,17 +469,17 @@ def all_in(args):
             counts.update(file_counts)
             number_of_files += 1
 
-    exclude_files(counts, (os.path.abspath(f) for f in args.exclude))
+        exclude_files(counts, (os.path.abspath(f) for f in args.exclude))
 
-    max_count = args.count
-    t = counts.total()
-    unique_count = len(counts)
+        max_count = args.count
+        t = counts.total()
+        unique_count = len(counts)
 
-    print(f'Total of {t} includes statements found in {number_of_files} files, {unique_count} unique includes')
-    print(f"{max_count} most common are:")
-    for include_file, count in counts.most_common(max_count):
-        percentage = count / number_of_files * 100
-        print(f'{indent_for_depth(1)}{include_file} ({count}) ({percentage:.1f}%)')
+        print(f'Total of {t} includes statements found in {number_of_files} files, {unique_count} unique includes')
+        print(f"{max_count} most common are:")
+        for include_file, count in counts.most_common(max_count):
+            percentage = count / number_of_files * 100
+            print(f'{indent_for_depth(1)}{include_file} ({count}) ({percentage:.1f}%)')
 
 
 def handle_ls_proj_in_sln(args):
