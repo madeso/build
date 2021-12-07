@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 
+# todo(Gustav): improve preproc parsing
+# todo(Gustav): improve user interface, hide debuggers under a subcommand?
+# todo(Gustav): improve error reporting
+# todo(Gustav): handle compile_commands.json based projects
+# todo(Gustav): dont render output if no files are found (or if the files found are below a certain value)
+# todo(Gustav): group based on pch instead of per project
+
 import os
 import argparse
 import collections
