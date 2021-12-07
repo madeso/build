@@ -23,6 +23,9 @@ class Command(Statement):
     def __init__(self, name: str, value: str):
         self.name = name
         self.value = value
+    
+    def __str__(self):
+        return f'<{self.name}>: <{self.value}>'
 
 
 class Block(Statement):
@@ -31,11 +34,17 @@ class Block(Statement):
         self.condition = condition
         self.true_block = true_block
         self.false_block = false_block
+    
+    def __str__(self):
+        return self.name + " " + self.condition + " " + " ".join(map(str, self.true_block)) + " " + " ".join(map(str, self.false_block))
 
 class Commands:
     def __init__(self, commands: typing.Iterable[Command]):
         self.commands = list(commands)
         self.index = 0
+
+    def __str__(self):
+        return "/".join(str(c) for c in self.commands)
 
     def validate_index(self):
         if self.index < 0 or self.index >= len(self.commands):
@@ -89,6 +98,7 @@ def group_commands(commands: Commands, depth: int) -> typing.Iterable[Statement]
                 group.false_block = list(group_commands(commands, depth+1))
             if peek_name(commands) == 'endif':
                 commands.skip()
+            yield group
         elif command.name == 'else':
             commands.undo()
             break
@@ -106,7 +116,8 @@ def parse_to_statements(lines: typing.Iterable[str]) -> typing.List[Statement]:
     only_commands = filter(lambda ls: ls.startswith('#'), lines)
     cmd = (ls.strip('#').strip().split(maxsplit=1) for ls in only_commands)
     commands = Commands(Command(p[0], p[1] if len(p)>1 else '') for p in cmd)
-    return list(group_commands(commands, 0))
+    grouped = list(group_commands(commands, 0))
+    return grouped
 
 
 def is_pragma_once(command: Command) -> bool:
@@ -180,7 +191,8 @@ class State:
         folder = os.path.dirname(filename)
         include_dirs = [folder] + self.include_dirs_without_current
         with open(filename, 'r') as f:
-            statements = parse_to_statements(line.lstrip() for line in remove_cpp_comments(f))
+            lines = [line.lstrip() for line in remove_cpp_comments(f)]
+            statements = parse_to_statements(lines)
             self.process_statements(statements, include_dirs, depth, filename)
 
     def process_statements(self, statements: typing.List[Statement], include_dirs: typing.List[str], depth: int, filename: str):
@@ -193,9 +205,21 @@ class State:
                 if statement.name == 'ifdef':
                    is_true = statement.condition in self.defines 
                 elif statement.name == 'ifndef':
-                    is_true = statement.condition not in self.defines 
+                    is_true = statement.condition not in self.defines
+                elif statement.name == 'if' and statement.condition.startswith('!defined('):
+                    prop = statement.condition[9:-1].strip()
+                    if prop != prop.split()[0]:
+                        raise Exception(f'{indent_for_depth(depth)}unknown ifdef: {statement.condition}')
+                    is_true = prop not in self.defines
+                elif statement.name == 'if' and '>' in statement.condition:
+                    var, val = [s.strip() for s in statement.condition.split('>', maxsplit=1)]
+                    if var in self.defines:
+                        is_true = int(self.defines[var]) < int(val)
+                    else:
+                        is_true = False
+                        print(f'{indent_for_depth(depth)} {var} not defined, expected integer for comparing..')
                 else:
-                    raise Exception(f'{indent_for_depth(depth)}unhandled #if argument: {statement.confition}')
+                    raise Exception(f'{indent_for_depth(depth)}unhandled #if argument({statement.name}): {statement.condition}')
                     is_true = True
                 
                 if is_true:
