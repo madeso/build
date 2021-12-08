@@ -198,7 +198,7 @@ class State:
         folder = os.path.dirname(filename)
         include_dirs = [folder] + self.include_dirs_without_current
         with open(filename, 'r') as f:
-            lines = [line.lstrip() for line in remove_cpp_comments(f)]
+            lines = [line.lstrip() for line in remove_cpp_comments(join_lines(remove_newlines(f)))]
             statements = parse_to_statements(lines)
             self.process_statements(statements, include_dirs, depth, filename)
 
@@ -226,7 +226,7 @@ class State:
                         is_true = False
                         print(f'{indent_for_depth(depth)} {var} not defined, expected integer for comparing..')
                 else:
-                    raise Exception(f'{indent_for_depth(depth)}unhandled #if argument({statement.name}): {statement.condition}')
+                    raise Exception(f'{filename}: unhandled #if argument({statement.name}): {statement.condition}')
                     is_true = True
                 
                 if is_true:
@@ -391,6 +391,29 @@ def remove_cpp_comments(lines: typing.Iterable[str]) -> typing.Iterable[str]:
         else:
             yield line
 
+
+def join_lines(lines: typing.Iterable[str]) -> typing.Iterable[str]:
+    last_line = None
+    for line in lines:
+        if line.endswith('\\'):
+            if last_line is None:
+                last_line = line[:-1]
+            else:
+                last_line += line[:-1]
+        else:
+            if last_line is not None:
+                yield last_line
+                last_line = None
+            yield line
+    
+    if last_line is not None:
+        yield last_line
+
+
+def remove_newlines(lines: typing.Iterable[str]) -> typing.Iterable[str]:
+    for line in lines:
+        yield line.replace('\n', '').replace('\r', '')
+
 ###############################################################################
 
 def indent_for_depth(depth: int) -> str:
@@ -528,6 +551,20 @@ def handle_ls_proj_in_sln(args):
     print()
 
 
+def handle_lines(args):
+    filename = os.path.abspath(args.file)
+
+    with open(filename, 'r') as f:
+        lines = [line.lstrip() for line in remove_cpp_comments(join_lines(remove_newlines(f)))]
+
+        if args.statements:
+            statements = parse_to_statements(lines)
+            for statement in statements:
+                print(statement)
+        else:
+            for line in lines:
+                print(line)
+
 
 def main():
     parser = argparse.ArgumentParser(description='Tool to list headers')
@@ -538,6 +575,11 @@ def main():
     file_parser = subs.add_parser('file', help='List headers in a single file')
     file_parser.add_argument('filename', help='File to list headers in')
     file_parser.set_defaults(func=lambda args: handle_file(args))
+
+    line_parser = subs.add_parser('lines', help='List lines in a single file')
+    line_parser.add_argument('file', help='File to list lines in')
+    line_parser.add_argument('--statements', action='store_true', help='List statements instead')
+    line_parser.set_defaults(func=lambda args: handle_lines(args))
 
     file_parser = subs.add_parser('project', help='find files in a vs project file')
     file_parser.add_argument('filename', help='project file')
