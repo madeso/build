@@ -5,6 +5,7 @@ import subprocess
 import typing
 import shutil
 import os
+import shlex
 
 import buildtools.core as core
 
@@ -114,12 +115,12 @@ class CMake:
         core.verify_dir_exist(self.build_folder)
         if core.is_windows():
             if only_print:
-                print(command, flush=True)
+                print(f'Configuring cmake: {shlex.join(command)}', flush=True)
             else:
                 core.flush()
                 subprocess.check_call(command, cwd=self.build_folder)
         else:
-            print('Configuring cmake', command, flush=True)
+            print(f'Configuring cmake: {shlex.join(command)}', flush=True)
 
     def build_cmd(self, install: bool):
         """run cmake build step"""
