@@ -190,6 +190,23 @@ def add_dependency_python(data: Data):
     data.add_dependency(d)
 
 
+def add_dependency_assimp(data: Data):
+    """add assimp dependency"""
+    assimp_folder = os.path.join(data.dependency_dir, 'assimp')
+    assimp_install_folder = os.path.join(assimp_folder, 'cmake-install')
+
+    def add_assimp_arguments(cmake: btcmake.CMake, env: BuildEnviroment):
+        cmake.add_argument('ASSIMP_ROOT_DIR', assimp_install_folder)
+    
+    def install_assimp_dependency(build: BuildEnviroment):
+        btdeps.install_dependency_assimp(data.dependency_dir, assimp_folder, assimp_install_folder, build.get_generator())
+
+    def status_assimp_dependency() -> typing.List[str]:
+        return [f'Root: {assimp_folder}', f'Install: {assimp_install_folder}']
+
+    d = Dependency('assimp', add_assimp_arguments, install_assimp_dependency, status_assimp_dependency)
+    data.add_dependency(d)
+
 ###############################################################################
 
 
