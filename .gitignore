@@ -101,3 +101,7 @@ ENV/
 .mypy_cache/
 
 .idea/*
+
+# Added by cargo
+
+/target
