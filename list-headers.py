@@ -14,6 +14,7 @@ import typing
 import itertools
 import xml.etree.ElementTree as ET
 import difflib
+import abc
 
 def find_file(filename: str, include_dirs: list = []) -> typing.Optional[str]:
     for include_dir in include_dirs:
@@ -23,30 +24,115 @@ def find_file(filename: str, include_dirs: list = []) -> typing.Optional[str]:
     return None
 
 
-class Statement:
+class Condition(abc.ABC):
     pass
+
+class BooleanAndCondition(Condition):
+    def __init__(self, conditions: typing.Iterable[Condition]):
+        self.conditions = list(conditions)
+    def __str__(self):
+        return ') && ('.join(map(str, self.conditions))
+
+class BooleanOrCondition(Condition):
+    def __init__(self, conditions: typing.Iterable[Condition]):
+        self.conditions = list(conditions)
+    def __str__(self):
+        return ') || ('.join(map(str, self.conditions))
+
+class BooleanNotCondition(Condition):
+    def __init__(self, condition: Condition):
+        self.condition = condition
+    def __str__(self):
+        return f'!({self.condition})'
+
+class IsDefinedCondition(Condition):
+    def __init__(self, name: str):
+        self.name = name
+    def __str__(self):
+        return f'defined({self.name})'
+
+class IntCompareCondition(Condition):
+    def __init__(self, lhs: str, op: str, rhs: str):
+        self.lhs = lhs
+        self.op = op
+        self.rhs = rhs
+    
+    def __str__(self):
+        return f'{self.lhs} {self.op} {self.rhs}'
+
+
+def simple_lexer(data: str) -> typing.Iterable[str]:
+    last = None
+    memory = ''
+    for c in data:
+        if last is None:
+            if c == '&':
+                last = '&'
+            elif c == '|':
+                last = '|'
+            elif c == '!':
+                if memory != '':
+                    yield memory
+                    memory = ''
+                yield c
+            elif c == '(':
+                if memory != '':
+                    yield memory
+                    memory = ''
+                yield c
+            elif c == ')':
+                if memory != '':
+                    yield memory
+                    memory = ''
+                yield c
+            elif c == ' ':
+                if memory != '':
+                    yield memory
+                    memory = ''
+            else:
+                memory += c
+        elif last is not None:
+            if c == '&' and last == '&':
+                yield '&&'
+                last = None
+                memory = ''
+            elif c == '|' and last == '|':
+                yield '||'
+                last = None
+                memory = ''
+            else:
+                memory += last
+                memory += c
+                last = None
+    
+    if last is not None:
+        memory += last
+    if memory != '':
+        yield memory
+
+
+class Statement(abc.ABC):
+    pass
+
 
 class Command(Statement):
     def __init__(self, name: str, value: str):
         self.name = name
         self.value = value
-    
-    def __str__(self):
-        return f'<{self.name}>: <{self.value}>'
 
 
 class Block(Statement):
-    def __init__(self, name: str, condition: str, true_block: typing.List[Statement], false_block: typing.List[Statement]):
+    def __init__(self, name: str, condition: Condition, true_block: typing.List[Statement], false_block: typing.List[Statement]):
         self.name = name
         self.condition = condition
         self.true_block = true_block
         self.false_block = false_block
-    
-    def __str__(self):
-        return self.name + " " + self.condition + " " + " ".join(map(str, self.true_block)) + " " + " ".join(map(str, self.false_block))
 
-class Commands:
-    def __init__(self, commands: typing.Iterable[Command]):
+
+T = typing.TypeVar('T')
+
+class Commands(typing.Generic[T]):
+    def __init__(self, commands: typing.Iterable[T]):
         self.commands = list(commands)
         self.index = 0
 
@@ -62,11 +148,11 @@ class Commands:
         if not self.validate_index():
             raise Exception(f"Invalid index {self.index} {len(self.commands)}")
 
-    def peek(self) -> Command:
+    def peek(self) -> T:
         self.expect_validate_index()
         return self.commands[self.index]
     
-    def opeek(self) -> typing.Optional[Command]:
+    def opeek(self) -> typing.Optional[T]:
         if self.validate_index():
             return self.commands[self.index]
         return None
@@ -76,35 +162,119 @@ class Commands:
     
     def undo(self):
         self.index -= 1
+
+    def read(self) -> T:
+        self.expect_valid_index()
+        c = self.commands[self.index]
+        self.index += 1
+        return c
     
-    def iter(self):
+    def iter(self) -> typing.Iterable[T]:
         while self.index < len(self.commands):
-            self.expect_valid_index()
-            c = self.commands[self.index]
-            self.index += 1
-            yield c
+            yield self.read()
 
 
-def is_if_start(name: str) -> bool:
-    return name == 'if' or name == 'ifdef' or name == 'ifndef'
+def print_statements(statements: typing.Iterable[Statement], depth: int):
+    for statement in statements:
+        if isinstance(statement, Command):
+            print(f'{indent_for_depth(depth)}{statement.name}: <{statement.value}>')
+        elif isinstance(statement, Block):
+            print(f"{indent_for_depth(depth)}:{statement.name}: <{statement.condition}>")
+            if len(statement.true_block) > 0:
+                print(f"{indent_for_depth(depth)}TRUE:")
+                print_statements(statement.true_block, depth+1)
+            if len(statement.false_block) > 0:
+                print(f"{indent_for_depth(depth)}FALSE:")
+                print_statements(statement.false_block, depth+1)
+        else:
+            raise Exception(f"Unhandled case: {statement}")
 
 
-def peek_name(commands: Commands) -> str:
+def peek_name(commands: Commands[Command]) -> str:
     p = commands.opeek()
     if p:
         return p.name
     return ''
 
-def group_commands(commands: Commands, depth: int) -> typing.Iterable[Statement]:
+
+def eval_block(statement: Block) -> bool:
+    if statement.name == 'ifdef':
+        is_true = statement.condition in self.defines 
+    elif statement.name == 'ifndef':
+        is_true = statement.condition not in self.defines
+    elif statement.name == 'if' and statement.condition.startswith('!defined('):
+        prop = statement.condition[9:-1].strip()
+        if prop != prop.split()[0]:
+            raise Exception(f'{indent_for_depth(depth)}unknown ifdef: {statement.condition}')
+        is_true = prop not in self.defines
+    elif statement.name == 'if' and '>' in statement.condition:
+        var, val = [s.strip() for s in statement.condition.split('>', maxsplit=1)]
+        if var in self.defines:
+            is_true = int(self.defines[var]) < int(val)
+        else:
+            is_true = False
+            print(f'{indent_for_depth(depth)} {var} not defined, expected integer for comparing..')
+    else:
+        raise Exception(f'{filename}: unhandled #if argument({statement.name}): {statement.condition}')
+        is_true = True
+    
+    return is_true
+
+
+def parse_block_structure(commands: Commands[Command], group: Block, depth: int):
+    group.true_block = list(group_commands(commands, depth+1))
+    if peek_name(commands) == 'else':
+        commands.skip()
+        group.false_block = list(group_commands(commands, depth+1))
+    if peek_name(commands) == 'endif':
+        commands.skip()
+
+
+def expect_condition(tokens: Commands[str]) -> Condition:
+    t = tokens.peek()
+    if t.startswith('defined'):
+        tokens.skip()
+        if token.read() != '(':
+            raise Exception(f'{filename}: expected ( to open defined')
+        var = token.read()
+        if token.read() != ')':
+            raise Exception(f'{filename}: expected ) to close defined({var}')
+        return IsDefinedCondition(var)
+    elif t.startswith('!'):
+        tokens.skip()
+        return NotCondition(expect_condition(tokens))
+    elif t.startswith('('):
+        tokens.skip()
+        c = expect_condition(tokens)
+        if token.read() != ')':
+            raise Exception(f'{filename}: expected ) to close block')
+        return c
+    else:
+        tokes.skip()
+        return t
+
+def parse_general_condition(value: str) -> Condition:
+    tokens = simple_lexer(value)
+    tokens = Commands(t.strip() for t in tokens)
+    # for tok in tokens.iter():
+
+
+def parse_def_condition(value: str) -> Condition:
+    return DefinedCondition(value)
+
+def group_commands(commands: Commands[Command], depth: int) -> typing.Iterable[Statement]:
     for command in commands.iter():
-        if is_if_start(command.name):
-            group = Block(command.name, command.value, [], [])
-            group.true_block = list(group_commands(commands, depth+1))
-            if peek_name(commands) == 'else':
-                commands.skip()
-                group.false_block = list(group_commands(commands, depth+1))
-            if peek_name(commands) == 'endif':
-                commands.skip()
+        if command.name == 'if':
+            group = Block(command.name, parse_general_condition(command.value), [], [])
+            parse_block_structure(commands, group, depth)
+            yield group
+        elif command.name == 'ifdef':
+            group = Block(command.name, parse_def(command.value), [], [])
+            parse_block_structure(commands, group, depth)
+            yield group
+        if command.name == 'ifndef':
+            group = Block(command.name, BooleanNotCondition(parse_def(command.value)), [], [])
+            parse_block_structure(commands, group, depth)
             yield group
         elif command.name == 'else':
             commands.undo()
@@ -207,32 +377,14 @@ class State:
             if isinstance(statement, Command):
                 self.on_statement(statement, include_dirs, depth, filename)
             elif isinstance(statement, Block):
-                is_true = False
-                
-                if statement.name == 'ifdef':
-                   is_true = statement.condition in self.defines 
-                elif statement.name == 'ifndef':
-                    is_true = statement.condition not in self.defines
-                elif statement.name == 'if' and statement.condition.startswith('!defined('):
-                    prop = statement.condition[9:-1].strip()
-                    if prop != prop.split()[0]:
-                        raise Exception(f'{indent_for_depth(depth)}unknown ifdef: {statement.condition}')
-                    is_true = prop not in self.defines
-                elif statement.name == 'if' and '>' in statement.condition:
-                    var, val = [s.strip() for s in statement.condition.split('>', maxsplit=1)]
-                    if var in self.defines:
-                        is_true = int(self.defines[var]) < int(val)
-                    else:
-                        is_true = False
-                        print(f'{indent_for_depth(depth)} {var} not defined, expected integer for comparing..')
-                else:
-                    raise Exception(f'{filename}: unhandled #if argument({statement.name}): {statement.condition}')
-                    is_true = True
+                is_true = eval_block(statement)
                 
                 if is_true:
                     self.process_statements(statement.true_block, include_dirs, depth, filename)
                 else:
                     self.process_statements(statement.false_block, include_dirs, depth, filename)
+            else:
+                raise Exception(f"Unhandled case: {statement}")
 
 
 def list_include_headers(filename: str, arg_include_dirs: list, on_not_found, on_found, defines: typing.Dict[str, str]):
@@ -559,8 +711,7 @@ def handle_lines(args):
 
         if args.statements:
             statements = parse_to_statements(lines)
-            for statement in statements:
-                print(statement)
+            print_statements(statements, 0)
         else:
             for line in lines:
                 print(line)
