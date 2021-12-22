@@ -42,7 +42,31 @@ fn find_cmake_in_registry(printer: &mut printer::Printer) -> found::Found
 }
 
 
+fn find_cmake_in_path(printer: &mut printer::Printer) -> found::Found
+{
+    let path_source = "path".to_string();
+    match which::which("cmake")
+    {
+        Err(_) => found::Found::new(None, path_source),
+        Ok(bpath) =>
+        {
+            let spath = bpath.as_path();
+            let path = spath.to_str().unwrap();
+            if spath.exists()
+            {
+                found::Found::new(Some(path.to_string()), path_source)
+            }
+            else
+            {
+                printer.error(format!("Found path to cmake in path ({}) but it didn't exist", path).as_str());
+                found::Found::new(None, path_source)
+            }
+        }
+    }
+}
+
+
 pub fn list_all(printer: &mut printer::Printer) -> Vec::<found::Found>
 {
-    vec![find_cmake_in_registry(printer)]
+    vec![find_cmake_in_registry(printer), find_cmake_in_path(printer)]
 }
