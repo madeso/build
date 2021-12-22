@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
+use std::fs;
 
 
 pub struct Printer
@@ -21,12 +22,8 @@ impl Printer
     }
 
     // print a "pretty" header to the terminal
-    pub fn header(&self, project_name: &str)
-    {
-        self.header_with_custom_char(project_name, "-");
-    }
-
-    pub fn header_with_custom_char(&self, project_name: &str, header_character: &str)
+    pub fn header(&self, project_name: &str) { self.header_with_custom_char(project_name, "-"); }
+    fn header_with_custom_char(&self, project_name: &str, header_character: &str)
     {
         // todo(Gustav): replace len with https://stackoverflow.com/a/46290728 if needed
         // or with https://users.rust-lang.org/t/fill-string-with-repeated-character/1121/9
@@ -64,7 +61,8 @@ impl Printer
         println!("ERROR: {}", text);
     }
 
-    pub fn file(&self, path: &str)
+    // print the contents of a single file
+    pub fn cat(&self, path: &str)
     {
         if let Ok(lines) = read_lines(path)
         {
@@ -80,6 +78,31 @@ impl Printer
         else
         {
             println!("Failed to open '{}'", path);
+        }
+    }
+
+    // print files and folder recursivly
+    pub fn ls(&self, root: &str) { self.ls_recursive(root, ""); }
+    fn ls_recursive(&self, root: &str, start: &str)
+    {
+        let ident = " ".repeat(4);
+
+        let paths = fs::read_dir(root).unwrap();
+        for file_path in paths
+        {
+            let pp = file_path.unwrap().path();
+            let path = pp.as_path();
+            let file = path.file_name().unwrap().to_str().unwrap();
+
+            if path.is_file()
+            {
+                println!("{}{}", start, file);
+            }
+            else
+            {
+                println!("{}{}/", start, file);
+                self.ls_recursive(path.to_str().unwrap(), format!("{}{}", start, ident).as_str());
+            }
         }
     }
 
