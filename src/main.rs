@@ -4,6 +4,7 @@ mod cmake;
 mod found;
 mod builddata;
 mod core;
+mod buildenv;
 
 use structopt::StructOpt;
 
@@ -72,7 +73,10 @@ fn handle_build_status(printer: &mut printer::Printer)
         return;
     }
     let data = loaded_data.unwrap();
+    let env = buildenv::load_from_file(&data.get_path_to_settings(), Some(printer));
+
     printer.info(format!("Project: {}", data.name).as_str());
+    printer.info(format!("Enviroment: {:?}", env).as_str());
     printer.info("");
     printer.info(format!("Data: {}", data.get_path_to_settings().to_string_lossy()).as_str());
     printer.info(format!("Root: {}", data.root_dir.to_string_lossy()).as_str());
