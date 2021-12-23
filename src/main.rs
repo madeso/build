@@ -33,7 +33,12 @@ fn handle_demo(print: &mut printer::Printer)
 
 fn print_found_list(printer: &printer::Printer, name: &str, list: &Vec::<found::Found>)
 {
-    printer.info(format!("{}:", name).as_str());
+    let found = match found::first_value_or_none(list)
+    {
+        Some(res) => format!("{}", res),
+        None => "<None>".to_string()
+    };
+    printer.info(format!("{}: {}", name, found).as_str());
     for f in list
     {
         printer.info(format!("    {}", f).as_str());

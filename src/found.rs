@@ -26,3 +26,23 @@ impl fmt::Display for Found
         }
     }
 }
+
+
+pub fn first_value_or_none(founds: &[Found]) -> Option<String>
+{
+    match founds.iter().filter
+    (
+        |found|
+        {
+            match found.value
+            {
+                Some(_) => true,
+                None => false
+            }
+        }
+    ).next()
+    {
+        Some(f) => Some(f.value.as_ref().unwrap().to_string()),
+        None => None
+    }
+}
