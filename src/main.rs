@@ -2,8 +2,18 @@ mod printer;
 mod registry;
 mod cmake;
 mod found;
+mod builddata;
+mod core;
 
 use structopt::StructOpt;
+
+
+#[derive(StructOpt, Debug)]
+enum Build
+{
+    Status {}
+}
+
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "wb")]
@@ -21,6 +31,7 @@ enum WorkbenchArguments
     }
     , Demo {}
     , Debug {}
+    , Build(Build)
 }
 
 
@@ -51,6 +62,20 @@ fn handle_debug(printer: &mut printer::Printer)
     print_found_list(printer, "cmake", &cmakes);
 }
 
+
+fn handle_build_status(printer: &mut printer::Printer)
+{
+    let loaded_data = builddata::load();
+    if let Err(err) = loaded_data
+    {
+        printer.error(format!("Unable to load the data: {}", err).as_str());
+        return;
+    }
+    let data = loaded_data.unwrap();
+    printer.info(format!("Project: {}", data.name).as_str());
+}
+
+
 fn main() {
     let args = WorkbenchArguments::from_args();
     let mut print = printer::Printer::new();
@@ -61,6 +86,10 @@ fn main() {
         , WorkbenchArguments::Cat{path} => print.cat(path.as_str())
         , WorkbenchArguments::Demo{} => handle_demo(&mut print)
         , WorkbenchArguments::Debug{} => handle_debug(&mut print)
+        , WorkbenchArguments::Build(build) => match build
+        {
+            Build::Status{} => handle_build_status(&mut print)
+        }
     }
     
 
