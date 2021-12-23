@@ -73,6 +73,11 @@ fn handle_build_status(printer: &mut printer::Printer)
     }
     let data = loaded_data.unwrap();
     printer.info(format!("Project: {}", data.name).as_str());
+    printer.info("");
+    printer.info(format!("Data: {}", data.get_path_to_settings().to_string_lossy()).as_str());
+    printer.info(format!("Root: {}", data.root_dir.to_string_lossy()).as_str());
+    printer.info(format!("Build: {}", data.build_dir.to_string_lossy()).as_str());
+    printer.info(format!("Dependencies: {}", data.dependency_dir.to_string_lossy()).as_str());
 }
 
 
