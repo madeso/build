@@ -12,7 +12,12 @@ use structopt::StructOpt;
 #[derive(StructOpt, Debug)]
 enum Build
 {
-    Status {}
+    Status {},
+    Run
+    {
+        #[structopt(flatten)]
+        env: buildenv::EnviromentArgument
+    }
 }
 
 
@@ -97,7 +102,8 @@ fn main() {
         , WorkbenchArguments::Debug{} => handle_debug(&mut print)
         , WorkbenchArguments::Build(build) => match build
         {
-            Build::Status{} => handle_build_status(&mut print)
+            Build::Status{} => handle_build_status(&mut print),
+            Build::Run{env} => println!("{:?}", env)
         }
     }
     
