@@ -13,7 +13,7 @@ use crate::
 
 
 // list of compilers
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum Compiler
 {
     VS2015,
@@ -24,7 +24,7 @@ pub enum Compiler
 
 
 // list of platforms
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum Platform
 {
     AUTO,
@@ -98,6 +98,93 @@ impl BuildEnviroment
             compiler: None,
             platform: None
         }
+    }
+
+    // update the build environment from an argparse namespace
+    pub fn update_from_args(&mut self, printer: &mut printer::Printer, args: &EnviromentArgument)
+    {
+        match &args.compiler
+        {
+            None => {},
+            Some(new_compiler) =>
+            {
+                match &self.compiler
+                {
+                    None =>  {self.compiler = Some(new_compiler.clone());},
+                    Some(current_compiler) =>
+                    {
+                        if current_compiler != new_compiler
+                        {
+                            if args.force
+                            {
+                                printer.warning(format!("Compiler changed via argument from {:#?} to {:#?}", current_compiler, new_compiler).as_str());
+                                self.compiler = Some(new_compiler.clone());
+                            }
+                            else
+                            {
+                                printer.error(format!("Compiler changed via argument from {:#?} to {:#?}", current_compiler, new_compiler).as_str());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        match &args.platform
+        {
+            None => {},
+            Some(new_platform) =>
+            {
+                match &self.platform
+                {
+                    None =>  {self.platform = Some(new_platform.clone());},
+                    Some(current_platform) =>
+                    {
+                        if current_platform != new_platform
+                        {
+                            if args.force
+                            {
+                                printer.warning(format!("Platform changed via argument from {:#?} to {:#?}", current_platform, new_platform).as_str());
+                                self.platform = Some(new_platform.clone());
+                            }
+                            else
+                            {
+                                printer.error(format!("Platform changed via argument from {:#?} to {:#?}", current_platform, new_platform).as_str());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    // validate the build environment
+    pub fn validate(&self, printer: &mut printer::Printer) -> bool
+    {
+        let mut status = true;
+        
+        match self.compiler
+        {
+            None =>
+            {
+                printer.error("Compiler not set");
+                status = false;
+            },
+            _ => {}
+        };
+        
+        match self.platform
+        {
+            None =>
+            {
+                printer.error("Platform not set");
+                status = false;
+            },
+            _ => {}
+        };
+
+        status
     }
 }
 

@@ -61,6 +61,11 @@ impl Printer
         println!("ERROR: {}", text);
     }
 
+    pub fn warning(&mut self, text: &str)
+    {
+        println!("WARNING: {}", text);
+    }
+
     // print the contents of a single file
     pub fn cat(&self, path: &str)
     {

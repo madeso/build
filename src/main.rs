@@ -89,6 +89,24 @@ fn handle_build_status(printer: &mut printer::Printer)
     printer.info(format!("Dependencies: {}", data.dependency_dir.to_string_lossy()).as_str());
 }
 
+fn handle_build_run(printer: &mut printer::Printer, args: &buildenv::EnviromentArgument)
+{
+    let loaded_data = builddata::load();
+    if let Err(err) = loaded_data
+    {
+        printer.error(format!("Unable to load the data: {}", err).as_str());
+        return;
+    }
+    let data = loaded_data.unwrap();
+    let mut env = buildenv::load_from_file(&data.get_path_to_settings(), Some(printer));
+    env.update_from_args(printer, args);
+    if env.validate(printer) == false
+    {
+        return;
+    }
+
+    println!("{:?}", env)
+}
 
 fn main() {
     let args = WorkbenchArguments::from_args();
@@ -103,7 +121,7 @@ fn main() {
         , WorkbenchArguments::Build(build) => match build
         {
             Build::Status{} => handle_build_status(&mut print),
-            Build::Run{env} => println!("{:?}", env)
+            Build::Run{env} => handle_build_run(&mut print, &env)
         }
     }
     
