@@ -38,11 +38,14 @@ impl FromStr for Compiler {
     type Err = String;
 
     fn from_str(input: &str) -> Result<Compiler, Self::Err> {
-        match input {
-            "VS2015" => Ok(Compiler::VS2015),
-            "VS2017" => Ok(Compiler::VS2017),
-            "VS2019" => Ok(Compiler::VS2019),
-            "VS2022" => Ok(Compiler::VS2022),
+        match input.to_ascii_lowercase().as_str() {
+            "vs2015" => Ok(Compiler::VS2015),
+            "vs2017" => Ok(Compiler::VS2017),
+            "vs2019" => Ok(Compiler::VS2019),
+            "vs2022" => Ok(Compiler::VS2022),
+            // github actions installed compiler
+            "windows-2016" => Ok(Compiler::VS2017),
+            "windows-2019" => Ok(Compiler::VS2019),
             _        => Err("invalid compiler".to_string()),
         }
     }
@@ -54,10 +57,11 @@ impl FromStr for Platform {
     type Err = String;
 
     fn from_str(input: &str) -> Result<Platform, Self::Err> {
-        match input {
-            "AUTO"  => Ok(Platform::AUTO),
-            "WIN32" => Ok(Platform::WIN32),
-            "X64"   => Ok(Platform::X64),
+        match input.to_ascii_lowercase().as_str() {
+            "auto"  => Ok(Platform::AUTO),
+            "win32" => Ok(Platform::WIN32),
+            "x64"   => Ok(Platform::X64),
+            "win64" => Ok(Platform::X64),
             _       => Err("Invalid platform".to_string()),
         }
     }
