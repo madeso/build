@@ -59,7 +59,7 @@ fn load_from_dir(root: &Path) -> Result<BuildData, String>
     let mut file = PathBuf::new();
     file.push(root);
     file.push("project.wb.json");
-    let content = core::read_file_to_string(&file).ok_or("Unable to read file")?;
+    let content = core::read_file_to_string(&file).ok_or(format!("Unable to read file: {}", file.to_string_lossy()))?;
     let data : Result<ProjectFile, serde_json::error::Error> = serde_json::from_str(&content);
     match data
     {
