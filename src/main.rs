@@ -6,6 +6,7 @@ mod builddata;
 mod core;
 mod buildenv;
 mod cmd;
+mod build;
 
 use structopt::StructOpt;
 
@@ -78,24 +79,24 @@ enum WorkbenchArguments
 // generate the ride project
 fn generate_cmake_project(build: &buildenv::BuildEnviroment, data: &builddata::BuildData) -> cmake::CMake
 {
-    let project = cmake::CMake::new(&data.build_dir, &data.root_dir, build.get_cmake_generator());
+    let mut project = cmake::CMake::new(&data.build_dir, &data.root_dir, build.get_cmake_generator());
 
-    // todo(Gustav): add dependencies
-    // for dep in data.dependencies:
-    //    dep.add_cmake_arguments(project, build)
+    for dep in &data.dependencies
+    {
+        dep.add_cmake_arguments(&mut project, build)
+    }
 
     return project
 }
 
 
 // install dependencies
-fn run_install(_build: &buildenv::BuildEnviroment, _data: &builddata::BuildData)
+fn run_install(env: &buildenv::BuildEnviroment, data: &builddata::BuildData, print: &mut printer::Printer)
 {
-    // todo(Gustav): add dependencies
-    // for dep in data.dependencies
-    // {
-    //     dep.install(build);
-    // }
+    for dep in &data.dependencies
+    {
+        dep.install(env, print, data);
+    }
 }
 
 
@@ -109,8 +110,7 @@ fn run_cmake(build: &buildenv::BuildEnviroment, data: &builddata::BuildData, pri
 // save the build environment to the settings file
 fn save_build(build: &buildenv::BuildEnviroment, data: &builddata::BuildData)
 {
-    // todo(Gustav): implmement this
-    // os.makedirs(data.build_base_dir, exist_ok=True)
+    core::verify_dir_exist(&data.build_base_dir);
     build.save_to_file(&data.get_path_to_settings())
 }
 
@@ -163,6 +163,16 @@ fn handle_build_status(printer: &mut printer::Printer)
     printer.info(format!("Root: {}", data.root_dir.to_string_lossy()).as_str());
     printer.info(format!("Build: {}", data.build_dir.to_string_lossy()).as_str());
     printer.info(format!("Dependencies: {}", data.dependency_dir.to_string_lossy()).as_str());
+    let indent = " ".repeat(4);
+    for dep in data.dependencies
+    {
+        printer.info(format!("{}{}", indent, dep.get_name()).as_str());
+        let lines = dep.status();
+        for line in lines
+        {
+            printer.info(format!("{}{}{}", indent, indent, line).as_str());
+        }
+    }
 }
 
 fn handle_generic_build<Callback>(printer: &mut printer::Printer, args: &buildenv::EnviromentArgument, callback: Callback)
@@ -202,10 +212,10 @@ fn main() {
             Build::Install{env} => handle_generic_build
                 (
                     &mut print, &env,
-                    |_printer: &mut printer::Printer, build: &buildenv::BuildEnviroment, data: &builddata::BuildData|
+                    |printer: &mut printer::Printer, build: &buildenv::BuildEnviroment, data: &builddata::BuildData|
                     {
                         save_build(build, data);
-                        run_install(build, data);
+                        run_install(build, data, printer);
                     }
                 ),
             Build::Cmake{env, print: arg_print} => handle_generic_build
@@ -223,7 +233,7 @@ fn main() {
                     |printer: &mut printer::Printer, build: &buildenv::BuildEnviroment, data: &builddata::BuildData|
                     {
                         save_build(build, data);
-                        run_install(build, data);
+                        run_install(build, data, printer);
                         run_cmake(build, data, printer, false);
                     }
                 ),

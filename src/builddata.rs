@@ -5,6 +5,7 @@ use serde::{Serialize, Deserialize};
 
 use crate::
 {
+    build,
     core
 };
 
@@ -12,14 +13,16 @@ use crate::
 #[derive(Serialize, Deserialize, Debug)]
 struct ProjectFile
 {
-    name: String
+    name: String,
+    dependencies: Vec<build::DependencyName>
 }
 
 
-#[derive(Debug)]
+// #[derive(Debug)]
 pub struct BuildData
 {
     pub name: String,
+    pub dependencies: Vec<Box<dyn build::Dependency>>,
     pub root_dir: PathBuf,
     pub build_base_dir: PathBuf,
     pub build_dir: PathBuf,
@@ -37,6 +40,7 @@ impl BuildData
         BuildData
         {
             name: name.to_string(),
+            dependencies: vec!(),
             root_dir: root_dir.to_path_buf(),
             build_base_dir: build_base_dir,
             build_dir: build_dir,
@@ -64,10 +68,14 @@ fn load_from_dir(root: &Path) -> Result<BuildData, String>
     match data
     {
         Ok(loaded) =>
-            Ok
-            (
-                BuildData::new(&loaded.name, root)
-            ),
+        {
+            let mut bd = BuildData::new(&loaded.name, root);
+            for dependency_name in loaded.dependencies
+            {
+                bd.dependencies.push(build::create(&dependency_name, &bd));
+            }
+            Ok(bd)
+        },
         Err(error) => Err(format!("Unable to parse json {}: {}", file.to_string_lossy(), error))
     }
 }

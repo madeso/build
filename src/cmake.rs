@@ -178,9 +178,9 @@ impl CMake
     }
 
     // set the install folder
-    pub fn set_install_folder(&mut self, folder: String)
+    pub fn set_install_folder(&mut self, folder: &Path)
     {
-        self.add_argument_with_type("CMAKE_INSTALL_PREFIX".to_string(), folder, "PATH".to_string())
+        self.add_argument_with_type("CMAKE_INSTALL_PREFIX".to_string(), folder.to_string_lossy().to_string(), "PATH".to_string())
     }
 
     // set cmake to make static (not shared) library

@@ -36,7 +36,22 @@ pub fn is_windows() -> bool
     }
 }
 
-pub fn verify_dir_exist(_: &Path)
+pub fn verify_dir_exist(_dir: &Path)
+{
+    // todo(Gustav): implement me!
+}
+
+pub fn download_file(_url: &str, _dest: &Path)
+{
+    // todo(Gustav): implement me!
+}
+
+pub fn move_files(_from: &Path, _to: &Path)
+{
+    // todo(Gustav): implement me!
+}
+
+pub fn extract_zip(_zip: &Path, _to: &Path)
 {
     // todo(Gustav): implement me!
 }
