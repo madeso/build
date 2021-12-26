@@ -10,3 +10,33 @@ pub fn read_file_to_string(path: &Path) -> Option<String>
     Some(contents)
 }
 
+
+// check if the script is running on 64bit or not 
+pub fn is_64bit() -> bool
+{
+    if cfg!(target_pointer_width = "64")
+    {
+        true
+    }
+    else
+    {
+        false
+    }
+}
+
+pub fn is_windows() -> bool
+{
+    if cfg!(target_os = "windows")
+    {
+        true
+    }
+    else
+    {
+        false
+    }
+}
+
+pub fn verify_dir_exist(_: &Path)
+{
+    // todo(Gustav): implement me!
+}

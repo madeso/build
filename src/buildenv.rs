@@ -1,5 +1,6 @@
 use std::path::Path;
 use std::str::FromStr;
+use std::fs;
 
 use serde::{Serialize, Deserialize};
 use structopt::StructOpt;
@@ -8,6 +9,7 @@ use structopt::StructOpt;
 use crate::
 {
     core,
+    cmake,
     printer
 };
 
@@ -68,6 +70,48 @@ impl FromStr for Platform {
 }
 
 
+fn is_64bit(platform: &Platform) -> bool
+{
+    match platform
+    {
+        Platform::AUTO => {core::is_64bit()},
+        Platform::WIN32 => {false},
+        Platform::X64 => {true}
+    }
+}
+
+
+fn create_cmake_arch(platform: &Platform) -> &'static str
+{
+    if is_64bit(platform)
+    {
+        "x64"
+    }
+    else
+    {
+        "Win32"
+    }
+}
+
+// gets the visual studio cmake generator argument for the compiler and platform
+fn create_cmake_generator(compiler: &Compiler, platform: &Platform) -> cmake::Generator
+{
+    match compiler
+    {
+        Compiler::VS2015 =>
+        {
+            if is_64bit(platform) { cmake::Generator::new("Visual Studio 14 2015 Win64") }
+            else { cmake::Generator::new("Visual Studio 14 2015") }
+        },
+        Compiler::VS2017 =>
+        {
+            if is_64bit(platform) { cmake::Generator::new("Visual Studio 15 Win64") }
+            else { cmake::Generator::new("Visual Studio 15") }
+        },
+        Compiler::VS2019 => { cmake::Generator::new_with_arch("Visual Studio 16 2019", create_cmake_arch(platform))},
+        Compiler::VS2022 => { cmake::Generator::new_with_arch("Visual Studio 17 2022", create_cmake_arch(platform))}
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BuildEnviroment
@@ -98,6 +142,11 @@ impl BuildEnviroment
             compiler: None,
             platform: None
         }
+    }
+
+    pub fn get_cmake_generator(&self) -> cmake::Generator
+    {
+        create_cmake_generator(&self.compiler.as_ref().unwrap(), &self.platform.as_ref().unwrap())
     }
 
     // update the build environment from an argparse namespace
@@ -185,6 +234,12 @@ impl BuildEnviroment
         };
 
         status
+    }
+
+    pub fn save_to_file(&self, path: &Path)
+    {
+        let data = serde_json::to_string(&self).unwrap();
+        fs::write(path, data).expect("Unable to write file");
     }
 }
 

@@ -5,6 +5,7 @@ mod found;
 mod builddata;
 mod core;
 mod buildenv;
+mod cmd;
 
 use structopt::StructOpt;
 
@@ -12,8 +13,38 @@ use structopt::StructOpt;
 #[derive(StructOpt, Debug)]
 enum Build
 {
-    Status {},
-    Run
+    Status
+    {
+        // #[structopt(flatten)]
+        // env: buildenv::EnviromentArgument
+    },
+
+    /// Install dependencies
+    Install
+    {
+        #[structopt(flatten)]
+        env: buildenv::EnviromentArgument
+    },
+
+    /// Configure cmake project
+    Cmake
+    {
+        #[structopt(flatten)]
+        env: buildenv::EnviromentArgument,
+
+        #[structopt(long)]
+        print: bool
+    },
+    
+    /// Dev is install+cmake
+    Dev
+    {
+        #[structopt(flatten)]
+        env: buildenv::EnviromentArgument
+    },
+
+    /// Build the project
+    Build
     {
         #[structopt(flatten)]
         env: buildenv::EnviromentArgument
@@ -39,6 +70,51 @@ enum WorkbenchArguments
     , Debug {}
     , Build(Build)
 }
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// generate the ride project
+fn generate_cmake_project(build: &buildenv::BuildEnviroment, data: &builddata::BuildData) -> cmake::CMake
+{
+    let project = cmake::CMake::new(&data.build_dir, &data.root_dir, build.get_cmake_generator());
+
+    // todo(Gustav): add dependencies
+    // for dep in data.dependencies:
+    //    dep.add_cmake_arguments(project, build)
+
+    return project
+}
+
+
+// install dependencies
+fn run_install(_build: &buildenv::BuildEnviroment, _data: &builddata::BuildData)
+{
+    // todo(Gustav): add dependencies
+    // for dep in data.dependencies
+    // {
+    //     dep.install(build);
+    // }
+}
+
+
+// configure the euphoria cmake project
+fn run_cmake(build: &buildenv::BuildEnviroment, data: &builddata::BuildData, printer: &mut printer::Printer, only_print: bool)
+{
+    generate_cmake_project(build, data).config_with_print(printer, only_print)
+}
+
+
+// save the build environment to the settings file
+fn save_build(build: &buildenv::BuildEnviroment, data: &builddata::BuildData)
+{
+    // todo(Gustav): implmement this
+    // os.makedirs(data.build_base_dir, exist_ok=True)
+    build.save_to_file(&data.get_path_to_settings())
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 fn handle_demo(print: &mut printer::Printer)
@@ -89,7 +165,8 @@ fn handle_build_status(printer: &mut printer::Printer)
     printer.info(format!("Dependencies: {}", data.dependency_dir.to_string_lossy()).as_str());
 }
 
-fn handle_build_run(printer: &mut printer::Printer, args: &buildenv::EnviromentArgument)
+fn handle_generic_build<Callback>(printer: &mut printer::Printer, args: &buildenv::EnviromentArgument, callback: Callback)
+    where Callback: Fn(&mut printer::Printer, &buildenv::BuildEnviroment, &builddata::BuildData) -> ()
 {
     let loaded_data = builddata::load();
     if let Err(err) = loaded_data
@@ -105,8 +182,9 @@ fn handle_build_run(printer: &mut printer::Printer, args: &buildenv::EnviromentA
         return;
     }
 
-    println!("{:?}", env)
+    callback(printer, &env, &data);
 }
+
 
 fn main() {
     let args = WorkbenchArguments::from_args();
@@ -121,7 +199,43 @@ fn main() {
         , WorkbenchArguments::Build(build) => match build
         {
             Build::Status{} => handle_build_status(&mut print),
-            Build::Run{env} => handle_build_run(&mut print, &env)
+            Build::Install{env} => handle_generic_build
+                (
+                    &mut print, &env,
+                    |_printer: &mut printer::Printer, build: &buildenv::BuildEnviroment, data: &builddata::BuildData|
+                    {
+                        save_build(build, data);
+                        run_install(build, data);
+                    }
+                ),
+            Build::Cmake{env, print: arg_print} => handle_generic_build
+                (
+                    &mut print, &env,
+                    |printer: &mut printer::Printer, build: &buildenv::BuildEnviroment, data: &builddata::BuildData|
+                    {
+                        save_build(build, data);
+                        run_cmake(build, data, printer, arg_print);
+                    }
+                ),
+            Build::Dev{env} => handle_generic_build
+                (
+                    &mut print, &env,
+                    |printer: &mut printer::Printer, build: &buildenv::BuildEnviroment, data: &builddata::BuildData|
+                    {
+                        save_build(build, data);
+                        run_install(build, data);
+                        run_cmake(build, data, printer, false);
+                    }
+                ),
+            Build::Build{env} => handle_generic_build
+                (
+                    &mut print, &env,
+                    |printer: &mut printer::Printer, build: &buildenv::BuildEnviroment, data: &builddata::BuildData|
+                    {
+                        save_build(build, data);
+                        generate_cmake_project(build, data).build(printer);
+                    }
+                )
         }
     }
     
