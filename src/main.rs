@@ -83,7 +83,7 @@ fn generate_cmake_project(build: &buildenv::BuildEnviroment, data: &builddata::B
 
     for dep in &data.dependencies
     {
-        dep.add_cmake_arguments(&mut project, build)
+        dep.add_cmake_arguments(&mut project)
     }
 
     return project

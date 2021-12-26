@@ -18,7 +18,7 @@ pub trait Dependency
     fn get_name(&self) -> &str;
 
     // add arguments to the main cmake
-    fn add_cmake_arguments(&self, cmake: &mut cmake::CMake, env: &buildenv::BuildEnviroment);
+    fn add_cmake_arguments(&self, cmake: &mut cmake::CMake);
     
     // install the dependency
     fn install(&self, env: &buildenv::BuildEnviroment, print: &mut printer::Printer, data: &builddata::BuildData);
@@ -31,42 +31,46 @@ pub trait Dependency
 pub enum DependencyName
 {
     #[serde(rename = "sdl2")]
-    SDL2,
+    Sdl2,
 
     #[serde(rename = "python")]
-    PYTHON,
+    Python,
 
     #[serde(rename = "assimp")]
-    ASSIMP
+    Assimp,
+
+    #[serde(rename = "assimp_static")]
+    AssimpStatic
 }
 
 pub fn create(name: &DependencyName, data: &builddata::BuildData) -> Box<dyn Dependency>
 {
     match name
     {
-        DependencyName::SDL2 => Box::new(Dependency_Sdl2::new(data)),
-        DependencyName::PYTHON => Box::new(Dependency_Python::new()),
-        DependencyName::ASSIMP => Box::new(Dependency_Assimp::new(data))
+        DependencyName::Sdl2 => Box::new(DependencySdl2::new(data)),
+        DependencyName::Python => Box::new(DependencyPython::new()),
+        DependencyName::Assimp => Box::new(DependencyAssimp::new(data, false)),
+        DependencyName::AssimpStatic => Box::new(DependencyAssimp::new(data, true))
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-struct Dependency_Sdl2
+struct DependencySdl2
 {
     root_folder: PathBuf,
     build_folder: PathBuf
 }
 
 // add sdl2 dependency
-impl Dependency_Sdl2
+impl DependencySdl2
 {
-    fn new(data: &builddata::BuildData) -> Dependency_Sdl2
+    fn new(data: &builddata::BuildData) -> DependencySdl2
     {
         let mut root_folder = data.dependency_dir.clone(); root_folder.push("sdl2");
         let mut build_folder = root_folder.clone(); build_folder.push("cmake-build");
         
-        Dependency_Sdl2
+        DependencySdl2
         {
             root_folder,
             build_folder
@@ -81,14 +85,14 @@ fn join(path: &Path, file: &str) -> PathBuf
     r
 }
 
-impl Dependency for Dependency_Sdl2
+impl Dependency for DependencySdl2
 {
     fn get_name(&self) -> &str
     {
         "sdl2"
     }
 
-    fn add_cmake_arguments(&self, cmake: &mut cmake::CMake, env: &buildenv::BuildEnviroment)
+    fn add_cmake_arguments(&self, cmake: &mut cmake::CMake)
     {
         cmake.add_argument("SDL2_HINT_ROOT".to_string(), self.root_folder.to_string_lossy().to_string());
         cmake.add_argument("SDL2_HINT_BUILD".to_string(), self.build_folder.to_string_lossy().to_string());
@@ -161,32 +165,32 @@ impl Dependency for Dependency_Sdl2
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-struct Dependency_Python
+struct DependencyPython
 {
     python_env: Result<String, std::env::VarError>
 }
 
 // add python dependency
 
-impl Dependency_Python
+impl DependencyPython
 {
-    fn new() -> Dependency_Python
+    fn new() -> DependencyPython
     {
-        Dependency_Python
+        DependencyPython
         {
             python_env: env::var("PYTHON")
         }
     }
 }
 
-impl Dependency for Dependency_Python
+impl Dependency for DependencyPython
 {
     fn get_name(&self) -> &str
     {
         "python"
     }
 
-    fn add_cmake_arguments(&self, cmake: &mut cmake::CMake, env: &buildenv::BuildEnviroment)
+    fn add_cmake_arguments(&self, cmake: &mut cmake::CMake)
     {
         if let Ok(environ) = &self.python_env
         {
@@ -195,7 +199,7 @@ impl Dependency for Dependency_Python
         }
     }
     
-    fn install(&self, env: &buildenv::BuildEnviroment, print: &mut printer::Printer, data: &builddata::BuildData)
+    fn install(&self, _env: &buildenv::BuildEnviroment, _print: &mut printer::Printer, _data: &builddata::BuildData)
     {
     }
     
@@ -214,37 +218,39 @@ impl Dependency for Dependency_Python
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-struct Dependency_Assimp
+struct DependencyAssimp
 {
     assimp_folder: PathBuf,
-    assimp_install_folder: PathBuf
+    assimp_install_folder: PathBuf,
+    use_static: bool
 }
 
 
 // add assimp dependency
-impl Dependency_Assimp
+impl DependencyAssimp
 {
-    fn new(data: &builddata::BuildData) -> Dependency_Assimp
+    fn new(data: &builddata::BuildData, use_static: bool) -> DependencyAssimp
     {
         let mut assimp_folder = data.dependency_dir.clone(); assimp_folder.push("assimp");
         let mut assimp_install_folder = assimp_folder.clone(); assimp_install_folder.push("cmake-install");
         
-        Dependency_Assimp
+        DependencyAssimp
         {
             assimp_folder,
-            assimp_install_folder
+            assimp_install_folder,
+            use_static
         }
     }
 }
 
-impl Dependency for Dependency_Assimp
+impl Dependency for DependencyAssimp
 {
     fn get_name(&self) -> &str
     {
         "assimp"
     }
 
-    fn add_cmake_arguments(&self, cmake: &mut cmake::CMake, env: &buildenv::BuildEnviroment)
+    fn add_cmake_arguments(&self, cmake: &mut cmake::CMake)
     {
         cmake.add_argument("ASSIMP_ROOT_DIR".to_string(), self.assimp_install_folder.to_string_lossy().to_string());
     }
@@ -276,7 +282,10 @@ impl Dependency for Dependency_Assimp
             
             let mut project = cmake::CMake::new(&build, &root, generator);
             project.add_argument("ASSIMP_BUILD_X3D_IMPORTER".to_string(), "0".to_string());
-            // project.make_static_library();
+            if self.use_static
+            {
+                project.make_static_library();
+            }
             print.info(format!("Installing cmake to {}", install.to_string_lossy().to_string()).as_str());
             project.set_install_folder(&install);
             core::verify_dir_exist(&install);
