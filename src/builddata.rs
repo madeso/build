@@ -14,7 +14,8 @@ use crate::
 struct ProjectFile
 {
     name: String,
-    dependencies: Vec<build::DependencyName>
+    dependencies: Vec<build::DependencyName>,
+    includes: Vec<String>
 }
 
 
@@ -26,12 +27,13 @@ pub struct BuildData
     pub root_dir: PathBuf,
     pub build_base_dir: PathBuf,
     pub build_dir: PathBuf,
-    pub dependency_dir: PathBuf
+    pub dependency_dir: PathBuf,
+    pub includes: Vec<String>
 }
 
 impl BuildData
 {
-    fn new(name: &str, root_dir: &Path) -> BuildData
+    fn new(name: &str, root_dir: &Path, includes: &Vec<String>) -> BuildData
     {
         let mut build_base_dir = root_dir.to_path_buf(); build_base_dir.push("build");
         let mut build_dir = root_dir.to_path_buf(); build_dir.push("build"); build_dir.push(name);
@@ -44,7 +46,8 @@ impl BuildData
             root_dir: root_dir.to_path_buf(),
             build_base_dir: build_base_dir,
             build_dir: build_dir,
-            dependency_dir: dependency_dir
+            dependency_dir: dependency_dir,
+            includes: includes.clone()
         }
     }
 
@@ -69,7 +72,7 @@ fn load_from_dir(root: &Path) -> Result<BuildData, String>
     {
         Ok(loaded) =>
         {
-            let mut bd = BuildData::new(&loaded.name, root);
+            let mut bd = BuildData::new(&loaded.name, root, &loaded.includes);
             for dependency_name in loaded.dependencies
             {
                 bd.dependencies.push(build::create(&dependency_name, &bd));

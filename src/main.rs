@@ -7,6 +7,7 @@ mod core;
 mod buildenv;
 mod cmd;
 mod build;
+mod checkincludes;
 
 use structopt::StructOpt;
 
@@ -57,19 +58,35 @@ enum Build
 #[structopt(name = "wb")]
 enum WorkbenchArguments
 {
+    /// Print the tree of a directory
     Ls
     {
         #[structopt(parse(from_str))]
         path: String
-    }
-    , Cat
+    },
+
+    /// Print the contents of a single file
+    Cat
     {
         #[structopt(parse(from_str))]
         path: String
+    },
+
+    /// Demo the print output
+    Demo {},
+
+    /// Display what workbench think of your current setup
+    Debug {},
+
+    /// Build commands
+    Build(Build),
+
+    /// Tool to check the order of #include statements in files
+    CheckIncludes
+    {
+        #[structopt(flatten)]
+        options: checkincludes::Options
     }
-    , Demo {}
-    , Debug {}
-    , Build(Build)
 }
 
 
@@ -246,6 +263,20 @@ fn main() {
                         generate_cmake_project(build, data).build(printer);
                     }
                 )
+        }
+        , WorkbenchArguments::CheckIncludes{options} =>
+        {
+            let loaded_data = builddata::load();
+            if let Err(err) = loaded_data
+            {
+                print.error(format!("Unable to load the data: {}", err).as_str());
+                return;
+            }
+            else
+            {
+                let data = loaded_data.unwrap();
+                checkincludes::main(&mut print, &data, &options)
+            }
         }
     }
     
