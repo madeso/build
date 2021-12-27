@@ -1,7 +1,8 @@
 use std::path::{Path, PathBuf};
+use std::cmp::Ordering;
+
 use structopt::StructOpt;
 use regex::Regex;
-use std::cmp::Ordering;
 
 use crate::
 {
@@ -47,33 +48,50 @@ fn error(print: &mut printer::Printer, filename: &Path, line: i32, message: &str
     print.error(format!("{}({}): error CHK3030: {}", filename.display(), line, message).as_str());
 }
 
+pub fn get_replacer(file_stem: &str) -> core::TextReplacer
+{
+    let mut replacer = core::TextReplacer::new();
+    replacer.add("{file_stem}", file_stem);
+    replacer
+}
+
 fn classify_line(print: &mut printer::Printer, data: &builddata::BuildData, line: &str, filename: &Path, line_num: i32) -> i32
 {
     let mut index = 0;
-    let mut replacer = core::TextReplacer::new();
-    replacer.add("{file_stem}", filename.file_stem().unwrap().to_str().unwrap());
+    let replacer = get_replacer(filename.file_stem().unwrap().to_str().unwrap());
 
-    for regex in &data.includes
+    for included_regex in &data.includes
     {
-        let regex_source = replacer.replace(regex);
-        match Regex::new(&regex_source)
+        let re = match included_regex
         {
-            Ok(re) =>
+            builddata::OptionalRegex::DynamicRegex(regex) =>
             {
-                if re.is_match(line)
+                let regex_source = replacer.replace(regex);
+                match Regex::new(&regex_source)
                 {
-                    return index;
-                }
-                else
-                {
-                    index += 1;
+                    Ok(re) => { re },
+                    Err(err) =>
+                    {
+                        print.error(format!("{} -> {} is invalid regex: {}", regex, regex_source, err).as_str());
+                        return -1;
+                    }
                 }
             },
-            Err(err) =>
+            builddata::OptionalRegex::StaticRegex(re) => {re.clone()},
+            builddata::OptionalRegex::FailedRegex(err) =>
             {
-                print.error(format!("{} -> {} is invalid regex: {}", regex, regex_source, err).as_str());
+                print.error(err.as_str());
                 return -1;
             }
+        };
+
+        if re.is_match(line)
+        {
+            return index;
+        }
+        else
+        {
+            index += 1;
         }
     }
 

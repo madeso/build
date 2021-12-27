@@ -1,12 +1,15 @@
 use std::path::{Path, PathBuf};
 use std::env;
 
+use regex::Regex;
 use serde::{Serialize, Deserialize};
 
 use crate::
 {
     build,
-    core
+    core,
+    checkincludes,
+    printer
 };
 
 
@@ -19,6 +22,13 @@ struct ProjectFile
 }
 
 
+pub enum OptionalRegex
+{
+    DynamicRegex(String),
+    StaticRegex(Regex),
+    FailedRegex(String)
+}
+
 // #[derive(Debug)]
 pub struct BuildData
 {
@@ -28,16 +38,18 @@ pub struct BuildData
     pub build_base_dir: PathBuf,
     pub build_dir: PathBuf,
     pub dependency_dir: PathBuf,
-    pub includes: Vec<String>
+    pub includes: Vec<OptionalRegex>
 }
 
 impl BuildData
 {
-    fn new(name: &str, root_dir: &Path, includes: &[String]) -> BuildData
+    fn new(name: &str, root_dir: &Path, includes: &[String], print: &mut printer::Printer) -> BuildData
     {
         let mut build_base_dir = root_dir.to_path_buf(); build_base_dir.push("build");
         let mut build_dir = root_dir.to_path_buf(); build_dir.push("build"); build_dir.push(name);
         let mut dependency_dir = root_dir.to_path_buf(); dependency_dir.push("build"); dependency_dir.push("deps");
+
+        let replacer = checkincludes::get_replacer("file_stem");
         
         BuildData
         {
@@ -47,7 +59,33 @@ impl BuildData
             build_base_dir,
             build_dir,
             dependency_dir,
-            includes: includes.to_owned()
+            includes: includes.iter().map
+            (
+                |regex|
+                {
+                    let regex_source = replacer.replace(regex);
+                    if regex_source.eq(regex) == false
+                    {
+                        OptionalRegex::DynamicRegex(regex.to_string())
+                    }
+                    else
+                    {
+                        match Regex::new(&regex_source)
+                        {
+                            Ok(re) =>
+                            {
+                                OptionalRegex::StaticRegex(re)
+                            },
+                            Err(err) =>
+                            {
+                                let error = format!("{} is invalid regex: {}", regex, err);
+                                print.error(error.as_str());
+                                OptionalRegex::FailedRegex(error)
+                            }
+                        }
+                    }
+                }
+            ).collect()
         }
     }
 
@@ -61,7 +99,7 @@ impl BuildData
 }
 
 
-fn load_from_dir(root: &Path) -> Result<BuildData, String>
+fn load_from_dir(root: &Path, print: &mut printer::Printer) -> Result<BuildData, String>
 {
     let mut file = PathBuf::new();
     file.push(root);
@@ -72,7 +110,7 @@ fn load_from_dir(root: &Path) -> Result<BuildData, String>
     {
         Ok(loaded) =>
         {
-            let mut bd = BuildData::new(&loaded.name, root, &loaded.includes);
+            let mut bd = BuildData::new(&loaded.name, root, &loaded.includes, print);
             for dependency_name in loaded.dependencies
             {
                 bd.dependencies.push(build::create(&dependency_name, &bd));
@@ -84,8 +122,8 @@ fn load_from_dir(root: &Path) -> Result<BuildData, String>
 }
 
 
-pub fn load() -> Result<BuildData, String>
+pub fn load(print: &mut printer::Printer) -> Result<BuildData, String>
 {
     let path = env::current_dir().ok().ok_or("unable to get current directory")?;
-    load_from_dir(&path)
+    load_from_dir(&path, print)
 }

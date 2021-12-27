@@ -169,7 +169,7 @@ fn handle_debug(printer: &mut printer::Printer)
 
 fn handle_build_status(printer: &mut printer::Printer)
 {
-    let loaded_data = builddata::load();
+    let loaded_data = builddata::load(printer);
     if let Err(err) = loaded_data
     {
         printer.error(format!("Unable to load the data: {}", err).as_str());
@@ -200,7 +200,7 @@ fn handle_build_status(printer: &mut printer::Printer)
 fn handle_generic_build<Callback>(printer: &mut printer::Printer, args: &buildenv::EnviromentArgument, callback: Callback)
     where Callback: Fn(&mut printer::Printer, &buildenv::BuildEnviroment, &builddata::BuildData)
 {
-    let loaded_data = builddata::load();
+    let loaded_data = builddata::load(printer);
     if let Err(err) = loaded_data
     {
         printer.error(format!("Unable to load the data: {}", err).as_str());
@@ -271,7 +271,7 @@ fn main() {
         }
         , WorkbenchArguments::CheckIncludes{options} =>
         {
-            let loaded_data = builddata::load();
+            let loaded_data = builddata::load(&mut print);
             if let Err(err) = loaded_data
             {
                 print.error(format!("Unable to load the data: {}", err).as_str());
