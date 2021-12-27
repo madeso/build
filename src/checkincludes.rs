@@ -29,40 +29,6 @@ impl Include
     }
 }
 
-/*
-fn int_compare(lhs: i32, rhs: i32) -> Ordering
-{
-    if lhs == rhs
-    {
-        Ordering::Equal
-    }
-    else if lhs < rhs
-    {
-        Ordering::Less
-    }
-    else
-    {
-        Ordering::Greater
-    }
-}
-
-
-fn str_cmp(lhs: &str, rhs: &str) -> Ordering
-{
-    if lhs == rhs
-    {
-        Ordering::Equal
-    }
-    else if lhs < rhs
-    {
-        -1
-    }
-    else
-    {
-        1
-    }
-}
-*/
 
 fn include_compare(lhs: &Include, rhs: &Include) -> Ordering
 {
@@ -128,10 +94,14 @@ pub struct Options
 
     /// Print status at the end
     #[structopt(long)]
-    pub status: bool
+    pub status: bool,
+
+    /// Print only headers that couldn't be classified
+    #[structopt(long)]
+    pub invalid: bool
 }
 
-fn classify_file(print: &mut printer::Printer, data: &builddata::BuildData, verbose: bool, filename: &Path) -> bool
+fn classify_file(print: &mut printer::Printer, data: &builddata::BuildData, verbose: bool, filename: &Path, print_invalid: bool) -> bool
 {
     if verbose
     {
@@ -164,7 +134,10 @@ fn classify_file(print: &mut printer::Printer, data: &builddata::BuildData, verb
                 includes.push(Include::new(line_class, l));
                 if last_class > line_class
                 {
-                    error(print, filename, line_num, format!("Include order error for {}", l).as_str());
+                    if print_invalid == false
+                    {
+                        error(print, filename, line_num, format!("Include order error for {}", l).as_str());
+                    }
                     print_sort = true;
                 }
                 last_class = line_class;
@@ -176,7 +149,7 @@ fn classify_file(print: &mut printer::Printer, data: &builddata::BuildData, verb
         }
     }
 
-    if print_sort
+    if print_sort && print_invalid == false
     {
         includes.sort_by(include_compare);
         print.info("I think the correct order would be:");
@@ -212,7 +185,7 @@ pub fn main(print: &mut printer::Printer, data: &builddata::BuildData, args: &Op
         file_count += 1;
         let stored_error = error_count;
 
-        if classify_file(print, data, verbose, &filename) == false
+        if classify_file(print, data, verbose, &filename, args.invalid) == false
         {
             error_count += 1
         }
