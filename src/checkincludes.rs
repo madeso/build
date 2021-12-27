@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 use std::cmp::Ordering;
+use std::collections::HashSet;
 
 use structopt::StructOpt;
 use regex::Regex;
@@ -55,7 +56,7 @@ pub fn get_replacer(file_stem: &str) -> core::TextReplacer
     replacer
 }
 
-fn classify_line(print: &mut printer::Printer, data: &builddata::BuildData, line: &str, filename: &Path, line_num: i32) -> i32
+fn classify_line(missing_files: &mut HashSet<String>, only_invalid: bool, print: &mut printer::Printer, data: &builddata::BuildData, line: &str, filename: &Path, line_num: i32) -> i32
 {
     let mut index = 0;
     let replacer = get_replacer(filename.file_stem().unwrap().to_str().unwrap());
@@ -95,6 +96,15 @@ fn classify_line(print: &mut printer::Printer, data: &builddata::BuildData, line
         }
     }
 
+    if only_invalid
+    {
+        if missing_files.contains(line)
+        {
+            return -1;
+        }
+        missing_files.insert(line.to_string());
+    }
+
     error(print, filename, line_num, format!("{} is a invalid header", line).as_str());
     -1
 }
@@ -119,7 +129,7 @@ pub struct Options
     pub invalid: bool
 }
 
-fn classify_file(print: &mut printer::Printer, data: &builddata::BuildData, verbose: bool, filename: &Path, print_invalid: bool) -> bool
+fn classify_file(missing_files: &mut HashSet<String>, print: &mut printer::Printer, data: &builddata::BuildData, verbose: bool, filename: &Path, print_invalid: bool) -> bool
 {
     if verbose
     {
@@ -144,7 +154,7 @@ fn classify_file(print: &mut printer::Printer, data: &builddata::BuildData, verb
             if line.starts_with("#include")
             {
                 let l = line.trim_end();
-                let line_class = classify_line(print, data, l, filename, line_num);
+                let line_class = classify_line(missing_files, print_invalid, print, data, l, filename, line_num);
                 if line_class < 0
                 {
                     return false;
@@ -198,12 +208,14 @@ pub fn main(print: &mut printer::Printer, data: &builddata::BuildData, args: &Op
     let mut file_count = 0;
     let mut file_error = 0;
 
+    let mut missing_files = HashSet::new();
+
     for filename in &args.files
     {
         file_count += 1;
         let stored_error = error_count;
 
-        if classify_file(print, data, verbose, filename, args.invalid) == false
+        if classify_file(&mut missing_files, print, data, verbose, filename, args.invalid) == false
         {
             error_count += 1
         }
