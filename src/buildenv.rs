@@ -18,10 +18,10 @@ use crate::
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum Compiler
 {
-    VS2015,
-    VS2017,
-    VS2019,
-    VS2022
+    VisualStudio2015,
+    VisualStudio2017,
+    VisualStudio2019,
+    VisualStudio2022
 }
 
 
@@ -29,8 +29,8 @@ pub enum Compiler
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum Platform
 {
-    AUTO,
-    WIN32,
+    Auto,
+    Win32,
     X64
 }
 
@@ -41,13 +41,13 @@ impl FromStr for Compiler {
 
     fn from_str(input: &str) -> Result<Compiler, Self::Err> {
         match input.to_ascii_lowercase().as_str() {
-            "vs2015" => Ok(Compiler::VS2015),
-            "vs2017" => Ok(Compiler::VS2017),
-            "vs2019" => Ok(Compiler::VS2019),
-            "vs2022" => Ok(Compiler::VS2022),
+            "vs2015" => Ok(Compiler::VisualStudio2015),
+            "vs2017" => Ok(Compiler::VisualStudio2017),
+            "vs2019" => Ok(Compiler::VisualStudio2019),
+            "vs2022" => Ok(Compiler::VisualStudio2022),
             // github actions installed compiler
-            "windows-2016" => Ok(Compiler::VS2017),
-            "windows-2019" => Ok(Compiler::VS2019),
+            "windows-2016" => Ok(Compiler::VisualStudio2017),
+            "windows-2019" => Ok(Compiler::VisualStudio2019),
             _        => Err("invalid compiler".to_string()),
         }
     }
@@ -60,8 +60,8 @@ impl FromStr for Platform {
 
     fn from_str(input: &str) -> Result<Platform, Self::Err> {
         match input.to_ascii_lowercase().as_str() {
-            "auto"  => Ok(Platform::AUTO),
-            "win32" => Ok(Platform::WIN32),
+            "auto"  => Ok(Platform::Auto),
+            "win32" => Ok(Platform::Win32),
             "x64"   => Ok(Platform::X64),
             "win64" => Ok(Platform::X64),
             _       => Err("Invalid platform".to_string()),
@@ -74,8 +74,8 @@ fn is_64bit(platform: &Platform) -> bool
 {
     match platform
     {
-        Platform::AUTO => {core::is_64bit()},
-        Platform::WIN32 => {false},
+        Platform::Auto => {core::is_64bit()},
+        Platform::Win32 => {false},
         Platform::X64 => {true}
     }
 }
@@ -98,18 +98,18 @@ fn create_cmake_generator(compiler: &Compiler, platform: &Platform) -> cmake::Ge
 {
     match compiler
     {
-        Compiler::VS2015 =>
+        Compiler::VisualStudio2015 =>
         {
             if is_64bit(platform) { cmake::Generator::new("Visual Studio 14 2015 Win64") }
             else { cmake::Generator::new("Visual Studio 14 2015") }
         },
-        Compiler::VS2017 =>
+        Compiler::VisualStudio2017 =>
         {
             if is_64bit(platform) { cmake::Generator::new("Visual Studio 15 Win64") }
             else { cmake::Generator::new("Visual Studio 15") }
         },
-        Compiler::VS2019 => { cmake::Generator::new_with_arch("Visual Studio 16 2019", create_cmake_arch(platform))},
-        Compiler::VS2022 => { cmake::Generator::new_with_arch("Visual Studio 17 2022", create_cmake_arch(platform))}
+        Compiler::VisualStudio2019 => { cmake::Generator::new_with_arch("Visual Studio 16 2019", create_cmake_arch(platform))},
+        Compiler::VisualStudio2022 => { cmake::Generator::new_with_arch("Visual Studio 17 2022", create_cmake_arch(platform))}
     }
 }
 
@@ -146,7 +146,7 @@ impl BuildEnviroment
 
     pub fn get_cmake_generator(&self) -> cmake::Generator
     {
-        create_cmake_generator(&self.compiler.as_ref().unwrap(), &self.platform.as_ref().unwrap())
+        create_cmake_generator(self.compiler.as_ref().unwrap(), self.platform.as_ref().unwrap())
     }
 
     // update the build environment from an argparse namespace
@@ -213,24 +213,16 @@ impl BuildEnviroment
     {
         let mut status = true;
         
-        match self.compiler
+        if self.compiler == None
         {
-            None =>
-            {
-                printer.error("Compiler not set");
-                status = false;
-            },
-            _ => {}
+            printer.error("Compiler not set");
+            status = false;
         };
         
-        match self.platform
+        if self.platform == None
         {
-            None =>
-            {
-                printer.error("Platform not set");
-                status = false;
-            },
-            _ => {}
+            printer.error("Platform not set");
+            status = false;
         };
 
         status
@@ -256,10 +248,9 @@ pub fn load_from_file(path: &Path, printer: Option<&mut printer::Printer>) -> Bu
                 Ok(loaded) => loaded,
                 Err(error) =>
                 {
-                    match printer
+                    if let Some(pr) = printer
                     {
-                        Some(pr) => pr.error(format!("Unable to parse json {}: {}", path.to_string_lossy(), error).as_str()),
-                        None => {}
+                        pr.error(format!("Unable to parse json {}: {}", path.to_string_lossy(), error).as_str());
                     }
                     BuildEnviroment::new_empty()
                 }

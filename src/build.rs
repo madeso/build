@@ -111,12 +111,12 @@ impl Dependency for DependencySdl2
         print.header("Installing dependency sdl2");
         let url = "https://www.libsdl.org/release/SDL2-2.0.8.zip";
         
-        let zip_file = join(&deps, "sdl2.zip");
+        let zip_file = join(deps, "sdl2.zip");
         
         if false == zip_file.exists()
         {
-            core::verify_dir_exist(&root);
-            core::verify_dir_exist(&deps);
+            core::verify_dir_exist(root);
+            core::verify_dir_exist(deps);
             print.info("downloading sdl2");
             core::download_file(url, &zip_file);
         }
@@ -125,19 +125,19 @@ impl Dependency for DependencySdl2
             print.info("SDL2 zip file exist, not downloading again...");
         }
 
-        if false == join(&root, "INSTALL.txt").exists()
+        if false == join(root, "INSTALL.txt").exists()
         {
-            core::extract_zip(&zip_file, &root);
-            core::move_files(&join(&root, "SDL2-2.0.8"), &root);
+            core::extract_zip(&zip_file, root);
+            core::move_files(&join(root, "SDL2-2.0.8"), root);
         }
         else
         {
             print.info("SDL2 is unzipped, not unzipping again");
         }
         
-        if false == join(&build, "SDL2.sln").exists()
+        if false == join(build, "SDL2.sln").exists()
         {
-            let mut project = cmake::CMake::new(&build, &root, generator);
+            let mut project = cmake::CMake::new(build, root, generator);
             // project.make_static_library()
             // this is defined by the standard library so don't add it
             // generates '__ftol2_sse already defined' errors
@@ -268,27 +268,27 @@ impl Dependency for DependencyAssimp
         // btdeps.install_dependency_assimp(data.dependency_dir, assimp_folder, assimp_install_folder, build.get_generator())
         // def install_dependency_assimp(deps: str, root: str, install: str, generator: cmake.Generator):
         print.header("Installing dependency assimp");
-        let zip_file = join(&deps, "assimp.zip");
+        let zip_file = join(deps, "assimp.zip");
         if false == root.exists()
         {
-            core::verify_dir_exist(&root);
-            core::verify_dir_exist(&deps);
+            core::verify_dir_exist(root);
+            core::verify_dir_exist(deps);
             print.info("downloading assimp");
             core::download_file(url, &zip_file);
             print.info("extracting assimp");
-            core::extract_zip(&zip_file, &root);
-            let build = join(&root, "cmake-build");
-            core::move_files(&join(&root, "assimp-5.0.1"), &root);
+            core::extract_zip(&zip_file, root);
+            let build = join(root, "cmake-build");
+            core::move_files(&join(root, "assimp-5.0.1"), root);
             
-            let mut project = cmake::CMake::new(&build, &root, generator);
+            let mut project = cmake::CMake::new(&build, root, generator);
             project.add_argument("ASSIMP_BUILD_X3D_IMPORTER".to_string(), "0".to_string());
             if self.use_static
             {
                 project.make_static_library();
             }
             print.info(format!("Installing cmake to {}", install.to_string_lossy().to_string()).as_str());
-            project.set_install_folder(&install);
-            core::verify_dir_exist(&install);
+            project.set_install_folder(install);
+            core::verify_dir_exist(install);
             
             project.config(print);
             project.build(print);

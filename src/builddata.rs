@@ -33,7 +33,7 @@ pub struct BuildData
 
 impl BuildData
 {
-    fn new(name: &str, root_dir: &Path, includes: &Vec<String>) -> BuildData
+    fn new(name: &str, root_dir: &Path, includes: &[String]) -> BuildData
     {
         let mut build_base_dir = root_dir.to_path_buf(); build_base_dir.push("build");
         let mut build_dir = root_dir.to_path_buf(); build_dir.push("build"); build_dir.push(name);
@@ -44,10 +44,10 @@ impl BuildData
             name: name.to_string(),
             dependencies: vec!(),
             root_dir: root_dir.to_path_buf(),
-            build_base_dir: build_base_dir,
-            build_dir: build_dir,
-            dependency_dir: dependency_dir,
-            includes: includes.clone()
+            build_base_dir,
+            build_dir,
+            dependency_dir,
+            includes: includes.to_owned()
         }
     }
 

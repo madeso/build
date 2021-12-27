@@ -185,7 +185,7 @@ pub fn main(print: &mut printer::Printer, data: &builddata::BuildData, args: &Op
         file_count += 1;
         let stored_error = error_count;
 
-        if classify_file(print, data, verbose, &filename, args.invalid) == false
+        if classify_file(print, data, verbose, filename, args.invalid) == false
         {
             error_count += 1
         }

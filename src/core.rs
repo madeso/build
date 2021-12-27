@@ -24,26 +24,12 @@ pub fn read_file_to_string(path: &Path) -> Option<String>
 // check if the script is running on 64bit or not 
 pub fn is_64bit() -> bool
 {
-    if cfg!(target_pointer_width = "64")
-    {
-        true
-    }
-    else
-    {
-        false
-    }
+    cfg!(target_pointer_width = "64")
 }
 
 pub fn is_windows() -> bool
 {
-    if cfg!(target_os = "windows")
-    {
-        true
-    }
-    else
-    {
-        false
-    }
+    cfg!(target_os = "windows")
 }
 
 pub fn verify_dir_exist(_dir: &Path)
@@ -108,4 +94,3 @@ impl TextReplacer
         text
     }
 }
-

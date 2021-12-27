@@ -72,12 +72,9 @@ impl Printer
         if let Ok(lines) = read_lines(path)
         {
             println!("{}>", path);
-            for line in lines
+            for line in lines.flatten()
             {
-                if let Ok(ip) = line
-                {
-                    println!("---->{}", ip);
-                }
+                println!("---->{}", line);
             }
         }
         else

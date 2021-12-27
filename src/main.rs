@@ -1,3 +1,8 @@
+#![allow(
+    // sometimes comparing to true or false is more readable
+    clippy::bool_comparison
+)]
+
 mod printer;
 mod registry;
 mod cmake;
@@ -103,7 +108,7 @@ fn generate_cmake_project(build: &buildenv::BuildEnviroment, data: &builddata::B
         dep.add_cmake_arguments(&mut project)
     }
 
-    return project
+    project
 }
 
 
@@ -141,11 +146,11 @@ fn handle_demo(print: &mut printer::Printer)
     print.error("something failed");
 }
 
-fn print_found_list(printer: &printer::Printer, name: &str, list: &Vec::<found::Found>)
+fn print_found_list(printer: &printer::Printer, name: &str, list: &[found::Found])
 {
     let found = match found::first_value_or_none(list)
     {
-        Some(res) => format!("{}", res),
+        Some(res) => res,
         None => "<None>".to_string()
     };
     printer.info(format!("{}: {}", name, found).as_str());
@@ -193,7 +198,7 @@ fn handle_build_status(printer: &mut printer::Printer)
 }
 
 fn handle_generic_build<Callback>(printer: &mut printer::Printer, args: &buildenv::EnviromentArgument, callback: Callback)
-    where Callback: Fn(&mut printer::Printer, &buildenv::BuildEnviroment, &builddata::BuildData) -> ()
+    where Callback: Fn(&mut printer::Printer, &buildenv::BuildEnviroment, &builddata::BuildData)
 {
     let loaded_data = builddata::load();
     if let Err(err) = loaded_data
