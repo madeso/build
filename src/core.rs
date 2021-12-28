@@ -3,6 +3,9 @@ use std::fs::{self, File};
 use std::io::prelude::*;
 use std::io::{self, BufRead};
 
+use futures::executor::block_on;
+extern crate reqwest;
+
 use crate::
 {
     printer
@@ -41,16 +44,81 @@ pub fn is_windows() -> bool
 /// make sure directory exists 
 pub fn verify_dir_exist(print: &mut printer::Printer, dir: &Path)
 {
-    if let Err(e) = fs::create_dir_all(dir)
+    if dir.exists()
     {
-        print.error(format!("Failed to create directory {}: {}", dir.display(), e).as_str());
+        print.info(format!("Dir exist, not creating {}", dir.display()).as_str());
+    }
+    else
+    {
+        print.info(format!("Not a directory, creating {}", dir.display()).as_str());
+        if let Err(e) = fs::create_dir_all(dir)
+        {
+            print.error(format!("Failed to create directory {}: {}", dir.display(), e).as_str());
+        }
     }
 }
 
 /// download file if not already downloaded 
-pub fn download_file(_url: &str, _dest: &Path)
+pub fn download_file(print: &mut printer::Printer, url: &str, dest: &Path)
 {
-    // todo(Gustav): implement me!
+    if dest.exists()
+    {
+        print.info(format!("Already downloaded {}", dest.display()).as_str());
+    }
+    else
+    {
+        print.info(format!("Downloading {}", dest.display()).as_str());
+        let future = download_file_async(print, url, dest);
+        block_on(future);
+    }
+}
+
+async fn download_file_async(print: &mut printer::Printer, url: &str, dest: &Path)
+{
+    let resp = match reqwest::get(url).await
+    {
+        Ok(r) => r,
+        Err(error) =>
+        {
+            print.error(format!("request start failed({}): {}", url, error).as_str());
+            return;
+        }
+    };
+
+    let data = match resp.bytes().await
+    {
+        Ok(r) => r,
+        Err(error) =>
+        {
+            print.error(format!("request get failed({}): {}", url, error).as_str());
+            return;
+        }
+    };
+
+    let mut buffer = match File::create(dest)
+    {
+        Ok(r) => r,
+        Err(error) =>
+        {
+            print.error(format!("failed to create file({}): {}", dest.display(), error).as_str());
+            return;
+        }
+    };
+
+    let mut pos = 0;
+
+    while pos < data.len() {
+        let bytes_written = match buffer.write(&data[pos..])
+        {
+            Ok(r) => r,
+            Err(error) =>
+            {
+                print.error(format!("failed to copy content({} -> {}): {}", url, dest.display(), error).as_str());
+                return;
+            }
+        };
+        pos += bytes_written;
+    }
 }
 
 /// moves all file from one directory to another
@@ -73,7 +141,7 @@ struct SingleReplacement
 }
 
 
-// multi replace calls on a single text 
+/// multi replace calls on a single text 
 pub struct TextReplacer
 {
     replacements: Vec<SingleReplacement>

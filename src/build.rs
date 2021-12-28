@@ -118,7 +118,7 @@ impl Dependency for DependencySdl2
             core::verify_dir_exist(print, root);
             core::verify_dir_exist(print, deps);
             print.info("downloading sdl2");
-            core::download_file(url, &zip_file);
+            core::download_file(print, url, &zip_file);
         }
         else
         {
@@ -274,7 +274,7 @@ impl Dependency for DependencyAssimp
             core::verify_dir_exist(print, root);
             core::verify_dir_exist(print, deps);
             print.info("downloading assimp");
-            core::download_file(url, &zip_file);
+            core::download_file(print, url, &zip_file);
             print.info("extracting assimp");
             core::extract_zip(&zip_file, root);
             let build = join(root, "cmake-build");
