@@ -1,7 +1,13 @@
 use std::path::Path;
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::prelude::*;
 use std::io::{self, BufRead};
+
+use crate::
+{
+    printer
+};
+
 
 // The output is wrapped in a Result to allow matching on errors
 // Returns an Iterator to the Reader of the lines of the file.
@@ -32,21 +38,28 @@ pub fn is_windows() -> bool
     cfg!(target_os = "windows")
 }
 
-pub fn verify_dir_exist(_dir: &Path)
+/// make sure directory exists 
+pub fn verify_dir_exist(print: &mut printer::Printer, dir: &Path)
 {
-    // todo(Gustav): implement me!
+    if let Err(e) = fs::create_dir_all(dir)
+    {
+        print.error(format!("Failed to create directory {}: {}", dir.display(), e).as_str());
+    }
 }
 
+/// download file if not already downloaded 
 pub fn download_file(_url: &str, _dest: &Path)
 {
     // todo(Gustav): implement me!
 }
 
+/// moves all file from one directory to another
 pub fn move_files(_from: &Path, _to: &Path)
 {
     // todo(Gustav): implement me!
 }
 
+/// extract a zip file to folder
 pub fn extract_zip(_zip: &Path, _to: &Path)
 {
     // todo(Gustav): implement me!

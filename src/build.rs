@@ -115,8 +115,8 @@ impl Dependency for DependencySdl2
         
         if false == zip_file.exists()
         {
-            core::verify_dir_exist(root);
-            core::verify_dir_exist(deps);
+            core::verify_dir_exist(print, root);
+            core::verify_dir_exist(print, deps);
             print.info("downloading sdl2");
             core::download_file(url, &zip_file);
         }
@@ -271,8 +271,8 @@ impl Dependency for DependencyAssimp
         let zip_file = join(deps, "assimp.zip");
         if false == root.exists()
         {
-            core::verify_dir_exist(root);
-            core::verify_dir_exist(deps);
+            core::verify_dir_exist(print, root);
+            core::verify_dir_exist(print, deps);
             print.info("downloading assimp");
             core::download_file(url, &zip_file);
             print.info("extracting assimp");
@@ -288,7 +288,7 @@ impl Dependency for DependencyAssimp
             }
             print.info(format!("Installing cmake to {}", install.to_string_lossy().to_string()).as_str());
             project.set_install_folder(install);
-            core::verify_dir_exist(install);
+            core::verify_dir_exist(print, install);
             
             project.config(print);
             project.build(print);

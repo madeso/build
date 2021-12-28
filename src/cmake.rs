@@ -225,7 +225,7 @@ impl CMake
             None => {}
         }
         
-        core::verify_dir_exist(&self.build_folder);
+        core::verify_dir_exist(printer, &self.build_folder);
         command.current_dir(self.build_folder.to_string_lossy().to_string());
         
         if core::is_windows()
@@ -272,7 +272,7 @@ impl CMake
         command.arg("--config");
         command.arg("Release");
 
-        core::verify_dir_exist(&self.build_folder);
+        core::verify_dir_exist(printer, &self.build_folder);
         command.current_dir(self.build_folder.to_string_lossy().to_string());
 
         if core::is_windows()

@@ -130,9 +130,9 @@ fn run_cmake(build: &buildenv::BuildEnviroment, data: &builddata::BuildData, pri
 
 
 // save the build environment to the settings file
-fn save_build(build: &buildenv::BuildEnviroment, data: &builddata::BuildData)
+fn save_build(print: &mut printer::Printer, build: &buildenv::BuildEnviroment, data: &builddata::BuildData)
 {
-    core::verify_dir_exist(&data.build_base_dir);
+    core::verify_dir_exist(print, &data.build_base_dir);
     build.save_to_file(&data.get_path_to_settings())
 }
 
@@ -236,7 +236,7 @@ fn main() {
                     &mut print, &env,
                     |printer: &mut printer::Printer, build: &buildenv::BuildEnviroment, data: &builddata::BuildData|
                     {
-                        save_build(build, data);
+                        save_build(printer, build, data);
                         run_install(build, data, printer);
                     }
                 ),
@@ -245,7 +245,7 @@ fn main() {
                     &mut print, &env,
                     |printer: &mut printer::Printer, build: &buildenv::BuildEnviroment, data: &builddata::BuildData|
                     {
-                        save_build(build, data);
+                        save_build(printer, build, data);
                         run_cmake(build, data, printer, arg_print);
                     }
                 ),
@@ -254,7 +254,7 @@ fn main() {
                     &mut print, &env,
                     |printer: &mut printer::Printer, build: &buildenv::BuildEnviroment, data: &builddata::BuildData|
                     {
-                        save_build(build, data);
+                        save_build(printer, build, data);
                         run_install(build, data, printer);
                         run_cmake(build, data, printer, false);
                     }
@@ -264,7 +264,7 @@ fn main() {
                     &mut print, &env,
                     |printer: &mut printer::Printer, build: &buildenv::BuildEnviroment, data: &builddata::BuildData|
                     {
-                        save_build(build, data);
+                        save_build(printer, build, data);
                         generate_cmake_project(build, data).build(printer);
                     }
                 )
