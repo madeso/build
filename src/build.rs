@@ -41,6 +41,9 @@ pub enum DependencyName
 
     #[serde(rename = "assimp_static")]
     AssimpStatic
+
+    // earlier dependencies were wxWidgets and to a lesser extent: boost and libxml
+    // if we need them we should probably replace this whole setup with a package manager
 }
 
 pub fn create(name: &DependencyName, data: &builddata::BuildData) -> Box<dyn Dependency>
