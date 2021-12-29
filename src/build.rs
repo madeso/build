@@ -127,7 +127,7 @@ impl Dependency for DependencySdl2
 
         if false == join(root, "INSTALL.txt").exists()
         {
-            core::extract_zip(&zip_file, root);
+            core::extract_zip(print, &zip_file, root);
             core::move_files(print, &join(root, "SDL2-2.0.8"), root);
         }
         else
@@ -276,7 +276,7 @@ impl Dependency for DependencyAssimp
             print.info("downloading assimp");
             core::download_file(print, url, &zip_file);
             print.info("extracting assimp");
-            core::extract_zip(&zip_file, root);
+            core::extract_zip(print, &zip_file, root);
             let build = join(root, "cmake-build");
             core::move_files(print, &join(root, "assimp-5.0.1"), root);
             
