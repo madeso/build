@@ -24,9 +24,9 @@ struct ProjectFile
 
 pub enum OptionalRegex
 {
-    DynamicRegex(String),
-    StaticRegex(Regex),
-    FailedRegex(String)
+    Dynamic(String),
+    Static(Regex),
+    Failed(String)
 }
 
 // #[derive(Debug)]
@@ -66,7 +66,7 @@ impl BuildData
                     let regex_source = replacer.replace(regex);
                     if regex_source.eq(regex) == false
                     {
-                        OptionalRegex::DynamicRegex(regex.to_string())
+                        OptionalRegex::Dynamic(regex.to_string())
                     }
                     else
                     {
@@ -74,13 +74,13 @@ impl BuildData
                         {
                             Ok(re) =>
                             {
-                                OptionalRegex::StaticRegex(re)
+                                OptionalRegex::Static(re)
                             },
                             Err(err) =>
                             {
                                 let error = format!("{} is invalid regex: {}", regex, err);
                                 print.error(error.as_str());
-                                OptionalRegex::FailedRegex(error)
+                                OptionalRegex::Failed(error)
                             }
                         }
                     }

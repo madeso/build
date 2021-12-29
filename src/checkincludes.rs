@@ -65,7 +65,7 @@ fn classify_line(missing_files: &mut HashSet<String>, only_invalid: bool, print:
     {
         let re = match included_regex
         {
-            builddata::OptionalRegex::DynamicRegex(regex) =>
+            builddata::OptionalRegex::Dynamic(regex) =>
             {
                 let regex_source = replacer.replace(regex);
                 match Regex::new(&regex_source)
@@ -78,8 +78,8 @@ fn classify_line(missing_files: &mut HashSet<String>, only_invalid: bool, print:
                     }
                 }
             },
-            builddata::OptionalRegex::StaticRegex(re) => {re.clone()},
-            builddata::OptionalRegex::FailedRegex(err) =>
+            builddata::OptionalRegex::Static(re) => {re.clone()},
+            builddata::OptionalRegex::Failed(err) =>
             {
                 print.error(err.as_str());
                 return -1;
