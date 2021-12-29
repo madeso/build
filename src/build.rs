@@ -128,7 +128,7 @@ impl Dependency for DependencySdl2
         if false == join(root, "INSTALL.txt").exists()
         {
             core::extract_zip(&zip_file, root);
-            core::move_files(&join(root, "SDL2-2.0.8"), root);
+            core::move_files(print, &join(root, "SDL2-2.0.8"), root);
         }
         else
         {
@@ -278,7 +278,7 @@ impl Dependency for DependencyAssimp
             print.info("extracting assimp");
             core::extract_zip(&zip_file, root);
             let build = join(root, "cmake-build");
-            core::move_files(&join(root, "assimp-5.0.1"), root);
+            core::move_files(print, &join(root, "assimp-5.0.1"), root);
             
             let mut project = cmake::CMake::new(&build, root, generator);
             project.add_argument("ASSIMP_BUILD_X3D_IMPORTER".to_string(), "0".to_string());

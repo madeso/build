@@ -122,9 +122,52 @@ async fn download_file_async(print: &mut printer::Printer, url: &str, dest: &Pat
 }
 
 /// moves all file from one directory to another
-pub fn move_files(_from: &Path, _to: &Path)
+pub fn move_files(print: &mut printer::Printer, from: &Path, to: &Path)
 {
-    // todo(Gustav): implement me!
+    if from.exists() == false
+    {
+        print.error(format!("Missing src {} when moving to {}", from.display(), to.display()).as_str());
+        return;
+    }
+
+    verify_dir_exist(print, to);
+    if let Err(error) = move_files_rec(from, to)
+    {
+        print.error(format!("Failed to move {} to {}: {}", from.display(), to.display(), error).as_str());
+    }
+}
+
+pub fn move_files_rec(from: &Path, to: &Path) -> std::io::Result<()>
+{
+    let paths = fs::read_dir(from)?;
+    for file_path in paths
+    {
+        let pp = file_path?.path();
+        let path = pp.as_path();
+
+        let mut dst = to.to_path_buf();
+        dst.push
+        (
+            match path.file_name()
+            {
+                Some(p) => Path::new(p),
+                None => Path::new(path.file_stem().unwrap())
+            }
+        );
+
+        if path.is_file()
+        {
+            // println!("{}{}", start, file);
+            fs::rename(path, dst)?;
+        }
+        else
+        {
+            fs::create_dir_all(&dst)?;
+            move_files_rec(path, &dst)?;
+        }
+    }
+
+    Ok(())
 }
 
 /// extract a zip file to folder
