@@ -34,18 +34,18 @@ enum CompileCommandsError
 
 impl CompileCommand
 {
-    pub fn get_relative_includes(&self) -> Vec<String>
+    pub fn get_relative_includes(&self) -> Vec<PathBuf>
     {
         // shitty comamndline parser... beware
-        let mut r = Vec::<String>::new();
+        let mut r = Vec::<PathBuf>::new();
         let commands = self.command.split(" ");
         for c in commands
         {
             if c.starts_with("-I")
             {
                 let path = &c[2..];
-                // todo(Gustav): convert path to PathBuf
-                r.push(path.to_string());
+                let pb = PathBuf::from(path);
+                r.push(pb);
             }
         }
 
@@ -207,7 +207,10 @@ fn handle_includes(print: &mut printer::Printer, cc: &CompileCommandArg)
 
             print.info(file);
             let dirs = command.get_relative_includes();
-            print.info(format!("{:#?}", dirs).as_str());
+            for d in dirs
+            {
+                print.info(format!("    {}", d.display()).as_str());
+            }
         }
     }
 }
