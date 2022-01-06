@@ -13,6 +13,7 @@ use crate::
 
 const COMPILE_COMMANDS_FILE_NAME : &str = "compile_commands.json";
 
+#[derive(Debug)]
 pub struct CompileCommand
 {
     directory: PathBuf,
@@ -124,6 +125,15 @@ pub struct CompileCommandArg
 
 impl CompileCommandArg
 {
+    pub fn get_argument_or_none_with_cwd(&self) -> Option<PathBuf>
+    {
+        match std::env::current_dir()
+        {
+            Ok(cwd) => self.get_argument_or_none(&cwd),
+            Err(_) => None
+        }
+    }
+
     pub fn get_argument_or_none(&self, cwd: &Path) -> Option<PathBuf>
     {
         match &self.compile_commands
@@ -136,5 +146,58 @@ impl CompileCommandArg
                 Some(r)
             }
         }
+    }
+}
+
+
+
+
+
+#[derive(StructOpt, Debug)]
+pub struct LinesArg
+{
+    /// File to list lines in
+    #[structopt(parse(from_os_str))]
+    filename: PathBuf,
+
+    /// List statements instead
+    #[structopt(long)]
+    statements: bool,
+
+    /// List blocks instead
+    #[structopt(long)]
+    blocks: bool
+}
+
+/// Tool to list headers
+#[derive(StructOpt, Debug)]
+pub enum Options
+{
+    /// list all files in the compile commands struct
+    Files
+    {
+        #[structopt(flatten)]
+        cc: CompileCommandArg
+    }
+}
+
+fn handle_files(print: &mut printer::Printer, cc: &CompileCommandArg)
+{
+    if let Some(path) = cc.get_argument_or_none_with_cwd()
+    {
+        let commands = load_compile_commands(print, &path);
+        print.info(format!("{:#?}", commands).as_str());
+    }
+}
+
+pub fn main(print: &mut printer::Printer, args: &Options)
+{
+    match args
+    {
+        Options::Files{cc} =>
+        {
+            handle_files(print, cc);
+        },
+        _ => {}
     }
 }

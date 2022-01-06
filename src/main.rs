@@ -104,6 +104,13 @@ enum WorkbenchArguments
     {
         #[structopt(flatten)]
         options: checkincludes::Options
+    },
+
+    /// compile_commands.json utilities
+    CompileCommands
+    {
+        #[structopt(flatten)]
+        options: compilecommands::Options
     }
 }
 
@@ -178,13 +185,10 @@ fn handle_debug(printer: &mut printer::Printer, cc: &compilecommands::CompileCom
     let cmakes = cmake::list_all(printer);
     print_found_list(printer, "cmake", &cmakes);
 
-    if let Ok(cwd) = std::env::current_dir()
+    match cc.get_argument_or_none_with_cwd()
     {
-        match cc.get_argument_or_none(&cwd)
-        {
-            Some(found) => printer.info(format!("Compile commands: {}", found.display()).as_str()),
-            None => printer.info("Compile commands: <NONE>")
-        }
+        Some(found) => printer.info(format!("Compile commands: {}", found.display()).as_str()),
+        None => printer.info("Compile commands: <NONE>")
     }
 }
 
@@ -318,6 +322,10 @@ fn main() {
                 let data = loaded_data.unwrap();
                 checkincludes::main(&mut print, &data, &options)
             }
+        }
+        , WorkbenchArguments::CompileCommands{options} =>
+        {
+            compilecommands::main(&mut print, &options)
         }
     }
     
