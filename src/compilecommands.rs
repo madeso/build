@@ -178,6 +178,13 @@ pub enum Options
     {
         #[structopt(flatten)]
         cc: CompileCommandArg
+    },
+
+    /// list include directories per file
+    Includes
+    {
+        #[structopt(flatten)]
+        cc: CompileCommandArg
     }
 }
 
@@ -190,6 +197,21 @@ fn handle_files(print: &mut printer::Printer, cc: &CompileCommandArg)
     }
 }
 
+fn handle_includes(print: &mut printer::Printer, cc: &CompileCommandArg)
+{
+    if let Some(path) = cc.get_argument_or_none_with_cwd()
+    {
+        let commands = load_compile_commands(print, &path);
+        for (file, command) in &commands
+        {
+
+            print.info(file);
+            let dirs = command.get_relative_includes();
+            print.info(format!("{:#?}", dirs).as_str());
+        }
+    }
+}
+
 pub fn main(print: &mut printer::Printer, args: &Options)
 {
     match args
@@ -198,6 +220,9 @@ pub fn main(print: &mut printer::Printer, args: &Options)
         {
             handle_files(print, cc);
         },
-        _ => {}
+        Options::Includes{cc} =>
+        {
+            handle_includes(print, cc);
+        }
     }
 }
