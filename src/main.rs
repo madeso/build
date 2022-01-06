@@ -13,6 +13,8 @@ mod buildenv;
 mod cmd;
 mod build;
 mod checkincludes;
+mod listheaders;
+mod compilecommands;
 
 use structopt::StructOpt;
 
@@ -81,10 +83,21 @@ enum WorkbenchArguments
     Demo {},
 
     /// Display what workbench think of your current setup
-    Debug {},
+    Debug
+    {
+        #[structopt(flatten)]
+        cc: compilecommands::CompileCommandArg
+    },
 
     /// Build commands
     Build(Build),
+
+    /// List headers
+    ListHeaders
+    {
+        #[structopt(flatten)]
+        options: listheaders::Options
+    },
 
     /// Tool to check the order of #include statements in files
     CheckIncludes
@@ -160,10 +173,19 @@ fn print_found_list(printer: &printer::Printer, name: &str, list: &[found::Found
     }
 }
 
-fn handle_debug(printer: &mut printer::Printer)
+fn handle_debug(printer: &mut printer::Printer, cc: &compilecommands::CompileCommandArg)
 {
     let cmakes = cmake::list_all(printer);
     print_found_list(printer, "cmake", &cmakes);
+
+    if let Ok(cwd) = std::env::current_dir()
+    {
+        match cc.get_argument_or_none(&cwd)
+        {
+            Some(found) => printer.info(format!("Compile commands: {}", found.display()).as_str()),
+            None => printer.info("Compile commands: <NONE>")
+        }
+    }
 }
 
 
@@ -227,7 +249,7 @@ fn main() {
           WorkbenchArguments::Ls{path} => print.ls(path.as_str())
         , WorkbenchArguments::Cat{path} => print.cat(path.as_str())
         , WorkbenchArguments::Demo{} => handle_demo(&mut print)
-        , WorkbenchArguments::Debug{} => handle_debug(&mut print)
+        , WorkbenchArguments::Debug{cc} => handle_debug(&mut print, &cc)
         , WorkbenchArguments::Build(build) => match build
         {
             Build::Status{} => handle_build_status(&mut print),
@@ -268,6 +290,20 @@ fn main() {
                         generate_cmake_project(build, data).build(printer);
                     }
                 )
+        }
+        , WorkbenchArguments::ListHeaders{options} =>
+        {
+            let loaded_data = builddata::load(&mut print);
+            if let Err(err) = loaded_data
+            {
+                print.error(format!("Unable to load the data: {}", err).as_str());
+                return;
+            }
+            else
+            {
+                let data = loaded_data.unwrap();
+                listheaders::main(&mut print, &data, &options)
+            }
         }
         , WorkbenchArguments::CheckIncludes{options} =>
         {

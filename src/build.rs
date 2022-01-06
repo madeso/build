@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::env;
 
 use serde::{Serialize, Deserialize};
@@ -81,12 +81,6 @@ impl DependencySdl2
     }
 }
 
-fn join(path: &Path, file: &str) -> PathBuf
-{
-    let mut r = path.to_path_buf();
-    r.push(file);
-    r
-}
 
 impl Dependency for DependencySdl2
 {
@@ -114,7 +108,7 @@ impl Dependency for DependencySdl2
         print.header("Installing dependency sdl2");
         let url = "https://www.libsdl.org/release/SDL2-2.0.8.zip";
         
-        let zip_file = join(deps, "sdl2.zip");
+        let zip_file = core::join(deps, "sdl2.zip");
         
         if false == zip_file.exists()
         {
@@ -128,17 +122,17 @@ impl Dependency for DependencySdl2
             print.info("SDL2 zip file exist, not downloading again...");
         }
 
-        if false == join(root, "INSTALL.txt").exists()
+        if false == core::join(root, "INSTALL.txt").exists()
         {
             core::extract_zip(print, &zip_file, root);
-            core::move_files(print, &join(root, "SDL2-2.0.8"), root);
+            core::move_files(print, &core::join(root, "SDL2-2.0.8"), root);
         }
         else
         {
             print.info("SDL2 is unzipped, not unzipping again");
         }
         
-        if false == join(build, "SDL2.sln").exists()
+        if false == core::join(build, "SDL2.sln").exists()
         {
             let mut project = cmake::CMake::new(build, root, generator);
             // project.make_static_library()
@@ -271,7 +265,7 @@ impl Dependency for DependencyAssimp
         // btdeps.install_dependency_assimp(data.dependency_dir, assimp_folder, assimp_install_folder, build.get_generator())
         // def install_dependency_assimp(deps: str, root: str, install: str, generator: cmake.Generator):
         print.header("Installing dependency assimp");
-        let zip_file = join(deps, "assimp.zip");
+        let zip_file = core::join(deps, "assimp.zip");
         if false == root.exists()
         {
             core::verify_dir_exist(print, root);
@@ -280,8 +274,8 @@ impl Dependency for DependencyAssimp
             core::download_file(print, url, &zip_file);
             print.info("extracting assimp");
             core::extract_zip(print, &zip_file, root);
-            let build = join(root, "cmake-build");
-            core::move_files(print, &join(root, "assimp-5.0.1"), root);
+            let build = core::join(root, "cmake-build");
+            core::move_files(print, &core::join(root, "assimp-5.0.1"), root);
             
             let mut project = cmake::CMake::new(&build, root, generator);
             project.add_argument("ASSIMP_BUILD_X3D_IMPORTER".to_string(), "0".to_string());

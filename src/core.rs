@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::fs::{self, File};
 use std::io::prelude::*;
 use std::io::{self, BufRead};
@@ -23,12 +23,18 @@ where P: AsRef<Path>, {
 }
 
 
+pub fn read_file_to_string_x(path: &Path) -> io::Result<String>
+{
+    let mut file = File::open(path)?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+    Ok(contents)
+}
+
+
 pub fn read_file_to_string(path: &Path) -> Option<String>
 {
-    let mut file = File::open(path).ok()?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents).ok()?;
-    Some(contents)
+    read_file_to_string_x(path).ok()
 }
 
 
@@ -299,4 +305,12 @@ impl TextReplacer
         
         text
     }
+}
+
+
+pub fn join(path: &Path, file: &str) -> PathBuf
+{
+    let mut r = path.to_path_buf();
+    r.push(file);
+    r
 }
