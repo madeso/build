@@ -1,14 +1,17 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 use thiserror::Error;
 use std::io;
 use std::fmt;
 
+use counter;
+
 use crate::
 {
     builddata,
     core,
-    printer
+    printer,
+    compilecommands
 };
 
 
@@ -18,88 +21,58 @@ pub struct LinesArg
     /// File to list lines in
     #[structopt(parse(from_os_str))]
     filename: PathBuf,
-
+    
     /// List statements instead
     #[structopt(long)]
     statements: bool,
-
+    
     /// List blocks instead
     #[structopt(long)]
     blocks: bool
 }
 
+
+#[derive(StructOpt, Debug)]
+pub struct FilesArg
+{
+    /// project file
+    #[structopt(parse(from_os_str))]
+    sources: Vec<PathBuf>,
+    
+    /// number of most common includes to print
+    #[structopt(default_value="10", long)]
+    count: usize,
+    
+    // nargs="*", default=[])
+    /// folders to exclude
+    #[structopt(long)]
+    exclude : Vec<PathBuf>,
+    
+    /// print debug info
+    #[structopt(long)]
+    debug: bool,
+    
+    #[structopt(flatten)]
+    cc: compilecommands::CompileCommandArg
+}
+
+
 /// Tool to list headers
 #[derive(StructOpt, Debug)]
 pub enum Options
 {
-    /// List headers in a single file
-    File
-    {
-        /// File to list headers in
-        #[structopt(parse(from_os_str))]
-        filename: PathBuf
-    },
-
     /// List lines in a single file
     Lines
     {
         #[structopt(flatten)]
         lines: LinesArg
     },
-
-    /// find files in a vs project file
-    Project
+    
+    /// Display includeded files from one or more source files
+    Files
     {
-        /// project file
-        #[structopt(parse(from_os_str))]
-        filename: PathBuf
-    },
-
-    /// list includes from a file in a vs project file
-    FileIn
-    {
-        /// project file
-        #[structopt(parse(from_os_str))]
-        project: PathBuf,
-
-        /// file to list includes from
-        #[structopt(parse(from_os_str))]
-        file: PathBuf,
-
-        /// print debug info
-        #[structopt(long)]
-        debug: bool,
-
-        /// number of most common includes to print
-        #[structopt(default_value="10", long)]
-        count: i32
-    },
-
-    /// list all files in a vs project file
-    AllIn
-    {
-        /// project file
-        #[structopt(parse(from_os_str))]
-        project: PathBuf,
-
-        /// number of most common includes to print
-        #[structopt(default_value="10", long)]
-        count: i32,
-        
-        // nargs="*", default=[])
-        /// folders to exclude
-        exclude : Vec<PathBuf>,
-        
-        /// print debug info
-        #[structopt(long)]
-        debug: bool,
-    },
-
-    /// list projects in a vs solution file
-    Solution
-    {
-        /// solution file
-        sln: PathBuf
+        #[structopt(flatten)]
+        files: FilesArg
     }
 }
 
@@ -193,14 +166,14 @@ fn remove_cpp_comments(lines: Vec<String>) -> Vec<String>
 
 
 #[derive(Debug, Clone)]
-pub struct Preproc
+struct Preproc
 {
     command: String,
     arguments: String
 }
 
 #[derive(Debug)]
-pub struct PreprocParser
+struct PreprocParser
 {
     commands: Vec<Preproc>,
     index: usize
@@ -210,7 +183,7 @@ impl PreprocParser
 {
     pub fn validate_index(&self) -> bool
     {
-        if self.index < 0 || self.index >= self.commands.len()
+        if self.index >= self.commands.len()
         {
             false
         }
@@ -218,11 +191,6 @@ impl PreprocParser
         {
             true
         }
-    }
-
-    pub fn peek(&self) -> &Preproc
-    {
-        self.opeek().unwrap()
     }
     
     pub fn opeek(&self) -> Option<&Preproc>
@@ -440,6 +408,202 @@ fn handle_lines(print: &mut printer::Printer, args: &LinesArg) -> Result<(), Fai
     Ok(())
 }
 
+struct FileWalker<FileLookup>
+where
+    FileLookup: Fn(&Path) -> Option<Vec::<PathBuf>>,
+{
+    file_lookup: FileLookup,
+    stats: FileStats
+}
+
+struct FileStats
+{
+    includes: counter::Counter<String, usize>,
+    missing: counter::Counter<String, usize>,
+    file_count : usize,
+    total_file_count : usize,
+}
+
+fn resolve_path(directories: &Vec::<PathBuf>, stem: &str) -> Option<PathBuf>
+{
+    for d in directories
+    {
+        let r = core::join(d, stem);
+        if r.exists()
+        {
+            return Some(r);
+        }
+    }
+
+    None
+}
+
+impl<FileLookup> FileWalker<FileLookup>
+where
+    FileLookup: Fn(&Path) -> Option<Vec::<PathBuf>>,
+{
+    fn add_include(&mut self, path: &Path)
+    {
+        let d = path.display().to_string();
+        self.stats.includes[&d] += 1;
+    }
+
+    fn add_missing(&mut self, _: &Path, include: &str)
+    {
+        let is = include.to_string();
+        self.stats.includes[&is] += 1;
+        self.stats.missing[&is] += 1;
+    }
+
+    fn walk(&mut self, print: &mut printer::Printer, path: &Path) -> Result<(), Fail>
+    {
+        self.stats.file_count += 1;
+
+        let directories = match (self.file_lookup)(path)
+        {
+            Some(x) => x,
+            None =>
+            {
+                print.error(format!("Unable to get include directories for {}", path.display()).as_str());
+                return Ok(());
+            }
+        };
+
+        self.walk_rec(print, &directories, path)
+    }
+    fn walk_rec(&mut self, print: &mut printer::Printer, directories: &Vec<PathBuf>, path: &Path) -> Result<(), Fail>
+    {
+        self.stats.total_file_count += 1;
+
+        let source_lines : Vec<String> = core::read_file_to_lines(path)?.map(|l| l.unwrap()).collect();
+        let joined_lines = join_lines(source_lines);
+        let trim_lines = joined_lines.iter().map(|str| {str.trim_start().to_string()}).collect();
+        let lines = remove_cpp_comments(trim_lines);
+        let statements = parse_to_statements(lines);
+        let blocks = parse_to_blocks(print, statements);
+        
+        for block in blocks
+        {
+            // print.info(format!("{:#?}", block).as_str());
+            if let Statement::Command(cmd) = block
+            {
+                if cmd.name == "include"
+                {
+                    let include_name = &cmd.value.trim_matches
+                    (
+                        |c|
+                            c == '"' ||
+                            c == '<' ||
+                            c == '>' ||
+                            c == ' '
+                    );
+                    match resolve_path(&directories, include_name)
+                    {
+                        Some(sub_file) =>
+                        {
+                            self.add_include(&sub_file);
+                            self.walk_rec(print, directories, &sub_file)?;
+                        }
+                        None =>
+                        {
+                            self.add_missing(path, include_name);
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
+fn handle_files(print: &mut printer::Printer, args: &FilesArg) -> Result<(), Fail>
+{
+    let commmands = match args.cc.get_argument_or_none_with_cwd()
+    {
+        Some(path) => compilecommands::load_compile_commands(print, &path),
+        None =>
+        {
+            print.error("Failed to get compile commands");
+            return Ok(());
+        }
+    };
+
+    let stats = {
+        let mut walker = FileWalker
+        {
+            file_lookup: |file: &Path|
+            {
+                match commmands.get(file)
+                {
+                    Some(cc) => Some(cc.get_relative_includes()),
+                    None => None
+                }
+            },
+            stats: FileStats
+            {
+                includes: counter::Counter::<String, usize>::new(),
+                missing: counter::Counter::<String, usize>::new(),
+                file_count : 0,
+                total_file_count: 0
+            }
+        };
+
+        for file in &args.sources
+        {
+            if file.is_absolute()
+            {
+                walker.walk(print, &file)?;
+            }
+            else
+            {
+                match std::env::current_dir()
+                {
+                    Ok(cwd) => 
+                    {
+                        let mut f = cwd.to_path_buf();
+                        f.push(file);
+                        // print.info(format!("Converted relative path {} to {}", file.display(), f.display()).as_str());
+                        walker.walk(print, &f)?;
+                    },
+                    Err(_) => 
+                    {
+                        print.error("Failed to get cwd");
+                        return Ok(());
+                    }
+                }
+            }
+        }
+
+        walker.stats
+    };
+
+    print.info(format!("Top {} includes are:", args.count).as_str());
+
+    match std::env::current_dir()
+    {
+        Ok(cwd) => 
+        {
+            for (file, count) in stats.includes.most_common().iter().take(args.count)
+            {
+                let d = match PathBuf::from(file).strip_prefix(&cwd)
+                {
+                    Ok(d) => format!("{}", d.display()),
+                    Err(_) => file.to_string()
+                };
+                let times = (*count as f64) / stats.file_count as f64;
+                print.info(format!(" - {} {:.2}x ({}/{})", d, times, count, stats.file_count).as_str());
+            }
+        },
+        Err(_) => 
+        {
+            print.error("Failed to get cwd");
+        }
+    }
+
+    Ok(())
+}
+
 
 pub fn main(print: &mut printer::Printer, _data: &builddata::BuildData, args: &Options)
 {
@@ -452,6 +616,12 @@ pub fn main(print: &mut printer::Printer, _data: &builddata::BuildData, args: &O
                 print.error(format!("Failed to handle lines: {}", err).as_str());
             }
         },
-        _ => {}
+        Options::Files{files} =>
+        {
+            if let Err(err) = handle_files(print, files)
+            {
+                print.error(format!("Failed to handle files: {}", err).as_str());
+            }
+        }
     }
 }

@@ -62,7 +62,7 @@ struct CompileCommandJson
 }
 
 
-pub fn load_compile_commands(print: &mut printer::Printer, path: &Path) -> HashMap<String, CompileCommand>
+pub fn load_compile_commands(print: &mut printer::Printer, path: &Path) -> HashMap<PathBuf, CompileCommand>
 {
     match load_compile_commands_or(path)
     {
@@ -75,7 +75,7 @@ pub fn load_compile_commands(print: &mut printer::Printer, path: &Path) -> HashM
     }
 }
 
-fn load_compile_commands_or(path: &Path) -> Result<HashMap<String, CompileCommand>, CompileCommandsError>
+fn load_compile_commands_or(path: &Path) -> Result<HashMap<PathBuf, CompileCommand>, CompileCommandsError>
 {
     let content = core::read_file_to_string_x(path)?;
     let data : Result<Vec::<CompileCommandJson>, serde_json::error::Error> = serde_json::from_str(&content);
@@ -86,7 +86,7 @@ fn load_compile_commands_or(path: &Path) -> Result<HashMap<String, CompileComman
     {
         r.insert
         (
-            entry.file.to_string(),
+            PathBuf::from(entry.file),
             CompileCommand
             {
                 directory: entry.directory,
@@ -118,7 +118,8 @@ fn find_build_root(root: &Path) -> Option<PathBuf>
 #[derive(StructOpt, Debug)]
 pub struct CompileCommandArg
 {
-    /// the path to compile commands
+    /// the path to compile_commands.json
+    #[structopt(long)]
     compile_commands: Option<PathBuf>
 }
 
@@ -205,7 +206,7 @@ fn handle_includes(print: &mut printer::Printer, cc: &CompileCommandArg)
         for (file, command) in &commands
         {
 
-            print.info(file);
+            print.info(format!("{}", file.display()).as_str());
             let dirs = command.get_relative_includes();
             for d in dirs
             {
