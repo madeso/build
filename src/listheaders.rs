@@ -3,6 +3,7 @@ use structopt::StructOpt;
 use thiserror::Error;
 use std::io;
 use std::fmt;
+use std::collections::HashSet;
 
 use counter;
 
@@ -123,16 +124,24 @@ fn join_lines(lines: Vec<String>) -> Vec<String>
     r
 }
 
-
-
-fn remove_cpp_comments(lines: Vec<String>) -> Vec<String>
+struct Line
 {
-    let mut r = Vec::<String>::new();
+    text: String,
+    line: usize
+}
+
+fn remove_cpp_comments(lines: Vec<String>) -> Vec<Line>
+{
+    let mut r = Vec::<Line>::new();
     // todo(Gustav)
     let mut in_comment = false;
+
+    let mut line_index = 0;
     
     for line in lines
     {
+        line_index += 1;
+
         if in_comment
         {
             if line.contains("*/")
@@ -157,7 +166,7 @@ fn remove_cpp_comments(lines: Vec<String>) -> Vec<String>
         }
         else
         {
-            r.push(line.to_string());
+            r.push(Line{text: line.to_string(), line: line_index});
         }
     }
 
@@ -169,7 +178,8 @@ fn remove_cpp_comments(lines: Vec<String>) -> Vec<String>
 struct Preproc
 {
     command: String,
-    arguments: String
+    arguments: String,
+    line: usize
 }
 
 #[derive(Debug)]
@@ -280,7 +290,7 @@ fn peek_name(commands: &PreprocParser) -> String
     }
 }
 
-fn group_commands(print: &mut printer::Printer, ret: &mut Vec<Statement>, commands: &mut PreprocParser, depth: i32)
+fn group_commands(path: &Path, print: &mut printer::Printer, ret: &mut Vec<Statement>, commands: &mut PreprocParser, depth: i32)
 {
     while let Some(command) = commands.next()
     {
@@ -293,11 +303,11 @@ fn group_commands(print: &mut printer::Printer, ret: &mut Vec<Statement>, comman
                 true_block: Vec::<Statement>::new(),
                 false_block: Vec::<Statement>::new()
             };
-            group_commands(print, &mut group.true_block, commands, depth+1);
+            group_commands(path, print, &mut group.true_block, commands, depth+1);
             if peek_name(commands) == "else"
             {
                 commands.skip();
-                group_commands(print, &mut group.false_block, commands, depth+1);
+                group_commands(path, print, &mut group.false_block, commands, depth+1);
             }
             if peek_name(commands) == "endif"
             {
@@ -319,7 +329,7 @@ fn group_commands(print: &mut printer::Printer, ret: &mut Vec<Statement>, comman
             }
             else
             {
-                print.error("Ignored unmatched endif");
+                print.error(format!("{}({}): Ignored unmatched endif", path.display(), command.line).as_str());
             }
         }
         else
@@ -333,15 +343,15 @@ fn group_commands(print: &mut printer::Printer, ret: &mut Vec<Statement>, comman
 }
 
 
-fn parse_to_statements(lines: Vec<String>) -> Vec<Preproc>
+fn parse_to_statements(lines: Vec<Line>) -> Vec<Preproc>
 {
     let mut r = Vec::<Preproc>::new();
 
     for line in lines
     {
-        if line.starts_with("#")
+        if line.text.starts_with("#")
         {
-            let li = line[1..].trim_start();
+            let li = line.text[1..].trim_start();
             let data = li.split_once(' ');
 
             r.push
@@ -351,9 +361,9 @@ fn parse_to_statements(lines: Vec<String>) -> Vec<Preproc>
                     Some(pre) =>
                     {
                         let (command, arguments) = pre;
-                        Preproc{command: command.to_string(), arguments: arguments.to_string()}
+                        Preproc{command: command.to_string(), arguments: arguments.to_string(), line: line.line}
                     },
-                    None => Preproc{command: li.to_string(), arguments:"".to_string()}
+                    None => Preproc{command: li.to_string(), arguments:"".to_string(), line: line.line}
                 }
             )
         }
@@ -362,11 +372,11 @@ fn parse_to_statements(lines: Vec<String>) -> Vec<Preproc>
     r
 }
 
-fn parse_to_blocks(print: &mut printer::Printer, r: Vec<Preproc>) -> Vec<Statement>
+fn parse_to_blocks(path: &Path, print: &mut printer::Printer, r: Vec<Preproc>) -> Vec<Statement>
 {
     let mut parser = PreprocParser{commands: r, index: 0};
     let mut ret = Vec::<Statement>::new();
-    group_commands(print, &mut ret, &mut parser, 0);
+    group_commands(path, print, &mut ret, &mut parser, 0);
     ret
 }
 
@@ -383,7 +393,7 @@ fn handle_lines(print: &mut printer::Printer, args: &LinesArg) -> Result<(), Fai
 
         if args.blocks
         {
-            let blocks = parse_to_blocks(print, statements);
+            let blocks = parse_to_blocks(&args.filename, print, statements);
             for block in blocks
             {
                 print.info(format!("{:#?}", block).as_str());
@@ -401,7 +411,7 @@ fn handle_lines(print: &mut printer::Printer, args: &LinesArg) -> Result<(), Fai
     {
         for line in lines
         {
-            print.info(&line);
+            print.info(&line.text);
         }
     }
 
@@ -459,6 +469,7 @@ where
     {
         self.stats.file_count += 1;
 
+        // todo(Gustav): add local directory to directory list/differentiate between <> and "" includes
         let directories = match (self.file_lookup)(path)
         {
             Some(x) => x,
@@ -469,9 +480,11 @@ where
             }
         };
 
-        self.walk_rec(print, &directories, path)
+        let mut file_cache = HashSet::new();
+
+        self.walk_rec(print, &directories, &mut file_cache, path)
     }
-    fn walk_rec(&mut self, print: &mut printer::Printer, directories: &Vec<PathBuf>, path: &Path) -> Result<(), Fail>
+    fn walk_rec(&mut self, print: &mut printer::Printer, directories: &Vec<PathBuf>, file_cache: &mut HashSet<String>, path: &Path) -> Result<(), Fail>
     {
         self.stats.total_file_count += 1;
 
@@ -480,35 +493,58 @@ where
         let trim_lines = joined_lines.iter().map(|str| {str.trim_start().to_string()}).collect();
         let lines = remove_cpp_comments(trim_lines);
         let statements = parse_to_statements(lines);
-        let blocks = parse_to_blocks(print, statements);
+        let blocks = parse_to_blocks(path, print, statements);
         
         for block in blocks
         {
-            // print.info(format!("{:#?}", block).as_str());
+            // todo(Gustav): improve tree-walk eval
             if let Statement::Command(cmd) = block
             {
-                if cmd.name == "include"
+                match cmd.name.as_str()
                 {
-                    let include_name = &cmd.value.trim_matches
-                    (
-                        |c|
-                            c == '"' ||
-                            c == '<' ||
-                            c == '>' ||
-                            c == ' '
-                    );
-                    match resolve_path(&directories, include_name)
+                    "pragma" =>
                     {
-                        Some(sub_file) =>
+                        match cmd.value.as_str()
                         {
-                            self.add_include(&sub_file);
-                            self.walk_rec(print, directories, &sub_file)?;
-                        }
-                        None =>
-                        {
-                            self.add_missing(path, include_name);
+                            "once" =>
+                            {
+                                let path_string = path.display().to_string();
+                                if file_cache.contains(&path_string)
+                                {
+                                    return Ok(());
+                                }
+                                else
+                                {
+                                    file_cache.insert(path_string);
+                                }
+                            }
+                            _ => {}
                         }
                     }
+                    "include" =>
+                    {
+                        let include_name = &cmd.value.trim_matches
+                        (
+                            |c|
+                                c == '"' ||
+                                c == '<' ||
+                                c == '>' ||
+                                c == ' '
+                        );
+                        match resolve_path(&directories, include_name)
+                        {
+                            Some(sub_file) =>
+                            {
+                                self.add_include(&sub_file);
+                                self.walk_rec(print, directories, file_cache, &sub_file)?;
+                            }
+                            None =>
+                            {
+                                self.add_missing(path, include_name);
+                            }
+                        }
+                    }
+                    _ => {}
                 }
             }
         }
@@ -593,6 +629,7 @@ fn handle_files(print: &mut printer::Printer, args: &FilesArg) -> Result<(), Fai
                 };
                 let times = (*count as f64) / stats.file_count as f64;
                 print.info(format!(" - {} {:.2}x ({}/{})", d, times, count, stats.file_count).as_str());
+                // todo(Gustav): include range for each include
             }
         },
         Err(_) => 
