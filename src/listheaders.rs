@@ -3,9 +3,10 @@ use structopt::StructOpt;
 use thiserror::Error;
 use std::io;
 use std::fmt;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use counter;
+use regex::Regex;
 
 use crate::
 {
@@ -467,28 +468,15 @@ fn parse_to_statements(lines: Vec<Line>) -> Vec<Preproc>
         if line.text.starts_with("#")
         {
             let li = line.text[1..].trim_start();
-            let data = li.split_once(' ');
+            let (command, arguments) = ident_split(li);
 
             r.push
             (
-                match data
+                Preproc
                 {
-                    Some(pre) =>
-                    {
-                        let (command, arguments) = pre;
-                        Preproc
-                        {
-                            command: command.to_string(),
-                            arguments: arguments.to_string(),
-                            line: line.line
-                        }
-                    },
-                    None => Preproc
-                    {
-                        command: li.to_string(),
-                        arguments:"".to_string(),
-                        line: line.line
-                    }
+                    command,
+                    arguments,
+                    line: line.line
                 }
             )
         }
@@ -559,8 +547,21 @@ struct FileStats
     total_file_count : usize,
 }
 
-fn resolve_path(directories: &Vec::<PathBuf>, stem: &str) -> Option<PathBuf>
+fn resolve_path(directories: &Vec::<PathBuf>, stem: &str, caller_file: &Path, use_relative_path: bool) -> Option<PathBuf>
 {
+    if use_relative_path
+    {
+        if let Some(caller) = caller_file.parent()
+        {
+            let r = core::join(caller, stem);
+            // println!("testing relative include {}", r.display());
+            if r.exists()
+            {
+                // println!("using local {}", r.display());
+                return Some(r);
+            }
+        }
+    }
     for d in directories
     {
         let r = core::join(d, stem);
@@ -572,6 +573,23 @@ fn resolve_path(directories: &Vec::<PathBuf>, stem: &str) -> Option<PathBuf>
 
     None
 }
+
+fn ident_split(val: &str) -> (String, String)
+{
+    let re_ident = Regex::new(r"[a-zA-Z_][a-zA-Z_0-9]*").unwrap();
+
+    match re_ident.find(val)
+    {
+        Some(f) =>
+        {
+            let key = f.as_str().to_string();
+            let value = val[f.end()..].to_string();
+            (key, value)
+        },
+        None => (val.to_string(), "".to_string())
+    }
+}
+
 
 impl<FileLookup> FileWalker<FileLookup>
 where
@@ -592,6 +610,13 @@ where
 
     fn walk(&mut self, print: &mut printer::Printer, path: &Path) -> Result<(), Fail>
     {
+        // println!("------------------------------------------------------------");
+        // println!("------------------------------------------------------------");
+        // println!("------------------------------------------------------------");
+        // println!("------------------------------------------------------------");
+        // println!("------------------------------------------------------------");
+        // println!("------------------------------------------------------------");
+        print.info(format!("Parsing {}", path.display()).as_str());
         self.stats.file_count += 1;
 
         // todo(Gustav): add local directory to directory list/differentiate between <> and "" includes
@@ -606,11 +631,15 @@ where
         };
 
         let mut file_cache = HashSet::new();
+        let mut defines = HashMap::<String, String>::new();
 
-        self.walk_rec(print, &directories, &mut file_cache, path)
+        self.walk_rec(print, &directories, &mut file_cache, path, &mut defines, 0)
     }
-    fn walk_rec(&mut self, print: &mut printer::Printer, directories: &Vec<PathBuf>, file_cache: &mut HashSet<String>, path: &Path) -> Result<(), Fail>
+
+    fn walk_rec(&mut self, print: &mut printer::Printer, directories: &Vec<PathBuf>, file_cache: &mut HashSet<String>, path: &Path, defines: &mut HashMap<String, String>, depth: usize) -> Result<(), Fail>
     {
+        // print.info(format!("Rec: {} {}", depth, path.display()).as_str());
+
         self.stats.total_file_count += 1;
 
         let source_lines : Vec<String> = core::read_file_to_lines(path)?.map(|l| l.unwrap()).collect();
@@ -619,57 +648,119 @@ where
         let lines = remove_cpp_comments(trim_lines);
         let statements = parse_to_statements(lines);
         let blocks = parse_to_blocks(path, print, statements);
-        
+
+        self.block_rec(print, directories, file_cache, path, defines, &blocks, depth)
+    }
+
+    fn block_rec(&mut self, print: &mut printer::Printer, directories: &Vec<PathBuf>, file_cache: &mut HashSet<String>, path: &Path, defines: &mut HashMap<String, String>, blocks: &Vec<Statement>, depth: usize) -> Result<(), Fail>
+    {
         for block in blocks
         {
             // todo(Gustav): improve tree-walk eval
-            if let Statement::Command(cmd) = block
+            match block
             {
-                match cmd.name.as_str()
+                Statement::Block(blk) =>
                 {
-                    "pragma" =>
+                    match blk.name.as_str()
                     {
-                        match cmd.value.as_str()
+                        "ifdef" | "ifndef" =>
                         {
-                            "once" =>
+                            let key = ident_split(&blk.condition).0;
+
+                            let ifdef = |t,f| {f && t || (!f && !t)};
+
+                            if blk.elifs.is_empty() == false
                             {
-                                let path_string = path.display().to_string();
-                                if file_cache.contains(&path_string)
-                                {
-                                    return Ok(());
-                                }
-                                else
-                                {
-                                    file_cache.insert(path_string);
-                                }
+                                println!("elifs are unhandled, ignoring ifdef statement");
                             }
-                            _ => {}
+                            else
+                            {
+                                // println!("Key is <{}>: {:#?}", key, defines);
+                                self.block_rec
+                                (
+                                    print, directories, file_cache, path, defines,
+                                    if ifdef(defines.contains_key(&key), blk.name == "ifdef")
+                                    {
+                                        &blk.true_block
+                                    }
+                                    else
+                                    {
+                                        &blk.false_block
+                                    }, depth
+                                )?;
+                            }
+                        },
+
+                        _ =>
+                        {
                         }
                     }
-                    "include" =>
+                },
+                Statement::Command(cmd) =>
+                {
+                    match cmd.name.as_str()
                     {
-                        let include_name = &cmd.value.trim_matches
-                        (
-                            |c|
-                                c == '"' ||
-                                c == '<' ||
-                                c == '>' ||
-                                c == ' '
-                        );
-                        match resolve_path(&directories, include_name)
+                        "pragma" =>
                         {
-                            Some(sub_file) =>
+                            match cmd.value.as_str()
                             {
-                                self.add_include(&sub_file);
-                                self.walk_rec(print, directories, file_cache, &sub_file)?;
+                                "once" =>
+                                {
+                                    let path_string = path.display().to_string();
+                                    if file_cache.contains(&path_string)
+                                    {
+                                        return Ok(());
+                                    }
+                                    else
+                                    {
+                                        file_cache.insert(path_string);
+                                    }
+                                }
+                                _ => {}
                             }
-                            None =>
+                        },
+                        "define" =>
+                        {
+                            let (key, value) = ident_split(&cmd.value);
+                            // println!("Defining {} to {}", key, value);
+                            defines.insert(key, value.trim().to_string());
+                        }
+                        "undef" =>
+                        {
+                            if defines.remove(cmd.value.trim()) == None
                             {
-                                self.add_missing(path, include_name);
+                                print.error(format!("{} was not defined", cmd.value).as_str());
                             }
                         }
+                        "include" =>
+                        {
+                            let include_name = &cmd.value.trim_matches
+                            (
+                                |c|
+                                    c == '"' ||
+                                    c == '<' ||
+                                    c == '>' ||
+                                    c == ' '
+                            );
+                            match resolve_path(&directories, include_name, path, cmd.value.trim().starts_with("\""))
+                            {
+                                Some(sub_file) =>
+                                {
+                                    self.add_include(&sub_file);
+                                    self.walk_rec(print, directories, file_cache, &sub_file, defines, depth+1)?;
+                                }
+                                None =>
+                                {
+                                    self.add_missing(path, include_name);
+                                }
+                            }
+                        }
+                        "error" => {}, // nop
+                        _ =>
+                        {
+                            println!("Unhandled statement {}", cmd.name);
+                        }
                     }
-                    _ => {}
                 }
             }
         }
