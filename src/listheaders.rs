@@ -304,7 +304,7 @@ impl PreprocParser
     }
 }
 
-// #[derive(Debug)]
+#[derive(Clone)]
 enum Statement
 {
     Command(Command),
@@ -322,21 +322,21 @@ impl fmt::Debug for Statement
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Command
 {
     name: String,
     value: String
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Elif
 {
     condition: String,
     block: Vec<Statement>
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Block
 {
     name: String,
@@ -608,7 +608,13 @@ where
         self.stats.missing[&is] += 1;
     }
 
-    fn walk(&mut self, print: &mut printer::Printer, path: &Path) -> Result<(), Fail>
+    fn walk
+    (
+        &mut self,
+        print: &mut printer::Printer,
+        path: &Path,
+        file_cache: &mut HashMap<PathBuf, Vec<Statement>>
+    ) -> Result<(), Fail>
     {
         // println!("------------------------------------------------------------");
         // println!("------------------------------------------------------------");
@@ -630,29 +636,64 @@ where
             }
         };
 
-        let mut file_cache = HashSet::new();
+        let mut included_file_cache = HashSet::new();
         let mut defines = HashMap::<String, String>::new();
 
-        self.walk_rec(print, &directories, &mut file_cache, path, &mut defines, 0)
+        self.walk_rec(print, &directories, &mut included_file_cache, path, &mut defines, file_cache, 0)
     }
 
-    fn walk_rec(&mut self, print: &mut printer::Printer, directories: &Vec<PathBuf>, file_cache: &mut HashSet<String>, path: &Path, defines: &mut HashMap<String, String>, depth: usize) -> Result<(), Fail>
+    fn walk_rec
+    (
+        &mut self,
+        print: &mut printer::Printer,
+        directories: &Vec<PathBuf>,
+        included_file_cache: &mut HashSet<String>,
+        path: &Path,
+        defines: &mut HashMap<String, String>,
+        file_cache: &mut HashMap<PathBuf, Vec<Statement>>,
+        depth: usize
+    ) -> Result<(), Fail>
     {
         // print.info(format!("Rec: {} {}", depth, path.display()).as_str());
 
         self.stats.total_file_count += 1;
 
-        let source_lines : Vec<String> = core::read_file_to_lines(path)?.map(|l| l.unwrap()).collect();
-        let joined_lines = join_lines(source_lines);
-        let trim_lines = joined_lines.iter().map(|str| {str.trim_start().to_string()}).collect();
-        let lines = remove_cpp_comments(trim_lines);
-        let statements = parse_to_statements(lines);
-        let blocks = parse_to_blocks(path, print, statements);
+        let blocks = match file_cache.get(path)
+        {
+            Some(b) => b.clone(),
+            None =>
+            {
+                let source_lines : Vec<String> = core::read_file_to_lines(path)?.map(|l| l.unwrap()).collect();
+                let joined_lines = join_lines(source_lines);
+                let trim_lines = joined_lines.iter().map(|str| {str.trim_start().to_string()}).collect();
+                let lines = remove_cpp_comments(trim_lines);
+                let statements = parse_to_statements(lines);
+                let b = parse_to_blocks(path, print, statements);
+                file_cache.insert(path.to_path_buf(), b.clone());
+                b
+            }
+        };
 
-        self.block_rec(print, directories, file_cache, path, defines, &blocks, depth)
+        self.block_rec(print, directories, included_file_cache, path, defines, &blocks, file_cache, depth)
     }
 
-    fn block_rec(&mut self, print: &mut printer::Printer, directories: &Vec<PathBuf>, file_cache: &mut HashSet<String>, path: &Path, defines: &mut HashMap<String, String>, blocks: &Vec<Statement>, depth: usize) -> Result<(), Fail>
+    // file_cache optimization:
+    // 41,04s user 0,26s system 99% cpu 41,468 total
+    // to
+    // 7,66s user 0,16s system 99% cpu 7,850 total
+
+    fn block_rec
+    (
+        &mut self,
+        print: &mut printer::Printer,
+        directories: &Vec<PathBuf>,
+        included_file_cache: &mut HashSet<String>,
+        path: &Path,
+        defines: &mut HashMap<String, String>,
+        blocks: &Vec<Statement>,
+        file_cache: &mut HashMap<PathBuf, Vec<Statement>>,
+        depth: usize
+    ) -> Result<(), Fail>
     {
         for block in blocks
         {
@@ -671,14 +712,14 @@ where
 
                             if blk.elifs.is_empty() == false
                             {
-                                println!("elifs are unhandled, ignoring ifdef statement");
+                                // println!("elifs are unhandled, ignoring ifdef statement");
                             }
                             else
                             {
                                 // println!("Key is <{}>: {:#?}", key, defines);
                                 self.block_rec
                                 (
-                                    print, directories, file_cache, path, defines,
+                                    print, directories, included_file_cache, path, defines,
                                     if ifdef(defines.contains_key(&key), blk.name == "ifdef")
                                     {
                                         &blk.true_block
@@ -686,7 +727,7 @@ where
                                     else
                                     {
                                         &blk.false_block
-                                    }, depth
+                                    }, file_cache, depth
                                 )?;
                             }
                         },
@@ -707,13 +748,13 @@ where
                                 "once" =>
                                 {
                                     let path_string = path.display().to_string();
-                                    if file_cache.contains(&path_string)
+                                    if included_file_cache.contains(&path_string)
                                     {
                                         return Ok(());
                                     }
                                     else
                                     {
-                                        file_cache.insert(path_string);
+                                        included_file_cache.insert(path_string);
                                     }
                                 }
                                 _ => {}
@@ -747,7 +788,7 @@ where
                                 Some(sub_file) =>
                                 {
                                     self.add_include(&sub_file);
-                                    self.walk_rec(print, directories, file_cache, &sub_file, defines, depth+1)?;
+                                    self.walk_rec(print, directories, included_file_cache, &sub_file, defines, file_cache, depth+1)?;
                                 }
                                 None =>
                                 {
@@ -801,11 +842,13 @@ fn handle_files(print: &mut printer::Printer, args: &FilesArg) -> Result<(), Fai
             }
         };
 
+        let mut file_cache = HashMap::<PathBuf, Vec::<Statement>>::new();
+
         for file in &args.sources
         {
             if file.is_absolute()
             {
-                walker.walk(print, &file)?;
+                walker.walk(print, &file, &mut file_cache)?;
             }
             else
             {
@@ -816,7 +859,7 @@ fn handle_files(print: &mut printer::Printer, args: &FilesArg) -> Result<(), Fai
                         let mut f = cwd.to_path_buf();
                         f.push(file);
                         // print.info(format!("Converted relative path {} to {}", file.display(), f.display()).as_str());
-                        walker.walk(print, &f)?;
+                        walker.walk(print, &f, &mut file_cache)?;
                     },
                     Err(_) => 
                     {
