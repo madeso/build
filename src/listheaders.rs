@@ -130,47 +130,108 @@ struct Line
     line: usize
 }
 
-fn remove_cpp_comments(lines: Vec<String>) -> Vec<Line>
+struct CommentStripper
 {
-    let mut r = Vec::<Line>::new();
-    // todo(Gustav)
-    let mut in_comment = false;
+    ret: Vec<Line>,
+    mem: String,
+    last: char,
+    single_line_comment: bool,
+    multi_line_comment: bool,
+    line: usize
+}
 
-    let mut line_index = 0;
-    
-    for line in lines
+impl CommentStripper
+{
+    fn add_last(&mut self)
     {
-        line_index += 1;
+        if self.last != '\0'
+        {
+            self.mem.push(self.last);
+        }
+        self.last = '\0';
+    }
 
-        if in_comment
+    fn complete(&mut self)
+    {
+        self.add_last();
+        if self.mem.is_empty() == false
         {
-            if line.contains("*/")
-            {
-                in_comment = false
-                // todo(Gustav): yield part of line
-            }
-            else
-            {
-                continue;
-            }
-        }
-        else if line.starts_with("//")
-        {
-            continue;
-        }
-        else if line.contains("/*")
-        {
-            // todo(Gustav): yield part of line
-            in_comment = true;
-            continue;
-        }
-        else
-        {
-            r.push(Line{text: line.to_string(), line: line_index});
+            self.add_mem();
         }
     }
 
-    r
+    fn add_mem(&mut self)
+    {
+        self.ret.push(Line{text: self.mem.to_string(), line: self.line});
+        self.mem = "".to_string();
+    }
+
+    fn add(&mut self, c: char)
+    {
+        let last = self.last;
+        if c != '\n'
+        {
+            self.last = c;
+        }
+
+        if c == '\n'
+        {
+            self.add_last();
+            self.add_mem();
+            self.line += 1;
+            self.single_line_comment = false;
+            return;
+        }
+        if self.single_line_comment
+        {
+            return;
+        }
+        if self.multi_line_comment
+        {
+            if last == '*' && c == '/'
+            {
+                self.multi_line_comment = false;
+                return;
+            }
+        }
+        if last == '/' && c == '/'
+        {
+            self.single_line_comment = true
+        }
+
+        if last == '/' && c == '*'
+        {
+            self.multi_line_comment = true;
+            return;
+        }
+
+        self.add_last();
+    }
+}
+
+fn remove_cpp_comments(lines: Vec<String>) -> Vec<Line>
+{
+    let mut cs = CommentStripper
+    {
+        ret: Vec::<Line>::new(),
+        mem: "".to_string(),
+        last: '\0',
+        single_line_comment: false,
+        multi_line_comment: false,
+        line: 1
+    };
+    for line in lines
+    {
+        for c in line.chars()
+        {
+            cs.add(c);
+        }
+        cs.add('\n');
+    }
+
+    cs.complete();
+
+    cs.ret
 }
 
 
@@ -268,12 +329,20 @@ struct Command
 }
 
 #[derive(Debug)]
+struct Elif
+{
+    condition: String,
+    block: Vec<Statement>
+}
+
+#[derive(Debug)]
 struct Block
 {
     name: String,
     condition: String,
     true_block: Vec<Statement>,
-    false_block: Vec<Statement>
+    false_block: Vec<Statement>,
+    elifs: Vec<Elif>
 }
 
 fn is_if_start(name: &str) -> bool
@@ -301,9 +370,24 @@ fn group_commands(path: &Path, print: &mut printer::Printer, ret: &mut Vec<State
                 name: command.command,
                 condition: command.arguments,
                 true_block: Vec::<Statement>::new(),
-                false_block: Vec::<Statement>::new()
+                false_block: Vec::<Statement>::new(),
+                elifs: Vec::<Elif>::new()
             };
             group_commands(path, print, &mut group.true_block, commands, depth+1);
+            while peek_name(commands) == "elif"
+            {
+                let elif_args = commands.next().unwrap().arguments.to_string();
+                let mut block = Vec::<Statement>::new();
+                group_commands(path, print, &mut block, commands, depth+1);
+                group.elifs.push
+                (
+                    Elif
+                    {
+                        condition: elif_args,
+                        block
+                    }
+                )
+            }
             if peek_name(commands) == "else"
             {
                 commands.skip();
@@ -312,6 +396,10 @@ fn group_commands(path: &Path, print: &mut printer::Printer, ret: &mut Vec<State
             if peek_name(commands) == "endif"
             {
                 commands.skip();
+            }
+            else
+            {
+
             }
             ret.push(Statement::Block(group));
         }
@@ -332,12 +420,39 @@ fn group_commands(path: &Path, print: &mut printer::Printer, ret: &mut Vec<State
                 print.error(format!("{}({}): Ignored unmatched endif", path.display(), command.line).as_str());
             }
         }
+        else if command.command == "elif"
+        {
+            if depth > 0
+            {
+                commands.undo();
+                return;
+            }
+            else
+            {
+                print.error(format!("{}({}): Ignored unmatched elif", path.display(), command.line).as_str());
+            }
+        }
         else
         {
-            ret.push(Statement::Command(Command{
-                name: command.command,
-                value: command.arguments
-            }));
+            match command.command.as_str()
+            {
+                "define" | "error" | "include" | "pragma" | "undef" =>
+                {
+                    ret.push(Statement::Command(Command{
+                        name: command.command,
+                        value: command.arguments
+                    }));
+                },
+                "version" =>
+                {
+                    // todo(Gustav): glsl verbatim string, ignore for now
+                    // pass
+                },
+                _ =>
+                {
+                    print.error(format!("{}({}): unknown pragma {}", path.display(), command.line, command.command).as_str());
+                }
+            }
         }
     }
 }
@@ -361,9 +476,19 @@ fn parse_to_statements(lines: Vec<Line>) -> Vec<Preproc>
                     Some(pre) =>
                     {
                         let (command, arguments) = pre;
-                        Preproc{command: command.to_string(), arguments: arguments.to_string(), line: line.line}
+                        Preproc
+                        {
+                            command: command.to_string(),
+                            arguments: arguments.to_string(),
+                            line: line.line
+                        }
                     },
-                    None => Preproc{command: li.to_string(), arguments:"".to_string(), line: line.line}
+                    None => Preproc
+                    {
+                        command: li.to_string(),
+                        arguments:"".to_string(),
+                        line: line.line
+                    }
                 }
             )
         }
