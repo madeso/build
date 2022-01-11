@@ -50,6 +50,23 @@ impl CompileCommand
 
         r
     }
+
+    pub fn get_defines(&self) -> HashMap<String, String>
+    {
+        // shitty comamndline parser... beware
+        let mut r = HashMap::<String, String>::new();
+        let commands = self.command.split(' ');
+        for c in commands
+        {
+            if let Some(def) = c.strip_prefix("-D")
+            {
+                let (key, var) = def.split_once('=').or( Some( (def, "") ) ).unwrap();
+                r.insert(key.to_string(), var.to_string());
+            }
+        }
+
+        r
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -185,6 +202,13 @@ pub enum Options
     {
         #[structopt(flatten)]
         cc: CompileCommandArg
+    },
+
+    /// list include directories per file
+    Defines
+    {
+        #[structopt(flatten)]
+        cc: CompileCommandArg
     }
 }
 
@@ -215,6 +239,23 @@ fn handle_includes(print: &mut printer::Printer, cc: &CompileCommandArg)
     }
 }
 
+fn handle_defines(print: &mut printer::Printer, cc: &CompileCommandArg)
+{
+    if let Some(path) = cc.get_argument_or_none_with_cwd()
+    {
+        let commands = load_compile_commands(print, &path);
+        for (file, command) in &commands
+        {
+            print.info(format!("{}", file.display()).as_str());
+            let defs = command.get_defines();
+            for (k,v) in defs
+            {
+                print.info(format!("    {} = {}", k, v).as_str());
+            }
+        }
+    }
+}
+
 pub fn main(print: &mut printer::Printer, args: &Options)
 {
     match args
@@ -226,6 +267,10 @@ pub fn main(print: &mut printer::Printer, args: &Options)
         Options::Includes{cc} =>
         {
             handle_includes(print, cc);
+        },
+        Options::Defines{cc} =>
+        {
+            handle_defines(print, cc);
         }
     }
 }

@@ -521,11 +521,9 @@ fn handle_lines(print: &mut printer::Printer, args: &LinesArg) -> Result<(), Fai
     Ok(())
 }
 
-struct FileWalker<FileLookup>
-where
-    FileLookup: Fn(&Path) -> Option<Vec::<PathBuf>>,
+struct FileWalker<'a>
 {
-    file_lookup: FileLookup,
+    commands: &'a HashMap<PathBuf, compilecommands::CompileCommand>,
     stats: FileStats
 }
 
@@ -581,9 +579,7 @@ fn ident_split(val: &str) -> (String, String)
 }
 
 
-impl<FileLookup> FileWalker<FileLookup>
-where
-    FileLookup: Fn(&Path) -> Option<Vec::<PathBuf>>,
+impl FileWalker<'_>
 {
     fn add_include(&mut self, path: &Path)
     {
@@ -615,8 +611,7 @@ where
         print.info(format!("Parsing {}", path.display()).as_str());
         self.stats.file_count += 1;
 
-        // todo(Gustav): add local directory to directory list/differentiate between <> and "" includes
-        let directories = match (self.file_lookup)(path)
+        let cc = match self.commands.get(path)
         {
             Some(x) => x,
             None =>
@@ -626,8 +621,10 @@ where
             }
         };
 
+        let directories = cc.get_relative_includes();
+
         let mut included_file_cache = HashSet::new();
-        let mut defines = HashMap::<String, String>::new();
+        let mut defines = cc.get_defines();
 
         self.walk_rec(print, &directories, &mut included_file_cache, path, &mut defines, file_cache, 0)
     }
@@ -805,7 +802,7 @@ where
 
 fn handle_files(print: &mut printer::Printer, args: &FilesArg) -> Result<(), Fail>
 {
-    let commmands = match args.cc.get_argument_or_none_with_cwd()
+    let commands = match args.cc.get_argument_or_none_with_cwd()
     {
         Some(path) => compilecommands::load_compile_commands(print, &path),
         None =>
@@ -818,13 +815,7 @@ fn handle_files(print: &mut printer::Printer, args: &FilesArg) -> Result<(), Fai
     let stats = {
         let mut walker = FileWalker
         {
-            file_lookup: |file: &Path|
-            {
-                commmands.get(file).map
-                (
-                    |cc| cc.get_relative_includes()
-                )
-            },
+            commands: &commands,
             stats: FileStats
             {
                 includes: counter::Counter::<String, usize>::new(),
