@@ -733,7 +733,7 @@ where
                     {
                         "pragma" =>
                         {
-                            match cmd.value.as_str()
+                            match cmd.value.trim()
                             {
                                 "once" =>
                                 {
