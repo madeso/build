@@ -2,6 +2,17 @@
     // sometimes comparing to true or false is more readable
     clippy::bool_comparison
 )]
+#![allow(
+    // "too many arguments" is a potential code smell, not a style error
+    // it also depends on the kind of function, setting a number globally is wrong
+    // besides... it's my code, I decide what "too many arguments" are
+    clippy::too_many_arguments
+)]
+#![allow(
+    // understandable but sometimes you want to write "crappy" code because
+    // the structure is there to be easily expanded
+    clippy::single_match
+)]
 
 mod printer;
 mod registry;

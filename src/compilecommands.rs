@@ -38,12 +38,11 @@ impl CompileCommand
     {
         // shitty comamndline parser... beware
         let mut r = Vec::<PathBuf>::new();
-        let commands = self.command.split(" ");
+        let commands = self.command.split(' ');
         for c in commands
         {
-            if c.starts_with("-I")
+            if let Some(path) = c.strip_prefix("-I")
             {
-                let path = &c[2..];
                 let pb = PathBuf::from(path);
                 r.push(pb);
             }
@@ -111,7 +110,7 @@ fn find_build_root(root: &Path) -> Option<PathBuf>
         }
     }
 
-    return None
+    None
 }
 
 

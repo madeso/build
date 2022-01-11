@@ -5,7 +5,6 @@ use std::io;
 use std::fmt;
 use std::collections::{HashMap, HashSet};
 
-use counter;
 use regex::Regex;
 
 use crate::
@@ -94,7 +93,7 @@ fn join_lines(lines: Vec<String>) -> Vec<String>
     
     for line in lines
     {
-        if line.ends_with("\\")
+        if line.ends_with('\\')
         {
             let without = &line[..line.len() - 1];
             last_line = match last_line
@@ -103,17 +102,14 @@ fn join_lines(lines: Vec<String>) -> Vec<String>
                 Some(str) => Some(str + without)
             };
         }
+        else if let Some(str) = last_line
+        {
+            r.push(str + &line);
+            last_line = None;
+        }
         else
         {
-            if let Some(str) = last_line
-            {
-                r.push(str + &line);
-                last_line = None;
-            }
-            else
-            {
-                r.push(line.to_string());
-            }
+            r.push(line.to_string());
         }
     }
 
@@ -192,8 +188,9 @@ impl CommentStripper
             if last == '*' && c == '/'
             {
                 self.multi_line_comment = false;
-                return;
             }
+
+            return;
         }
         if last == '/' && c == '/'
         {
@@ -255,14 +252,7 @@ impl PreprocParser
 {
     pub fn validate_index(&self) -> bool
     {
-        if self.index >= self.commands.len()
-        {
-            false
-        }
-        else
-        {
-            true
-        }
+        self.index < self.commands.len()
     }
     
     pub fn opeek(&self) -> Option<&Preproc>
@@ -465,7 +455,7 @@ fn parse_to_statements(lines: Vec<Line>) -> Vec<Preproc>
 
     for line in lines
     {
-        if line.text.starts_with("#")
+        if line.text.starts_with('#')
         {
             let li = line.text[1..].trim_start();
             let (command, arguments) = ident_split(li);
@@ -547,7 +537,7 @@ struct FileStats
     total_file_count : usize,
 }
 
-fn resolve_path(directories: &Vec::<PathBuf>, stem: &str, caller_file: &Path, use_relative_path: bool) -> Option<PathBuf>
+fn resolve_path(directories: &[PathBuf], stem: &str, caller_file: &Path, use_relative_path: bool) -> Option<PathBuf>
 {
     if use_relative_path
     {
@@ -646,7 +636,7 @@ where
     (
         &mut self,
         print: &mut printer::Printer,
-        directories: &Vec<PathBuf>,
+        directories: &[PathBuf],
         included_file_cache: &mut HashSet<String>,
         path: &Path,
         defines: &mut HashMap<String, String>,
@@ -686,11 +676,11 @@ where
     (
         &mut self,
         print: &mut printer::Printer,
-        directories: &Vec<PathBuf>,
+        directories: &[PathBuf],
         included_file_cache: &mut HashSet<String>,
         path: &Path,
         defines: &mut HashMap<String, String>,
-        blocks: &Vec<Statement>,
+        blocks: &[Statement],
         file_cache: &mut HashMap<PathBuf, Vec<Statement>>,
         depth: usize
     ) -> Result<(), Fail>
@@ -757,7 +747,10 @@ where
                                         included_file_cache.insert(path_string);
                                     }
                                 }
-                                _ => {}
+                                _ =>
+                                {
+                                    print.error(format!("unhandled pragma argument: {}", cmd.value).as_str());
+                                }
                             }
                         },
                         "define" =>
@@ -783,7 +776,7 @@ where
                                     c == '>' ||
                                     c == ' '
                             );
-                            match resolve_path(&directories, include_name, path, cmd.value.trim().starts_with("\""))
+                            match resolve_path(directories, include_name, path, cmd.value.trim().starts_with('\"'))
                             {
                                 Some(sub_file) =>
                                 {
@@ -827,11 +820,10 @@ fn handle_files(print: &mut printer::Printer, args: &FilesArg) -> Result<(), Fai
         {
             file_lookup: |file: &Path|
             {
-                match commmands.get(file)
-                {
-                    Some(cc) => Some(cc.get_relative_includes()),
-                    None => None
-                }
+                commmands.get(file).map
+                (
+                    |cc| cc.get_relative_includes()
+                )
             },
             stats: FileStats
             {
@@ -848,7 +840,7 @@ fn handle_files(print: &mut printer::Printer, args: &FilesArg) -> Result<(), Fai
         {
             if file.is_absolute()
             {
-                walker.walk(print, &file, &mut file_cache)?;
+                walker.walk(print, file, &mut file_cache)?;
             }
             else
             {
