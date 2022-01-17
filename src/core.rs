@@ -76,14 +76,13 @@ pub fn download_file(print: &mut printer::Printer, url: &str, dest: &Path)
     else
     {
         print.info(format!("Downloading {}", dest.display()).as_str());
-        let future = download_file_async(print, url, dest);
-        block_on(future);
+        download_file_now(print, url, dest);
     }
 }
 
-async fn download_file_async(print: &mut printer::Printer, url: &str, dest: &Path)
+fn download_file_now(print: &mut printer::Printer, url: &str, dest: &Path)
 {
-    let resp = match reqwest::get(url).await
+    let resp = match reqwest::blocking::get(url)
     {
         Ok(r) => r,
         Err(error) =>
@@ -93,7 +92,7 @@ async fn download_file_async(print: &mut printer::Printer, url: &str, dest: &Pat
         }
     };
 
-    let data = match resp.bytes().await
+    let data = match resp.bytes()
     {
         Ok(r) => r,
         Err(error) =>
