@@ -579,6 +579,23 @@ fn ident_split(val: &str) -> (String, String)
 }
 
 
+fn is_source(path: &Path) -> bool
+{
+    if let Some(ext) = path.extension()
+    {
+        match ext.to_str().unwrap()
+        {
+            "cc" | "cpp" | "c" => true,
+            _ => false
+        }
+    }
+    else
+    {
+        false
+    }
+}
+
+
 impl FileWalker<'_>
 {
     fn add_include(&mut self, path: &Path)
@@ -629,6 +646,17 @@ impl FileWalker<'_>
         self.walk_rec(print, &directories, &mut included_file_cache, path, &mut defines, file_cache, 0)
     }
 
+    fn parse_file_to_blocks(&self, path: &Path, print: &mut printer::Printer) -> Result<Vec<Statement>, Fail>
+    {
+        let source_lines : Vec<String> = core::read_file_to_lines(path)?.map(|l| l.unwrap()).collect();
+        let joined_lines = join_lines(source_lines);
+        let trim_lines = joined_lines.iter().map(|str| {str.trim_start().to_string()}).collect();
+        let lines = remove_cpp_comments(trim_lines);
+        let statements = parse_to_statements(lines);
+        let b = parse_to_blocks(path, print, statements);
+        Ok(b)
+    }
+
     fn walk_rec
     (
         &mut self,
@@ -645,19 +673,21 @@ impl FileWalker<'_>
 
         self.stats.total_file_count += 1;
 
-        let blocks = match file_cache.get(path)
+        let blocks = if is_source(path)
         {
-            Some(b) => b.clone(),
-            None =>
+            self.parse_file_to_blocks(path, print)?
+        }
+        else
+        {
+            match file_cache.get(path)
             {
-                let source_lines : Vec<String> = core::read_file_to_lines(path)?.map(|l| l.unwrap()).collect();
-                let joined_lines = join_lines(source_lines);
-                let trim_lines = joined_lines.iter().map(|str| {str.trim_start().to_string()}).collect();
-                let lines = remove_cpp_comments(trim_lines);
-                let statements = parse_to_statements(lines);
-                let b = parse_to_blocks(path, print, statements);
-                file_cache.insert(path.to_path_buf(), b.clone());
-                b
+                Some(b) => b.clone(),
+                None =>
+                {
+                    let b = self.parse_file_to_blocks(path, print)?;
+                    file_cache.insert(path.to_path_buf(), b.clone());
+                    b
+                }
             }
         };
 
