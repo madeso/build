@@ -583,11 +583,11 @@ fn is_source(path: &Path) -> bool
 {
     if let Some(ext) = path.extension()
     {
-        match ext.to_str().unwrap()
-        {
-            "cc" | "cpp" | "c" => true,
-            _ => false
-        }
+        matches!
+        (
+            ext.to_str().unwrap(),
+            "cc" | "cpp" | "c"
+        )
     }
     else
     {

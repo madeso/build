@@ -3,7 +3,6 @@ use std::fs::{self, File};
 use std::io::prelude::*;
 use std::io::{self, BufRead};
 
-use futures::executor::block_on;
 extern crate reqwest;
 
 use thiserror::Error;
