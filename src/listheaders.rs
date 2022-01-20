@@ -1,10 +1,13 @@
+// todo(Gustav): improve tree-walk eval
+// todo(Gustav): include range for each include
+// todo(Gustav): improve preproc parser so strings are excluded
+
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 use thiserror::Error;
 use std::io;
 use std::fmt;
 use std::collections::{HashMap, HashSet};
-
 use regex::Regex;
 
 use crate::
@@ -714,7 +717,6 @@ impl FileWalker<'_>
     {
         for block in blocks
         {
-            // todo(Gustav): improve tree-walk eval
             match block
             {
                 Statement::Block(blk) =>
@@ -901,7 +903,6 @@ fn handle_files(print: &mut printer::Printer, args: &FilesArg) -> Result<(), Fai
                 };
                 let times = (*count as f64) / stats.file_count as f64;
                 print.info(format!(" - {} {:.2}x ({}/{})", d, times, count, stats.file_count).as_str());
-                // todo(Gustav): include range for each include
             }
         },
         Err(_) => 
