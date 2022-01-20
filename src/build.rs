@@ -30,8 +30,11 @@ pub trait Dependency
 #[derive(Serialize, Deserialize, Debug)]
 pub enum DependencyName
 {
-    #[serde(rename = "sdl2")]
-    Sdl2,
+    #[serde(rename = "sdl-2.0.8")]
+    Sdl2_0_8,
+    
+    #[serde(rename = "sdl-2.0.20")]
+    Sdl2_0_20,
 
     #[serde(rename = "python")]
     Python,
@@ -50,7 +53,8 @@ pub fn create(name: &DependencyName, data: &builddata::BuildData) -> Box<dyn Dep
 {
     match name
     {
-        DependencyName::Sdl2 => Box::new(DependencySdl2::new(data)),
+        DependencyName::Sdl2_0_8 => Box::new(DependencySdl2::new(data, "https://www.libsdl.org/release/SDL2-2.0.8.zip", "SDL2-2.0.8")),
+        DependencyName::Sdl2_0_20 => Box::new(DependencySdl2::new(data, "https://www.libsdl.org/release/SDL2-2.0.20.zip", "SDL2-2.0.20")),
         DependencyName::Python => Box::new(DependencyPython::new()),
         DependencyName::Assimp => Box::new(DependencyAssimp::new(data, false)),
         DependencyName::AssimpStatic => Box::new(DependencyAssimp::new(data, true))
@@ -62,25 +66,28 @@ pub fn create(name: &DependencyName, data: &builddata::BuildData) -> Box<dyn Dep
 struct DependencySdl2
 {
     root_folder: PathBuf,
-    build_folder: PathBuf
+    build_folder: PathBuf,
+    url: String,
+    folder_name: String
 }
 
 // add sdl2 dependency
 impl DependencySdl2
 {
-    fn new(data: &builddata::BuildData) -> DependencySdl2
+    fn new(data: &builddata::BuildData, zip_file: &str, folder_name: &str) -> DependencySdl2
     {
-        let mut root_folder = data.dependency_dir.clone(); root_folder.push("sdl2");
+        let mut root_folder = data.dependency_dir.clone(); root_folder.push(folder_name);
         let mut build_folder = root_folder.clone(); build_folder.push("cmake-build");
         
         DependencySdl2
         {
             root_folder,
-            build_folder
+            build_folder,
+            url: zip_file.to_string(),
+            folder_name: folder_name.to_string()
         }
     }
 }
-
 
 impl Dependency for DependencySdl2
 {
@@ -106,16 +113,15 @@ impl Dependency for DependencySdl2
         // def install_dependency_sdl2(deps, root, build, generator: cmake.Generator):
 
         print.header("Installing dependency sdl2");
-        let url = "https://www.libsdl.org/release/SDL2-2.0.8.zip";
         
-        let zip_file = core::join(deps, "sdl2.zip");
+        let zip_file = core::join(deps, format!("{}.zip", self.folder_name).as_str());
         
         if false == zip_file.exists()
         {
             core::verify_dir_exist(print, root);
             core::verify_dir_exist(print, deps);
             print.info("downloading sdl2");
-            core::download_file(print, url, &zip_file);
+            core::download_file(print, &self.url, &zip_file);
         }
         else
         {
@@ -125,7 +131,7 @@ impl Dependency for DependencySdl2
         if false == core::join(root, "INSTALL.txt").exists()
         {
             core::extract_zip(print, &zip_file, root);
-            core::move_files(print, &core::join(root, "SDL2-2.0.8"), root);
+            core::move_files(print, &core::join(root, &self.folder_name), root);
         }
         else
         {
