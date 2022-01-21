@@ -61,39 +61,41 @@ fn classify_line(missing_files: &mut HashSet<String>, only_invalid: bool, print:
     let mut index = 0;
     let replacer = get_replacer(filename.file_stem().unwrap().to_str().unwrap());
 
-    for included_regex in &data.includes
+    for included_regex_group in &data.includes
     {
-        let re = match included_regex
+        for included_regex in included_regex_group
         {
-            builddata::OptionalRegex::Dynamic(regex) =>
+            let re = match included_regex
             {
-                let regex_source = replacer.replace(regex);
-                match Regex::new(&regex_source)
+                builddata::OptionalRegex::Dynamic(regex) =>
                 {
-                    Ok(re) => { re },
-                    Err(err) =>
+                    let regex_source = replacer.replace(regex);
+                    match Regex::new(&regex_source)
                     {
-                        print.error(format!("{} -> {} is invalid regex: {}", regex, regex_source, err).as_str());
-                        return -1;
+                        Ok(re) => { re },
+                        Err(err) =>
+                        {
+                            print.error(format!("{} -> {} is invalid regex: {}", regex, regex_source, err).as_str());
+                            return -1;
+                        }
                     }
+                },
+                builddata::OptionalRegex::Static(re) => {re.clone()},
+                builddata::OptionalRegex::Failed(err) =>
+                {
+                    print.error(err.as_str());
+                    return -1;
                 }
-            },
-            builddata::OptionalRegex::Static(re) => {re.clone()},
-            builddata::OptionalRegex::Failed(err) =>
-            {
-                print.error(err.as_str());
-                return -1;
-            }
-        };
+            };
 
-        if re.is_match(line)
-        {
-            return index;
+            if re.is_match(line)
+            {
+                return index;
+            }
         }
-        else
-        {
-            index += 1;
-        }
+        
+        index += 1;
+        
     }
 
     if only_invalid

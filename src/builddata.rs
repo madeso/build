@@ -18,7 +18,7 @@ struct ProjectFile
 {
     name: String,
     dependencies: Vec<build::DependencyName>,
-    includes: Vec<String>
+    includes: Vec<Vec<String>>
 }
 
 
@@ -38,12 +38,44 @@ pub struct BuildData
     pub build_base_dir: PathBuf,
     pub build_dir: PathBuf,
     pub dependency_dir: PathBuf,
-    pub includes: Vec<OptionalRegex>
+    pub includes: Vec<Vec<OptionalRegex>>
+}
+
+
+fn strings_to_regex(replacer: &core::TextReplacer, includes: &[String], print: &mut printer::Printer) -> Vec<OptionalRegex>
+{
+    includes.iter().map
+    (
+        |regex|
+        {
+            let regex_source = replacer.replace(regex);
+            if regex_source.eq(regex) == false
+            {
+                OptionalRegex::Dynamic(regex.to_string())
+            }
+            else
+            {
+                match Regex::new(&regex_source)
+                {
+                    Ok(re) =>
+                    {
+                        OptionalRegex::Static(re)
+                    },
+                    Err(err) =>
+                    {
+                        let error = format!("{} is invalid regex: {}", regex, err);
+                        print.error(error.as_str());
+                        OptionalRegex::Failed(error)
+                    }
+                }
+            }
+        }
+    ).collect()
 }
 
 impl BuildData
 {
-    fn new(name: &str, root_dir: &Path, includes: &[String], print: &mut printer::Printer) -> BuildData
+    fn new(name: &str, root_dir: &Path, includes: Vec<Vec<String>>, print: &mut printer::Printer) -> BuildData
     {
         let mut build_base_dir = root_dir.to_path_buf(); build_base_dir.push("build");
         let mut build_dir = root_dir.to_path_buf(); build_dir.push("build"); build_dir.push(name);
@@ -61,29 +93,9 @@ impl BuildData
             dependency_dir,
             includes: includes.iter().map
             (
-                |regex|
+                |regex_list|
                 {
-                    let regex_source = replacer.replace(regex);
-                    if regex_source.eq(regex) == false
-                    {
-                        OptionalRegex::Dynamic(regex.to_string())
-                    }
-                    else
-                    {
-                        match Regex::new(&regex_source)
-                        {
-                            Ok(re) =>
-                            {
-                                OptionalRegex::Static(re)
-                            },
-                            Err(err) =>
-                            {
-                                let error = format!("{} is invalid regex: {}", regex, err);
-                                print.error(error.as_str());
-                                OptionalRegex::Failed(error)
-                            }
-                        }
-                    }
+                    strings_to_regex(&replacer, regex_list, print)
                 }
             ).collect()
         }
@@ -110,7 +122,7 @@ fn load_from_dir(root: &Path, print: &mut printer::Printer) -> Result<BuildData,
     {
         Ok(loaded) =>
         {
-            let mut bd = BuildData::new(&loaded.name, root, &loaded.includes, print);
+            let mut bd = BuildData::new(&loaded.name, root, loaded.includes, print);
             for dependency_name in loaded.dependencies
             {
                 bd.dependencies.push(build::create(&dependency_name, &bd));
