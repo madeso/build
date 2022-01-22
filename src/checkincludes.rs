@@ -136,6 +136,55 @@ pub struct Options
     pub invalid: bool
 }
 
+// wtf rust... why isn't this included by default?
+// from https://users.rust-lang.org/t/how-to-find-a-substring-starting-at-a-specific-index/8299
+fn find_start_at<'a>(slice: &'a str, at: usize, pat: char) -> Option<usize>
+{
+    slice[at..].find(pat).map(|i| at + i)
+}
+
+
+fn get_text_after_include_quote(line: &str) -> String
+{
+    if let Some(start_quote) = line.find('"')
+    {
+        if let Some(end_quote) = find_start_at(line, start_quote+1, '"')
+        {
+            line[end_quote+1..].to_string()
+        }
+        else
+        {
+            "".to_string()
+        }
+    }
+    else
+    {
+        "".to_string()
+    }
+}
+
+
+fn get_text_after_include(line: &str) -> String
+{
+    if let Some(angle) = line.find('>')
+    {
+        if let Some(start_quote) = line.find('"')
+        {
+            if start_quote < angle
+            {
+                return get_text_after_include_quote(line);
+            }
+        }
+
+        line[angle+1..].to_string()
+    }
+    else
+    {
+        get_text_after_include_quote(line)
+    }
+}
+
+
 fn classify_file(missing_files: &mut HashSet<String>, print: &mut printer::Printer, data: &builddata::BuildData, verbose: bool, filename: &Path, print_invalid: bool) -> bool
 {
     if verbose
@@ -197,9 +246,24 @@ fn classify_file(missing_files: &mut HashSet<String>, print: &mut printer::Print
             for line_num in first_line.unwrap() .. last_line.unwrap()
             {
                 let line = read_lines[line_num-1].trim();
-                if line.len() > 0 && line.starts_with("#include") == false
+                if line.len() == 0 
                 {
-                    warning(print, filename, line_num, format!("Invalid line {}", line).as_str());
+                    // ignore empty
+                }
+                else
+                {
+                    if line.starts_with("#include")
+                    {
+                        let end = get_text_after_include(line);
+                        if end.trim().len() > 0
+                        {
+                            error(print, filename, line_num, format!("Invalid text after include {}", line).as_str());
+                        }
+                    }
+                    else
+                    {
+                        warning(print, filename, line_num, format!("Invalid line {}", line).as_str());
+                    }
                 }
             }
         }
