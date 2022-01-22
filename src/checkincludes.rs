@@ -49,6 +49,11 @@ fn error(print: &mut printer::Printer, filename: &Path, line: usize, message: &s
     print.error(format!("{}({}): error CHK3030: {}", filename.display(), line, message).as_str());
 }
 
+fn warning(print: &mut printer::Printer, filename: &Path, line: usize, message: &str)
+{
+    print.warning(format!("{}({}): warning CHK3030: {}", filename.display(), line, message).as_str());
+}
+
 pub fn get_replacer(file_stem: &str) -> core::TextReplacer
 {
     let mut replacer = core::TextReplacer::new();
@@ -194,7 +199,7 @@ fn classify_file(missing_files: &mut HashSet<String>, print: &mut printer::Print
                 let line = read_lines[line_num-1].trim();
                 if line.len() > 0 && line.starts_with("#include") == false
                 {
-                    error(print, filename, line_num, format!("Invalid line {}", line).as_str());
+                    warning(print, filename, line_num, format!("Invalid line {}", line).as_str());
                 }
             }
         }
