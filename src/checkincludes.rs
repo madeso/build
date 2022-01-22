@@ -44,7 +44,7 @@ fn include_compare(lhs: &Include, rhs: &Include) -> Ordering
     }
 }
 
-fn error(print: &mut printer::Printer, filename: &Path, line: i32, message: &str)
+fn error(print: &mut printer::Printer, filename: &Path, line: usize, message: &str)
 {
     print.error(format!("{}({}): error CHK3030: {}", filename.display(), line, message).as_str());
 }
@@ -56,7 +56,7 @@ pub fn get_replacer(file_stem: &str) -> core::TextReplacer
     replacer
 }
 
-fn classify_line(missing_files: &mut HashSet<String>, only_invalid: bool, print: &mut printer::Printer, data: &builddata::BuildData, line: &str, filename: &Path, line_num: i32) -> i32
+fn classify_line(missing_files: &mut HashSet<String>, only_invalid: bool, print: &mut printer::Printer, data: &builddata::BuildData, line: &str, filename: &Path, line_num: usize) -> i32
 {
     let mut index = 0;
     let replacer = get_replacer(filename.file_stem().unwrap().to_str().unwrap());
@@ -138,42 +138,63 @@ fn classify_file(missing_files: &mut HashSet<String>, print: &mut printer::Print
         print.info(format!("Opening file {}", filename.display()).as_str());
     }
     
-    let mut line_num = 0;
     let mut includes = Vec::<Include>::new();
     let mut last_class = -1;
     let mut print_sort = false;
-
+    let mut first_line : Option<usize> = None;
+    let mut last_line : Option<usize> = None;
+    
     if let Ok(lines) = core::read_file_to_lines(filename)
     {
-        for op_line in lines
+        let mut read_lines = Vec::<String>::new();
+
         {
-            let line = op_line.unwrap();
-            line_num += 1;
-            if line.starts_with("// headerlint: disable")
+            let mut line_num = 0;
+            for op_line in lines
             {
-                break;
-            }
-            if line.starts_with("#include")
-            {
-                let l = line.trim_end();
-                let line_class = classify_line(missing_files, print_invalid, print, data, l, filename, line_num);
-                if line_class < 0
+                let line = op_line.unwrap();
+                line_num += 1;
+                read_lines.push(line.to_string());
+                
+                if line.starts_with("#include")
                 {
-                    return false;
-                }
-                includes.push(Include::new(line_class, l));
-                if last_class > line_class
-                {
-                    if print_invalid == false
+                    if first_line.is_some() == false
                     {
-                        error(print, filename, line_num, format!("Include order error for {}", l).as_str());
+                        first_line = Some(line_num);
                     }
-                    print_sort = true;
+                    last_line = Some(line_num);
+                    let l = line.trim_end();
+                    let line_class = classify_line(missing_files, print_invalid, print, data, l, filename, line_num);
+                    if line_class < 0
+                    {
+                        return false;
+                    }
+                    includes.push(Include::new(line_class, l));
+                    if last_class > line_class
+                    {
+                        if print_invalid == false
+                        {
+                            error(print, filename, line_num, format!("Include order error for {}", l).as_str());
+                        }
+                        print_sort = true;
+                    }
+                    last_class = line_class;
+                    if verbose
+                    {
+                        print.info(format!("{} {}", line_class, l).as_str());
+                    }
                 }
-                last_class = line_class;
-                if verbose
+            }
+        }
+
+        if first_line.is_some() && last_line.is_some()
+        {
+            for line_num in first_line.unwrap() .. last_line.unwrap()
+            {
+                let line = read_lines[line_num-1].trim();
+                if line.len() > 0 && line.starts_with("#include") == false
                 {
-                    print.info(format!("{} {}", line_class, l).as_str());
+                    error(print, filename, line_num, format!("Invalid line {}", line).as_str());
                 }
             }
         }
