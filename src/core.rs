@@ -43,7 +43,7 @@ pub fn write_string_to_file_or(path: &Path, data: &str) -> io::Result<()>
 
 pub fn write_string_to_file(print: &mut printer::Printer, path: &Path, data: &str)
 {
-    if let Err(_) = write_string_to_file_or(path, data)
+    if write_string_to_file_or(path, data).is_err()
     {
         print.error(format!("Unable to save {}", path.display()).as_str());
     }

@@ -63,10 +63,9 @@ pub fn get_replacer(file_stem: &str) -> core::TextReplacer
 
 fn classify_line(missing_files: &mut HashSet<String>, only_invalid: bool, print: &mut printer::Printer, data: &builddata::BuildData, line: &str, filename: &Path, line_num: usize) -> i32
 {
-    let mut index = 0;
     let replacer = get_replacer(filename.file_stem().unwrap().to_str().unwrap());
 
-    for included_regex_group in &data.includes
+    for (index, included_regex_group) in data.includes.iter().enumerate()
     {
         for included_regex in included_regex_group
         {
@@ -95,12 +94,9 @@ fn classify_line(missing_files: &mut HashSet<String>, only_invalid: bool, print:
 
             if re.is_match(line)
             {
-                return index;
+                return index.try_into().unwrap();
             }
         }
-        
-        index += 1;
-        
     }
 
     if only_invalid
@@ -144,9 +140,10 @@ pub struct Options
     pub invalid: bool
 }
 
+
 // wtf rust... why isn't this included by default?
 // from https://users.rust-lang.org/t/how-to-find-a-substring-starting-at-a-specific-index/8299
-fn find_start_at<'a>(slice: &'a str, at: usize, pat: char) -> Option<usize>
+fn find_start_at(slice: &str, at: usize, pat: char) -> Option<usize>
 {
     slice[at..].find(pat).map(|i| at + i)
 }
@@ -259,29 +256,26 @@ fn classify_file
             }
         }
 
-        if first_line.is_some() && last_line.is_some()
+        if let (Some(first_line_found), Some(last_line_found)) = (first_line, last_line)
         {
-            for line_num in first_line.unwrap() .. last_line.unwrap()
+            for line_num in first_line_found .. last_line_found
             {
                 let line = read_lines[line_num-1].trim();
-                if line.len() == 0 
+                if line.is_empty()
                 {
                     // ignore empty
                 }
+                else if line.starts_with("#include")
+                {
+                    let end = get_text_after_include(line);
+                    if end.trim().is_empty() == false
+                    {
+                        error(print, filename, line_num, format!("Invalid text after include {}", line).as_str());
+                    }
+                }
                 else
                 {
-                    if line.starts_with("#include")
-                    {
-                        let end = get_text_after_include(line);
-                        if end.trim().len() > 0
-                        {
-                            error(print, filename, line_num, format!("Invalid text after include {}", line).as_str());
-                        }
-                    }
-                    else
-                    {
-                        warning(print, filename, line_num, format!("Invalid line {}", line).as_str());
-                    }
+                    warning(print, filename, line_num, format!("Invalid line {}", line).as_str());
                 }
             }
         }
@@ -310,7 +304,7 @@ fn classify_file
             print.info("------------------");
             for line in &new_lines
             {
-                print.info(&line);
+                print.info(line);
             }
             print.info("---------------");
             print.info("");
@@ -320,9 +314,9 @@ fn classify_file
         if write_fix
         {
             let mut file_data = Vec::<String>::new();
-            if first_line.is_some() && last_line.is_some()
+            if let (Some(first_line_found), Some(last_line_found)) = (first_line, last_line)
             {
-                for line_num in 1 .. first_line.unwrap()
+                for line_num in 1 .. first_line_found
                 {
                     file_data.push(read_lines[line_num-1].to_string());
                 }
@@ -330,7 +324,7 @@ fn classify_file
                 {
                     file_data.push(line.to_string());
                 }
-                for line_num in last_line.unwrap()+1 .. read_lines.len()+1
+                for line_num in last_line_found+1 .. read_lines.len()+1
                 {
                     file_data.push(read_lines[line_num-1].to_string());
                 }
@@ -342,7 +336,7 @@ fn classify_file
                 print.info("*************************************************");
                 for line in &file_data
                 {
-                    print.info(&line);
+                    print.info(line);
                 }
                 print.info("*************************************************");
             }
