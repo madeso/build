@@ -36,6 +36,19 @@ pub fn read_file_to_string(path: &Path) -> Option<String>
     read_file_to_string_x(path).ok()
 }
 
+pub fn write_string_to_file_or(path: &Path, data: &str) -> io::Result<()>
+{
+    fs::write(path, data)
+}
+
+pub fn write_string_to_file(print: &mut printer::Printer, path: &Path, data: &str)
+{
+    if let Err(_) = write_string_to_file_or(path, data)
+    {
+        print.error(format!("Unable to save {}", path.display()).as_str());
+    }
+}
+
 
 // check if the script is running on 64bit or not 
 pub fn is_64bit() -> bool

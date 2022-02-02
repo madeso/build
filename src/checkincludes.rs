@@ -131,6 +131,14 @@ pub struct Options
     #[structopt(long)]
     pub status: bool,
 
+    /// Write the fixed order instead of printing it
+    #[structopt(long)]
+    pub fix: bool,
+
+    /// Instead of writing to file, write to console
+    #[structopt(long)]
+    pub to_console: bool,
+
     /// Print only headers that couldn't be classified
     #[structopt(long)]
     pub invalid: bool
@@ -185,7 +193,17 @@ fn get_text_after_include(line: &str) -> String
 }
 
 
-fn classify_file(missing_files: &mut HashSet<String>, print: &mut printer::Printer, data: &builddata::BuildData, verbose: bool, filename: &Path, print_invalid: bool) -> bool
+fn classify_file
+(
+    missing_files: &mut HashSet<String>,
+    print: &mut printer::Printer,
+    data: &builddata::BuildData,
+    verbose: bool,
+    filename: &Path,
+    print_invalid: bool,
+    write_fix: bool,
+    to_console: bool
+) -> bool
 {
     if verbose
     {
@@ -197,11 +215,11 @@ fn classify_file(missing_files: &mut HashSet<String>, print: &mut printer::Print
     let mut print_sort = false;
     let mut first_line : Option<usize> = None;
     let mut last_line : Option<usize> = None;
+
+    let mut read_lines = Vec::<String>::new();
     
     if let Ok(lines) = core::read_file_to_lines(filename)
     {
-        let mut read_lines = Vec::<String>::new();
-
         {
             let mut line_num = 0;
             for op_line in lines
@@ -272,21 +290,68 @@ fn classify_file(missing_files: &mut HashSet<String>, print: &mut printer::Print
     if print_sort && print_invalid == false
     {
         includes.sort_by(include_compare);
-        print.info("I think the correct order would be:");
-        print.info("------------------");
+        
+        let mut new_lines = Vec::<String>::new();
         let mut current_class = includes[0].line_class;
         for i in includes
         {
             if current_class != i.line_class
             {
-                print.info("");
+                new_lines.push("".to_string());
             }
             current_class = i.line_class;
-            print.info(&i.line);
+            
+            new_lines.push(i.line.to_string());
         }
-        print.info("---------------");
-        print.info("");
-        print.info("");
+
+        if write_fix == false
+        {
+            print.info("I think the correct order would be:");
+            print.info("------------------");
+            for line in &new_lines
+            {
+                print.info(&line);
+            }
+            print.info("---------------");
+            print.info("");
+            print.info("");
+        }
+
+        if write_fix
+        {
+            let mut file_data = Vec::<String>::new();
+            if first_line.is_some() && last_line.is_some()
+            {
+                for line_num in 1 .. first_line.unwrap()
+                {
+                    file_data.push(read_lines[line_num-1].to_string());
+                }
+                for line in &new_lines
+                {
+                    file_data.push(line.to_string());
+                }
+                for line_num in last_line.unwrap()+1 .. read_lines.len()+1
+                {
+                    file_data.push(read_lines[line_num-1].to_string());
+                }
+            }
+
+            if to_console
+            {
+                print.info(format!("Will write the following to {}", filename.display()).as_str());
+                print.info("*************************************************");
+                for line in &file_data
+                {
+                    print.info(&line);
+                }
+                print.info("*************************************************");
+            }
+            else
+            {
+                core::write_string_to_file(print, filename, &file_data.join("\n"));
+            }
+
+        }
     }
 
     true
@@ -307,7 +372,7 @@ pub fn main(print: &mut printer::Printer, data: &builddata::BuildData, args: &Op
         file_count += 1;
         let stored_error = error_count;
 
-        if classify_file(&mut missing_files, print, data, verbose, filename, args.invalid) == false
+        if classify_file(&mut missing_files, print, data, verbose, filename, args.invalid, args.fix, args.to_console) == false
         {
             error_count += 1
         }
