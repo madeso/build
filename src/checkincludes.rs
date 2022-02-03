@@ -112,6 +112,26 @@ fn classify_line(missing_files: &mut HashSet<String>, only_invalid: bool, print:
     -1
 }
 
+#[derive(StructOpt, Debug)]
+pub struct Flags
+{
+    /// Write the fixed order instead of printing it
+    #[structopt(long)]
+    pub fix: bool,
+
+    // /// Also print headers that won't be fixed
+    // #[structopt(long)]
+    // pub list_invalid_fixes: bool,
+
+    /// Instead of writing to file, write to console
+    #[structopt(long)]
+    pub to_console: bool,
+
+    /// Print only headers that couldn't be classified
+    #[structopt(long)]
+    pub invalid: bool
+}
+
 /// Check all the includes
 #[derive(StructOpt, Debug)]
 pub struct Options
@@ -127,17 +147,8 @@ pub struct Options
     #[structopt(long)]
     pub status: bool,
 
-    /// Write the fixed order instead of printing it
-    #[structopt(long)]
-    pub fix: bool,
-
-    /// Instead of writing to file, write to console
-    #[structopt(long)]
-    pub to_console: bool,
-
-    /// Print only headers that couldn't be classified
-    #[structopt(long)]
-    pub invalid: bool
+    #[structopt(flatten)]
+    pub flags: Flags
 }
 
 
@@ -197,9 +208,7 @@ fn classify_file
     data: &builddata::BuildData,
     verbose: bool,
     filename: &Path,
-    print_invalid: bool,
-    write_fix: bool,
-    to_console: bool
+    flags: &Flags
 ) -> bool
 {
     if verbose
@@ -233,7 +242,7 @@ fn classify_file
                     }
                     last_line = Some(line_num);
                     let l = line.trim_end();
-                    let line_class = classify_line(missing_files, print_invalid, print, data, l, filename, line_num);
+                    let line_class = classify_line(missing_files, flags.invalid, print, data, l, filename, line_num);
                     if line_class < 0
                     {
                         return false;
@@ -241,7 +250,7 @@ fn classify_file
                     includes.push(Include::new(line_class, l));
                     if last_class > line_class
                     {
-                        if print_invalid == false
+                        if flags.invalid == false
                         {
                             error(print, filename, line_num, format!("Include order error for {}", l).as_str());
                         }
@@ -281,7 +290,7 @@ fn classify_file
         }
     }
 
-    if print_sort && print_invalid == false
+    if print_sort && flags.invalid == false
     {
         includes.sort_by(include_compare);
         
@@ -298,7 +307,7 @@ fn classify_file
             new_lines.push(i.line.to_string());
         }
 
-        if write_fix == false
+        if flags.fix == false
         {
             print.info("I think the correct order would be:");
             print.info("------------------");
@@ -311,7 +320,7 @@ fn classify_file
             print.info("");
         }
 
-        if write_fix
+        if flags.fix
         {
             let mut file_data = Vec::<String>::new();
             if let (Some(first_line_found), Some(last_line_found)) = (first_line, last_line)
@@ -330,7 +339,7 @@ fn classify_file
                 }
             }
 
-            if to_console
+            if flags.to_console
             {
                 print.info(format!("Will write the following to {}", filename.display()).as_str());
                 print.info("*************************************************");
@@ -366,7 +375,7 @@ pub fn main(print: &mut printer::Printer, data: &builddata::BuildData, args: &Op
         file_count += 1;
         let stored_error = error_count;
 
-        if classify_file(&mut missing_files, print, data, verbose, filename, args.invalid, args.fix, args.to_console) == false
+        if classify_file(&mut missing_files, print, data, verbose, filename, &args.flags) == false
         {
             error_count += 1
         }
