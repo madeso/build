@@ -5,6 +5,7 @@ use std::collections::HashSet;
 use structopt::StructOpt;
 use regex::Regex;
 
+
 use crate::
 {
     core,
@@ -129,7 +130,7 @@ pub struct Flags
 
     /// Print only headers that couldn't be classified
     #[structopt(long)]
-    pub invalid: bool
+    pub print_unmatched_header: bool
 }
 
 /// Check all the includes
@@ -201,7 +202,171 @@ fn get_text_after_include(line: &str) -> String
 }
 
 
+struct ClassifiedFile
+{
+    first_line: Option<usize>,
+    last_line: Option<usize>,
+    includes: Vec<Include>,
+    invalid_order: bool,
+}
+
+
 fn classify_file
+(
+    lines: &[String],
+    missing_files: &mut HashSet<String>,
+    print: &mut printer::Printer,
+    flags: &Flags,
+    data: &builddata::BuildData,
+    filename: &Path,
+    verbose: bool
+) -> Option<ClassifiedFile>
+{
+
+    let mut r = ClassifiedFile
+    {
+        first_line: None,
+        last_line: None,
+        includes: Vec::<Include>::new(),
+        invalid_order: false
+    };
+
+    let mut last_class = -1;
+    let mut line_num = 0;
+    for line in lines
+    {
+        line_num += 1;
+        
+        if line.starts_with("#include")
+        {
+            if r.first_line.is_some() == false
+            {
+                r.first_line = Some(line_num);
+            }
+            r.last_line = Some(line_num);
+            let l = line.trim_end();
+            let line_class = classify_line(missing_files, flags.print_unmatched_header, print, data, l, filename, line_num);
+            if line_class < 0
+            {
+                return None;
+            }
+            r.includes.push(Include::new(line_class, l));
+            if last_class > line_class
+            {
+                if flags.print_unmatched_header == false
+                {
+                    error(print, filename, line_num, format!("Include order error for {}", l).as_str());
+                }
+                r.invalid_order = true;
+            }
+            last_class = line_class;
+            if verbose
+            {
+                print.info(format!("{} {}", line_class, l).as_str());
+            }
+        }
+    }
+
+    r.includes.sort_by(include_compare);
+
+    Some(r)
+}
+
+
+fn can_fix_and_print_errors
+(
+    lines: &[String],
+    f: &ClassifiedFile,
+    print: &mut printer::Printer,
+    filename: &Path,
+) -> bool
+{
+    let mut ok = true;
+
+    if let (Some(first_line_found), Some(last_line_found)) = (f.first_line, f.last_line)
+    {
+        for line_num in first_line_found .. last_line_found
+        {
+            let line = lines[line_num-1].trim();
+            if line.is_empty()
+            {
+                // ignore empty
+            }
+            else if line.starts_with("#include")
+            {
+                let end = get_text_after_include(line);
+                if end.trim().is_empty() == false
+                {
+                    error(print, filename, line_num, format!("Invalid text after include {}", line).as_str());
+                    ok = false;
+                }
+            }
+            else
+            {
+                warning(print, filename, line_num, format!("Invalid line {}", line).as_str());
+                ok = false;
+            }
+        }
+    }
+
+    ok
+}
+
+
+fn generate_suggested_include_lines_from_sorted_includes(includes: &[Include]) -> Vec<String>
+{
+    let mut new_lines = Vec::<String>::new();
+    let mut current_class = includes[0].line_class;
+    for i in includes
+    {
+        if current_class != i.line_class
+        {
+            new_lines.push("".to_string());
+        }
+        current_class = i.line_class;
+        
+        new_lines.push(i.line.to_string());
+    }
+
+    new_lines
+}
+
+
+fn compose_new_file_content(first_line_found: usize, last_line_found: usize, new_lines: &[String], lines: &[String]) -> Vec::<String>
+{
+    let mut file_data = Vec::<String>::new();
+    
+    for line_num in 1 .. first_line_found
+    {
+        file_data.push(lines[line_num-1].to_string());
+    }
+    for line in new_lines
+    {
+        file_data.push(line.to_string());
+    }
+    for line_num in last_line_found+1 .. lines.len()+1
+    {
+        file_data.push(lines[line_num-1].to_string());
+    }
+
+    file_data
+}
+
+
+fn print_lines(print: &mut printer::Printer, lines: &[String])
+{
+    print.info("*************************************************");
+    for line in lines
+    {
+        print.info(line);
+    }
+    print.info("*************************************************");
+    print.info("");
+    print.info("");
+}
+
+
+fn run_file
 (
     missing_files: &mut HashSet<String>,
     print: &mut printer::Printer,
@@ -216,149 +381,83 @@ fn classify_file
         print.info(format!("Opening file {}", filename.display()).as_str());
     }
     
-    let mut includes = Vec::<Include>::new();
-    let mut last_class = -1;
-    let mut print_sort = false;
-    let mut first_line : Option<usize> = None;
-    let mut last_line : Option<usize> = None;
-
-    let mut read_lines = Vec::<String>::new();
-    
-    if let Ok(lines) = core::read_file_to_lines(filename)
+    let loaded_lines = core::read_file_to_lines(filename);
+    if let Err(err) = loaded_lines
     {
-        {
-            let mut line_num = 0;
-            for op_line in lines
-            {
-                let line = op_line.unwrap();
-                line_num += 1;
-                read_lines.push(line.to_string());
-                
-                if line.starts_with("#include")
-                {
-                    if first_line.is_some() == false
-                    {
-                        first_line = Some(line_num);
-                    }
-                    last_line = Some(line_num);
-                    let l = line.trim_end();
-                    let line_class = classify_line(missing_files, flags.invalid, print, data, l, filename, line_num);
-                    if line_class < 0
-                    {
-                        return false;
-                    }
-                    includes.push(Include::new(line_class, l));
-                    if last_class > line_class
-                    {
-                        if flags.invalid == false
-                        {
-                            error(print, filename, line_num, format!("Include order error for {}", l).as_str());
-                        }
-                        print_sort = true;
-                    }
-                    last_class = line_class;
-                    if verbose
-                    {
-                        print.info(format!("{} {}", line_class, l).as_str());
-                    }
-                }
-            }
-        }
+        print.error(format!("Failed to load {}: {}", filename.display(), err).as_str());
+        return false;
+    }
 
-        if let (Some(first_line_found), Some(last_line_found)) = (first_line, last_line)
+    let lines = loaded_lines.unwrap();
+    let classified = match classify_file(&lines, missing_files, print, flags, data, filename, verbose)
+    {
+        Some(c) => c,
+        None =>
         {
-            for line_num in first_line_found .. last_line_found
-            {
-                let line = read_lines[line_num-1].trim();
-                if line.is_empty()
-                {
-                    // ignore empty
-                }
-                else if line.starts_with("#include")
-                {
-                    let end = get_text_after_include(line);
-                    if end.trim().is_empty() == false
-                    {
-                        error(print, filename, line_num, format!("Invalid text after include {}", line).as_str());
-                    }
-                }
-                else
-                {
-                    warning(print, filename, line_num, format!("Invalid line {}", line).as_str());
-                }
-            }
+            // file contains unclassified header
+            return false;
+        }
+    };
+
+    if classified.invalid_order == false
+    {
+        // this file is ok, don't touch it
+        return true;
+    }
+
+    if flags.print_unmatched_header
+    {
+        // if we wan't to print the unmatched header we don't care about sorting the headers
+        return true;
+    }
+
+    if can_fix_and_print_errors(&lines, &classified, print, filename) == false
+    {
+        // can't fix this file... error out
+        if flags.fix
+        {
+            return false;
         }
     }
 
-    if print_sort && flags.invalid == false
+    if classified.first_line.is_some() && classified.last_line.is_some()
     {
-        includes.sort_by(include_compare);
-        
-        let mut new_lines = Vec::<String>::new();
-        let mut current_class = includes[0].line_class;
-        for i in includes
+        // ok file
+    }
+    else
+    {
+        print.error(format!("Couldn't find any includes in {}, ignoring", filename.display()).as_str());
+        return false;
+    }
+
+    let first_line = classified.first_line.unwrap();
+    let last_line = classified.last_line.unwrap();
+
+    let sorted_include_lines = generate_suggested_include_lines_from_sorted_includes(&classified.includes);
+
+    if flags.fix
+    {
+        let file_data = compose_new_file_content(first_line, last_line, &sorted_include_lines, &lines);
+
+        if flags.to_console
         {
-            if current_class != i.line_class
-            {
-                new_lines.push("".to_string());
-            }
-            current_class = i.line_class;
-            
-            new_lines.push(i.line.to_string());
+            print.info(format!("Will write the following to {}", filename.display()).as_str());
+            print_lines(print, &file_data);
         }
-
-        if flags.fix == false
+        else
         {
-            print.info("I think the correct order would be:");
-            print.info("------------------");
-            for line in &new_lines
-            {
-                print.info(line);
-            }
-            print.info("---------------");
-            print.info("");
-            print.info("");
+            core::write_string_to_file(print, filename, &file_data.join("\n"));
         }
-
-        if flags.fix
-        {
-            let mut file_data = Vec::<String>::new();
-            if let (Some(first_line_found), Some(last_line_found)) = (first_line, last_line)
-            {
-                for line_num in 1 .. first_line_found
-                {
-                    file_data.push(read_lines[line_num-1].to_string());
-                }
-                for line in &new_lines
-                {
-                    file_data.push(line.to_string());
-                }
-                for line_num in last_line_found+1 .. read_lines.len()+1
-                {
-                    file_data.push(read_lines[line_num-1].to_string());
-                }
-            }
-
-            if flags.to_console
-            {
-                print.info(format!("Will write the following to {}", filename.display()).as_str());
-                print.info("*************************************************");
-                for line in &file_data
-                {
-                    print.info(line);
-                }
-                print.info("*************************************************");
-            }
-            else
-            {
-                core::write_string_to_file(print, filename, &file_data.join("\n"));
-            }
-
-        }
+    }
+    else
+    {
+        print.info("I think the correct order would be:");
+        print_lines(print, &sorted_include_lines);
     }
 
     true
 }
+
 
 pub fn main(print: &mut printer::Printer, data: &builddata::BuildData, args: &Options)
 {
@@ -375,7 +474,7 @@ pub fn main(print: &mut printer::Printer, data: &builddata::BuildData, args: &Op
         file_count += 1;
         let stored_error = error_count;
 
-        if classify_file(&mut missing_files, print, data, verbose, filename, &args.flags) == false
+        if run_file(&mut missing_files, print, data, verbose, filename, &args.flags) == false
         {
             error_count += 1
         }

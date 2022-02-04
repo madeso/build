@@ -489,7 +489,7 @@ fn parse_to_blocks(path: &Path, print: &mut printer::Printer, r: Vec<Preproc>) -
 
 fn handle_lines(print: &mut printer::Printer, args: &LinesArg) -> Result<(), Fail>
 {
-    let source_lines : Vec<String> = core::read_file_to_lines(&args.filename)?.map(|l| l.unwrap()).collect();
+    let source_lines : Vec<String> = core::read_file_to_lines_x(&args.filename)?.map(|l| l.unwrap()).collect();
     let joined_lines = join_lines(source_lines);
     let trim_lines = joined_lines.iter().map(|str| {str.trim_start().to_string()}).collect();
     let lines = remove_cpp_comments(trim_lines);
@@ -651,7 +651,7 @@ impl FileWalker<'_>
 
     fn parse_file_to_blocks(&self, path: &Path, print: &mut printer::Printer) -> Result<Vec<Statement>, Fail>
     {
-        let source_lines : Vec<String> = core::read_file_to_lines(path)?.map(|l| l.unwrap()).collect();
+        let source_lines : Vec<String> = core::read_file_to_lines_x(path)?.map(|l| l.unwrap()).collect();
         let joined_lines = join_lines(source_lines);
         let trim_lines = joined_lines.iter().map(|str| {str.trim_start().to_string()}).collect();
         let lines = remove_cpp_comments(trim_lines);
