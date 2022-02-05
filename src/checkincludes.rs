@@ -14,6 +14,61 @@ use crate::
 };
 
 
+#[derive(StructOpt, Debug)]
+pub struct MainData
+{
+    /// Files to look at
+    pub files: Vec<PathBuf>,
+
+    /// Print general file status at the end
+    #[structopt(long)]
+    pub status: bool,
+
+    /// Use verbose output
+    #[structopt(long)]
+    pub verbose: bool,
+}
+
+
+#[derive(StructOpt, Debug)]
+pub enum Options
+{
+    /// Print headers that don't match any pattern so you can add more regexes
+    MissingPatterns
+    {
+        #[structopt(flatten)]
+        main: MainData
+    },
+    
+    /// Print headers that can't be fixed
+    ListUnfixable
+    {
+        #[structopt(flatten)]
+        main: MainData
+    },
+
+
+    /// Check for style errors and error out
+    Check
+    {
+        #[structopt(flatten)]
+        main: MainData
+    },
+
+    /// Fix style errors and print unfixable
+    Fix
+    {
+        #[structopt(flatten)]
+        main: MainData,
+
+        /// Don't write anything
+        #[structopt(long)]
+        nop: bool
+    }
+}
+
+
+
 struct Include
 {
     line_class: i32,
@@ -62,7 +117,17 @@ pub fn get_replacer(file_stem: &str) -> core::TextReplacer
     replacer
 }
 
-fn classify_line(missing_files: &mut HashSet<String>, only_invalid: bool, print: &mut printer::Printer, data: &builddata::BuildData, line: &str, filename: &Path, line_num: usize) -> i32
+
+fn classify_line
+(
+    missing_files: &mut HashSet<String>,
+    only_invalid: bool,
+    print: &mut printer::Printer,
+    data: &builddata::BuildData,
+    line: &str,
+    filename: &Path,
+    line_num: usize
+) -> i32
 {
     let replacer = get_replacer(filename.file_stem().unwrap().to_str().unwrap());
 
@@ -111,45 +176,6 @@ fn classify_line(missing_files: &mut HashSet<String>, only_invalid: bool, print:
 
     error(print, filename, line_num, format!("{} is a invalid header", line).as_str());
     -1
-}
-
-#[derive(StructOpt, Debug)]
-pub struct Flags
-{
-    /// Write the fixed order instead of printing it
-    #[structopt(long)]
-    pub fix: bool,
-
-    // /// Also print headers that won't be fixed
-    // #[structopt(long)]
-    // pub list_invalid_fixes: bool,
-
-    /// Instead of writing to file, write to console
-    #[structopt(long)]
-    pub to_console: bool,
-
-    /// Print only headers that couldn't be classified
-    #[structopt(long)]
-    pub print_unmatched_header: bool
-}
-
-/// Check all the includes
-#[derive(StructOpt, Debug)]
-pub struct Options
-{
-    /// Files to check
-    pub files: Vec<PathBuf>,
-
-    /// Verbose printing
-    #[structopt(long)]
-    pub verbose: bool,
-
-    /// Print status at the end
-    #[structopt(long)]
-    pub status: bool,
-
-    #[structopt(flatten)]
-    pub flags: Flags
 }
 
 
@@ -216,7 +242,7 @@ fn classify_file
     lines: &[String],
     missing_files: &mut HashSet<String>,
     print: &mut printer::Printer,
-    flags: &Flags,
+    print_unmatched_header: bool,
     data: &builddata::BuildData,
     filename: &Path,
     verbose: bool
@@ -245,7 +271,7 @@ fn classify_file
             }
             r.last_line = Some(line_num);
             let l = line.trim_end();
-            let line_class = classify_line(missing_files, flags.print_unmatched_header, print, data, l, filename, line_num);
+            let line_class = classify_line(missing_files, print_unmatched_header, print, data, l, filename, line_num);
             if line_class < 0
             {
                 return None;
@@ -253,7 +279,7 @@ fn classify_file
             r.includes.push(Include::new(line_class, l));
             if last_class > line_class
             {
-                if flags.print_unmatched_header == false
+                if print_unmatched_header == false
                 {
                     error(print, filename, line_num, format!("Include order error for {}", l).as_str());
                 }
@@ -366,6 +392,16 @@ fn print_lines(print: &mut printer::Printer, lines: &[String])
 }
 
 
+enum Command
+{
+    Validate,
+    Check,
+    Fix
+    {
+        nop: bool
+    }
+}
+
 fn run_file
 (
     missing_files: &mut HashSet<String>,
@@ -373,7 +409,7 @@ fn run_file
     data: &builddata::BuildData,
     verbose: bool,
     filename: &Path,
-    flags: &Flags
+    command: Command,
 ) -> bool
 {
     if verbose
@@ -389,7 +425,7 @@ fn run_file
     }
 
     let lines = loaded_lines.unwrap();
-    let classified = match classify_file(&lines, missing_files, print, flags, data, filename, verbose)
+    let classified = match classify_file(&lines, missing_files, print, matches!(command, Command::Validate), data, filename, verbose)
     {
         Some(c) => c,
         None =>
@@ -405,7 +441,7 @@ fn run_file
         return true;
     }
 
-    if flags.print_unmatched_header
+    if matches!(command, Command::Validate)
     {
         // if we wan't to print the unmatched header we don't care about sorting the headers
         return true;
@@ -413,10 +449,11 @@ fn run_file
 
     if can_fix_and_print_errors(&lines, &classified, print, filename) == false
     {
-        // can't fix this file... error out
-        if flags.fix
+        match command
         {
-            return false;
+            // can't fix this file... error out
+            Command::Fix{nop:_} => return false,
+            _ => {}
         }
     }
 
@@ -435,11 +472,11 @@ fn run_file
 
     let sorted_include_lines = generate_suggested_include_lines_from_sorted_includes(&classified.includes);
 
-    if flags.fix
+    if let Command::Fix{nop} = command
     {
         let file_data = compose_new_file_content(first_line, last_line, &sorted_include_lines, &lines);
 
-        if flags.to_console
+        if nop
         {
             print.info(format!("Will write the following to {}", filename.display()).as_str());
             print_lines(print, &file_data);
@@ -459,29 +496,34 @@ fn run_file
 }
 
 
-pub fn main(print: &mut printer::Printer, data: &builddata::BuildData, args: &Options)
+fn common_main<RunFile>
+(
+    args: &MainData,
+    print: &mut printer::Printer,
+    fn_run_file: RunFile
+)
+where
+    RunFile: Fn(&mut HashSet<String>, &mut printer::Printer, &Path) -> bool
 {
-    let verbose = args.verbose;
-
     let mut error_count = 0;
     let mut file_count = 0;
     let mut file_error = 0;
 
-    let mut missing_files = HashSet::new();
+    let mut missing_files = HashSet::<String>::new();
 
     for filename in &args.files
     {
         file_count += 1;
         let stored_error = error_count;
 
-        if run_file(&mut missing_files, print, data, verbose, filename, &args.flags) == false
+        if fn_run_file(&mut missing_files, print, filename) == false
         {
-            error_count += 1
+            error_count += 1;
         }
 
         if error_count != stored_error
         {
-            file_error += 1
+            file_error += 1;
         }
     }
 
@@ -490,5 +532,49 @@ pub fn main(print: &mut printer::Printer, data: &builddata::BuildData, args: &Op
         print.info(format!("Files parsed: {}",  file_count).as_str());
         print.info(format!("Files errored: {}", file_error).as_str());
         print.info(format!("Errors found: {}",  error_count).as_str());
+    }
+}
+
+
+pub fn main(print: &mut printer::Printer, data: &builddata::BuildData, args: &Options)
+{
+    match args
+    {
+        // todo(Gustav): add ListUnfixable
+
+        Options::Check{main} =>
+        {
+            common_main
+            (
+                main, print, |missing_files, p, file| -> bool
+                {
+                    run_file(missing_files, p, data, main.verbose, file, Command::Check)
+                }
+            );
+        },
+        
+        Options::MissingPatterns{main} =>
+        {
+            common_main
+            (
+                main, print, |missing_files, p, file| -> bool
+                {
+                    run_file(missing_files, p, data, main.verbose, file, Command::Validate)
+                }
+            );
+        },
+
+        Options::Fix{main, nop} =>
+        {
+            common_main
+            (
+                main, print, |missing_files, p, file| -> bool
+                {
+                    run_file(missing_files, p, data, main.verbose, file, Command::Fix{nop: *nop})
+                }
+            );
+        },
+        
+        _ => { print.error("todo(Gustav): currently unhandled option!"); }
     }
 }
