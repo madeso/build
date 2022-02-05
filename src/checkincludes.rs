@@ -61,9 +61,9 @@ pub enum Options
         #[structopt(flatten)]
         main: MainData,
 
-        /// Don't write anything
+        /// Write fixes to file
         #[structopt(long)]
-        nop: bool
+        write: bool
     }
 }
 
@@ -564,13 +564,13 @@ pub fn main(print: &mut printer::Printer, data: &builddata::BuildData, args: &Op
             );
         },
 
-        Options::Fix{main, nop} =>
+        Options::Fix{main, write} =>
         {
             common_main
             (
                 main, print, |missing_files, p, file| -> bool
                 {
-                    run_file(missing_files, p, data, main.verbose, file, Command::Fix{nop: *nop})
+                    run_file(missing_files, p, data, main.verbose, file, Command::Fix{nop: *write==false})
                 }
             );
         },
