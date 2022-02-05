@@ -409,7 +409,7 @@ fn run_file
     data: &builddata::BuildData,
     verbose: bool,
     filename: &Path,
-    command: Command,
+    command: &Command,
 ) -> bool
 {
     if verbose
@@ -476,7 +476,7 @@ fn run_file
     {
         let file_data = compose_new_file_content(first_line, last_line, &sorted_include_lines, &lines);
 
-        if nop
+        if *nop
         {
             print.info(format!("Will write the following to {}", filename.display()).as_str());
             print_lines(print, &file_data);
@@ -496,14 +496,13 @@ fn run_file
 }
 
 
-fn common_main<RunFile>
+fn common_main
 (
     args: &MainData,
     print: &mut printer::Printer,
-    fn_run_file: RunFile
+    data: &builddata::BuildData,
+    command: &Command
 )
-where
-    RunFile: Fn(&mut HashSet<String>, &mut printer::Printer, &Path) -> bool
 {
     let mut error_count = 0;
     let mut file_count = 0;
@@ -516,7 +515,17 @@ where
         file_count += 1;
         let stored_error = error_count;
 
-        if fn_run_file(&mut missing_files, print, filename) == false
+        let ok = run_file
+        (
+            &mut missing_files,
+            print,
+            data,
+            args.verbose,
+            filename,
+            command
+        );
+
+        if ok == false
         {
             error_count += 1;
         }
@@ -542,38 +551,9 @@ pub fn main(print: &mut printer::Printer, data: &builddata::BuildData, args: &Op
     {
         // todo(Gustav): add ListUnfixable
 
-        Options::Check{main} =>
-        {
-            common_main
-            (
-                main, print, |missing_files, p, file| -> bool
-                {
-                    run_file(missing_files, p, data, main.verbose, file, Command::Check)
-                }
-            );
-        },
-        
-        Options::MissingPatterns{main} =>
-        {
-            common_main
-            (
-                main, print, |missing_files, p, file| -> bool
-                {
-                    run_file(missing_files, p, data, main.verbose, file, Command::Validate)
-                }
-            );
-        },
-
-        Options::Fix{main, write} =>
-        {
-            common_main
-            (
-                main, print, |missing_files, p, file| -> bool
-                {
-                    run_file(missing_files, p, data, main.verbose, file, Command::Fix{nop: *write==false})
-                }
-            );
-        },
+        Options::Check{main}           => common_main(main, print, data, &Command::Check),
+        Options::MissingPatterns{main} => common_main(main, print, data, &Command::Validate),
+        Options::Fix{main, write}      => common_main(main, print, data, &Command::Fix{nop: *write==false}),
         
         _ => { print.error("todo(Gustav): currently unhandled option!"); }
     }
