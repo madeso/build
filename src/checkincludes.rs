@@ -114,6 +114,21 @@ fn warning(print: &mut printer::Printer, filename: &Path, line: usize, message: 
     print.warning(format!("{}({}): warning CHK3030: {}", filename.display(), line, message).as_str());
 }
 
+#[derive(Debug, Copy, Clone)]
+enum MessageType
+{
+    Error, Warning
+}
+
+fn print_message(message_type: MessageType, print: &mut printer::Printer, filename: &Path, line: usize, message: &str)
+{
+    match message_type
+    {
+        MessageType::Error   => error(print, filename, line, message),
+        MessageType::Warning => warning(print, filename, line, message)
+    }
+}
+
 pub fn get_replacer(file_stem: &str) -> core::TextReplacer
 {
     let mut replacer = core::TextReplacer::new();
@@ -243,7 +258,8 @@ fn classify_file
     data: &builddata::BuildData,
     filename: &Path,
     verbose: bool,
-    print_include_order_error_for_include: bool
+    print_include_order_error_for_include: bool,
+    include_error_message: MessageType
 ) -> Option<ClassifiedFile>
 {
 
@@ -275,7 +291,7 @@ fn classify_file
             {
                 if print_include_order_error_for_include
                 {
-                    error(print, filename, line_num, format!("Include order error for {}", l).as_str());
+                    print_message(include_error_message, print, filename, line_num, format!("Include order error for {}", l).as_str());
                 }
                 r.invalid_order = true;
             }
@@ -444,7 +460,17 @@ fn run_file
     }
 
     let lines = loaded_lines.unwrap();
-    let classified = match classify_file(&lines, missing_files, print, data, filename, verbose, print_include_order_error_for_include)
+    let classified = match classify_file
+    (
+        &lines,
+        missing_files,
+        print,
+        data,
+        filename,
+        verbose,
+        print_include_order_error_for_include,
+        if command_is_fix { MessageType::Warning } else { MessageType::Error }
+    )
     {
         Some(c) => c,
         None =>
