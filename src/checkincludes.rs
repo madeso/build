@@ -44,7 +44,11 @@ pub enum Options
     ListUnfixable
     {
         #[structopt(flatten)]
-        main: MainData
+        main: MainData,
+
+        /// Print all errors per file, not just the first one
+        #[structopt(long)]
+        all: bool
     },
 
 
@@ -121,13 +125,12 @@ pub fn get_replacer(file_stem: &str) -> core::TextReplacer
 fn classify_line
 (
     missing_files: &mut HashSet<String>,
-    only_invalid: bool,
     print: &mut printer::Printer,
     data: &builddata::BuildData,
     line: &str,
     filename: &Path,
     line_num: usize
-) -> i32
+) -> Option<i32>
 {
     let replacer = get_replacer(filename.file_stem().unwrap().to_str().unwrap());
 
@@ -146,7 +149,7 @@ fn classify_line
                         Err(err) =>
                         {
                             print.error(format!("{} -> {} is invalid regex: {}", regex, regex_source, err).as_str());
-                            return -1;
+                            return None;
                         }
                     }
                 },
@@ -154,28 +157,23 @@ fn classify_line
                 builddata::OptionalRegex::Failed(err) =>
                 {
                     print.error(err.as_str());
-                    return -1;
+                    return None;
                 }
             };
 
             if re.is_match(line)
             {
-                return index.try_into().unwrap();
+                return Some(index.try_into().unwrap());
             }
         }
     }
 
-    if only_invalid
+    if missing_files.contains(line) == false
     {
-        if missing_files.contains(line)
-        {
-            return -1;
-        }
         missing_files.insert(line.to_string());
+        error(print, filename, line_num, format!("{} is a invalid header", line).as_str());
     }
-
-    error(print, filename, line_num, format!("{} is a invalid header", line).as_str());
-    -1
+    None
 }
 
 
@@ -242,10 +240,10 @@ fn classify_file
     lines: &[String],
     missing_files: &mut HashSet<String>,
     print: &mut printer::Printer,
-    print_unmatched_header: bool,
     data: &builddata::BuildData,
     filename: &Path,
-    verbose: bool
+    verbose: bool,
+    print_include_order_error_for_include: bool
 ) -> Option<ClassifiedFile>
 {
 
@@ -271,15 +269,11 @@ fn classify_file
             }
             r.last_line = Some(line_num);
             let l = line.trim_end();
-            let line_class = classify_line(missing_files, print_unmatched_header, print, data, l, filename, line_num);
-            if line_class < 0
-            {
-                return None;
-            }
+            let line_class = classify_line(missing_files, print, data, l, filename, line_num)?;
             r.includes.push(Include::new(line_class, l));
             if last_class > line_class
             {
-                if print_unmatched_header == false
+                if print_include_order_error_for_include
                 {
                     error(print, filename, line_num, format!("Include order error for {}", l).as_str());
                 }
@@ -305,6 +299,7 @@ fn can_fix_and_print_errors
     f: &ClassifiedFile,
     print: &mut printer::Printer,
     filename: &Path,
+    first_error_only: bool
 ) -> bool
 {
     let mut ok = true;
@@ -313,6 +308,13 @@ fn can_fix_and_print_errors
     {
         for line_num in first_line_found .. last_line_found
         {
+            let print_this_error = match (ok, first_error_only)
+            {
+                // this is not the first error AND we only want to print the first error
+                (false, true) => false,
+                _ => true
+            };
+
             let line = lines[line_num-1].trim();
             if line.is_empty()
             {
@@ -323,13 +325,19 @@ fn can_fix_and_print_errors
                 let end = get_text_after_include(line);
                 if end.trim().is_empty() == false
                 {
-                    error(print, filename, line_num, format!("Invalid text after include {}", line).as_str());
+                    if print_this_error
+                    {
+                        error(print, filename, line_num, format!("Invalid text after include {}", line).as_str());
+                    }
                     ok = false;
                 }
             }
             else
             {
-                warning(print, filename, line_num, format!("Invalid line {}", line).as_str());
+                if print_this_error
+                {
+                    warning(print, filename, line_num, format!("Invalid line {}", line).as_str());
+                }
                 ok = false;
             }
         }
@@ -394,13 +402,18 @@ fn print_lines(print: &mut printer::Printer, lines: &[String])
 
 enum Command
 {
-    Validate,
+    MissingPatterns,
+    ListUnfixable
+    {
+        print_first_error_only: bool
+    },
     Check,
     Fix
     {
         nop: bool
     }
 }
+
 
 fn run_file
 (
@@ -412,6 +425,12 @@ fn run_file
     command: &Command,
 ) -> bool
 {
+    let command_is_list_unfixable = match command { Command::ListUnfixable{print_first_error_only:_} => true, _ => false };
+    let command_is_check          = match command { Command::Check                                   => true, _ => false };
+    let command_is_fix            = match command { Command::Fix{nop:_}                              => true, _ => false };
+
+    let print_include_order_error_for_include = command_is_check || command_is_fix;
+
     if verbose
     {
         print.info(format!("Opening file {}", filename.display()).as_str());
@@ -425,7 +444,7 @@ fn run_file
     }
 
     let lines = loaded_lines.unwrap();
-    let classified = match classify_file(&lines, missing_files, print, matches!(command, Command::Validate), data, filename, verbose)
+    let classified = match classify_file(&lines, missing_files, print, data, filename, verbose, print_include_order_error_for_include)
     {
         Some(c) => c,
         None =>
@@ -445,20 +464,31 @@ fn run_file
     let first_line = classified.first_line.unwrap();
     let last_line = classified.last_line.unwrap();
 
-    if matches!(command, Command::Validate)
+    if !(command_is_fix || command_is_check || command_is_list_unfixable)
     {
         // if we wan't to print the unmatched header we don't care about sorting the headers
         return true;
     }
 
-    if can_fix_and_print_errors(&lines, &classified, print, filename) == false
+    let print_first_error_only = match command
     {
-        match command
+        Command::Fix{nop:_} => true,
+        Command::ListUnfixable{print_first_error_only} => *print_first_error_only,
+        _ => false // don't care, shouldn't be possible
+    };
+
+    if can_fix_and_print_errors(&lines, &classified, print, filename, print_first_error_only) == false
+    {
+        if command_is_fix
         {
             // can't fix this file... error out
-            Command::Fix{nop:_} => return false,
-            _ => {}
+            return false;
         }
+    }
+
+    if command_is_list_unfixable
+    {
+        return true;
     }
 
     let sorted_include_lines = generate_suggested_include_lines_from_sorted_includes(&classified.includes);
@@ -513,7 +543,7 @@ fn common_main
             data,
             args.verbose,
             filename,
-            command
+            &command
         );
 
         if ok == false
@@ -540,12 +570,9 @@ pub fn main(print: &mut printer::Printer, data: &builddata::BuildData, args: &Op
 {
     match args
     {
-        // todo(Gustav): add ListUnfixable
-
-        Options::Check{main}           => common_main(main, print, data, &Command::Check),
-        Options::MissingPatterns{main} => common_main(main, print, data, &Command::Validate),
-        Options::Fix{main, write}      => common_main(main, print, data, &Command::Fix{nop: *write==false}),
-        
-        _ => { print.error("todo(Gustav): currently unhandled option!"); }
+        Options::ListUnfixable{main, all} => common_main(main, print, data, &Command::ListUnfixable{print_first_error_only: *all == false}),
+        Options::Check{main}              => common_main(main, print, data, &Command::Check),
+        Options::MissingPatterns{main}    => common_main(main, print, data, &Command::MissingPatterns),
+        Options::Fix{main, write}         => common_main(main, print, data, &Command::Fix{nop: *write==false}),
     }
 }
