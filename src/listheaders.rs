@@ -48,12 +48,13 @@ pub struct FilesArg
     count: usize,
     
     // nargs="*", default=[])
-    /// folders to exclude
-    #[structopt(long)]
-    exclude : Vec<PathBuf>,
+    // folders to exclude
+    // #[structopt(long)]
+    // exclude : Vec<PathBuf>,
     
     /// print debug info
     #[structopt(long)]
+    #[allow(dead_code)]
     debug: bool,
     
     #[structopt(flatten)]
@@ -325,7 +326,9 @@ struct Command
 #[derive(Debug, Clone)]
 struct Elif
 {
+    #[allow(dead_code)]
     condition: String,
+    #[allow(dead_code)]
     block: Vec<Statement>
 }
 

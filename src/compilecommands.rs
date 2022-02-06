@@ -16,6 +16,7 @@ const COMPILE_COMMANDS_FILE_NAME : &str = "compile_commands.json";
 #[derive(Debug)]
 pub struct CompileCommand
 {
+    #[allow(dead_code)]
     directory: PathBuf,
     command: String
 }
@@ -166,25 +167,6 @@ impl CompileCommandArg
     }
 }
 
-
-
-
-
-#[derive(StructOpt, Debug)]
-pub struct LinesArg
-{
-    /// File to list lines in
-    #[structopt(parse(from_os_str))]
-    filename: PathBuf,
-
-    /// List statements instead
-    #[structopt(long)]
-    statements: bool,
-
-    /// List blocks instead
-    #[structopt(long)]
-    blocks: bool
-}
 
 /// Tool to list headers
 #[derive(StructOpt, Debug)]

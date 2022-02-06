@@ -289,7 +289,7 @@ impl Dependency for DependencyAssimp
             {
                 project.make_static_library();
             }
-            print.info(format!("Installing cmake to {}", install.to_string_lossy().to_string()).as_str());
+            print.info(format!("Installing cmake to {}", install.to_string_lossy()).as_str());
             project.set_install_folder(install);
             core::verify_dir_exist(print, install);
             

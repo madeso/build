@@ -441,6 +441,10 @@ fn run_file
         return true;
     }
 
+    // if the include order is invalid, that means there needs to be a include and we know the start and end of it
+    let first_line = classified.first_line.unwrap();
+    let last_line = classified.last_line.unwrap();
+
     if matches!(command, Command::Validate)
     {
         // if we wan't to print the unmatched header we don't care about sorting the headers
@@ -456,19 +460,6 @@ fn run_file
             _ => {}
         }
     }
-
-    if classified.first_line.is_some() && classified.last_line.is_some()
-    {
-        // ok file
-    }
-    else
-    {
-        print.error(format!("Couldn't find any includes in {}, ignoring", filename.display()).as_str());
-        return false;
-    }
-
-    let first_line = classified.first_line.unwrap();
-    let last_line = classified.last_line.unwrap();
 
     let sorted_include_lines = generate_suggested_include_lines_from_sorted_includes(&classified.includes);
 

@@ -31,7 +31,7 @@ use structopt::StructOpt;
 
 
 #[derive(StructOpt, Debug)]
-enum Build
+enum BuildArg
 {
     Status
     {
@@ -101,7 +101,7 @@ enum WorkbenchArguments
     },
 
     /// Build commands
-    Build(Build),
+    Build(BuildArg),
 
     /// List headers
     ListHeaders
@@ -267,8 +267,8 @@ fn main() {
         , WorkbenchArguments::Debug{cc} => handle_debug(&mut print, &cc)
         , WorkbenchArguments::Build(build) => match build
         {
-            Build::Status{} => handle_build_status(&mut print),
-            Build::Install{env} => handle_generic_build
+            BuildArg::Status{} => handle_build_status(&mut print),
+            BuildArg::Install{env} => handle_generic_build
                 (
                     &mut print, &env,
                     |printer: &mut printer::Printer, build: &buildenv::BuildEnviroment, data: &builddata::BuildData|
@@ -277,7 +277,7 @@ fn main() {
                         run_install(build, data, printer);
                     }
                 ),
-            Build::Cmake{env, print: arg_print} => handle_generic_build
+            BuildArg::Cmake{env, print: arg_print} => handle_generic_build
                 (
                     &mut print, &env,
                     |printer: &mut printer::Printer, build: &buildenv::BuildEnviroment, data: &builddata::BuildData|
@@ -286,7 +286,7 @@ fn main() {
                         run_cmake(build, data, printer, arg_print);
                     }
                 ),
-            Build::Dev{env} => handle_generic_build
+            BuildArg::Dev{env} => handle_generic_build
                 (
                     &mut print, &env,
                     |printer: &mut printer::Printer, build: &buildenv::BuildEnviroment, data: &builddata::BuildData|
@@ -296,7 +296,7 @@ fn main() {
                         run_cmake(build, data, printer, false);
                     }
                 ),
-            Build::Build{env} => handle_generic_build
+            BuildArg::Build{env} => handle_generic_build
                 (
                     &mut print, &env,
                     |printer: &mut printer::Printer, build: &buildenv::BuildEnviroment, data: &builddata::BuildData|
