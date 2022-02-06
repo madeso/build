@@ -338,12 +338,13 @@ fn can_fix_and_print_errors
             }
             else if line.starts_with("#include")
             {
-                let end = get_text_after_include(line);
-                if end.trim().is_empty() == false
+                let end_not_trimmed = get_text_after_include(line);
+                let end = end_not_trimmed.trim();
+                if end.is_empty() == false && end.starts_with("//") == false
                 {
                     if print_this_error
                     {
-                        error(print, filename, line_num, format!("Invalid text after include {}", line).as_str());
+                        error(print, filename, line_num, format!("Invalid text after include: {}", end).as_str());
                     }
                     ok = false;
                 }
@@ -352,7 +353,7 @@ fn can_fix_and_print_errors
             {
                 if print_this_error
                 {
-                    warning(print, filename, line_num, format!("Invalid line {}", line).as_str());
+                    error(print, filename, line_num, format!("Invalid line {}", line).as_str());
                 }
                 ok = false;
             }
