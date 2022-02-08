@@ -2,6 +2,7 @@
 use crate::
 {
     core,
+    rust,
     header_hero::data,
     header_hero::parser,
     header_hero::html
@@ -104,8 +105,8 @@ fn WriteInspect(root: &Path, file: &Path,  _project: &data::Project, _analytics:
         for s in included
         {
             let display_filename = html::inspect_filename_link(&s).unwrap();
-            let display_count    = _analytics.Items[&s].AllIncludedBy.len();
-            let display_lines    = _analytics.Items[&s].TotalIncludeLines;
+            let display_count    = rust::num_format(_analytics.Items[&s].AllIncludedBy.len());
+            let display_lines    = rust::num_format(_analytics.Items[&s].TotalIncludeLines);
             
             html.push_str(&format!("<p>{} {} {}</p>", display_filename, display_count, display_lines));
         }
@@ -119,11 +120,11 @@ fn WriteInspect(root: &Path, file: &Path,  _project: &data::Project, _analytics:
 
         let projectFile = &_project.Files[file];
         let analyticsFile = &_analytics.Items[file];
-        let fileLines = projectFile.Lines;
-        let directLines : usize = projectFile.AbsoluteIncludes.iter().map(|f| {_project.Files[f].Lines}).sum();
-        let directCount = projectFile.AbsoluteIncludes.len();
-        let totalLines = analyticsFile.TotalIncludeLines;
-        let totalCount = analyticsFile.AllIncludes.len();
+        let fileLines = rust::num_format(projectFile.Lines);
+        let directLines = rust::num_format(projectFile.AbsoluteIncludes.iter().map(|f| {_project.Files[f].Lines}).sum());
+        let directCount = rust::num_format(projectFile.AbsoluteIncludes.len());
+        let totalLines = rust::num_format(analyticsFile.TotalIncludeLines);
+        let totalCount = rust::num_format(analyticsFile.AllIncludes.len());
         
         html.push_str(&format!("<h2>{}</h2>\n", display_name));
         html.push_str(&format!("<p>Lines: {}</p>\n", fileLines));
@@ -144,8 +145,8 @@ fn WriteInspect(root: &Path, file: &Path,  _project: &data::Project, _analytics:
         for s in included
         {
             let display_filename = html::inspect_filename_link(&s).unwrap();
-            let display_count    = _analytics.Items[&s].AllIncludes.len();
-            let display_lines    = _analytics.Items[&s].TotalIncludeLines;
+            let display_count    = rust::num_format(_analytics.Items[&s].AllIncludes.len());
+            let display_lines    = rust::num_format(_analytics.Items[&s].TotalIncludeLines);
             
             html.push_str(&format!("<p>{} {} {}</p>", display_filename, display_count, display_lines));
         }
