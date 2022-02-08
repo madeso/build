@@ -26,6 +26,7 @@ mod build;
 mod checkincludes;
 mod listheaders;
 mod compilecommands;
+mod header_hero;
 mod rust;
 
 use structopt::StructOpt;
@@ -123,6 +124,13 @@ enum WorkbenchArguments
     {
         #[structopt(flatten)]
         options: compilecommands::Options
+    },
+
+    /// header hero port
+    Hero
+    {
+        #[structopt(flatten)]
+        options: header_hero::hero::Options
     }
 }
 
@@ -338,6 +346,10 @@ fn main() {
         , WorkbenchArguments::CompileCommands{options} =>
         {
             compilecommands::main(&mut print, &options)
+        }
+        , WorkbenchArguments::Hero{options} =>
+        {
+            header_hero::hero::main(&mut print, &options)
         }
     }
     
