@@ -26,6 +26,7 @@ mod build;
 mod checkincludes;
 mod listheaders;
 mod compilecommands;
+mod rust;
 
 use structopt::StructOpt;
 

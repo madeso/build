@@ -10,7 +10,8 @@ use crate::
 {
     core,
     builddata,
-    printer
+    printer,
+    rust
 };
 
 
@@ -192,19 +193,11 @@ fn classify_line
 }
 
 
-// wtf rust... why isn't this included by default?
-// from https://users.rust-lang.org/t/how-to-find-a-substring-starting-at-a-specific-index/8299
-fn find_start_at(slice: &str, at: usize, pat: char) -> Option<usize>
-{
-    slice[at..].find(pat).map(|i| at + i)
-}
-
-
 fn get_text_after_include_quote(line: &str) -> String
 {
     if let Some(start_quote) = line.find('"')
     {
-        if let Some(end_quote) = find_start_at(line, start_quote+1, '"')
+        if let Some(end_quote) = rust::find_start_at(line, start_quote+1, '"')
         {
             line[end_quote+1..].to_string()
         }
