@@ -83,6 +83,37 @@ fn GenerateReport(root: &Path, _project: &data::Project, scanner: &parser::Scann
 }
 
 
+fn write_inspect_header_table<LengthFun>
+(
+    html: &mut String,
+    _project: &data::Project,
+    _analytics: &parser::Analytics,
+    included: &mut Vec<PathBuf>,
+    class: &str,
+    header: &str,
+    length_fun: LengthFun
+) where LengthFun: Fn(&parser::ItemAnalytics) -> usize
+{
+    html.push_str(&format!("<div id=\"{}\">\n", class));
+    html.push_str(&format!("<h2>{}</h>\n", header));
+
+    // let mut included = _project.Files[file].AbsoluteIncludes.clone();
+    included.sort_by_key(|s| { length_fun(&_analytics.Items[s])});
+    included.reverse();
+    
+    for s in included
+    {
+        let display_filename = html::inspect_filename_link(&s).unwrap();
+        let display_count    = rust::num_format(length_fun(&_analytics.Items[s]));
+        let display_lines    = rust::num_format(_analytics.Items[s].TotalIncludeLines);
+        
+        html.push_str(&format!("<p>{} {} {}</p>", display_filename, display_count, display_lines));
+    }
+
+    html.push_str("</div>\n")
+}
+
+
 fn WriteInspect(root: &Path, file: &Path,  _project: &data::Project, _analytics: &parser::Analytics)
 {
     let mut html = String::new();
@@ -91,32 +122,18 @@ fn WriteInspect(root: &Path, file: &Path,  _project: &data::Project, _analytics:
 
     html::begin(&mut html, &format!("Inspecting - {}", display_name));
 
-    // todo(Gustav): merge included and included by... they share alot of logic...
-
-    {
-        html.push_str("<div id=\"included_by\">\n");
-        html.push_str("<h2>Included by</h>\n");
-
-        let file_buf = file.to_path_buf();
-        let mut included : Vec<PathBuf> = _project.Files.iter().filter(|kvp| { kvp.1.AbsoluteIncludes.contains(&file_buf)}).map(|kvp| {kvp.0.to_path_buf()} ).collect();
-        included.sort_by_key(|s| { _analytics.Items[s].AllIncludedBy.len()});
-        included.reverse();
-
-        for s in included
-        {
-            let display_filename = html::inspect_filename_link(&s).unwrap();
-            let display_count    = rust::num_format(_analytics.Items[&s].AllIncludedBy.len());
-            let display_lines    = rust::num_format(_analytics.Items[&s].TotalIncludeLines);
-            
-            html.push_str(&format!("<p>{} {} {}</p>", display_filename, display_count, display_lines));
-        }
-
-        html.push_str("</div>\n")
-    }
+    write_inspect_header_table
+    (
+        &mut html,
+        _project,
+        _analytics,
+        &mut _project.Files.iter().filter(|kvp| { kvp.1.AbsoluteIncludes.contains(&file.to_path_buf())}).map(|kvp| {kvp.0.to_path_buf()} ).collect(),
+        "included_by", "Included by",
+        |it| { it.AllIncludedBy.len() }
+    );
     
     {
         html.push_str("<div id=\"file\">\n");
-        html.push_str("<h2>File</h>\n");
 
         let projectFile = &_project.Files[file];
         let analyticsFile = &_analytics.Items[file];
@@ -134,25 +151,15 @@ fn WriteInspect(root: &Path, file: &Path,  _project: &data::Project, _analytics:
         html.push_str("</div>\n")
     }
 
-    {
-        html.push_str("<div id=\"includes\">\n");
-        html.push_str("<h2>Includes</h>\n");
-
-        let mut included = _project.Files[file].AbsoluteIncludes.clone();
-        included.sort_by_key(|s| { _analytics.Items[s].AllIncludes.len()});
-        included.reverse();
-        
-        for s in included
-        {
-            let display_filename = html::inspect_filename_link(&s).unwrap();
-            let display_count    = rust::num_format(_analytics.Items[&s].AllIncludes.len());
-            let display_lines    = rust::num_format(_analytics.Items[&s].TotalIncludeLines);
-            
-            html.push_str(&format!("<p>{} {} {}</p>", display_filename, display_count, display_lines));
-        }
-
-        html.push_str("</div>\n")
-    }
+    write_inspect_header_table
+    (
+        &mut html,
+        _project,
+        _analytics,
+        &mut _project.Files[file].AbsoluteIncludes.clone(),
+        "includes", "Includes",
+        |it| { it.AllIncludes.len() }
+    );
 
     html::end(&mut html);
 
