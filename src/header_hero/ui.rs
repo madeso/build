@@ -100,6 +100,9 @@ fn write_inspect_header_table<LengthFun>
     // let mut included = _project.Files[file].AbsoluteIncludes.clone();
     included.sort_by_key(|s| { length_fun(&_analytics.Items[s])});
     included.reverse();
+
+    html.push_str("<table class=\"list\">\n");
+    html.push_str("<tr>  <th>File</th>  <th>Count</th>  <th>Lines</th>  </tr>\n");
     
     for s in included
     {
@@ -107,10 +110,11 @@ fn write_inspect_header_table<LengthFun>
         let display_count    = rust::num_format(length_fun(&_analytics.Items[s]));
         let display_lines    = rust::num_format(_analytics.Items[s].TotalIncludeLines);
         
-        html.push_str(&format!("<p>{} {} {}</p>", display_filename, display_count, display_lines));
+        html.push_str(&format!("<tr><td>{}</td> <td>{}</td> <td>{}</td></tr>", display_filename, display_count, display_lines));
     }
 
-    html.push_str("</div>\n")
+    html.push_str("</table>\n");
+    html.push_str("</div>\n");
 }
 
 
@@ -144,9 +148,14 @@ fn WriteInspect(root: &Path, file: &Path,  _project: &data::Project, _analytics:
         let totalCount = rust::num_format(analyticsFile.AllIncludes.len());
         
         html.push_str(&format!("<h2>{}</h2>\n", display_name));
-        html.push_str(&format!("<p>Lines: {}</p>\n", fileLines));
-        html.push_str(&format!("<p>Direct Includes: {0} lines, {1} files</p>\n", directLines, directCount));
-        html.push_str(&format!("<p>Total Includes: {0} lines, {1} files</p>\n", totalLines, totalCount));
+
+        html.push_str("<table class=\"summary\">");
+
+        html.push_str(&format!("<tr>   <th>Lines:</td>            <td>{}</td>  </tr>\n", fileLines));
+        html.push_str(&format!("<tr>   <th>Direct Includes:</td>  <td>{0} lines</td>   <td>{1} files</td>  </tr>\n", directLines, directCount));
+        html.push_str(&format!("<tr>  <th>Total Includes:</td> <td>{0} lines</td> <td>{1} files</td> </tr>\n", totalLines, totalCount));
+
+        html.push_str("</table>");
 
         html.push_str("</div>\n")
     }

@@ -332,7 +332,7 @@ fn OrderByDescending(v: &mut Vec::<(&PathBuf, usize)>)
 
 fn AppendSummary(sb: &mut String, count: &[(&str, String)] )
 {
-    sb.push_str("<table struct=\"summary\">\n");
+    sb.push_str("<table class=\"summary\">\n");
     for (Key, Value) in count
     {
         sb.push_str(&format!("  <tr><th>{0}:</th> <td>{1}</td></tr>\n", Key, Value));
@@ -345,7 +345,7 @@ fn AppendFileList(sb: &mut String, id: &str, header: &str, count: &[(&PathBuf, u
     sb.push_str(&format!("<a name=\"{0}\" />", id));
     sb.push_str(&format!("<h2>{0}</h2>\n\n", header));
 
-    sb.push_str("<table struct=\"list\">\n");
+    sb.push_str("<table class=\"list\">\n");
     for (Key, Value) in count
     {
         sb.push_str(&format!(
