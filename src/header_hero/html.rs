@@ -18,18 +18,24 @@ pub fn begin(str: &mut String, title: &str)
 </head>
 <body>
 
-<nav class="main">
+<div id="root">
+
+<nav id="main">
     <ol>
         <li><a href="index.html">Index</a></li>
         <li><a href="missing.html">Missing</a></li>
         <li><a href="errors.html">Error</a></li>
     </ol>
-</tr>
+</nav>
+
+<div id="page">
+<div id="content">
 
 <h1>"###
     );
     str.push_str(title);
-    str.push_str("</h1>");
+    str.push_str("</h1>\n");
+    str.push_str("<div id=\"body\">\n");
 }
 
 pub fn end(str: &mut String)
@@ -37,7 +43,10 @@ pub fn end(str: &mut String)
     str.push_str
     (
         r###"
-
+</div>
+</div>
+</div>
+</div>
 </body>
 </html>"###
     );
