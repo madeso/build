@@ -14,13 +14,13 @@ use crate::
 //*
 
 
-pub fn ScanAndGenerate(input: &data::UserInput, root: &Path)
+pub fn scan_and_generate(input: &data::UserInput, root: &Path)
 {
-    let mut _project = data::Project::new(input);
+    let mut project = data::Project::new(input);
     let mut scanner = parser::Scanner::new();
     let mut feedback = parser::ProgressFeedback::new();
-    scanner.Rescan(&mut _project, &mut feedback);
-    GenerateReport(root, &_project, &scanner);
+    scanner.rescan(&mut project, &mut feedback);
+    generate_report(root, &project, &scanner);
 }
 
 // */
@@ -34,16 +34,16 @@ pub fn ScanAndGenerate(input: &data::UserInput, root: &Path)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // ReportForm
 
-// Data.Project _project;
-// Parser.Scanner _scanner;
-// Parser.Analytics _analytics;
+// Data.Project project;
+// Parser.Scanner scanner;
+// Parser.Analytics analytics;
 
-fn GenerateReport(root: &Path, _project: &data::Project, scanner: &parser::Scanner)
+fn generate_report(root: &Path, project: &data::Project, scanner: &parser::Scanner)
 {
     {
         let mut html = String::new();
         html::begin(&mut html, "Errors");
-        for s in &scanner.Errors
+        for s in &scanner.errors
         {
             html.push_str(&format!("<p>{}</p>", s));
         }
@@ -61,9 +61,9 @@ fn GenerateReport(root: &Path, _project: &data::Project, scanner: &parser::Scann
     {
         let mut html = String::new();
         html::begin(&mut html, "Missing");
-        for s in &scanner.NotFound // .OrderBy(s => s)
+        for s in &scanner.not_found // .OrderBy(s => s)
         {
-            let origin = &scanner.NotFoundOrigins[s];
+            let origin = &scanner.not_found_origins[s];
             html.push_str(&format!("<p>{} from {}</p>", s, html::inspect_filename_link(origin).unwrap() ))
         }
         html::end(&mut html);
@@ -72,13 +72,13 @@ fn GenerateReport(root: &Path, _project: &data::Project, scanner: &parser::Scann
         core::write_string_to_file_or(&path, &html).unwrap();
     }
 
-    let _analytics = parser::Analyze(_project);
-    parser::GenerateCss(root);
-    parser::GenerateIndex(root, _project, &_analytics);
+    let analytics = parser::analyze(project);
+    parser::write_css_file(root);
+    parser::generate_index_page(root, project, &analytics);
 
-    for (f, _) in &_project.Files
+    for (f, _) in &project.scanned_files
     {
-        WriteInspect(root, f, _project, &_analytics);
+        write_inspection_page(root, f, project, &analytics);
     }
 }
 
@@ -86,8 +86,7 @@ fn GenerateReport(root: &Path, _project: &data::Project, scanner: &parser::Scann
 fn write_inspect_header_table<LengthFun>
 (
     html: &mut String,
-    _project: &data::Project,
-    _analytics: &parser::Analytics,
+    analytics: &parser::Analytics,
     included: &mut Vec<PathBuf>,
     class: &str,
     header: &str,
@@ -97,8 +96,7 @@ fn write_inspect_header_table<LengthFun>
     html.push_str(&format!("<div id=\"{}\">\n", class));
     html.push_str(&format!("<h2>{}</h2>\n", header));
 
-    // let mut included = _project.Files[file].AbsoluteIncludes.clone();
-    included.sort_by_key(|s| { length_fun(&_analytics.Items[s])});
+    included.sort_by_key(|s| { length_fun(&analytics.file_to_data[s])});
     included.reverse();
 
     html.push_str("<table class=\"list\">\n");
@@ -107,8 +105,8 @@ fn write_inspect_header_table<LengthFun>
     for s in included
     {
         let display_filename = html::inspect_filename_link(&s).unwrap();
-        let display_count    = rust::num_format(length_fun(&_analytics.Items[s]));
-        let display_lines    = rust::num_format(_analytics.Items[s].TotalIncludeLines);
+        let display_count    = rust::num_format(length_fun(&analytics.file_to_data[s]));
+        let display_lines    = rust::num_format(analytics.file_to_data[s].total_included_lines);
         
         html.push_str(&format!("<tr><td class=\"file\">{}</td> <td class=\"num\">{}</td> <td class=\"num\">{}</td></tr>", display_filename, display_count, display_lines));
     }
@@ -118,7 +116,7 @@ fn write_inspect_header_table<LengthFun>
 }
 
 
-fn WriteInspect(root: &Path, file: &Path,  _project: &data::Project, _analytics: &parser::Analytics)
+fn write_inspection_page(root: &Path, file: &Path,  project: &data::Project, analytics: &parser::Analytics)
 {
     let mut html = String::new();
 
@@ -129,32 +127,31 @@ fn WriteInspect(root: &Path, file: &Path,  _project: &data::Project, _analytics:
     write_inspect_header_table
     (
         &mut html,
-        _project,
-        _analytics,
-        &mut _project.Files.iter().filter(|kvp| { kvp.1.AbsoluteIncludes.contains(&file.to_path_buf())}).map(|kvp| {kvp.0.to_path_buf()} ).collect(),
+        analytics,
+        &mut project.scanned_files.iter().filter(|kvp| { kvp.1.absolute_includes.contains(&file.to_path_buf())}).map(|kvp| {kvp.0.to_path_buf()} ).collect(),
         "included_by", &format!("Theese include {}", display_name),
-        |it| { it.AllIncludedBy.len() }
+        |it| { it.all_included_by.len() }
     );
     
     {
         html.push_str("<div id=\"file\">\n");
 
-        let projectFile = &_project.Files[file];
-        let analyticsFile = &_analytics.Items[file];
-        let fileLines = rust::num_format(projectFile.Lines);
-        let directLines = rust::num_format(projectFile.AbsoluteIncludes.iter().map(|f| {_project.Files[f].Lines}).sum());
-        let directCount = rust::num_format(projectFile.AbsoluteIncludes.len());
-        let totalLines = rust::num_format(analyticsFile.TotalIncludeLines);
-        let totalCount = rust::num_format(analyticsFile.AllIncludes.len());
+        let project_file = &project.scanned_files[file];
+        let analytics_file = &analytics.file_to_data[file];
+        let file_lines = rust::num_format(project_file.number_of_lines);
+        let direct_lines = rust::num_format(project_file.absolute_includes.iter().map(|f| {project.scanned_files[f].number_of_lines}).sum());
+        let direct_count = rust::num_format(project_file.absolute_includes.len());
+        let total_lines = rust::num_format(analytics_file.total_included_lines);
+        let total_count = rust::num_format(analytics_file.all_includes.len());
         
         html.push_str(&format!("<h2>{}</h2>\n", display_name));
 
         html.push_str("<table class=\"summary\">");
 
         html.push_str(         "<tr>  <th></th>                 <th>Lines</th>              <th>Files</th>           </tr>\n");
-        html.push_str(&format!("<tr>  <th>Lines:</th>           <td class=\"num\">{}</td>   <td class=\"num\">1</td> </tr>\n", fileLines));
-        html.push_str(&format!("<tr>  <th>Direct Includes:</th> <td class=\"num\">{0}</td>  <td class=\"num\">{1}</td>  </tr>\n", directLines, directCount));
-        html.push_str(&format!("<tr>  <th>Total Includes:</th>  <td class=\"num\">{0}</td>  <td class=\"num\">{1}</td> </tr>\n", totalLines, totalCount));
+        html.push_str(&format!("<tr>  <th>Lines:</th>           <td class=\"num\">{}</td>   <td class=\"num\">1</td> </tr>\n", file_lines));
+        html.push_str(&format!("<tr>  <th>Direct Includes:</th> <td class=\"num\">{0}</td>  <td class=\"num\">{1}</td>  </tr>\n", direct_lines, direct_count));
+        html.push_str(&format!("<tr>  <th>Total Includes:</th>  <td class=\"num\">{0}</td>  <td class=\"num\">{1}</td> </tr>\n", total_lines, total_count));
 
         html.push_str("</table>");
 
@@ -164,11 +161,10 @@ fn WriteInspect(root: &Path, file: &Path,  _project: &data::Project, _analytics:
     write_inspect_header_table
     (
         &mut html,
-        _project,
-        _analytics,
-        &mut _project.Files[file].AbsoluteIncludes.clone(),
+        analytics,
+        &mut project.scanned_files[file].absolute_includes.clone(),
         "includes", &format!("{} includes theese", display_name),
-        |it| { it.AllIncludes.len() }
+        |it| { it.all_includes.len() }
     );
 
     html::end(&mut html);

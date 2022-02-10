@@ -1,11 +1,6 @@
 ﻿///////////////////////////////////////////////////////////////////////////////////////////////////
 // Parser
 
-#![allow(unused_variables)]
-#![allow(non_snake_case)]
-#![allow(dead_code)]
-#![allow(non_upper_case_globals)]
-
 use std::io;
 use std::path::{Path, PathBuf};
 use std::collections::{HashSet, HashMap};
@@ -24,12 +19,12 @@ enum ParseResult { Ok, Error }
 
 pub struct Result
 {
-    pub SystemIncludes: Vec<String>,
-    pub LocalIncludes: Vec<String>,
-    pub Lines: usize,
+    pub system_includes: Vec<String>,
+    pub local_includes: Vec<String>,
+    pub number_of_lines: usize,
 }
 
-fn Canonicalize(p: &Path) -> PathBuf
+fn canonicalize_or_default(p: &Path) -> PathBuf
 {
     match p.canonicalize()
     {
@@ -49,13 +44,13 @@ impl Result
     {
         Result
         {
-            SystemIncludes: Vec::<String>::new(),
-            LocalIncludes: Vec::<String>::new(),
-            Lines: 0
+            system_includes: Vec::<String>::new(),
+            local_includes: Vec::<String>::new(),
+            number_of_lines: 0
         }
     }
 
-    fn ParseLine(&mut self, line: &str) -> ParseResult
+    fn parse_line(&mut self, line: &str) -> ParseResult
     {
         let mut i: usize = 0;
         let mut path_start: usize = 0;
@@ -137,7 +132,7 @@ impl Result
                     {
                         if c == ">"
                         {
-                            self.SystemIncludes.push(substr(line, path_start, i-path_start-1).to_string());
+                            self.system_includes.push(substr(line, path_start, i-path_start-1).to_string());
                             return ParseResult::Ok;
                         }
                     },
@@ -145,7 +140,7 @@ impl Result
                     {
                         if c == "\""
                         {
-                            self.LocalIncludes.push(substr(line, path_start, i-path_start-1).to_string());
+                            self.local_includes.push(substr(line, path_start, i-path_start-1).to_string());
                             return ParseResult::Ok;
                         }
                     }
@@ -157,18 +152,18 @@ impl Result
 
 
 /// Simple parser... only looks for #include lines. Does not take #defines or comments into account.
-pub fn ParseFile(fi: &Path, errors: &mut Vec<String>) -> Result
+pub fn parse_file(fi: &Path, errors: &mut Vec<String>) -> Result
 {
     let mut res = Result::new();
 
     if let Ok(lines) = core::read_file_to_lines(fi)
     {
-        res.Lines = lines.len();
+        res.number_of_lines = lines.len();
         for line in lines
         {
             if line.contains("#") && line.contains("include")
             {
-                match res.ParseLine(&line)
+                match res.parse_line(&line)
                 {
                     ParseResult::Error =>
                         errors.push(format!("Could not parse line: {} in file: {}", line, fi.display())),
@@ -194,11 +189,11 @@ pub fn ParseFile(fi: &Path, errors: &mut Vec<String>) -> Result
 
 pub struct ItemAnalytics
 {
-    pub AllIncludes: HashSet<PathBuf>,
-    pub TotalIncludeLines: usize,
-    pub AllIncludedBy: HashSet<PathBuf>,
-    pub TranslationUnitsIncludedBy: HashSet<PathBuf>,
-    pub Analyzed: bool,
+    pub all_includes: HashSet<PathBuf>,
+    pub total_included_lines: usize,
+    pub all_included_by: HashSet<PathBuf>,
+    pub translation_units_included_by: HashSet<PathBuf>,
+    pub is_analyzed: bool,
 }
 
 impl ItemAnalytics
@@ -207,26 +202,26 @@ impl ItemAnalytics
     {
         ItemAnalytics
         {
-            AllIncludes: HashSet::<PathBuf>::new(),
-            TotalIncludeLines: 0,
-            AllIncludedBy: HashSet::<PathBuf>::new(),
-            TranslationUnitsIncludedBy: HashSet::<PathBuf>::new(),
-            Analyzed: false,
+            all_includes: HashSet::<PathBuf>::new(),
+            total_included_lines: 0,
+            all_included_by: HashSet::<PathBuf>::new(),
+            translation_units_included_by: HashSet::<PathBuf>::new(),
+            is_analyzed: false,
         }
     }
 }
 
 pub struct Analytics
 {
-    pub Items: HashMap<PathBuf, ItemAnalytics>
+    pub file_to_data: HashMap<PathBuf, ItemAnalytics>
 }
 
-pub fn Analyze(project: &data::Project) -> Analytics
+pub fn analyze(project: &data::Project) -> Analytics
 {
     let mut analytics = Analytics::new();
-    for (file, _) in &project.Files
+    for (file, _) in &project.scanned_files
     {
-        analytics.Analyze(&file, project);
+        analytics.analyze(&file, project);
     }
     analytics
 }
@@ -237,63 +232,63 @@ impl Analytics
     {
         Analytics
         {
-            Items: HashMap::<PathBuf, ItemAnalytics>::new()
+            file_to_data: HashMap::<PathBuf, ItemAnalytics>::new()
         }
     }
 
     fn add_trans(&mut self, inc: &Path, path: &Path)
     {
-        if let Some(it) = self.Items.get_mut(&inc.to_path_buf())
+        if let Some(it) = self.file_to_data.get_mut(&inc.to_path_buf())
         {
-            it.TranslationUnitsIncludedBy.insert(path.to_path_buf());
+            it.translation_units_included_by.insert(path.to_path_buf());
         }
     }
     
     fn add_all_inc(&mut self, inc: &Path, path: &Path)
     {
-        if let Some(it) = self.Items.get_mut(&inc.to_path_buf())
+        if let Some(it) = self.file_to_data.get_mut(&inc.to_path_buf())
         {
-            it.AllIncludedBy.insert(path.to_path_buf());
+            it.all_included_by.insert(path.to_path_buf());
         }
     }
 
-    fn Analyze(&mut self, path: &Path, project: &data::Project)
+    fn analyze(&mut self, path: &Path, project: &data::Project)
     {
-        if let Some(ret) = self.Items.get_mut(path)
+        if let Some(ret) = self.file_to_data.get_mut(path)
         {
-            assert_eq!(ret.Analyzed, true);
+            assert_eq!(ret.is_analyzed, true);
             return;
         }
 
         let mut ret = ItemAnalytics::new();
-        ret.Analyzed = true;
+        ret.is_analyzed = true;
 
-        let sf = &project.Files[path];
-        for include in &sf.AbsoluteIncludes
+        let sf = &project.scanned_files[path];
+        for include in &sf.absolute_includes
         {
             if include == path { continue; }
             
-            let is_tu = data::IsTranslationUnitPath(path);
+            let is_tu = data::is_translation_unit(path);
             
-            self.Analyze(&include, project);
+            self.analyze(&include, project);
 
-            // let ai = &self.Items[&include.to_path_buf()];
+            // let ai = &self.file_to_data[&include.to_path_buf()];
             let all_includes = 
-                if let Some(ai) = self.Items.get_mut(&include.to_path_buf())
+                if let Some(ai) = self.file_to_data.get_mut(&include.to_path_buf())
                 {
-                    ret.AllIncludes.insert(include.to_path_buf());
-                    ai.AllIncludedBy.insert(path.to_path_buf());
+                    ret.all_includes.insert(include.to_path_buf());
+                    ai.all_included_by.insert(path.to_path_buf());
                     
                     if is_tu
                     {
-                        ai.TranslationUnitsIncludedBy.insert(path.to_path_buf());
+                        ai.translation_units_included_by.insert(path.to_path_buf());
                     }
 
 
-                    let union: HashSet<_> = ret.AllIncludes.union(&ai.AllIncludes).collect();
-                    ret.AllIncludes = union.iter().map(|x| {x.to_path_buf()}).collect();
+                    let union: HashSet<_> = ret.all_includes.union(&ai.all_includes).collect();
+                    ret.all_includes = union.iter().map(|x| {x.to_path_buf()}).collect();
 
-                    Some(ai.AllIncludes.clone())
+                    Some(ai.all_includes.clone())
                 }
                 else
                 {
@@ -311,9 +306,9 @@ impl Analytics
             }
         }
 
-        ret.TotalIncludeLines = ret.AllIncludes.iter().map(|f|{project.Files[f].Lines}).sum();
+        ret.total_included_lines = ret.all_includes.iter().map(|f|{project.scanned_files[f].number_of_lines}).sum();
         
-        self.Items.insert(path.to_path_buf(), ret);
+        self.file_to_data.insert(path.to_path_buf(), ret);
     }
 }
 
@@ -323,36 +318,36 @@ impl Analytics
 // Report
 
 
-fn OrderByDescending(v: &mut Vec::<(&PathBuf, usize)>)
+fn order_by_descending(v: &mut Vec::<(&PathBuf, usize)>)
 {
     // |kvp| {kvp.1}
     v.sort_by_key(|kvp| { return kvp.1});
     v.reverse();
 }
 
-fn AppendSummary(sb: &mut String, count: &[(&str, String)] )
+fn add_project_table_summary(sb: &mut String, table: &[(&str, String)] )
 {
     sb.push_str("<div id=\"summary\">\n");
     sb.push_str("<table class=\"summary\">\n");
-    for (Key, Value) in count
+    for (label, value) in table
     {
-        sb.push_str(&format!("  <tr><th>{0}:</th> <td>{1}</td></tr>\n", Key, Value));
+        sb.push_str(&format!("  <tr><th>{0}:</th> <td>{1}</td></tr>\n", label, value));
     }
     sb.push_str("</table>\n");
     sb.push_str("</div>\n");
 }
 
-fn AppendFileList(sb: &mut String, id: &str, header: &str, count: &[(&PathBuf, usize)])
+fn add_file_table(sb: &mut String, id: &str, header: &str, count_list: &[(&PathBuf, usize)])
 {
     sb.push_str(&format!("<div id=\"{0}\">\n", id));
     sb.push_str(&format!("<a name=\"{0}\"></a>", id));
     sb.push_str(&format!("<h2>{0}</h2>\n\n", header));
 
     sb.push_str("<table class=\"list\">\n");
-    for (Key, Value) in count
+    for (path_to_file, count) in count_list
     {
         sb.push_str(&format!(
-            "  <tr><td class=\"num\">{1}</td> <td class=\"file\">{0}</td></tr>\n", html::inspect_filename_link(Key).unwrap(), rust::num_format(*Value)
+            "  <tr><td class=\"num\">{1}</td> <td class=\"file\">{0}</td></tr>\n", html::inspect_filename_link(path_to_file).unwrap(), rust::num_format(*count)
         ));
     }
     sb.push_str("</table>\n");
@@ -361,17 +356,17 @@ fn AppendFileList(sb: &mut String, id: &str, header: &str, count: &[(&PathBuf, u
 
 
 
-fn HtmlFile(root: &Path) -> PathBuf { core::join(root, "index.html") }
-fn CssFile(root: &Path) -> PathBuf { core::join(root, "header_hero_report.css") }
+fn path_to_index_file(root: &Path) -> PathBuf { core::join(root, "index.html") }
+fn path_to_css_file(root: &Path) -> PathBuf { core::join(root, "header_hero_report.css") }
 
 
-pub fn GenerateCss(root: &Path)
+pub fn write_css_file(root: &Path)
 {
-    core::write_string_to_file_or(&CssFile(root), _css).unwrap();
+    core::write_string_to_file_or(&path_to_css_file(root), CSS_SOURCE).unwrap();
 }
 
 
-pub fn GenerateIndex(root: &Path, project: &data::Project, analytics: &Analytics)
+pub fn generate_index_page(root: &Path, project: &data::Project, analytics: &Analytics)
 {
     let mut sb = String::new();
 
@@ -379,64 +374,64 @@ pub fn GenerateIndex(root: &Path, project: &data::Project, analytics: &Analytics
 
     // Summary
     {
-        let pch_lines : usize = project.Files.iter()
-            .filter(|kvp| -> bool {kvp.1.Precompiled})
-            .map(|kvp| -> usize {kvp.1.Lines})
+        let pch_lines : usize = project.scanned_files.iter()
+            .filter(|kvp| -> bool {kvp.1.is_precompiled})
+            .map(|kvp| -> usize {kvp.1.number_of_lines})
             .sum();
-        let super_total_lines : usize = project.Files.iter()
-            .map(|kvp| -> usize {kvp.1.Lines})
+        let super_total_lines : usize = project.scanned_files.iter()
+            .map(|kvp| -> usize {kvp.1.number_of_lines})
             .sum();
         let total_lines = super_total_lines - pch_lines;
-        let total_parsed : usize = analytics.Items.iter()
-            .filter(|kvp| {data::IsTranslationUnitPath(kvp.0) && !project.Files[kvp.0].Precompiled})
-            .map(|kvp| -> usize {kvp.1.TotalIncludeLines + project.Files[kvp.0].Lines}).sum();
+        let total_parsed : usize = analytics.file_to_data.iter()
+            .filter(|kvp| {data::is_translation_unit(kvp.0) && !project.scanned_files[kvp.0].is_precompiled})
+            .map(|kvp| -> usize {kvp.1.total_included_lines + project.scanned_files[kvp.0].number_of_lines}).sum();
         let factor = total_parsed as f64 / total_lines as f64;
         let table =
         [
-            ("Files", format!("{0}", rust::num_format(project.Files.len()))),
-            ("Total Lines", format!("{0}", rust::num_format(total_lines))),
-            ("Total Precompiled", format!("{0} (<a href=\"#pch\">list</a>)", rust::num_format(pch_lines))),
-            ("Total Parsed", format!("{0}", rust::num_format(total_parsed))),
-            ("Blowup Factor", format!("{0:0.00} (<a href=\"#largest\">largest</a>, <a href=\"#hubs\">hubs</a>)", factor) ),
+            ("Files", format!("{0}", rust::num_format(project.scanned_files.len()))),
+            ("Total lines", format!("{0}", rust::num_format(total_lines))),
+            ("Total precompiled", format!("{0} (<a href=\"#pch\">list</a>)", rust::num_format(pch_lines))),
+            ("Total parsed", format!("{0}", rust::num_format(total_parsed))),
+            ("Blowup factor", format!("{0:0.00} (<a href=\"#largest\">largest</a>, <a href=\"#hubs\">hubs</a>)", factor) ),
         ];
-        AppendSummary(&mut sb, &table);
+        add_project_table_summary(&mut sb, &table);
     }
 
-    // analytics.Items: HashMap<PathBuf, ItemAnalytics>
+    // analytics.file_to_data: HashMap<PathBuf, ItemAnalytics>
 
     {
-        let mut most: Vec<(&PathBuf, usize)> = analytics.Items.iter()
-            .map(|kvp| {(kvp.0, project.Files[kvp.0].Lines * kvp.1.TranslationUnitsIncludedBy.len())})
-            .filter(|kvp| { !project.Files[kvp.0].Precompiled})
+        let mut most: Vec<(&PathBuf, usize)> = analytics.file_to_data.iter()
+            .map(|kvp| {(kvp.0, project.scanned_files[kvp.0].number_of_lines * kvp.1.translation_units_included_by.len())})
+            .filter(|kvp| { !project.scanned_files[kvp.0].is_precompiled})
             .filter(|kvp| { kvp.1 > 0})
             .collect();
-        OrderByDescending(&mut most);
-        AppendFileList(&mut sb, "largest", "Biggest Contributors", &most);
+        order_by_descending(&mut most);
+        add_file_table(&mut sb, "largest", "Biggest Contributors", &most);
     }
 
     {
-        let mut hubs: Vec<(&PathBuf, usize)> = analytics.Items.iter()
-            .map(|kvp| {(kvp.0, kvp.1.AllIncludes.len() * kvp.1.TranslationUnitsIncludedBy.len())})
+        let mut hubs: Vec<(&PathBuf, usize)> = analytics.file_to_data.iter()
+            .map(|kvp| {(kvp.0, kvp.1.all_includes.len() * kvp.1.translation_units_included_by.len())})
             .filter(|kvp| {kvp.1 > 0})
             .collect();
-        OrderByDescending(&mut hubs);
-        AppendFileList(&mut sb, "hubs", "Header Hubs", &hubs);
+        order_by_descending(&mut hubs);
+        add_file_table(&mut sb, "hubs", "Header Hubs", &hubs);
     }
 
     {
-        let mut pch: Vec<(&PathBuf, usize)> = project.Files.iter()
-            .filter(|kvp| {kvp.1.Precompiled})
-            .map(|kvp| {(kvp.0, kvp.1.Lines)})
+        let mut pch: Vec<(&PathBuf, usize)> = project.scanned_files.iter()
+            .filter(|kvp| {kvp.1.is_precompiled})
+            .map(|kvp| {(kvp.0, kvp.1.number_of_lines)})
             .collect();
-        OrderByDescending(&mut pch);
-        AppendFileList(&mut sb, "pch", "Precompiled Headers", &pch);
+        order_by_descending(&mut pch);
+        add_file_table(&mut sb, "pch", "Precompiled Headers", &pch);
     }
 
     html::end(&mut sb);
 
-    core::write_string_to_file_or(&HtmlFile(root), &sb).unwrap();
+    core::write_string_to_file_or(&path_to_index_file(root), &sb).unwrap();
 }
-		const _css: &'static str = r###"
+		const CSS_SOURCE: &'static str = r###"
 
 /* Reset */
 
@@ -627,27 +622,27 @@ impl ProgressFeedback
     {
         ProgressFeedback{}
     }
-    fn update_title(&self, new_title_: &str)
+    fn update_title(&self, new_title: &str)
     {
-        println!("{}", new_title_);
+        println!("{}", new_title);
     }
-    fn update_message(&self, new_message_: &str)
+    fn update_message(&self, new_message: &str)
     {
-        println!("  {}", new_message_);
+        println!("  {}", new_message);
     }
-    fn update_count(&self, new_count_: usize) {}
+    fn update_count(&self, _new_count: usize) {}
     fn next_item(&self) {}
 }
 
 pub struct Scanner
 {
-    _queued: HashSet<PathBuf>,
-    _scan_queue: Vec<PathBuf>,
-    _system_includes: HashMap<String, PathBuf>,
-    _scanning_pch: bool,
-    pub Errors: Vec<String>,
-    pub NotFound: HashSet<String>,
-    pub NotFoundOrigins: HashMap<String, PathBuf>,
+    file_queue: HashSet<PathBuf>,
+    scan_queue: Vec<PathBuf>,
+    system_includes: HashMap<String, PathBuf>,
+    is_scanning_pch: bool,
+    pub errors: Vec<String>,
+    pub not_found: HashSet<String>,
+    pub not_found_origins: HashMap<String, PathBuf>,
     pub missing_ext: counter::Counter<String, usize>,
 }
 
@@ -657,85 +652,85 @@ impl Scanner
     {
         Scanner
         {
-            _queued: HashSet::<PathBuf>::new(),
-            _scan_queue: Vec::<PathBuf>::new(),
-            _system_includes: HashMap::<String, PathBuf>::new(),
-            _scanning_pch: false,
-            Errors: Vec::<String>::new(),
-            NotFound: HashSet::<String>::new(),
-            NotFoundOrigins: HashMap::<String, PathBuf>::new(),
+            file_queue: HashSet::<PathBuf>::new(),
+            scan_queue: Vec::<PathBuf>::new(),
+            system_includes: HashMap::<String, PathBuf>::new(),
+            is_scanning_pch: false,
+            errors: Vec::<String>::new(),
+            not_found: HashSet::<String>::new(),
+            not_found_origins: HashMap::<String, PathBuf>::new(),
             missing_ext: counter::Counter::<String, usize>::new(),
         }
     }
 
-    pub fn Rescan(&mut self, _project: &mut data::Project, feedback: &mut ProgressFeedback)
+    pub fn rescan(&mut self, project: &mut data::Project, feedback: &mut ProgressFeedback)
     {
         feedback.update_title("Scanning precompiled header...");
-        for (_, sf) in &mut _project.Files
+        for (_, sf) in &mut project.scanned_files
         {
-            sf.Touched = false;
-            sf.Precompiled = false;
+            sf.is_touched = false;
+            sf.is_precompiled = false;
         }
 
         // scan everything that goes into precompiled header
-        self._scanning_pch = true;
-        if let Some(inc) = _project.PrecompiledHeader.clone()
+        self.is_scanning_pch = true;
+        if let Some(inc) = project.precompiled_header.clone()
         {
             if inc.exists()
             {
-                self.ScanFile(_project, &inc);
-                while self._scan_queue.len() > 0
+                self.scan_file(project, &inc);
+                while self.scan_queue.len() > 0
                 {
-                    let to_scan = self._scan_queue.clone();
-                    self._scan_queue.clear();
+                    let to_scan = self.scan_queue.clone();
+                    self.scan_queue.clear();
                     for fi in to_scan
                     {
-                        self.ScanFile(_project, &fi);
+                        self.scan_file(project, &fi);
                     }
                 }
-                self._queued.clear();
+                self.file_queue.clear();
             }
         }
-        self._scanning_pch = false;
+        self.is_scanning_pch = false;
 
         feedback.update_title("Scanning directories...");
-        for dir in &_project.ScanDirectories
+        for dir in &project.scan_directories
         {
             feedback.update_message(&format!("{}", dir.display()));
-            self.ScanDirectory(&dir, feedback);
+            self.scan_directory(&dir, feedback);
         }
 
         feedback.update_title("Scanning files...");
 
         let mut dequeued = 0;
         
-        while self._scan_queue.len() > 0
+        while self.scan_queue.len() > 0
         {
-            dequeued += self._scan_queue.len();
-            let to_scan = self._scan_queue.clone();
-            self._scan_queue.clear();
+            dequeued += self.scan_queue.len();
+            let to_scan = self.scan_queue.clone();
+            self.scan_queue.clear();
             for fi in &to_scan
             {
-                feedback.update_count(dequeued + self._scan_queue.len());
+                feedback.update_count(dequeued + self.scan_queue.len());
                 feedback.next_item();
                 feedback.update_message(&format!("{}", fi.display()));
-                self.ScanFile(_project, fi);
+                self.scan_file(project, fi);
             }
         }
-        self._queued.clear();
-        self._system_includes.clear();
+        self.file_queue.clear();
+        self.system_includes.clear();
 
-        _project.Files.retain(|_, value| {value.Touched});
+        project.scanned_files.retain(|_, value| {value.is_touched});
     }
     
-    fn ScanDirectory(&mut self, dir: &Path, feedback: &ProgressFeedback)
+    fn scan_directory(&mut self, dir: &Path, feedback: &ProgressFeedback)
     {
-        if let Err(_) = self.ScanDirectoryImpl(dir, feedback)
+        if let Err(_) = self.please_scan_directory(dir, feedback)
         {
-            self.Errors.push(format!("Cannot descend into {}", dir.display()));
+            self.errors.push(format!("Cannot descend into {}", dir.display()));
         }
     }
-    fn ScanDirectoryImpl(&mut self, dir: &Path, feedback: &ProgressFeedback) -> io::Result<()>
+    fn please_scan_directory(&mut self, dir: &Path, feedback: &ProgressFeedback) -> io::Result<()>
     {
         feedback.update_message(&format!("{}", dir.display()));
 
@@ -746,9 +741,9 @@ impl Scanner
             {
                 let file = e;
                 let ext = file.extension().unwrap().to_str().unwrap();
-                if data::IsTranslationUnitExtension(ext)
+                if data::is_translation_unit_extension(ext)
                 {
-                    self.Enqueue(&file, &Canonicalize(&file));
+                    self.add_to_queue(&file, &canonicalize_or_default(&file));
                 }
                 else
                 {
@@ -759,93 +754,93 @@ impl Scanner
             else
             {
                 let subdir = e;
-                self.ScanDirectory(&subdir, feedback);
+                self.scan_directory(&subdir, feedback);
             }
         }
 
         Ok(())
     }
 
-    fn Enqueue(&mut self, inc: &Path, abs: &Path)
+    fn add_to_queue(&mut self, inc: &Path, abs: &Path)
     {
-        if !self._queued.contains(abs)
+        if !self.file_queue.contains(abs)
         {
-            self._queued.insert(abs.to_path_buf());
-            self._scan_queue.push(inc.to_path_buf());
+            self.file_queue.insert(abs.to_path_buf());
+            self.scan_queue.push(inc.to_path_buf());
         }
     }
 
-    fn ScanFile(&mut self, _project: &mut data::Project, p: &Path)
+    fn scan_file(&mut self, project: &mut data::Project, p: &Path)
     {
-        let path = Canonicalize(p);
+        let path = canonicalize_or_default(p);
         // todo(Gustav): add last scan feature!!!
-        if _project.Files.contains_key(&path) // && _project.LastScan > path.LastWriteTime && !self._scanning_pch
+        if project.scanned_files.contains_key(&path) // && project.LastScan > path.LastWriteTime && !self.is_scanning_pch
         {
-            // let mut sf = &_project.Files.get_mut(&path).unwrap();
-            let mut sf : data::SourceFile = _project.Files.get(&path).unwrap().clone();
-            self.PleaseScanFile(_project, &path, &mut sf);
-            _project.Files.insert(path, sf);
+            // let mut sf = &project.scanned_files.get_mut(&path).unwrap();
+            let mut sf : data::SourceFile = project.scanned_files.get(&path).unwrap().clone();
+            self.please_scan_file(project, &path, &mut sf);
+            project.scanned_files.insert(path, sf);
         }
         else
         {
-            let res = ParseFile(&path, &mut self.Errors);
+            let res = parse_file(&path, &mut self.errors);
             let mut sf = data::SourceFile::new();
-            sf.Lines = res.Lines;
-            sf.LocalIncludes = res.LocalIncludes;
-            sf.SystemIncludes = res.SystemIncludes;
-            sf.Precompiled = self._scanning_pch;
-            self.PleaseScanFile(_project, &path, &mut sf);
-            _project.Files.insert(path, sf);
+            sf.number_of_lines = res.number_of_lines;
+            sf.local_includes = res.local_includes;
+            sf.system_includes = res.system_includes;
+            sf.is_precompiled = self.is_scanning_pch;
+            self.please_scan_file(project, &path, &mut sf);
+            project.scanned_files.insert(path, sf);
         }
     }
     
-    fn PleaseScanFile(&mut self, _project: &mut data::Project, path: &Path, sf: &mut data::SourceFile)
+    fn please_scan_file(&mut self, project: &mut data::Project, path: &Path, sf: &mut data::SourceFile)
     {
-        sf.Touched = true;
-        sf.AbsoluteIncludes.clear();
+        sf.is_touched = true;
+        sf.absolute_includes.clear();
 
         let local_dir = path.parent().unwrap();
-        for s in &sf.LocalIncludes
+        for s in &sf.local_includes
         {
             let inc = core::join(local_dir, &s);
-            let abs = Canonicalize(&inc);
+            let abs = canonicalize_or_default(&inc);
             // found a header that's part of PCH during regular scan: ignore it
-            if !self._scanning_pch && _project.Files.contains_key(&abs) && _project.Files[&abs].Precompiled
+            if !self.is_scanning_pch && project.scanned_files.contains_key(&abs) && project.scanned_files[&abs].is_precompiled
             {
-                touch_file(_project, &abs);
+                touch_file(project, &abs);
                 continue;
             }
             if !inc.exists()
             {
-                if !sf.SystemIncludes.contains(&s)
+                if !sf.system_includes.contains(&s)
                 {
-                    sf.SystemIncludes.push(s.to_string());
+                    sf.system_includes.push(s.to_string());
                 }
                 continue;
             }
-            sf.AbsoluteIncludes.push(abs.clone());
-            self.Enqueue(&inc, &abs);
-            // self.Errors.push(format!("Exception: \"{0}\" for #include \"{1}\"", e.Message, s));
+            sf.absolute_includes.push(abs.clone());
+            self.add_to_queue(&inc, &abs);
+            // self.errors.push(format!("Exception: \"{0}\" for #include \"{1}\"", e.Message, s));
         }
 
-        for s in &sf.SystemIncludes
+        for s in &sf.system_includes
         {
-            if self._system_includes.contains_key(s)
+            if self.system_includes.contains_key(s)
             {
-                let abs = &self._system_includes[s];
+                let abs = &self.system_includes[s];
                 // found a header that's part of PCH during regular scan: ignore it
-                if !self._scanning_pch && _project.Files.contains_key(abs) && _project.Files[abs].Precompiled
+                if !self.is_scanning_pch && project.scanned_files.contains_key(abs) && project.scanned_files[abs].is_precompiled
                 {
-                    touch_file(_project, abs);
+                    touch_file(project, abs);
                     continue;
                 }
-                sf.AbsoluteIncludes.push(abs.clone());
+                sf.absolute_includes.push(abs.clone());
             }
             else
             {
                 let mut found : Option<PathBuf> = None;
 
-                for dir in &_project.IncludeDirectories
+                for dir in &project.include_directories
                 {
                     let f = core::join(&dir, &s);
                     if f.exists()
@@ -858,27 +853,27 @@ impl Scanner
 
                 if let Some(found_path) = found
                 {
-                    let abs = Canonicalize(&found_path);
+                    let abs = canonicalize_or_default(&found_path);
                     // found a header that's part of PCH during regular scan: ignore it
-                    if !self._scanning_pch && _project.Files.contains_key(&abs) && _project.Files[&abs].Precompiled
+                    if !self.is_scanning_pch && project.scanned_files.contains_key(&abs) && project.scanned_files[&abs].is_precompiled
                     {
-                        touch_file(_project, &abs);
+                        touch_file(project, &abs);
                         continue;
                     }
 
-                    sf.AbsoluteIncludes.push(abs.to_path_buf());
-                    self._system_includes.insert(s.to_string(), abs.to_path_buf());
-                    self.Enqueue(&found_path, &abs);
+                    sf.absolute_includes.push(abs.to_path_buf());
+                    self.system_includes.insert(s.to_string(), abs.to_path_buf());
+                    self.add_to_queue(&found_path, &abs);
                 }
                 else
                 {
-                    if self.NotFound.insert(s.to_string())
+                    if self.not_found.insert(s.to_string())
                     {
-                        self.NotFoundOrigins.insert(s.to_string(), path.to_path_buf());
+                        self.not_found_origins.insert(s.to_string(), path.to_path_buf());
                     }
                 }
             }
-            // self.Errors.push(format!("Exception: \"{0}\" for #include <{1}>", e.Message, s));
+            // self.errors.push(format!("Exception: \"{0}\" for #include <{1}>", e.Message, s));
             
         }
 
@@ -890,15 +885,15 @@ impl Scanner
         //   #else
         //   #include <bar>
         //   #endif
-        sf.AbsoluteIncludes.sort();
-        sf.AbsoluteIncludes.dedup();
+        sf.absolute_includes.sort();
+        sf.absolute_includes.dedup();
     }
 }
 
-fn touch_file(_project: &mut data::Project, abs: &Path)
+fn touch_file(project: &mut data::Project, abs: &Path)
 {
-    if let Some(p) = _project.Files.get_mut(abs)
+    if let Some(p) = project.scanned_files.get_mut(abs)
     {
-        p.Touched = true;
+        p.is_touched = true;
     }
 }

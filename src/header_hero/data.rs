@@ -58,10 +58,11 @@ impl UserInput
 
 pub struct Project
 {
-    pub ScanDirectories: Vec<PathBuf>,
-    pub IncludeDirectories: Vec<PathBuf>,
-    pub PrecompiledHeader: Option<PathBuf>,
-    pub Files: HashMap<PathBuf, SourceFile>,
+    pub scan_directories: Vec<PathBuf>,
+    pub include_directories: Vec<PathBuf>,
+    pub precompiled_header: Option<PathBuf>,
+
+    pub scanned_files: HashMap<PathBuf, SourceFile>,
     // pub DateTime LastScan,
 }
 
@@ -72,21 +73,18 @@ impl Project
         // todo(Gustav): don't clone here
         Project
         {
-            // ScanDirectories: Vec::<PathBuf>::new(),
-            ScanDirectories: input.project_directories.clone(),
-            // IncludeDirectories: Vec::<PathBuf>::new(),
-            IncludeDirectories: input.include_directories.clone(),
-            // PrecompiledHeader: None,
-            PrecompiledHeader: input.precompiled_header.clone(),
-            Files: HashMap::<PathBuf, SourceFile>::new()
+            scan_directories: input.project_directories.clone(),
+            include_directories: input.include_directories.clone(),
+            precompiled_header: input.precompiled_header.clone(),
+            scanned_files: HashMap::<PathBuf, SourceFile>::new()
             // LastScan = DateTime.Now,
         }
     }
 
-    pub fn Clean(&mut self)
-    {
-        self.Files.clear();
-    }
+    // pub fn Clean(&mut self)
+    // {
+    //     self.scanned_files.clear();
+    // }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -95,12 +93,12 @@ impl Project
 #[derive(Clone)]
 pub struct SourceFile
 {
-    pub LocalIncludes: Vec<String>,
-    pub SystemIncludes: Vec<String>,
-    pub AbsoluteIncludes: Vec<PathBuf>,
-    pub Lines: usize,
-    pub Touched: bool,
-    pub Precompiled: bool,
+    pub local_includes: Vec<String>,
+    pub system_includes: Vec<String>,
+    pub absolute_includes: Vec<PathBuf>,
+    pub number_of_lines: usize,
+    pub is_touched: bool,
+    pub is_precompiled: bool,
 }
 
 impl SourceFile
@@ -109,17 +107,17 @@ impl SourceFile
     {
         SourceFile
         {
-            LocalIncludes: Vec::<String>::new(),
-            SystemIncludes: Vec::<String>::new(),
-            AbsoluteIncludes: Vec::<PathBuf>::new(),
-            Lines: 0,
-            Touched: false,
-            Precompiled: false,
+            local_includes: Vec::<String>::new(),
+            system_includes: Vec::<String>::new(),
+            absolute_includes: Vec::<PathBuf>::new(),
+            number_of_lines: 0,
+            is_touched: false,
+            is_precompiled: false,
         }
     }
 }		
 
-pub fn IsTranslationUnitExtension(ext: &str) -> bool
+pub fn is_translation_unit_extension(ext: &str) -> bool
 {
     match ext
     {
@@ -129,13 +127,13 @@ pub fn IsTranslationUnitExtension(ext: &str) -> bool
     }
 }
 
-pub fn IsTranslationUnitPath(path: &Path) -> bool
+pub fn is_translation_unit(path: &Path) -> bool
 {
     if let Some(os_ext) = path.extension()
     {
         if let Some(ext) = os_ext.to_str()
         {
-            IsTranslationUnitExtension(ext)
+            is_translation_unit_extension(ext)
         }
         else
         {

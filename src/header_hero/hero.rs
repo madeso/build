@@ -43,7 +43,7 @@ pub fn main(print: &mut printer::Printer, args: &Options)
             }
             else
             {
-                ui::ScanAndGenerate(&input, &args.output);
+                ui::scan_and_generate(&input, &args.output);
             }
         }
 
