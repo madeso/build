@@ -272,7 +272,6 @@ impl Analytics
             
             self.analyze(&include, project);
 
-            // let ai = &self.file_to_data[&include.to_path_buf()];
             let all_includes = 
                 if let Some(ai) = self.file_to_data.get_mut(&include.to_path_buf())
                 {
@@ -320,7 +319,6 @@ impl Analytics
 
 fn order_by_descending(v: &mut Vec::<(&PathBuf, usize)>)
 {
-    // |kvp| {kvp.1}
     v.sort_by_key(|kvp| { return kvp.1});
     v.reverse();
 }
@@ -397,8 +395,6 @@ pub fn generate_index_page(root: &Path, project: &data::Project, analytics: &Ana
         add_project_table_summary(&mut sb, &table);
     }
 
-    // analytics.file_to_data: HashMap<PathBuf, ItemAnalytics>
-
     {
         let mut most: Vec<(&PathBuf, usize)> = analytics.file_to_data.iter()
             .map(|kvp| {(kvp.0, project.scanned_files[kvp.0].number_of_lines * kvp.1.translation_units_included_by.len())})
@@ -432,6 +428,7 @@ pub fn generate_index_page(root: &Path, project: &data::Project, analytics: &Ana
     core::write_string_to_file_or(&path_to_index_file(root), &sb).unwrap();
 }
 		const CSS_SOURCE: &'static str = r###"
+
 
 /* Reset */
 
@@ -599,11 +596,24 @@ div#content {
     grid-row: auto/auto;
 }
 
-#summary
+#summary, .missing
 {
     grid-column: 1 / span 3;
     grid-row: auto/auto;
 }
+
+.missing ul
+{
+    padding-top: 3px;
+    padding-bottom: 10px;
+}
+
+.missing li
+{
+    display: inline-block;
+    padding: 2px 3px;
+}
+
 
 "###;
 
@@ -641,8 +651,7 @@ pub struct Scanner
     system_includes: HashMap<String, PathBuf>,
     is_scanning_pch: bool,
     pub errors: Vec<String>,
-    pub not_found: HashSet<String>,
-    pub not_found_origins: HashMap<String, PathBuf>,
+    pub not_found_origins: HashMap<String, Vec<PathBuf> >,
     pub missing_ext: counter::Counter<String, usize>,
 }
 
@@ -657,8 +666,7 @@ impl Scanner
             system_includes: HashMap::<String, PathBuf>::new(),
             is_scanning_pch: false,
             errors: Vec::<String>::new(),
-            not_found: HashSet::<String>::new(),
-            not_found_origins: HashMap::<String, PathBuf>::new(),
+            not_found_origins: HashMap::<String, Vec<PathBuf> >::new(),
             missing_ext: counter::Counter::<String, usize>::new(),
         }
     }
@@ -776,7 +784,6 @@ impl Scanner
         // todo(Gustav): add last scan feature!!!
         if project.scanned_files.contains_key(&path) // && project.LastScan > path.LastWriteTime && !self.is_scanning_pch
         {
-            // let mut sf = &project.scanned_files.get_mut(&path).unwrap();
             let mut sf : data::SourceFile = project.scanned_files.get(&path).unwrap().clone();
             self.please_scan_file(project, &path, &mut sf);
             project.scanned_files.insert(path, sf);
@@ -867,9 +874,16 @@ impl Scanner
                 }
                 else
                 {
-                    if self.not_found.insert(s.to_string())
+                    if self.not_found_origins.contains_key(s) == false
                     {
-                        self.not_found_origins.insert(s.to_string(), path.to_path_buf());
+                        let file_list = Vec::from([path.to_path_buf()]);
+                        self.not_found_origins.insert(s.to_string(), file_list);
+                    }
+                    else
+                    {
+                        if let Some(file_list) = self.not_found_origins.get_mut(s) {
+                            file_list.push(path.to_path_buf());
+                        }
                     }
                 }
             }

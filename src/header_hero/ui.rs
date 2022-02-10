@@ -11,8 +11,6 @@ use crate::
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // MainForm
 
-//*
-
 
 pub fn scan_and_generate(input: &data::UserInput, root: &Path)
 {
@@ -23,8 +21,6 @@ pub fn scan_and_generate(input: &data::UserInput, root: &Path)
     generate_report(root, &project, &scanner);
 }
 
-// */
-
 
 
 
@@ -33,10 +29,6 @@ pub fn scan_and_generate(input: &data::UserInput, root: &Path)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // ReportForm
-
-// Data.Project project;
-// Parser.Scanner scanner;
-// Parser.Analytics analytics;
 
 fn generate_report(root: &Path, project: &data::Project, scanner: &parser::Scanner)
 {
@@ -61,10 +53,19 @@ fn generate_report(root: &Path, project: &data::Project, scanner: &parser::Scann
     {
         let mut html = String::new();
         html::begin(&mut html, "Missing");
-        for s in &scanner.not_found // .OrderBy(s => s)
+        // todo(Gustav): sort missing on paths or count?
+        for (include_path, origins) in scanner.not_found_origins.iter()
         {
-            let origin = &scanner.not_found_origins[s];
-            html.push_str(&format!("<p>{} from {}</p>", s, html::inspect_filename_link(origin).unwrap() ))
+            let count = origins.len();
+            let s = if count == 1 { "" } else { "s" };
+            html.push_str(&format!("<div class=\"missing\">{} from <span class=\"num\">{}</span> file{} <ul>", include_path, count, s));
+            
+            for file in origins
+            {
+                html.push_str(&format!("<li>{}</li>", html::inspect_filename_link(file).unwrap() ))
+            }
+            html.push_str("</ul></div>");
+
         }
         html::end(&mut html);
 

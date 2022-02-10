@@ -1,7 +1,5 @@
 use std::fs;
 use std::path::PathBuf;
-// use std::cmp::Ordering;
-// use std::collections::HashSet;
 
 use structopt::StructOpt;
 
@@ -16,10 +14,10 @@ use crate::
 #[derive(StructOpt, Debug)]
 pub struct Options
 {
-    // json project
+    /// json project
     input: PathBuf,
 
-    // output directory
+    /// output directory
     output: PathBuf
 }
 
