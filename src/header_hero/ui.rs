@@ -77,7 +77,7 @@ fn generate_report(root: &Path, project: &data::Project, scanner: &parser::Scann
     parser::write_css_file(root);
     parser::generate_index_page(root, project, &analytics);
 
-    for (f, _) in &project.scanned_files
+    for f in project.scanned_files.keys()
     {
         write_inspection_page(root, f, project, &analytics);
     }
@@ -105,7 +105,7 @@ fn write_inspect_header_table<LengthFun>
     
     for s in included
     {
-        let display_filename = html::inspect_filename_link(&s).unwrap();
+        let display_filename = html::inspect_filename_link(s).unwrap();
         let display_count    = rust::num_format(length_fun(&analytics.file_to_data[s]));
         let display_lines    = rust::num_format(analytics.file_to_data[s].total_included_lines);
         

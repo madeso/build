@@ -317,10 +317,13 @@ fn can_fix_and_print_errors
     {
         for line_num in first_line_found .. last_line_found
         {
+            #![allow(clippy::match_like_matches_macro)]
             let print_this_error = match (ok, first_error_only)
             {
                 // this is not the first error AND we only want to print the first error
                 (false, true) => false,
+
+                // otherwise, print the error
                 _ => true
             };
 
@@ -435,9 +438,9 @@ fn run_file
     command: &Command,
 ) -> bool
 {
-    let command_is_list_unfixable = match command { Command::ListUnfixable{print_first_error_only:_} => true, _ => false };
-    let command_is_check          = match command { Command::Check                                   => true, _ => false };
-    let command_is_fix            = match command { Command::Fix{nop:_}                              => true, _ => false };
+    let command_is_list_unfixable = matches!(command, Command::ListUnfixable{print_first_error_only:_});
+    let command_is_check          = matches!(command, Command::Check                                  );
+    let command_is_fix            = matches!(command, Command::Fix{nop:_}                             );
 
     let print_include_order_error_for_include = command_is_check || command_is_fix;
 
@@ -497,13 +500,10 @@ fn run_file
         _ => false // don't care, shouldn't be possible
     };
 
-    if can_fix_and_print_errors(&lines, &classified, print, filename, print_first_error_only) == false
+    if can_fix_and_print_errors(&lines, &classified, print, filename, print_first_error_only) == false && command_is_fix
     {
-        if command_is_fix
-        {
-            // can't fix this file... error out
-            return false;
-        }
+        // can't fix this file... error out
+        return false;
     }
 
     if command_is_list_unfixable
@@ -563,7 +563,7 @@ fn common_main
             data,
             args.verbose,
             filename,
-            &command
+            command
         );
 
         if ok == false

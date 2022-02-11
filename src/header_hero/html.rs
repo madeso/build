@@ -92,7 +92,7 @@ pub fn safe_inspect_filename(path: &Path) -> Option<String>
 {
     if let Some(file) = path.to_str()
     {
-        let safe = safe_string(&file);
+        let safe = safe_string(file);
         Some(format!("inspect_{}.html", safe))
     }
     else

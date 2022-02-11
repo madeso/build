@@ -161,7 +161,7 @@ pub fn parse_file(fi: &Path, errors: &mut Vec<String>) -> Result
         res.number_of_lines = lines.len();
         for line in lines
         {
-            if line.contains("#") && line.contains("include")
+            if line.contains('#') && line.contains("include")
             {
                 match res.parse_line(&line)
                 {
@@ -219,9 +219,9 @@ pub struct Analytics
 pub fn analyze(project: &data::Project) -> Analytics
 {
     let mut analytics = Analytics::new();
-    for (file, _) in &project.scanned_files
+    for file in project.scanned_files.keys()
     {
-        analytics.analyze(&file, project);
+        analytics.analyze(file, project);
     }
     analytics
 }
@@ -256,7 +256,7 @@ impl Analytics
     {
         if let Some(ret) = self.file_to_data.get_mut(path)
         {
-            assert_eq!(ret.is_analyzed, true);
+            assert!(ret.is_analyzed);
             return;
         }
 
@@ -270,7 +270,7 @@ impl Analytics
             
             let is_tu = data::is_translation_unit(path);
             
-            self.analyze(&include, project);
+            self.analyze(include, project);
 
             let all_includes = 
                 if let Some(ai) = self.file_to_data.get_mut(&include.to_path_buf())
@@ -319,7 +319,7 @@ impl Analytics
 
 fn order_by_descending(v: &mut Vec::<(&PathBuf, usize)>)
 {
-    v.sort_by_key(|kvp| { return kvp.1});
+    v.sort_by_key(|kvp| { kvp.1});
     v.reverse();
 }
 
@@ -386,10 +386,10 @@ pub fn generate_index_page(root: &Path, project: &data::Project, analytics: &Ana
         let factor = total_parsed as f64 / total_lines as f64;
         let table =
         [
-            ("Files", format!("{0}", rust::num_format(project.scanned_files.len()))),
-            ("Total lines", format!("{0}", rust::num_format(total_lines))),
+            ("Files", rust::num_format(project.scanned_files.len())),
+            ("Total lines", rust::num_format(total_lines)),
             ("Total precompiled", format!("{0} (<a href=\"#pch\">list</a>)", rust::num_format(pch_lines))),
-            ("Total parsed", format!("{0}", rust::num_format(total_parsed))),
+            ("Total parsed", rust::num_format(total_parsed)),
             ("Blowup factor", format!("{0:0.00} (<a href=\"#largest\">largest</a>, <a href=\"#hubs\">hubs</a>)", factor) ),
         ];
         add_project_table_summary(&mut sb, &table);
@@ -427,7 +427,7 @@ pub fn generate_index_page(root: &Path, project: &data::Project, analytics: &Ana
 
     core::write_string_to_file_or(&path_to_index_file(root), &sb).unwrap();
 }
-		const CSS_SOURCE: &'static str = r###"
+		const CSS_SOURCE: &str = r###"
 
 
 /* Reset */
@@ -674,7 +674,7 @@ impl Scanner
     pub fn rescan(&mut self, project: &mut data::Project, feedback: &mut ProgressFeedback)
     {
         feedback.update_title("Scanning precompiled header...");
-        for (_, sf) in &mut project.scanned_files
+        for sf in &mut project.scanned_files.values_mut()
         {
             sf.is_touched = false;
             sf.is_precompiled = false;
@@ -687,7 +687,7 @@ impl Scanner
             if inc.exists()
             {
                 self.scan_file(project, &inc);
-                while self.scan_queue.len() > 0
+                while !self.scan_queue.is_empty()
                 {
                     let to_scan = self.scan_queue.clone();
                     self.scan_queue.clear();
@@ -705,14 +705,14 @@ impl Scanner
         for dir in &project.scan_directories
         {
             feedback.update_message(&format!("{}", dir.display()));
-            self.scan_directory(&dir, feedback);
+            self.scan_directory(dir, feedback);
         }
 
         feedback.update_title("Scanning files...");
 
         let mut dequeued = 0;
         
-        while self.scan_queue.len() > 0
+        while !self.scan_queue.is_empty()
         {
             dequeued += self.scan_queue.len();
             let to_scan = self.scan_queue.clone();
@@ -733,7 +733,7 @@ impl Scanner
     
     fn scan_directory(&mut self, dir: &Path, feedback: &ProgressFeedback)
     {
-        if let Err(_) = self.please_scan_directory(dir, feedback)
+        if self.please_scan_directory(dir, feedback).is_err()
         {
             self.errors.push(format!("Cannot descend into {}", dir.display()));
         }
@@ -809,7 +809,7 @@ impl Scanner
         let local_dir = path.parent().unwrap();
         for s in &sf.local_includes
         {
-            let inc = core::join(local_dir, &s);
+            let inc = core::join(local_dir, s);
             let abs = canonicalize_or_default(&inc);
             // found a header that's part of PCH during regular scan: ignore it
             if !self.is_scanning_pch && project.scanned_files.contains_key(&abs) && project.scanned_files[&abs].is_precompiled
@@ -819,7 +819,7 @@ impl Scanner
             }
             if !inc.exists()
             {
-                if !sf.system_includes.contains(&s)
+                if !sf.system_includes.contains(s)
                 {
                     sf.system_includes.push(s.to_string());
                 }
@@ -849,7 +849,7 @@ impl Scanner
 
                 for dir in &project.include_directories
                 {
-                    let f = core::join(&dir, &s);
+                    let f = core::join(dir, s);
                     if f.exists()
                     {
                         found = Some(f);
@@ -872,23 +872,16 @@ impl Scanner
                     self.system_includes.insert(s.to_string(), abs.to_path_buf());
                     self.add_to_queue(&found_path, &abs);
                 }
-                else
+                else if self.not_found_origins.contains_key(s) == false
                 {
-                    if self.not_found_origins.contains_key(s) == false
-                    {
-                        let file_list = Vec::from([path.to_path_buf()]);
-                        self.not_found_origins.insert(s.to_string(), file_list);
-                    }
-                    else
-                    {
-                        if let Some(file_list) = self.not_found_origins.get_mut(s) {
-                            file_list.push(path.to_path_buf());
-                        }
-                    }
+                    let file_list = Vec::from([path.to_path_buf()]);
+                    self.not_found_origins.insert(s.to_string(), file_list);
+                }
+                else if let Some(file_list) = self.not_found_origins.get_mut(s)
+                {
+                    file_list.push(path.to_path_buf());
                 }
             }
-            // self.errors.push(format!("Exception: \"{0}\" for #include <{1}>", e.Message, s));
-            
         }
 
         // Only treat each include as done once. Since we completely ignore preprocessor, for patterns like

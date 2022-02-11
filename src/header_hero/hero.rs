@@ -35,7 +35,7 @@ pub fn main(print: &mut printer::Printer, args: &Options)
                 Err(_) => {}
             };
 
-            if let Err(_) = fs::create_dir_all(&args.output)
+            if fs::create_dir_all(&args.output).is_err()
             {
                 print.error(&format!("Failed to generate directories: {}", &args.output.display()));
             }

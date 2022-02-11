@@ -24,7 +24,7 @@ impl UserInput
 {
     pub fn load_from_file(file: &Path) -> Result<UserInput, String>
     {
-        let content = core::read_file_to_string(&file).ok_or(format!("Unable to read file: {}", file.to_string_lossy()))?;
+        let content = core::read_file_to_string(file).ok_or(format!("Unable to read file: {}", file.to_string_lossy()))?;
         let data : Result<UserInput, serde_json::error::Error> = serde_json::from_str(&content);
         match data
         {
@@ -119,12 +119,11 @@ impl SourceFile
 
 pub fn is_translation_unit_extension(ext: &str) -> bool
 {
-    match ext
-    {
+    matches!
+    (
+        ext,
         "cpp" | "c" | "cc" | "cxx" | "mm" | "m"
-        => true,
-        _ => false
-    }
+    )
 }
 
 pub fn is_translation_unit(path: &Path) -> bool
