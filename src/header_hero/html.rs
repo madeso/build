@@ -1,4 +1,9 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+use crate::
+{
+    core
+};
 
 
 pub fn begin(str: &mut String, title: &str)
@@ -116,3 +121,202 @@ pub fn inspect_filename_link(path: &Path) -> Option<String>
 
     Some(format!("<a href=\"{0}\">{1}</a>", file, name))
 }
+
+
+fn path_to_css_file(root: &Path) -> PathBuf { core::join(root, "header_hero_report.css") }
+
+
+pub fn write_css_file(root: &Path)
+{
+    core::write_string_to_file_or(&path_to_css_file(root), CSS_SOURCE).unwrap();
+}
+
+const CSS_SOURCE: &str = r###"
+
+
+/* Reset */
+
+* {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    font-weight: inherit;
+    font-style: inherit;
+    font-size: 100%;
+    font-family: inherit;
+    vertical-align: baseline;
+}
+
+body {
+    line-height: 1;
+    color: black;
+    background: white;
+}
+
+ol, ul {
+    list-style: none;
+}
+
+table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+caption, th, td {
+    text-align: left;
+    font-weight: normal;
+}
+
+a {
+    text-decoration: none;
+    color: #44f;
+}
+
+a:hover
+{
+    color: #00f;
+}
+
+body {
+    background: #ddd;
+    font-size: 12px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: normal;
+    overflow-y: scroll;
+    margin: 0px;
+}
+
+h1 {
+    font-size: 16px;
+    margin: 10px 0px 10px 0px;
+}
+
+h2 {
+    font-size: 16px;
+    margin: 10px 0px 10px 0px;
+}
+
+table.summary {
+    margin-left: 10px;
+}
+
+td, th
+{
+    padding-left: 12px;
+}
+
+td:nth-child(1), th:nth-child(1)
+{
+    padding-left: 0px;
+}
+
+td:nth-child(3), th:nth-child(3)
+{
+    padding-left: 22px;
+}
+
+
+td:hover, tr:hover
+{
+    background-color: #eee;
+}
+
+
+table td
+{
+    text-align: right;
+}
+
+table th
+{
+    text-align: right;
+    font-weight: bold;
+}
+
+table.summary th, td.file, th.file
+{
+    text-align: left;
+}
+
+td.num, span.num
+{
+    font-family: 'Courier New', Courier, monospace;
+}
+
+div#root {
+    margin: 0px;
+    padding: 0px;
+}
+
+nav#main {
+    margin: 0px;
+    padding: 10px;
+}
+
+nav#main {
+    background-color: #aaa;
+}
+
+nav#main a {
+    font-size: 16px;
+}
+
+nav li {
+    display: inline;
+    padding: 5px;
+}
+
+div#page,
+nav#main ol {
+    max-width: 805px;
+    margin: auto;
+    position: relative;
+    display: block;
+}
+
+div#page {
+    background-color: #fff;
+    padding-top: 30px;
+    padding-bottom: 90px;
+}
+
+div#content {
+    margin: 12px;
+}
+
+
+
+#body
+{
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+
+#included_by, #file, #includes
+{
+    grid-column: auto / auto;
+    grid-row: auto/auto;
+}
+
+#summary, .missing
+{
+    grid-column: 1 / span 3;
+    grid-row: auto/auto;
+}
+
+.missing ul
+{
+    padding-top: 3px;
+    padding-bottom: 10px;
+}
+
+.missing li
+{
+    display: inline-block;
+    padding: 2px 3px;
+}
+
+
+"###;

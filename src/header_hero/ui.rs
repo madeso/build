@@ -74,7 +74,7 @@ fn generate_report(root: &Path, project: &data::Project, scanner: &parser::Scann
     }
 
     let analytics = parser::analyze(project);
-    parser::write_css_file(root);
+    html::write_css_file(root);
     parser::generate_index_page(root, project, &analytics);
 
     for f in project.scanned_files.keys()
