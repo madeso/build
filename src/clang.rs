@@ -1089,16 +1089,64 @@ fn add_to_hashpmap_vec
     }
 }
 
-/*
+
 trait ClangTidyRunner
 {
-    fn using_clang_tidy(print: &mut printer::Printer, tidy_path: &Path);
-    fn begin_project(print: &mut printer::Printer, project_name: &str);
-    fn failed_to_run(print: &mut printer::Printer, source_file: &Path);
-    fn print_result(print: &mut printer::Printer);
-    fn print_nop(print: &mut printer::Printer);
-    fn foo(print: &mut printer::Printer);
-}*/
+    fn using_clang_tidy
+    (
+        &self, print: &mut printer::Printer,
+        tidy_path: &Path
+    );
+
+    fn begin_project
+    (
+        &self, print: &mut printer::Printer,
+        project_name: &str
+    );
+
+    fn failed_to_run
+    (
+        &self, print: &mut printer::Printer,
+        source_file: &Path
+    );
+
+    fn print_result
+    (
+        &self, print: &mut printer::Printer,
+        source_file: &Path,
+        run: &ClangTidyRun,
+        stats: &ClangTidyStats
+    );
+
+    fn should_abort_run
+    (
+        &self, print: &mut printer::Printer,
+        stats: &ClangTidyStats
+    ) -> bool;
+
+    fn print_nop
+    (
+        &self, print: &mut printer::Printer,
+        source_file: &Path
+    );
+
+    fn project_end
+    (
+        &self, print: &mut printer::Printer,
+        project_counter: &counter::Counter<String, usize>,
+        project: &str,
+        first_file: bool
+    );
+
+    fn add_result
+    (
+        &self, print: &mut printer::Printer,
+        total_counter: &counter::Counter<String, usize>,
+        total_classes: &counter::Counter<String, usize>,
+        warnings_per_file: &HashMap::<String, Vec<&Path>>,
+        stats: &TimingStats
+    );
+}
 
 
 struct CommandlineTidyRunner
@@ -1126,7 +1174,7 @@ impl CommandlineTidyRunner
     }
 }
 
-impl CommandlineTidyRunner
+impl ClangTidyRunner for CommandlineTidyRunner
 {
     fn using_clang_tidy
     (
@@ -1250,7 +1298,7 @@ impl CommandlineTidyRunner
 fn handle_tidy_or
 (
     printer: &mut printer::Printer,
-    runner: &CommandlineTidyRunner,
+    runner: &dyn ClangTidyRunner,
     root: &Path,
     args_tidy: &Option<PathBuf>,
     args_force: bool,
