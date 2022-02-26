@@ -725,7 +725,10 @@ impl ClangTidyWarningCollector
 
 fn extract_warnings_from_clang_tidy_output(output: &str) -> Vec<ClangTidyWarning>
 {
-    let CLANG_TIDY_WARNING_CLASS = Regex::new("\\[(\\w+([-,]\\w+)+)\\]").unwrap();
+    lazy_static!
+    {
+        static ref CLANG_TIDY_WARNING_CLASS: Regex = Regex::new("\\[(\\w+([-,]\\w+)+)\\]").unwrap();
+    }
 
     let mut collector = ClangTidyWarningCollector::new();
     let mut print_empty = false;
@@ -1425,9 +1428,11 @@ impl HtmlTidyRunner
 fn html_markup_tidy(line: &str) -> String
 {
     // markups ^~
-    // todo(Gustav): use lazy eval...
-    let err_mark = Regex::new("(?P<e>(\\^~*)|(~+))").unwrap();
-    err_mark.replace_all(line, "<span class=\"tidy-markup-error\">$e</span>").to_string()
+    lazy_static!
+    {
+        static ref ERROR_MARKUP: Regex = Regex::new("(?P<e>(\\^~*)|(~+))").unwrap();
+    }
+    ERROR_MARKUP.replace_all(line, "<span class=\"tidy-markup-error\">$e</span>").to_string()
 }
 
 impl ClangTidyRunner for HtmlTidyRunner

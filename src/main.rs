@@ -14,6 +14,8 @@
     clippy::single_match
 )]
 
+#[macro_use] extern crate lazy_static;
+
 mod printer;
 mod registry;
 mod cmake;

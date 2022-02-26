@@ -1272,6 +1272,7 @@ dependencies = [
  "chrono",
  "counter",
  "futures",
+ "lazy_static",
  "regex",
  "reqwest",
  "serde",
