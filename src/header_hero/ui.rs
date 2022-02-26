@@ -3,9 +3,9 @@ use crate::
 {
     core,
     rust,
+    html,
     header_hero::data,
-    header_hero::parser,
-    header_hero::html
+    header_hero::parser
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -9,8 +9,8 @@ use crate::
 {
     rust,
     core,
-    header_hero::data,
-    header_hero::html
+    html,
+    header_hero::data
 };
 
 
@@ -355,7 +355,6 @@ fn add_file_table(sb: &mut String, id: &str, header: &str, count_list: &[(&PathB
 
 
 fn path_to_index_file(root: &Path) -> PathBuf { core::join(root, "index.html") }
-fn path_to_css_file(root: &Path) -> PathBuf { core::join(root, "header_hero_report.css") }
 
 
 pub fn generate_index_page(root: &Path, project: &data::Project, analytics: &Analytics)

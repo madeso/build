@@ -29,6 +29,7 @@ mod compilecommands;
 mod header_hero;
 mod rust;
 mod clang;
+mod html;
 
 
 use structopt::StructOpt;
