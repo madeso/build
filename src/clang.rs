@@ -15,7 +15,8 @@ use crate::
 {
     core,
     printer,
-    compilecommands
+    compilecommands,
+    html
 };
 
 #[derive(Error, Debug)]
@@ -275,18 +276,43 @@ if __name__ == "__main__":
 */
 
 #[derive(StructOpt, Debug)]
-pub struct TidyArguments
+pub struct TidySharedArguments
 {
+    /// the clang-tidy to use
+    #[structopt(long)]
+    tidy: Option<PathBuf>,
+
+    /// Force clang-tidy to run, even if there is a result
+    #[structopt(long)]
+    force : bool,
+
+    /// don't tidy headers
+    #[structopt(long)]
+    no_headers: bool,
+
     /// don't do anything
     #[structopt(long)]
     nop : bool,
 
+    #[structopt(long)]
+    filter: Option<Vec<String>>
+}
+
+
+impl TidySharedArguments
+{
+    fn headers(&self) -> bool
+    {
+        self.no_headers == false
+    }
+}
+
+#[derive(StructOpt, Debug)]
+pub struct TidyConsoleArguments
+{
     /// try to fix the source
     #[structopt(long)]
     fix : bool,
-    
-    #[structopt(long)]
-    filter: Option<Vec<String>>,
     
     /// use shorter and stop after one file
     #[structopt(long)]
@@ -294,30 +320,24 @@ pub struct TidyArguments
 
     /// also list files in the summary
     #[structopt(long)]
-    list : bool,
-    
-    /// don't tidy headers
-    #[structopt(long)]
-    no_headers: bool,
+    list : bool,    
 
     #[structopt(long)]
     only: Option<Vec<String>>,
 
-    /// Force clang-tidy to run, even if there is a result
-    #[structopt(long)]
-    force : bool,
-
-    /// the clang-tidy to use
-    #[structopt(long)]
-    tidy: Option<PathBuf>
+    #[structopt(flatten)]
+    shared: TidySharedArguments
 }
 
-impl TidyArguments
+
+#[derive(StructOpt, Debug)]
+pub struct TidyHtmlArguments
 {
-    fn headers(&self) -> bool
-    {
-        self.no_headers == false
-    }
+    /// where to dump the html
+    output_folder: PathBuf,
+
+    #[structopt(flatten)]
+    shared: TidySharedArguments
 }
 
 #[derive(StructOpt, Debug)]
@@ -334,7 +354,14 @@ pub enum Options
     Tidy
     {
         #[structopt(flatten)]
-        arg: TidyArguments
+        arg: TidyConsoleArguments
+    },
+
+    /// call clang-tidy but output html
+    TidyReport
+    {
+        #[structopt(flatten)]
+        arg: TidyHtmlArguments
     },
 
     TidyCache
@@ -679,7 +706,7 @@ impl ClangTidyWarningCollector
         }
         else
         {
-            println!("ERROR: Attempted to add class to missing error");
+            println!("ERROR: Attempted to add class '{}' to missing error", class);
         }
     }
 
@@ -1022,14 +1049,14 @@ fn get_source_files() -> Vec<String>
 
 
 /// callback function called when running clang.py tidy
-fn handle_tidy(print: &mut printer::Printer, args: &TidyArguments)
+fn handle_tidy_console(print: &mut printer::Printer, args: &TidyConsoleArguments)
 {
     let default_only = vec!();
     let args_only = args.only.as_ref().unwrap_or(&default_only);
 
     let root = std::env::current_dir().unwrap().to_path_buf();
 
-    let runner = CommandlineTidyRunner::new
+    let mut runner = CommandlineTidyRunner::new
     (
         args.short,
         &root,
@@ -1039,16 +1066,52 @@ fn handle_tidy(print: &mut printer::Printer, args: &TidyArguments)
     if let Err(err) = handle_tidy_or
     (
         print,
-        &runner,
+        &mut runner,
         &root,
-        &args.tidy,
-        args.force,
-        args.headers(),
-        args.nop,
-        &args.filter
+        &args.shared.tidy,
+        args.shared.force,
+        args.shared.headers(),
+        args.shared.nop,
+        &args.shared.filter
     )
     {
         println!("Error: {}", err);
+    }
+}
+
+fn handle_tidy_report(print: &mut printer::Printer, args: &TidyHtmlArguments)
+{
+    let root = std::env::current_dir().unwrap().to_path_buf();
+
+    let mut runner = HtmlTidyRunner::new(&root);
+
+    runner.begin();
+
+    if let Err(err) = handle_tidy_or
+    (
+        print,
+        &mut runner,
+        &root,
+        &args.shared.tidy,
+        args.shared.force,
+        args.shared.headers(),
+        args.shared.nop,
+        &args.shared.filter
+    )
+    {
+        println!("Error: {}", err);
+    }
+    else
+    {
+        if fs::create_dir_all(&args.output_folder).is_err()
+        {
+            print.error(&format!("Failed to generate directories: {}", &args.output_folder.display()));
+        }
+        else
+        {
+            runner.end();
+            runner.write(&args.output_folder);
+        }
     }
 }
 
@@ -1094,25 +1157,25 @@ trait ClangTidyRunner
 {
     fn using_clang_tidy
     (
-        &self, print: &mut printer::Printer,
+        &mut self, print: &mut printer::Printer,
         tidy_path: &Path
     );
 
     fn begin_project
     (
-        &self, print: &mut printer::Printer,
+        &mut self, print: &mut printer::Printer,
         project_name: &str
     );
 
     fn failed_to_run
     (
-        &self, print: &mut printer::Printer,
+        &mut self, print: &mut printer::Printer,
         source_file: &Path
     );
 
     fn print_result
     (
-        &self, print: &mut printer::Printer,
+        &mut self, print: &mut printer::Printer,
         source_file: &Path,
         run: &ClangTidyRun,
         stats: &ClangTidyStats
@@ -1120,19 +1183,19 @@ trait ClangTidyRunner
 
     fn should_abort_run
     (
-        &self, print: &mut printer::Printer,
+        &mut self, print: &mut printer::Printer,
         stats: &ClangTidyStats
     ) -> bool;
 
     fn print_nop
     (
-        &self, print: &mut printer::Printer,
+        &mut self, print: &mut printer::Printer,
         source_file: &Path
     );
 
     fn project_end
     (
-        &self, print: &mut printer::Printer,
+        &mut self, print: &mut printer::Printer,
         project_counter: &counter::Counter<String, usize>,
         project: &str,
         first_file: bool
@@ -1140,7 +1203,7 @@ trait ClangTidyRunner
 
     fn add_result
     (
-        &self, print: &mut printer::Printer,
+        &mut self, print: &mut printer::Printer,
         total_counter: &counter::Counter<String, usize>,
         total_classes: &counter::Counter<String, usize>,
         warnings_per_file: &HashMap::<String, Vec<&Path>>,
@@ -1148,6 +1211,8 @@ trait ClangTidyRunner
     );
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Commandline runner
 
 struct CommandlineTidyRunner
 {
@@ -1178,7 +1243,7 @@ impl ClangTidyRunner for CommandlineTidyRunner
 {
     fn using_clang_tidy
     (
-        &self, print: &mut printer::Printer,
+        &mut self, print: &mut printer::Printer,
         tidy_path: &Path
     )
     {
@@ -1187,7 +1252,7 @@ impl ClangTidyRunner for CommandlineTidyRunner
 
     fn begin_project
     (
-        &self, print: &mut printer::Printer,
+        &mut self, print: &mut printer::Printer,
         project_name: &str
     )
     {
@@ -1197,14 +1262,14 @@ impl ClangTidyRunner for CommandlineTidyRunner
         }
     }
 
-    fn failed_to_run(&self, print: &mut printer::Printer, source_file: &Path)
+    fn failed_to_run(&mut self, print: &mut printer::Printer, source_file: &Path)
     {
         print.error(&format!("Failed to run {}", source_file.display()))
     }
 
     fn print_result
     (
-        &self, print: &mut printer::Printer,
+        &mut self, print: &mut printer::Printer,
         source_file: &Path,
         run: &ClangTidyRun,
         stats: &ClangTidyStats
@@ -1218,7 +1283,7 @@ impl ClangTidyRunner for CommandlineTidyRunner
 
     fn should_abort_run
     (
-        &self, print: &mut printer::Printer,
+        &mut self, print: &mut printer::Printer,
         stats: &ClangTidyStats
     ) -> bool
     {
@@ -1227,7 +1292,7 @@ impl ClangTidyRunner for CommandlineTidyRunner
 
     fn print_nop
     (
-        &self, print: &mut printer::Printer,
+        &mut self, print: &mut printer::Printer,
         source_file: &Path
     )
     {
@@ -1238,7 +1303,7 @@ impl ClangTidyRunner for CommandlineTidyRunner
 
     fn project_end
     (
-        &self, print: &mut printer::Printer,
+        &mut self, print: &mut printer::Printer,
         project_counter: &counter::Counter<String, usize>,
         project: &str,
         first_file: bool
@@ -1257,7 +1322,7 @@ impl ClangTidyRunner for CommandlineTidyRunner
 
     fn add_result
     (
-        &self, print: &mut printer::Printer,
+        &mut self, print: &mut printer::Printer,
         total_counter: &counter::Counter<String, usize>,
         total_classes: &counter::Counter<String, usize>,
         warnings_per_file: &HashMap::<String, Vec<&Path>>,
@@ -1294,11 +1359,207 @@ impl ClangTidyRunner for CommandlineTidyRunner
         }
     }
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Commandline runner
+
+struct HtmlTidyRunner
+{
+    root: PathBuf,
+    sb: String
+}
+
+impl HtmlTidyRunner
+{
+    fn new
+    (
+        root: &Path
+    ) -> HtmlTidyRunner
+    {
+        HtmlTidyRunner
+        {
+            root: root.to_path_buf(),
+            sb: String::new()
+        }
+    }
+
+    fn begin(&mut self)
+    {
+        html::begin_nojoin(&mut self.sb, "clang-tidy report");
+    }
+
+    fn end(&mut self)
+    {
+        html::end(&mut self.sb)
+    }
+
+    fn write(&self, root: &Path)
+    {
+        html::write_css_file(root);
+        core::write_string_to_file_or(&core::join(root, "index.html"), &self.sb).unwrap();
+    }
+
+    fn print_warning_counter(&mut self, project_counter: &counter::Counter<String, usize>, project: &str)
+    {
+        if project_counter.len() <= 1
+        {
+            return;
+        }
+
+        self.sb.push_str(&format!("<h2>Sum for {}</h2>.\n", project));
+
+        self.sb.push_str("<div class=\"tidy-sum\">\n");
+        self.sb.push_str(&format!("<span class=\"num\">{}</span> warnings in <span class=\"num\">{}</span>.\n", total(project_counter), project));
+        self.sb.push_str("<table>\n");
+        self.sb.push_str("<tr><th class=\"file\">File</th><th>Count</th></tr>\n");
+        for (file, count) in project_counter.most_common().iter().take(10)
+        {
+            self.sb.push_str("<tr>\n");
+            self.sb.push_str(&format!("<td class=\"file\">{}</td><td class=\"num\">{}</td>\n", file, count));
+            self.sb.push_str("</tr>\n");
+        }
+        self.sb.push_str("</table>\n");
+        self.sb.push_str("</div>\n");
+    }
+}
+
+fn html_markup_tidy(line: &str) -> String
+{
+    // markups ^~
+    // todo(Gustav): use lazy eval...
+    let err_mark = Regex::new("(?P<e>(\\^~*)|(~+))").unwrap();
+    err_mark.replace_all(line, "<span class=\"tidy-markup-error\">$e</span>").to_string()
+}
+
+impl ClangTidyRunner for HtmlTidyRunner
+{
+    fn using_clang_tidy
+    (
+        &mut self, print: &mut printer::Printer,
+        tidy_path: &Path
+    )
+    {
+        // print.info(&format!("using clang-tidy: {}", tidy_path.display()));
+    }
+
+    fn begin_project
+    (
+        &mut self, print: &mut printer::Printer,
+        project_name: &str
+    )
+    {
+        self.sb.push_str(&format!("<h2>{}</h2>\n", project_name));
+    }
+
+    fn failed_to_run(&mut self, print: &mut printer::Printer, source_file: &Path)
+    {
+        self.sb.push_str(&format!("<div class=\"tidy-failed-to-run\">Failed to run <span class=\"num\">{}</span></div>\n", source_file.display()));
+    }
+
+    fn print_result
+    (
+        &mut self, print: &mut printer::Printer,
+        source_file: &Path,
+        run: &ClangTidyRun,
+        stats: &ClangTidyStats
+    )
+    {
+        if run.warnings.len() == 0
+        {
+            return;
+        }
+
+        let printable_file = source_file.strip_prefix(&self.root).unwrap();
+        
+        // print_clang_tidy_run(&run, &stats, print, self.args_short, &mut print_name, &source_file, &self.args_only);
+
+        self.sb.push_str(&format!("<h3>{}</h3>\n", printable_file.display()));
+
+        
+        self.sb.push_str("<div class=\"tidy-warnings\">\n");
+        for warning in &run.warnings
+        {
+            self.sb.push_str("<div class=\"code\">");
+            for line in &warning.lines
+            {
+                self.sb.push_str(&format!("{}\n", html_markup_tidy(line)));
+            }
+            self.sb.push_str("</div>\n");
+        }
+        self.sb.push_str("</div>\n");
+    }
+
+    fn should_abort_run
+    (
+        &mut self, print: &mut printer::Printer,
+        stats: &ClangTidyStats
+    ) -> bool
+    {
+        false
+    }
+
+    fn print_nop
+    (
+        &mut self, print: &mut printer::Printer,
+        source_file: &Path
+    )
+    {
+    }
+
+    fn project_end
+    (
+        &mut self, print: &mut printer::Printer,
+        project_counter: &counter::Counter<String, usize>,
+        project: &str,
+        first_file: bool
+    )
+    {
+        self.print_warning_counter(&project_counter, project);
+    }
+
+    fn add_result
+    (
+        &mut self, print: &mut printer::Printer,
+        total_counter: &counter::Counter<String, usize>,
+        total_classes: &counter::Counter<String, usize>,
+        warnings_per_file: &HashMap::<String, Vec<&Path>>,
+        stats: &TimingStats
+    )
+    {
+        self.sb.push_str("<h2>Tidy Report</h2>\n");
+        self.print_warning_counter(&total_counter, "total");
+        self.print_warning_counter(&total_classes, "classes");
+        
+        
+        self.sb.push_str("<h2>Warnings</h2>\n");
+        for (k,v) in warnings_per_file.iter()
+        {
+            self.sb.push_str(&format!("<h3>{}</h3>\n", k));
+            self.sb.push_str("<ul>");
+            for f in v
+            {
+                self.sb.push_str(&format!("<li>{}</li>\n", f.display()));
+            }
+            self.sb.push_str("</ul>\n")
+        }
+        
+        // should we print timing stats or not in html report?
+        stats.print_data(print);
+
+        if total_counter.len() > 0
+        {
+            self.sb.push_str(&format!("<p>Found <b>{}</b> errors.</p>\n", total_counter.len()));
+        }
+    }
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Caller
 
 fn handle_tidy_or
 (
     printer: &mut printer::Printer,
-    runner: &dyn ClangTidyRunner,
+    runner: &mut dyn ClangTidyRunner,
     root: &Path,
     args_tidy: &Option<PathBuf>,
     args_force: bool,
@@ -1369,7 +1630,7 @@ fn handle_tidy_or
                     runner.failed_to_run(printer, source_file);
                     continue;
                 };
-                let stats = update_clang_tidy_stats(&source_file, &run, &mut timing_stats);
+                let stats = update_clang_tidy_stats(&printable_file, &run, &mut timing_stats);
                 runner.print_result(printer, &source_file, &run, &stats);
                 
                 if runner.should_abort_run(printer, &stats)
@@ -1441,7 +1702,12 @@ pub fn main(print: &mut printer::Printer, args: &Options)
     {
         Options::Tidy{arg} =>
         {
-            handle_tidy(print, arg);
+            handle_tidy_console(print, arg);
+        },
+
+        Options::TidyReport{arg} =>
+        {
+            handle_tidy_report(print, arg);
         }
 
         Options::TidyCache{arg} =>

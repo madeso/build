@@ -8,9 +8,20 @@ use crate::
 
 pub fn begin(str: &mut String, title: &str)
 {
+    begin_x(str, title, true);
+}
+
+pub fn begin_nojoin(str: &mut String, title: &str)
+{
+    begin_x(str, title, false);
+}
+
+fn begin_x(str: &mut String, title: &str, use_join: bool)
+{
     str.push_str
     (
         r###"
+<!DOCTYPE html>
 <html>
 <head>
     <link rel="stylesheet" type="text/css" media="screen" href="header_hero_report.css"/>
@@ -40,7 +51,15 @@ pub fn begin(str: &mut String, title: &str)
     );
     str.push_str(title);
     str.push_str("</h1>\n");
-    str.push_str("<div id=\"body\">\n");
+
+    if use_join
+    {
+        str.push_str("<div id=\"body\">\n");
+    }
+    else
+    {
+        str.push_str("<div id=\"body_single\">\n");
+    }
 }
 
 pub fn end(str: &mut String)
@@ -134,6 +153,7 @@ pub fn write_css_file(root: &Path)
 const CSS_SOURCE: &str = r###"
 
 
+
 /* Reset */
 
 * {
@@ -197,6 +217,12 @@ h2 {
     margin: 10px 0px 10px 0px;
 }
 
+h3 {
+    font-size: 14px;
+    margin: 10px 0px 10px 0px;
+    color: red;
+}
+
 table.summary {
     margin-left: 10px;
 }
@@ -239,9 +265,9 @@ table.summary th, td.file, th.file
     text-align: left;
 }
 
-td.num, span.num
+td.num, span.num, div.code
 {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
 }
 
 div#root {
@@ -318,5 +344,15 @@ div#content {
     padding: 2px 3px;
 }
 
+
+div.tidy-warnings div.code
+{
+    padding-bottom: 25px;
+}
+
+div.code
+{
+    white-space: pre-wrap;
+}
 
 "###;
