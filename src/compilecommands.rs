@@ -115,8 +115,8 @@ fn load_compile_commands_or(path: &Path) -> Result<HashMap<PathBuf, CompileComma
 }
 
 
-// find the build folder containing the compile_commands file or None
-fn find_build_root(root: &Path) -> Option<PathBuf>
+/// find the build folder containing the compile_commands file or None
+pub fn find_build_root(root: &Path) -> Option<PathBuf>
 {
     for relative_build in ["build", "build/debug-clang"]
     {

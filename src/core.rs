@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 use std::fs::{self, File};
 use std::io::prelude::*;
 use std::io::{self, BufRead};
+use std::collections::VecDeque;
 
 extern crate reqwest;
 
@@ -21,6 +22,50 @@ where P: AsRef<Path>, {
     Ok(io::BufReader::new(file).lines())
 }
 
+
+
+pub fn walk_files(dir: &Path) -> io::Result<Vec<PathBuf>>
+{
+    let mut r = Vec::new();
+
+    let mut dirs = VecDeque::new();
+    dirs.push_back(dir.to_path_buf());
+
+    while let Some(dir) = dirs.pop_front()
+    {
+        for entry in fs::read_dir(dir)?
+        {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_dir()
+            {
+                dirs.push_back(path.to_path_buf());
+            }
+            else
+            {
+                if path.is_file()
+                {
+                    r.push(path.to_path_buf());
+                }
+            }
+        }
+    }
+    Ok(r)
+}
+
+
+
+pub fn file_get_extension(file: &Path) -> String
+{
+    if let Some(ext) = file.extension()
+    {
+        ext.to_str().unwrap().to_string()
+    }
+    else
+    {
+        "".to_string()
+    }
+}
 
 
 pub fn read_file_to_lines(path: &Path) -> io::Result<Vec<String>>
@@ -331,4 +376,16 @@ pub fn join(path: &Path, file: &str) -> PathBuf
     let mut r = path.to_path_buf();
     r.push(file);
     r
+}
+
+extern crate chrono;
+use chrono::offset::Local;
+use chrono::DateTime;
+use std::time::SystemTime;
+
+pub fn display_time(system_time: SystemTime) -> String
+{
+    //let system_time = SystemTime::now();
+    let datetime: DateTime<Local> = system_time.into();
+    datetime.format("%c").to_string()
 }

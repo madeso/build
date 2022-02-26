@@ -53,6 +53,11 @@ impl Printer
     {
         println!("{}", text);
     }
+
+    pub fn line(&self)
+    {
+        println!("-------------------------------------------------------------");
+    }
     
     pub fn error(&mut self, text: &str)
     {

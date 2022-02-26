@@ -28,6 +28,8 @@ mod listheaders;
 mod compilecommands;
 mod header_hero;
 mod rust;
+mod clang;
+
 
 use structopt::StructOpt;
 
@@ -131,6 +133,13 @@ enum WorkbenchArguments
     {
         #[structopt(flatten)]
         options: header_hero::hero::Options
+    },
+
+    /// various clang helpers
+    Clang
+    {
+        #[structopt(flatten)]
+        options: clang::Options
     }
 }
 
@@ -350,6 +359,10 @@ fn main() {
         , WorkbenchArguments::Hero{options} =>
         {
             header_hero::hero::main(&mut print, &options)
+        }
+        , WorkbenchArguments::Clang{options} =>
+        {
+            clang::main(&mut print, &options)
         }
     }
     
