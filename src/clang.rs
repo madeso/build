@@ -294,6 +294,7 @@ pub struct TidySharedArguments
     #[structopt(long)]
     nop : bool,
 
+    /// exclude pattern on input files
     #[structopt(long)]
     filter: Option<Vec<String>>
 }
@@ -322,6 +323,7 @@ pub struct TidyConsoleArguments
     #[structopt(long)]
     list : bool,    
 
+    /// if specified, only display theese warnings
     #[structopt(long)]
     only: Option<Vec<String>>,
 
@@ -335,6 +337,10 @@ pub struct TidyHtmlArguments
 {
     /// where to dump the html
     output_folder: PathBuf,
+
+    /// if specified, only display theese warnings
+    #[structopt(long)]
+    only: Option<Vec<String>>,
 
     #[structopt(flatten)]
     shared: TidySharedArguments
@@ -1086,7 +1092,10 @@ fn handle_tidy_report(print: &mut printer::Printer, args: &TidyHtmlArguments)
 {
     let root = std::env::current_dir().unwrap().to_path_buf();
 
-    let mut runner = HtmlTidyRunner::new(&root);
+    let default_only = vec!();
+    let args_only = args.only.as_ref().unwrap_or(&default_only);
+
+    let mut runner = HtmlTidyRunner::new(&root, args_only.to_vec());
 
     runner.begin();
 
@@ -1368,20 +1377,23 @@ impl ClangTidyRunner for CommandlineTidyRunner
 struct HtmlTidyRunner
 {
     root: PathBuf,
-    sb: String
+    sb: String,
+    args_only: Vec<String>,
 }
 
 impl HtmlTidyRunner
 {
     fn new
     (
-        root: &Path
+        root: &Path,
+        args_only: Vec<String>
     ) -> HtmlTidyRunner
     {
         HtmlTidyRunner
         {
             root: root.to_path_buf(),
-            sb: String::new()
+            sb: String::new(),
+            args_only
         }
     }
 
@@ -1498,8 +1510,27 @@ impl ClangTidyRunner for HtmlTidyRunner
 
         
         self.sb.push_str("<div class=\"tidy-warnings\">\n");
+
         for warning in &run.warnings
         {
+            if self.args_only.len() > 0
+            {
+                let mut hide = true;
+
+                for warning_class in &warning.classes
+                {
+                    if self.args_only.contains(&warning_class)
+                    {
+                        hide = false;
+                    }
+                }
+
+                if hide
+                {
+                    continue;
+                }
+            }
+        
             self.sb.push_str("<div class=\"code\">");
             for line in &warning.lines
             {
