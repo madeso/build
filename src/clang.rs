@@ -1431,8 +1431,12 @@ fn html_markup_tidy(line: &str) -> String
     lazy_static!
     {
         static ref ERROR_MARKUP: Regex = Regex::new("(?P<e>(\\^~*)|(~+))").unwrap();
+        static ref FILE_MARKUP: Regex = Regex::new("(?P<f>(/[a-z0-9._-]+)+:[0-9]+:[0-9]+:)").unwrap();
+        static ref CLASS_MARKUP: Regex = Regex::new("(?P<c>\\[[a-z-]+(,[a-z-]+)*\\])").unwrap();
     }
-    ERROR_MARKUP.replace_all(line, "<span class=\"tidy-markup-error\">$e</span>").to_string()
+    let a = FILE_MARKUP.replace_all(line, "<span class=\"tidy-file-name\">$f</span>");
+    let b = CLASS_MARKUP.replace_all(&a, "<span class=\"tidy-class-markup\">$c</span>");
+    ERROR_MARKUP.replace_all(&b, "<span class=\"tidy-markup-error\">$e</span>").to_string()
 }
 
 impl ClangTidyRunner for HtmlTidyRunner

@@ -152,8 +152,6 @@ pub fn write_css_file(root: &Path)
 
 const CSS_SOURCE: &str = r###"
 
-
-
 /* Reset */
 
 * {
@@ -352,7 +350,35 @@ div.tidy-warnings div.code
 
 div.code
 {
+    white-space: pre;
+    overflow-x: hidden;
+    background: #fff;
+    padding: 12px;
+}
+
+div.code:hover, div.code:focus
+{
+    width: 1600px;
+    position: relative;
+    left: -400px;
     white-space: pre-wrap;
 }
+
+span.tidy-markup-error
+{
+    color: red;
+    font-weight: bold;
+}
+
+span.tidy-class-markup
+{
+    font-weight: bold;
+}
+
+span.tidy-file-name
+{
+    color: #aaa;
+}
+
 
 "###;
