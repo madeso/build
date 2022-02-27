@@ -1439,6 +1439,20 @@ fn html_markup_tidy(line: &str) -> String
     ERROR_MARKUP.replace_all(&b, "<span class=\"tidy-markup-error\">$e</span>").to_string()
 }
 
+
+fn link_to_filename(file: &Path) -> String
+{
+    let href = html::safe_string(&file.display().to_string());
+    format!("<a href=\"#{}\">{}</a>", href, file.display())
+}
+
+fn mark_for_filename(file: &Path) -> String
+{
+    let href = html::safe_string(&file.display().to_string());
+    format!("<a name=\"{}\"></a>", href)
+}
+
+
 impl ClangTidyRunner for HtmlTidyRunner
 {
     fn using_clang_tidy
@@ -1478,9 +1492,8 @@ impl ClangTidyRunner for HtmlTidyRunner
         }
 
         let printable_file = source_file.strip_prefix(&self.root).unwrap();
-        
-        // print_clang_tidy_run(&run, &stats, print, self.args_short, &mut print_name, &source_file, &self.args_only);
 
+        self.sb.push_str(&format!("{}\n", mark_for_filename(printable_file)));
         self.sb.push_str(&format!("<h3>{}</h3>\n", printable_file.display()));
 
         
@@ -1546,7 +1559,8 @@ impl ClangTidyRunner for HtmlTidyRunner
             self.sb.push_str("<ul>");
             for f in v
             {
-                self.sb.push_str(&format!("<li>{}</li>\n", f.display()));
+                // let printable_file = source_file.strip_prefix(&self.root).unwrap();
+                self.sb.push_str(&format!("<li>{}</li>\n", link_to_filename(f)));
             }
             self.sb.push_str("</ul>\n")
         }
