@@ -109,3 +109,5 @@ ENV/
 # dot net things
 bin/*
 obj/*
+.vs/*
+Properties/*

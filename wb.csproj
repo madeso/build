@@ -9,10 +9,19 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
         <PackageReference Include="Spectre.Console" Version="0.44.0" />
     </ItemGroup>
 
     <ItemGroup>
+        <Compile Include="CMake.cs" />
+        <Compile Include="CmakeMain.cs" />
+        <Compile Include="Found.cs" />
+        <Compile Include="Git.cs" />
+        <Compile Include="GitMain.cs" />
+        <Compile Include="Graphviz.cs" />
         <Compile Include="main.cs" />
+        <Compile Include="Run.cs" />
+        <Compile Include="Solution.cs" />
     </ItemGroup>
 </Project>

@@ -4,6 +4,7 @@ using System.ComponentModel;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
+
 namespace Workbench
 {
     internal sealed class FileSizeCommand : Command<FileSizeCommand.Settings>
@@ -49,7 +50,6 @@ namespace Workbench
     {
         static int Main(string[] args)
         {
-            // Console.WriteLine("Hello World!");
             var app = new CommandApp();
             app.Configure( config => {
                 #if DEBUG
@@ -57,6 +57,8 @@ namespace Workbench
                     config.ValidateExamples();
                 #endif
                 config.AddCommand<FileSizeCommand>("size");
+                CmakeMain.Configure(config, "cmake");
+                GitMain.Configure(config, "git");
             });
             return app.Run(args);
         }
