@@ -70,6 +70,10 @@ namespace Workbench
                 [CommandArgument(1, "[output file]")]
                 [DefaultValue("output.dot")]
                 public string Output { get; set; } = "";
+
+                [Description("Project names to ignore")]
+                [CommandOption("--ignores")]
+                public string[]? NamesToIgnore { get; set; }
             }
 
             public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
@@ -78,6 +82,8 @@ namespace Workbench
 
                 try
                 {
+                    var ignores = settings.NamesToIgnore ?? Array.Empty<string>();
+                    AnsiConsole.MarkupLine($"Ignoring [red]{ignores.Length}[/] projects.");
                     var lines = CMake.Trace.TraceDirectory(settings.File);
                     var solution = Solution.Parse(lines);
 
@@ -93,7 +99,7 @@ namespace Workbench
                         solution.Simplify();
                     }
 
-                    var gv = solution.MakeGraphviz(settings.Reverse, settings.RemoveEmpty);
+                    var gv = solution.MakeGraphviz(settings.Reverse, settings.RemoveEmpty, ignores);
 
                     var output = gv.Lines.ToArray();
 

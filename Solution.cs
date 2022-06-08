@@ -58,6 +58,21 @@ namespace Workbench
             return parser.CreateSolution();
         }
 
+        private static IEnumerable<string> ChildrenNames(Project proj, bool add)
+        {
+            foreach(var p in proj.Dependencies)
+            {
+                if(add)
+                {
+                    yield return p.Name;
+                }
+
+                foreach(var n in ChildrenNames(p, true))
+                {
+                    yield return n;
+                }
+            }
+        }
         
         public void Simplify()
         {
@@ -70,12 +85,14 @@ namespace Workbench
             */
             foreach(var project in JustProjects)
             {
+                var se = ChildrenNames(project, false).ToHashSet();
                 List<string> dependencies = new();
-                foreach (var dependency_name in project.NamedDependencies)
+                foreach (var dependency in project.Dependencies)
                 {
-                    if(has_dependency(project, dependency_name, false) == false)
+                    //if(has_dependency(project, dependency_name, false) == false)
+                    if(se.Contains(dependency.Name) == false)
                     {
-                        dependencies.Add(dependency_name);
+                        dependencies.Add(dependency.Name);
                     }
                 }
                 project.NamedDependencies = dependencies;
@@ -83,9 +100,11 @@ namespace Workbench
             PostLoad();
         }
 
-        internal Graphviz MakeGraphviz(bool reverse, bool removeEmpty)
+        internal Graphviz MakeGraphviz(bool reverse, bool removeEmpty, IEnumerable<string> namesToIgnore)
         {
             Graphviz gv = new();
+
+            var ni = namesToIgnore.Select(x => x.ToLower().Trim()).ToHashSet();
 
             var projects = JustProjects.ToArray();
 
@@ -98,13 +117,16 @@ namespace Workbench
             Dictionary<string, Graphviz.Node> nodes = new();
             foreach (var p in projects)
             {
+                if(ni.Contains(p.Name.ToLower().Trim())) continue;
                 nodes.Add(p.Name, gv.AddNode(p.Name, GetGraphvizType(p)));
             }
 
             foreach (var p in projects)
             {
+                if (ni.Contains(p.Name.ToLower().Trim())) continue;
                 foreach (var to in p.Dependencies)
                 {
+                    if (ni.Contains(to.Name.ToLower().Trim())) continue;
                     var nfrom = nodes[p.Name];
                     var nto = nodes[to.Name];
                     if (reverse == false)
