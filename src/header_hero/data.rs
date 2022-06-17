@@ -17,7 +17,7 @@ pub struct UserInput
 {
     pub project_directories: Vec<PathBuf>,
     pub include_directories: Vec<PathBuf>,
-    pub precompiled_header: Option<PathBuf>,
+    pub precompiled_headers: Option<Vec<PathBuf>>,
 }
 
 impl UserInput
@@ -60,7 +60,7 @@ pub struct Project
 {
     pub scan_directories: Vec<PathBuf>,
     pub include_directories: Vec<PathBuf>,
-    pub precompiled_header: Option<PathBuf>,
+    pub precompiled_headers: Vec<PathBuf>,
 
     pub scanned_files: HashMap<PathBuf, SourceFile>,
     // pub DateTime LastScan,
@@ -71,11 +71,15 @@ impl Project
     pub fn new(input: &UserInput) -> Project
     {
         // todo(Gustav): don't clone here
+        let pch =
+            if let Some(re) = &input.precompiled_headers { re.clone() }
+            else { Vec::new() }
+        ;
         Project
         {
             scan_directories: input.project_directories.clone(),
             include_directories: input.include_directories.clone(),
-            precompiled_header: input.precompiled_header.clone(),
+            precompiled_headers: pch,
             scanned_files: HashMap::<PathBuf, SourceFile>::new()
             // LastScan = DateTime.Now,
         }

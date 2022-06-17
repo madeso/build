@@ -485,7 +485,7 @@ impl Scanner
 
         // scan everything that goes into precompiled header
         self.is_scanning_pch = true;
-        if let Some(inc) = project.precompiled_header.clone()
+        for inc in project.precompiled_headers.clone()
         {
             if inc.exists()
             {
