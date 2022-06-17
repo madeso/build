@@ -32,7 +32,7 @@ mod header_hero;
 mod rust;
 mod clang;
 mod html;
-
+mod graphviz;
 
 use structopt::StructOpt;
 
@@ -135,7 +135,7 @@ enum WorkbenchArguments
     Hero
     {
         #[structopt(flatten)]
-        options: header_hero::hero::Options
+        options: header_hero::hero::Args
     },
 
     /// various clang helpers

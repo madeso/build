@@ -112,17 +112,27 @@ pub fn safe_string(str: &str) -> String
 }
 
 
-pub fn safe_inspect_filename(path: &Path) -> Option<String>
+pub fn safe_inspect_filename(path: &Path, ext: &str) -> Option<String>
 {
     if let Some(file) = path.to_str()
     {
         let safe = safe_string(file);
-        Some(format!("inspect_{}.html", safe))
+        Some(format!("inspect_{}{}", safe, ext))
     }
     else
     {
         None
     }
+}
+
+pub fn safe_inspect_filename_html(path: &Path) -> Option<String>
+{
+    safe_inspect_filename(path, ".html")
+}
+
+pub fn safe_inspect_filename_without_html(path: &Path) -> Option<String>
+{
+    safe_inspect_filename(path, "")
 }
 
 
@@ -135,7 +145,7 @@ pub fn get_filename(path: &Path) -> Option<String>
 
 pub fn inspect_filename_link(path: &Path) -> Option<String>
 {
-    let file = safe_inspect_filename(path)?;
+    let file = safe_inspect_filename_html(path)?;
     let name = get_filename(path)?;
 
     Some(format!("<a href=\"{0}\">{1}</a>", file, name))

@@ -5,14 +5,16 @@ use crate::
     rust,
     html,
     header_hero::data,
-    header_hero::parser
+    header_hero::parser,
+    graphviz::Graphviz
 };
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // MainForm
 
 
-pub fn scan_and_generate(input: &data::UserInput, root: &Path)
+pub fn scan_and_generate_html(input: &data::UserInput, root: &Path)
 {
     let mut project = data::Project::new(input);
     let mut scanner = parser::Scanner::new();
@@ -22,7 +24,14 @@ pub fn scan_and_generate(input: &data::UserInput, root: &Path)
 }
 
 
-
+pub fn scan_and_generate_dot(input: &data::UserInput, root: &Path)
+{
+    let mut project = data::Project::new(input);
+    let mut scanner = parser::Scanner::new();
+    let mut feedback = parser::ProgressFeedback::new();
+    scanner.rescan(&mut project, &mut feedback);
+    generate_dot(root, &project, &scanner);
+}
 
 
 
@@ -170,7 +179,44 @@ fn write_inspection_page(root: &Path, file: &Path,  project: &data::Project, ana
 
     html::end(&mut html);
 
-    let filename = html::safe_inspect_filename(file).unwrap();
+    let filename = html::safe_inspect_filename_html(file).unwrap();
     let path = core::join(root, &filename);
     core::write_string_to_file_or(&path, &html).unwrap();
+}
+
+
+
+fn generate_dot(root: &Path, project: &data::Project, scanner: &parser::Scanner)
+{
+    let analytics = parser::analyze(project);
+    let mut gv = Graphviz::new();
+
+    for file in project.scanned_files.keys()
+    {
+        let display_name = html::get_filename(file).unwrap();
+        let node_id = html::safe_inspect_filename_without_html(file).unwrap();
+        gv.add_node_with_id(display_name, "box".to_string(), node_id);
+    }
+
+    for file in project.scanned_files.keys()
+    {
+        // write_inspection_page(root, f, project, &analytics);
+        // fn write_inspection_page(root: &Path, file: &Path,  project: &data::Project, analytics: &parser::Analytics)
+        let from_file = html::safe_inspect_filename_without_html(file).unwrap();
+        let from_id = gv.get_node_id(from_file).expect("BUG: Node not added");
+
+        for s in project.scanned_files[file].absolute_includes.clone()
+        {
+            let to_file = html::safe_inspect_filename_without_html(&s).unwrap();
+            let to_id = gv.get_node_id(to_file).unwrap();
+
+            // todo(Gustav): add edge label
+            // let display_count    = rust::num_format(length_fun(&analytics.file_to_data[s]));
+            // let display_lines    = rust::num_format(analytics.file_to_data[s].total_included_lines);
+
+            gv.add_edge(from_id, to_id);
+        }
+    }
+
+    gv.write_file_to(root);
 }
