@@ -24,13 +24,13 @@ pub fn scan_and_generate_html(input: &data::UserInput, root: &Path)
 }
 
 
-pub fn scan_and_generate_dot(input: &data::UserInput, root: &Path)
+pub fn scan_and_generate_dot(input: &data::UserInput, simplify: bool, root: &Path)
 {
     let mut project = data::Project::new(input);
     let mut scanner = parser::Scanner::new();
     let mut feedback = parser::ProgressFeedback::new();
     scanner.rescan(&mut project, &mut feedback);
-    generate_dot(root, &project, &scanner);
+    generate_dot(root, &project, &scanner, simplify);
 }
 
 
@@ -186,7 +186,7 @@ fn write_inspection_page(root: &Path, file: &Path,  project: &data::Project, ana
 
 
 
-fn generate_dot(root: &Path, project: &data::Project, scanner: &parser::Scanner)
+fn generate_dot(root: &Path, project: &data::Project, scanner: &parser::Scanner, simplify: bool)
 {
     let analytics = parser::analyze(project);
     let mut gv = Graphviz::new();
@@ -216,6 +216,11 @@ fn generate_dot(root: &Path, project: &data::Project, scanner: &parser::Scanner)
 
             gv.add_edge(from_id, to_id);
         }
+    }
+
+    if simplify
+    {
+        gv.simplify();
     }
 
     gv.write_file_to(root);

@@ -47,7 +47,11 @@ pub struct DotOptions
     input: PathBuf,
 
     /// Path to the graphviz output file
-    output: PathBuf
+    output: PathBuf,
+
+    /// Simplify the graphiz output?
+    #[structopt(short, long)]
+    simplify: bool
 }
 
 
@@ -111,7 +115,7 @@ fn run_dot(print: &mut printer::Printer, args: &DotOptions)
                 Err(_) => {}
             };
 
-            ui::scan_and_generate_dot(&input, &args.output);
+            ui::scan_and_generate_dot(&input, args.simplify, &args.output);
         }
 
         Err(error) =>

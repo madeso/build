@@ -1,4 +1,4 @@
-﻿use std::collections::HashMap;
+﻿use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use crate::core;
 
@@ -14,7 +14,8 @@ pub struct Node
 {
     id: String,
     display: String,
-    shape: String
+    shape: String,
+    index: usize
 }
 
 pub struct Edge
@@ -53,7 +54,7 @@ impl Graphviz
     {
         let index = self.nodes.len();
         self.id_to_node.insert(id.clone(), index);
-        self.nodes.push(Node{id, display, shape});
+        self.nodes.push(Node{id, display, shape, index});
         &mut self.nodes[index]
     }
 
@@ -91,6 +92,65 @@ impl Graphviz
         source.push_str("}\n");
 
         core::write_string_to_file_or(&path, &source).unwrap();
+    }
+
+    fn get_all_dependencies_for_node(&self, node: usize) -> Vec<usize>
+    {
+        let mut r = Vec::new();
+
+        for e in &self.edges
+        {
+            if e.from == node
+            {
+                r.push(e.to);
+            }
+        }
+
+        r
+    }
+
+    fn deep_add_all_dependencies(&self, children: &mut HashSet<usize>, node: usize, add: bool)
+    {
+        let deps = self.get_all_dependencies_for_node(node);
+        for p in deps
+        {
+            if add
+            {
+                children.insert(p);
+            }
+
+            self.deep_add_all_dependencies(children, p, true);
+        }
+    }
+
+    pub fn simplify(&mut self)
+    {
+        /*
+        given the dependencies like:
+        a -> b
+        b -> c
+        a -> c
+        simplify will remove the last dependency (a->c) to 'simplify' the graph
+        */
+        for node in 0..self.nodes.len()-1
+        {
+            // get all unique dependencies
+            let mut se = HashSet::new();
+            self.deep_add_all_dependencies(&mut se, node, false);
+
+            // get all dependencies from current, and remove all from list
+            let deps = self.get_all_dependencies_for_node(node);
+            self.edges.retain(|e| e.from != node);
+
+            // add them back
+            for dependency in deps
+            {
+                if se.contains(&dependency) == false
+                {
+                    self.add_edge(node, dependency);
+                }
+            }
+        }
     }
 }
 
