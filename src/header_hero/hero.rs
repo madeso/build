@@ -55,7 +55,11 @@ pub struct DotOptions
 
     /// Display only headers in the output
     #[structopt(long)]
-    only_headers: bool
+    only_headers: bool,
+
+    /// Exclude some files
+    #[structopt(long)]
+    exclude: Vec<PathBuf>
 }
 
 
@@ -119,7 +123,7 @@ fn run_dot(print: &mut printer::Printer, args: &DotOptions)
                 Err(_) => {}
             };
 
-            ui::scan_and_generate_dot(print, &input, args.simplify, &args.output, args.only_headers);
+            ui::scan_and_generate_dot(print, &input, args.simplify, &args.output, args.only_headers, &args.exclude);
         }
 
         Err(error) =>
