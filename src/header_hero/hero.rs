@@ -51,7 +51,11 @@ pub struct DotOptions
 
     /// Simplify the graphiz output?
     #[structopt(short, long)]
-    simplify: bool
+    simplify: bool,
+
+    /// Display only headers in the output
+    #[structopt(long)]
+    only_headers: bool
 }
 
 
@@ -115,7 +119,7 @@ fn run_dot(print: &mut printer::Printer, args: &DotOptions)
                 Err(_) => {}
             };
 
-            ui::scan_and_generate_dot(&input, args.simplify, &args.output);
+            ui::scan_and_generate_dot(print, &input, args.simplify, &args.output, args.only_headers);
         }
 
         Err(error) =>

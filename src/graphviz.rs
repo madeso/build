@@ -58,9 +58,9 @@ impl Graphviz
         &mut self.nodes[index]
     }
 
-    pub fn get_node_id(&self, id: String) -> Option<usize>
+    pub fn get_node_id(&self, id: &str) -> Option<usize>
     {
-        match self.id_to_node.get(&id)
+        match self.id_to_node.get(id)
         {
             Some(x) => Some(*x),
             None => None
@@ -132,6 +132,11 @@ impl Graphviz
         a -> c
         simplify will remove the last dependency (a->c) to 'simplify' the graph
         */
+        if self.nodes.len() <= 0
+        {
+            return;
+        }
+        
         for node in 0..self.nodes.len()-1
         {
             // get all unique dependencies
