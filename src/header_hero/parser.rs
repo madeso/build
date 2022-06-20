@@ -541,31 +541,42 @@ impl Scanner
             self.errors.push(format!("Cannot descend into {}", dir.display()));
         }
     }
+    fn on_file(&mut self, file: &Path)
+    {
+        let ext = file.extension().unwrap().to_str().unwrap();
+        if data::is_translation_unit_extension(ext)
+        {
+            self.add_to_queue(&file, &canonicalize_or_default(&file));
+        }
+        else
+        {
+            // println!("invalid extension {}", ext);
+            self.missing_ext[&ext.to_string()] += 1;
+        }
+    }
     fn please_scan_directory(&mut self, dir: &Path, feedback: &ProgressFeedback) -> io::Result<()>
     {
         feedback.update_message(&format!("{}", dir.display()));
 
-        for entry in dir.read_dir()?
+        if dir.is_file()
         {
-            let e = entry?.path();
-            if e.is_file()
+            self.on_file(dir);
+        }
+        else
+        {
+            for entry in dir.read_dir()?
             {
-                let file = e;
-                let ext = file.extension().unwrap().to_str().unwrap();
-                if data::is_translation_unit_extension(ext)
+                let e = entry?.path();
+                if e.is_file()
                 {
-                    self.add_to_queue(&file, &canonicalize_or_default(&file));
+                    let file = e;
+                    self.on_file(&file);
                 }
                 else
                 {
-                    // println!("invalid extension {}", ext);
-                    self.missing_ext[&ext.to_string()] += 1;
+                    let subdir = e;
+                    self.scan_directory(&subdir, feedback);
                 }
-            }
-            else
-            {
-                let subdir = e;
-                self.scan_directory(&subdir, feedback);
             }
         }
 
