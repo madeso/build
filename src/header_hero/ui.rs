@@ -31,7 +31,7 @@ pub fn scan_and_generate_dot(print: &mut printer::Printer, input: &data::UserInp
     let mut scanner = parser::Scanner::new();
     let mut feedback = parser::ProgressFeedback::new();
     scanner.rescan(&mut project, &mut feedback);
-    generate_dot(print, root, &project, &scanner, simplify, only_headers, exclude);
+    generate_dot(print, root, &project, &scanner, simplify, only_headers, exclude, input);
 }
 
 
@@ -216,14 +216,36 @@ fn file_is_in_file_list(f: &Path, list: &Vec<PathBuf>) -> bool
 }
 
 
-fn generate_dot(print: &mut printer::Printer, root: &Path, project: &data::Project, scanner: &parser::Scanner, simplify: bool, only_headers: bool, exclude: &Vec<PathBuf>)
+fn exclude_file(file: &Path, input: &data::UserInput, only_headers: bool, exclude: &Vec<PathBuf>) -> bool
+{
+    if file_is_in_file_list(&file, &input.project_directories)
+    {
+        // explicit inlcuded... then it's not excluded
+        false
+    }
+    else if only_headers && is_header(file) == false
+    {
+        true
+    }
+    else if file_is_in_file_list(&file, &exclude)
+    {
+        true
+    }
+    else
+    {
+        false
+    }
+}
+
+
+fn generate_dot(print: &mut printer::Printer, root: &Path, project: &data::Project, scanner: &parser::Scanner, simplify: bool, only_headers: bool, exclude: &Vec<PathBuf>, input: &data::UserInput)
 {
     let analytics = parser::analyze(project);
     let mut gv = Graphviz::new();
 
     for file in project.scanned_files.keys()
     {
-        if only_headers && is_header(file) == false || file_is_in_file_list(&file, &exclude)
+        if exclude_file(file, input, only_headers, exclude)
         {
             continue;
         }
@@ -242,7 +264,7 @@ fn generate_dot(print: &mut printer::Printer, root: &Path, project: &data::Proje
         // fn write_inspection_page(root: &Path, file: &Path,  project: &data::Project, analytics: &parser::Analytics)
         let from_file = html::safe_inspect_filename_without_html(file).unwrap();
         
-        if only_headers && is_header(Path::new(&file)) == false || file_is_in_file_list(&file, &exclude)
+        if exclude_file(file, input, only_headers, exclude)
         {
             continue;
         }
@@ -252,7 +274,7 @@ fn generate_dot(print: &mut printer::Printer, root: &Path, project: &data::Proje
         {
             let to_file = html::safe_inspect_filename_without_html(&s).unwrap();
             
-            if only_headers && is_header(Path::new(&s)) == false || file_is_in_file_list(&s, &exclude)
+            if exclude_file(&s, input, only_headers, exclude)
             {
                 continue;
             }
