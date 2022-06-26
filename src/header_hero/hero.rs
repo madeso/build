@@ -57,6 +57,10 @@ pub struct DotOptions
     #[structopt(long)]
     only_headers: bool,
 
+    /// Cluster files based on parent folder
+    #[structopt(long)]
+    cluster: bool,
+
     /// Exclude some files
     #[structopt(long)]
     exclude: Vec<PathBuf>
@@ -123,7 +127,7 @@ fn run_dot(print: &mut printer::Printer, args: &DotOptions)
                 Err(_) => {}
             };
 
-            ui::scan_and_generate_dot(print, &input, args.simplify, &args.output, args.only_headers, &args.exclude);
+            ui::scan_and_generate_dot(print, &input, args.simplify, &args.output, args.only_headers, &args.exclude, args.cluster);
         }
 
         Err(error) =>

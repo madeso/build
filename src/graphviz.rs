@@ -1,7 +1,9 @@
 ﻿use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use crate::core;
+use itertools::Itertools;
 
+#[derive(Clone)]
 pub struct Graphviz
 {
     nodes: Vec<Node>,
@@ -10,14 +12,16 @@ pub struct Graphviz
 }
 
 
+#[derive(Clone)]
 pub struct Node
 {
     id: String,
     display: String,
     shape: String,
-    index: usize
+    pub cluster: Option<String>
 }
 
+#[derive(Clone)]
 pub struct Edge
 {
     from: usize,
@@ -54,7 +58,7 @@ impl Graphviz
     {
         let index = self.nodes.len();
         self.id_to_node.insert(id.clone(), index);
-        self.nodes.push(Node{id, display, shape, index});
+        self.nodes.push(Node{id, display, shape, cluster: None});
         &mut self.nodes[index]
     }
 
@@ -78,10 +82,35 @@ impl Graphviz
 
         source.push_str("digraph G\n");
         source.push_str("{\n");
-        for n in &self.nodes
+
+        self.nodes
+            .clone()
+            .into_iter()
+            .map(|a| {let c = a.cluster.clone(); (c, a)})
+            .into_group_map()
+            .iter()
+            .for_each(|x|
         {
-            source.push_str(format!("    {} [label=\"{}\" shape={}];\n", n.id, n.display, n.shape).as_str());
-        }
+            // x.0
+            let indent =
+                if let Some(name) = x.0
+                {
+                    source.push_str(format!("    subgraph cluster_{} {{\n", name).as_str());
+                    "    "
+                }
+                else { "" }
+                ;
+            for n in x.1
+            {
+                source.push_str(format!("    {}{} [label=\"{}\" shape={}];\n", indent, n.id, n.display, n.shape).as_str());
+            }
+
+            if x.0.is_some()
+            {
+                source.push_str("    }\n")
+            }
+        });
+
         source.push_str("\n");
         for e in &self.edges
         {

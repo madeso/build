@@ -19,6 +19,7 @@ counter = "0.5"
 string-error = "0.1.0"
 chrono = "0.4.19"
 lazy_static = "1.4.0"
+itertools = "0.10.2"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.10"

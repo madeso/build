@@ -25,13 +25,13 @@ pub fn scan_and_generate_html(input: &data::UserInput, root: &Path)
 }
 
 
-pub fn scan_and_generate_dot(print: &mut printer::Printer, input: &data::UserInput, simplify: bool, root: &Path, only_headers: bool, exclude: &Vec<PathBuf>)
+pub fn scan_and_generate_dot(print: &mut printer::Printer, input: &data::UserInput, simplify: bool, root: &Path, only_headers: bool, exclude: &Vec<PathBuf>, cluster: bool)
 {
     let mut project = data::Project::new(input);
     let mut scanner = parser::Scanner::new();
     let mut feedback = parser::ProgressFeedback::new();
     scanner.rescan(&mut project, &mut feedback);
-    generate_dot(print, root, &project, &scanner, simplify, only_headers, exclude, input);
+    generate_dot(print, root, &project, &scanner, simplify, only_headers, exclude, input, cluster);
 }
 
 
@@ -238,7 +238,7 @@ fn exclude_file(file: &Path, input: &data::UserInput, only_headers: bool, exclud
 }
 
 
-fn generate_dot(print: &mut printer::Printer, root: &Path, project: &data::Project, scanner: &parser::Scanner, simplify: bool, only_headers: bool, exclude: &Vec<PathBuf>, input: &data::UserInput)
+fn generate_dot(print: &mut printer::Printer, root: &Path, project: &data::Project, scanner: &parser::Scanner, simplify: bool, only_headers: bool, exclude: &Vec<PathBuf>, input: &data::UserInput, cluster: bool)
 {
     let analytics = parser::analyze(project);
     let mut gv = Graphviz::new();
@@ -255,7 +255,11 @@ fn generate_dot(print: &mut printer::Printer, root: &Path, project: &data::Proje
         }
         let display_name = html::get_filename(file).unwrap();
         let node_id = html::safe_inspect_filename_without_html(file).unwrap();
-        gv.add_node_with_id(display_name, "box".to_string(), node_id);
+        let mut added_node = gv.add_node_with_id(display_name, "box".to_string(), node_id);
+        if cluster
+        {
+            added_node.cluster = Some(html::get_filename(file.parent().unwrap()).unwrap());
+        }
     }
 
     for file in project.scanned_files.keys()
