@@ -85,7 +85,13 @@ internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
                 : FileAttributes.System
         };
 
-        var files = IterateFiles(new DirectoryInfo(folder), searchOptions, settings.Recursive).ToImmutableArray();
+        var dir = new DirectoryInfo(folder);
+        if(dir.Exists == false)
+        {
+            AnsiConsole.MarkupLineInterpolated($"[blue]ERROR[/]: Unable to open [red]{dir.FullName}[/]");
+            return -1;
+        }
+        var files = IterateFiles(dir, searchOptions, settings.Recursive).ToImmutableArray();
 
         var unhandledExtensions = files
             .Where(x => ClassifySourceOrNull(x) == null)
@@ -109,14 +115,14 @@ internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
         foreach (var f in grouped)
         {
             if (f.MaxIdent == null) { continue; }
-            AnsiConsole.MarkupLine($"Max ident [red]{f.MaxIdent.Info.Max}[/] ([red]{f.MaxIdent.Info.MaxLevel}[/]) for [blue]{f.Type}[/] in [blue]{f.MaxIdent.File}[/] ({f.MaxIdent.Info.MaxLine})");
+            AnsiConsole.MarkupLineInterpolated($"Max ident [red]{f.MaxIdent.Info.Max}[/] ([red]{f.MaxIdent.Info.MaxLevel}[/]) for [blue]{f.Type}[/] in [blue]{f.MaxIdent.File}[/] ({f.MaxIdent.Info.MaxLine})");
         }
 
         if (settings.PrintUnused)
         {
             foreach (var x in unhandledExtensions)
             {
-                AnsiConsole.MarkupLine($"[green]{x.Extension}[/] - [blue]{x.Count}[/]");
+                AnsiConsole.MarkupLineInterpolated($"[green]{x.Extension}[/] - [blue]{x.Count}[/]");
             }
         }
 
