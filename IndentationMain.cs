@@ -38,6 +38,10 @@ internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
         [CommandOption("--no-recursive")]
         [DefaultValue(true)]
         public bool Recursive { get; init; }
+
+        [CommandOption("--no-javadoc-hack")]
+        [DefaultValue(true)]
+        public bool EnableJavadocHack { get; init; }
     }
 
     IEnumerable<FileInfo> IterateFiles(DirectoryInfo root, EnumerationOptions searchOptions, bool directories)
@@ -93,7 +97,7 @@ internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
 
         var grouped = files
             .Where(x => ClassifySourceOrNull(x) != null)
-            .Select(x => new { File = x, Info = CollectIndentInformation(x, settings.TabWidth), Group = ClassifySourceOrNull(x) })
+            .Select(x => new { File = x, Info = CollectIndentInformation(x, settings.TabWidth, settings.EnableJavadocHack), Group = ClassifySourceOrNull(x) })
             .GroupBy(x => x.Group, (group, items) => new
             {
                 Type = group,
@@ -124,7 +128,7 @@ internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
         while (true) yield return start++;
     }
 
-    private static IndentInformation CollectIndentInformation(FileInfo f, int tabWidth)
+    private static IndentInformation CollectIndentInformation(FileInfo f, int tabWidth, bool enableJavadocHack)
     {
         var lines = File.ReadAllLines(f.FullName, System.Text.Encoding.UTF8).ToImmutableArray();
 
@@ -141,7 +145,7 @@ internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
         }
 
         var indentations = lines
-            .Select(line => IndentationForLine(line, tabWidth))
+            .Select(line => IndentationForLine(line, tabWidth, enableJavadocHack))
             .Zip(Integers(1))
             .Select(x => new LineIndent { Indentation = x.First, Line = x.Second })
             .ToImmutableArray()
@@ -151,6 +155,7 @@ internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
         var min = (mine.Length == 0 ? null : mine.MinBy(x => x.Indentation)) ?? missing;
         var max = (indentations.Length == 0 ? null : indentations.MaxBy(x => x.Indentation)) ?? missing;
         var ml = min.Indentation != 0 ? max.Indentation / (float)min.Indentation : 0.0f;
+
         return new IndentInformation { Min = min.Indentation, Max = max.Indentation, MaxLevel = ml, MaxLine = max.Line };
     }
 
@@ -170,7 +175,7 @@ internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
         return false;
     }
 
-    private static int IndentationForLine(string line, int tabWidth)
+    private static int IndentationForLine(string line, int tabWidth, bool enableJavadocHack)
     {
         int indent = 0;
         foreach (var c in line)
@@ -182,6 +187,16 @@ internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
             else if (c == '\t')
             {
                 indent += tabWidth;
+            }
+            else if (enableJavadocHack && c == '*')
+            {
+                // assume javadoc comment
+                if(indent %2 == 1)
+                {
+                    return indent -= 1;
+                }
+
+                return indent;
             }
             else
             {
