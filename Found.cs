@@ -1,34 +1,33 @@
-﻿namespace Workbench
+﻿namespace Workbench;
+
+public class Found
 {
-    public class Found
+    public string? value {get;}
+    public string name { get; }
+
+    public Found(string? value, string name)
     {
-        public string? value {get;}
-        public string name { get; }
+        this.value = value;
+        this.name = name;
+    }
 
-        public Found(string? value, string name)
+    public override string ToString()
+    {
+        if(value != null)
         {
-            this.value = value;
-            this.name = name;
+            return $"Found {value} from {name}";
         }
+        else
+        {
+            return $"NOT FOUND in {name}";
+        }
+    }
 
-        public override string ToString()
-        {
-            if(value != null)
-            {
-                return $"Found {value} from {name}";
-            }
-            else
-            {
-                return $"NOT FOUND in {name}";
-            }
-        }
-
-        public static string? first_value_or_none(IEnumerable<Found> founds)
-        {
-            return founds
-                .Where(found => found.value != null)
-                .Select(found => found.value)
-                .FirstOrDefault();
-        }
+    public static string? first_value_or_none(IEnumerable<Found> founds)
+    {
+        return founds
+            .Where(found => found.value != null)
+            .Select(found => found.value)
+            .FirstOrDefault();
     }
 }

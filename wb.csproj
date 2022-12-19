@@ -20,7 +20,7 @@
         <Compile Include="Git.cs" />
         <Compile Include="GitMain.cs" />
         <Compile Include="Graphviz.cs" />
-        <Compile Include="IndentInformation.cs" />
+        <Compile Include="IndentationMain.cs" />
         <Compile Include="main.cs" />
         <Compile Include="Run.cs" />
         <Compile Include="Solution.cs" />
