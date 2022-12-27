@@ -3,13 +3,14 @@
 #[cfg(target_os = "windows")]
 extern crate winreg;
 
+#[cfg(target_os = "windows")]
+use std::io;
 
 #[cfg(target_os = "windows")]
 pub fn hklm(key_name: &str, value_name: &str) -> io::Result<String>
 {
     use winreg::enums::*;
     use winreg::RegKey;
-    use std::io;
     use std::path::Path;
 
     let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
