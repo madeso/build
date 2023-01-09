@@ -1,7 +1,7 @@
 namespace Workbench;
 
 using System.Diagnostics;
-
+using System.Security.Cryptography;
 
 public class Command
 {
@@ -43,18 +43,6 @@ public class Command
         }
     }
 
-#if false
-
-pub fn check_call(print: &mut printer::Printer, cmd: &mut Command)
-{
-    let ret = wait_for_exit(print, cmd);
-    print.info(format!("Return value: {}", ret).as_str());
-    if ret != 0
-    {
-        print.error(format!("Failed to run command: {:?}", cmd).as_str());
-    }
-}
-#endif
     private readonly string app;
 
     public Command(string app)
@@ -131,13 +119,24 @@ pub fn check_call(print: &mut printer::Printer, cmd: &mut Command)
         return result;
     }
 
-    internal void check_call(Printer printer)
+    internal void check_call(Printer print)
     {
-        throw new NotImplementedException();
+        var ret = wait_for_exit(print);
+        print.info($"Return value: {ret}");
+        if(ret != 0)
+        {
+            print.error($"Failed to run command: {this}");
+        }
     }
 
     internal void current_dir(string build_folder)
     {
         workingDirectory = build_folder;
+    }
+
+    public override string ToString()
+    {
+        var args = CollectArguments();
+        return $"{app} {args}";
     }
 }

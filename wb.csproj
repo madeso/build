@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFramework>net7.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
@@ -20,6 +20,9 @@
         <Compile Include="CMake.cs" />
         <Compile Include="CmakeMain.cs" />
         <Compile Include="Found.cs" />
+		<Compile Include="Build.cs" />
+		<Compile Include="BuildEnv.cs" />
+		<Compile Include="BuildData.cs" />
         <Compile Include="Git.cs" />
 		<Compile Include="Command.cs" />
         <Compile Include="GitMain.cs" />
@@ -32,6 +35,10 @@
 		<Compile Include="Registry.cs" />
 		<Compile Include="Core.cs" />
         <Compile Include="Solution.cs" />
+		<Compile Include="JsonUtil.cs" />
         <Compile Include="Which.cs" />
+		<Compile Include="CompileCommands.cs" />
+		<Compile Include="CheckIncludes.cs" />
+		<Compile Include="CommonExecute.cs" />
     </ItemGroup>
 </Project>

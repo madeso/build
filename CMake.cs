@@ -125,31 +125,32 @@ public class CMake
     }
 
     // add argument
-    void add_argument(string name, string value)
+    public void add_argument(string name, string value)
     {
         this.arguments.Add(new Argument(name, value));
     }
 
     // set the install folder
-    void set_install_folder(string folder)
+    public void set_install_folder(string folder)
     {
         this.add_argument_with_type("CMAKE_INSTALL_PREFIX", folder, "PATH");
     }
 
     // set cmake to make static (not shared) library
-    void make_static_library()
+    public void make_static_library()
     {
         this.add_argument("BUILD_SHARED_LIBS", "0");
     }
 
     // run cmake configure step
-    void config(Printer printer) { this.config_with_print(printer, false); }
+    public void config(Printer printer) { this.config_with_print(printer, false); }
     void config_with_print(Printer printer, bool only_print)
     {
         var cmake = CmakeTools.find_cmake_executable(printer);
         if(cmake == null)
         {
             printer.error("CMake executable not found");
+            return;
         }
         
         var command = new Command(cmake);
@@ -196,6 +197,7 @@ public class CMake
         if (cmake == null)
         {
             printer.error("CMake executable not found");
+            return;
         }
 
         var command = new Command(cmake);
@@ -224,13 +226,13 @@ public class CMake
     }
 
     // build cmake project
-    void build(Printer printer)
+    public void build(Printer printer)
     {
         this.build_cmd(printer, false);
     }
 
     // install cmake project
-    void install(Printer printer)
+    public void install(Printer printer)
     {
         this.build_cmd(printer, true);
     }

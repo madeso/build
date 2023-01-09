@@ -1,10 +1,4 @@
-﻿using System;
-using System.Diagnostics.CodeAnalysis;
-using System.ComponentModel;
-using Spectre.Console;
-using Spectre.Console.Cli;
-using System.Collections.Immutable;
-using System.Security.Cryptography.X509Certificates;
+﻿using Spectre.Console.Cli;
 
 namespace Workbench
 {
@@ -21,6 +15,8 @@ namespace Workbench
                 config.AddCommand<IndentationCommand>("size");
                 Cmake.Main.Configure(config, "cmake");
                 Git.Main.Configure(config, "git");
+                CompileCommands.Main.Configure(config, "compile-commands");
+                CheckIncludes.Main.Configure(config, "check-includes");
             });
             return app.Run(args);
         }
