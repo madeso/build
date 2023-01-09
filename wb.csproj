@@ -22,6 +22,7 @@
         <Compile Include="Graphviz.cs" />
         <Compile Include="IndentationMain.cs" />
         <Compile Include="main.cs" />
+		<Compile Include="Html.cs" />
         <Compile Include="Run.cs" />
         <Compile Include="Solution.cs" />
     </ItemGroup>
