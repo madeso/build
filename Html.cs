@@ -2,7 +2,7 @@ namespace Workbench;
 
 internal class Html
 {
-    string str;
+    public string str = "";
 
     public void begin(string title)
     {

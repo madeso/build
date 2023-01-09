@@ -1,6 +1,6 @@
 using Spectre.Console;
 
-class Printer
+public class Printer
 {
     int error_count = 0;
     readonly List<string> errors = new();

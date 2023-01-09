@@ -1,71 +1,60 @@
 ﻿using Newtonsoft.Json;
 using System.Runtime.Serialization;
+using static Workbench.Graphviz;
 
 namespace Workbench.CMake;
 
-#if false
-fn find_cmake_in_registry(printer: &mut printer::Printer) -> found::Found
-{
-    let registry_source = "registry".to_string();
 
-    match registry::hklm(r"SOFTWARE\Kitware\CMake", "InstallDir")
+static class CmakeTools
+{
+    public static Found find_cmake_in_registry(Printer printer)
     {
-        Err(_) => found::Found::new(None, registry_source),
-        Ok(install_dir) =>
+        var registry_source = "registry";
+
+        var install_dir = Registry.hklm(@"SOFTWARE\Kitware\CMake", "InstallDir");
+        if (install_dir == null) { return new Found(null, registry_source); }
+
+        var path = Path.Join(install_dir, "bin", "cmake.exe");
+        if (File.Exists(path) == false)
         {
-            let bpath: PathBuf = [install_dir.as_str(), "bin", "cmake.exe"].iter().collect();
-            let spath = bpath.as_path();
-            let path = spath.to_str().unwrap();
-            if spath.exists()
-            {
-                found::Found::new(Some(path.to_string()), registry_source)
-            }
-            else
-            {
-                printer.error(format!("Found path to cmake in registry ({}) but it didn't exist", path).as_str());
-                found::Found::new(None, registry_source)
-            }
+            printer.error($"Found path to cmake in registry ({path}) but it didn't exist");
+            return new Found(null, registry_source);
         }
+
+        return new Found(path, registry_source);
+    }
+
+
+    public static Found find_cmake_in_path(Printer printer)
+    {
+        var path_source = "path";
+        var path = Which.Find("cmake");
+        if(path == null)
+        {
+            return new Found(null, path_source);
+        }
+
+        if (File.Exists(path) == false)
+        {
+            printer.error($"Found path to cmake in path ({path}) but it didn't exist");
+            return new Found(null, path_source);
+        }
+        return new Found(path, path_source);
+    }
+
+
+    public static IEnumerable<Found> list_all(Printer printer)
+    {
+        yield return find_cmake_in_registry(printer);
+        yield return find_cmake_in_path(printer);
+    }
+
+
+    public static string? find_cmake_executable(Printer printer)
+    {
+        return Found.first_value_or_none(list_all(printer));
     }
 }
-
-
-fn find_cmake_in_path(printer: &mut printer::Printer) -> found::Found
-{
-    let path_source = "path".to_string();
-    match which::which("cmake")
-    {
-        Err(_) => found::Found::new(None, path_source),
-        Ok(bpath) =>
-        {
-            let spath = bpath.as_path();
-            let path = spath.to_str().unwrap();
-            if spath.exists()
-            {
-                found::Found::new(Some(path.to_string()), path_source)
-            }
-            else
-            {
-                printer.error(format!("Found path to cmake in path ({}) but it didn't exist", path).as_str());
-                found::Found::new(None, path_source)
-            }
-        }
-    }
-}
-
-
-pub fn list_all(printer: &mut printer::Printer) -> Vec::<found::Found>
-{
-    vec![find_cmake_in_registry(printer), find_cmake_in_path(printer)]
-}
-
-
-fn find_cmake_executable(printer: &mut printer::Printer) -> Option<String>
-{
-    let list = list_all(printer);
-    found::first_value_or_none(&list)
-}
-#endif
 
 // a cmake argument
 public class Argument
@@ -109,8 +98,8 @@ public class Generator
         this.arch = arch;
     }
 
-    string generator { get; }
-    string? arch { get; }
+    public string generator { get; }
+    public string? arch { get; }
 }
 
 // utility to call cmake commands on a project
@@ -153,83 +142,67 @@ public class CMake
         this.add_argument("BUILD_SHARED_LIBS", "0");
     }
 
-#if false
     // run cmake configure step
     void config(Printer printer) { this.config_with_print(printer, false); }
     void config_with_print(Printer printer, bool only_print)
     {
-        let found_cmake = find_cmake_executable(printer);
-        let cmake = match found_cmake
+        var cmake = CmakeTools.find_cmake_executable(printer);
+        if(cmake == null)
         {
-            Some(f) => {f},
-            None =>
-            {
-                printer.error("CMake executable not found");
-                return;
-            }
-        };
+            printer.error("CMake executable not found");
+        }
         
-        let mut command = Command::new(cmake);
-        for arg in &this.arguments
+        var command = new Command(cmake);
+        foreach(var arg in this.arguments)
         {
-            let argument = arg.format_cmake_argument();
-            printer.info(format!("Setting CMake argument for config: {}", argument).as_str());
+            var argument = arg.format_cmake_argument();
+            printer.info($"Setting CMake argument for config: {argument}");
             command.arg(argument);
         }
 
-        command.arg(this.source_folder.to_string_lossy().to_string());
+        command.arg(this.source_folder);
         command.arg("-G");
-        command.arg(this.generator.generator.as_str());
-        match &this.generator.arch
+        command.arg(this.generator.generator);
+        if(generator.arch != null)
         {
-            Some(arch) =>
-            {
-                command.arg("-A");
-                command.arg(arch);
-            }
-            None => {}
+            command.arg("-A");
+            command.arg(generator.arch);
         }
         
-        core::verify_dir_exist(printer, &this.build_folder);
-        command.current_dir(this.build_folder.to_string_lossy().to_string());
+        Core.verify_dir_exist(printer, this.build_folder);
+        command.current_dir(this.build_folder);
         
-        if core::is_windows()
+        if(Core.is_windows())
         {
-            if only_print
+            if(only_print)
             {
-                printer.info(format!("Configuring cmake: {:?}", command).as_str());
+                printer.info($"Configuring cmake: {command}");
             }
             else
             {
-                // core::flush();
-                cmd::check_call(printer, &mut command);
+                command.check_call(printer);
             }
         }
         else
         {
-            printer.info(format!("Configuring cmake: {:?}", command).as_str());
+            printer.info($"Configuring cmake: {command}");
         }
     }
 
     // run cmake build step
     void build_cmd(Printer printer, bool install)
     {
-        let found_cmake = find_cmake_executable(printer);
-        let cmake = match found_cmake
+        var cmake = CmakeTools.find_cmake_executable(printer);
+        if (cmake == null)
         {
-            Some(f) => {f},
-            None =>
-            {
-                printer.error("CMake executable not found");
-                return;
-            }
-        };
+            printer.error("CMake executable not found");
+        }
 
-        let mut command = Command::new(cmake);
+        var command = new Command(cmake);
         command.arg("--build");
         command.arg(".");
 
-        if install
+        if(install)
         {
             command.arg("--target");
             command.arg("install");
@@ -237,17 +210,16 @@ public class CMake
         command.arg("--config");
         command.arg("Release");
 
-        core::verify_dir_exist(printer, &this.build_folder);
-        command.current_dir(this.build_folder.to_string_lossy().to_string());
+        Core.verify_dir_exist(printer, this.build_folder);
+        command.current_dir(this.build_folder);
 
-        if core::is_windows()
+        if(Core.is_windows())
         {
-            // core::flush()
-            cmd::check_call(printer, &mut command);
+            command.check_call(printer);
         }
         else
         {
-            printer.info(format!("Calling build on cmake: {:?}", command).as_str());
+            printer.info($"Found path to cmake in path ({command}) but it didn't exist");
         }
     }
 
@@ -262,7 +234,6 @@ public class CMake
     {
         this.build_cmd(printer, true);
     }
-#endif
 }
 
 [JsonObject(MemberSerialization.OptIn)]
