@@ -2,10 +2,31 @@ namespace Workbench;
 
 using System.Diagnostics;
 using System.Security.Cryptography;
+using System.Text;
+
+internal class CommandResult
+{
+    public int ExitCode { get; init; }
+    public string stdout { get; init; }
+
+    public CommandResult(int exitCode, string stdout)
+    {
+        this.ExitCode = exitCode;
+        this.stdout = stdout;
+    }
+
+    public void Print(Printer print)
+    {
+        if (string.IsNullOrWhiteSpace(stdout) == false)
+        {
+            print.info(stdout);
+        }
+    }
+}
 
 public class Command
 {
-    private int wait_for_exit(Printer print)
+    internal CommandResult wait_for_exit(Printer print)
     {
         // Prepare the process to run
         ProcessStartInfo start = new()
@@ -18,36 +39,29 @@ public class Command
             WorkingDirectory = workingDirectory
         };
 
-        using (Process? proc = Process.Start(start))
-        {
-            if(proc == null)
-            {
-                print.error("Unable to run command");
-                return -1;
-            }
-            proc.WaitForExit();
+        var proc = new Process { StartInfo = start };
+        var stdout = new StringBuilder();
+        proc.OutputDataReceived += (sender, e) => { stdout.AppendLine(e.Data); };
+        proc.ErrorDataReceived += (sender, e) => { stdout.AppendLine(e.Data); };
+        proc.Start();
 
-            var stdout = proc.StandardOutput.ReadToEnd().TrimEnd();
-            var stderr = proc.StandardError.ReadToEnd().TrimEnd();
-
-            if(string.IsNullOrWhiteSpace(stdout) == false)
-            {
-                print.info(stdout);
-            }
-            if(string.IsNullOrWhiteSpace(stderr) == false)
-            {
-                print.info(stderr);
-            }
-
-            return proc.ExitCode;
-        }
+        // required?
+        proc.BeginOutputReadLine();
+        proc.BeginErrorReadLine();
+        proc.WaitForExit();
+        
+        return new(proc.ExitCode, stdout.ToString());
     }
 
     private readonly string app;
 
-    public Command(string app)
+    public Command(string app, params string[] args)
     {
         this.app = app;
+        foreach(var a in args)
+        {
+            arg(a);
+        }
     }
 
     List<string> arguments = new();
@@ -119,14 +133,18 @@ public class Command
         return result;
     }
 
-    internal void check_call(Printer print)
+    internal CommandResult check_call(Printer print)
     {
         var ret = wait_for_exit(print);
         print.info($"Return value: {ret}");
-        if(ret != 0)
+        if(ret.ExitCode != 0)
         {
             print.error($"Failed to run command: {this}");
         }
+
+        ret.Print(print);
+
+        return ret;
     }
 
     internal void current_dir(string build_folder)

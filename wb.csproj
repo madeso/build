@@ -15,6 +15,7 @@
     </ItemGroup>
 
     <ItemGroup>
+		<Compile Include="ColCounter.cs" />
 		<Compile Include="StringExtensions.cs" />
 		
         <Compile Include="CMake.cs" />
@@ -27,6 +28,7 @@
 		<Compile Include="Command.cs" />
         <Compile Include="GitMain.cs" />
         <Compile Include="Graphviz.cs" />
+		<Compile Include="Clang.cs" />
         <Compile Include="IndentationMain.cs" />
         <Compile Include="main.cs" />
 		<Compile Include="Printer.cs" />
@@ -35,6 +37,7 @@
 		<Compile Include="Registry.cs" />
 		<Compile Include="Core.cs" />
         <Compile Include="Solution.cs" />
+		<Compile Include="ListHeaders.cs" />
 		<Compile Include="JsonUtil.cs" />
         <Compile Include="Which.cs" />
 		<Compile Include="CompileCommands.cs" />

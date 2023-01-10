@@ -31,16 +31,16 @@ internal class Main
     {
         config.AddBranch(name, cmake =>
         {
-            cmake.AddCommand<MissingPatternsCommand>("missing-patterns");
-            cmake.AddCommand<ListUnfixableCommand>("list-unfixable");
-            cmake.AddCommand<CheckCommand>("check");
-            cmake.AddCommand<FixCommand>("fix");
+            cmake.SetDescription("Check the order of the #include statements");
+            cmake.AddCommand<MissingPatternsCommand>("missing-patterns").WithDescription("Print headers that don't match any pattern so you can add more regexes");
+            cmake.AddCommand<ListUnfixableCommand>("list-unfixable").WithDescription("Print headers that can't be fixed");
+            cmake.AddCommand<CheckCommand>("check").WithDescription("Check for style errors and error out");
+            cmake.AddCommand<FixCommand>("fix").WithDescription("Fix style errors and print unfixable");
         });
     }
 }
 
 
-/// Print headers that don't match any pattern so you can add more regexes
 internal sealed class MissingPatternsCommand : Command<MissingPatternsCommand.Arg>
 {
     public sealed class Arg : MainCommandSettings
@@ -56,7 +56,7 @@ internal sealed class MissingPatternsCommand : Command<MissingPatternsCommand.Ar
     }
 }
 
-/// Print headers that can't be fixed
+
 internal sealed class ListUnfixableCommand : Command<ListUnfixableCommand.Arg>
 {
     public sealed class Arg : MainCommandSettings
@@ -77,7 +77,6 @@ internal sealed class ListUnfixableCommand : Command<ListUnfixableCommand.Arg>
 }
 
 
-/// Check for style errors and error out
 internal sealed class CheckCommand : Command<CheckCommand.Arg>
 {
     public sealed class Arg : MainCommandSettings
@@ -93,7 +92,7 @@ internal sealed class CheckCommand : Command<CheckCommand.Arg>
     }
 }
 
-/// Fix style errors and print unfixable
+
 internal sealed class FixCommand : Command<FixCommand.Arg>
 {
     public sealed class Arg : MainCommandSettings

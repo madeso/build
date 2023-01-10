@@ -4,7 +4,16 @@ using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Workbench;
+namespace Workbench.Indent;
+
+
+public static class Main
+{
+    public static void Configure(IConfigurator config, string name)
+    {
+        config.AddCommand<IndentationCommand>(name).WithDescription("Gets the max indentation level for source files");
+    }
+}
 
 
 internal class IndentInformation

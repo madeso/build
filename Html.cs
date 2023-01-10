@@ -92,9 +92,19 @@ internal class Html
     }
 
 
-    public static string safe_inspect_filename(string path)
+    internal static string safe_inspect_filename(string path, string extWithDot)
     {
-        return $"inspect_{safe_string(path)}.html";
+        return $"inspect_{safe_string(path)}{extWithDot}";
+    }
+
+    public static string safe_inspect_filename_html(string path)
+    {
+        return safe_inspect_filename(path, ".html");
+    }
+
+    public static string safe_inspect_filename_without_html(string path)
+    {
+        return safe_inspect_filename(path, "");
     }
 
 
@@ -106,7 +116,7 @@ internal class Html
 
     public static string inspect_filename_link(string path)
     {
-        var file = safe_inspect_filename(path);
+        var file = safe_inspect_filename_html(path);
         var name = get_filename(path);
 
         return $"<a href=\"{file}\">{name}</a>";

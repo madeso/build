@@ -7,12 +7,22 @@ The names comes from that I couldn't name the binary build so I went to wikipedi
 ## old readme
 Instead of keeping my crappy build scripts to build various things in a dropbox folder somewhere, I might aswell dump in a github project so I get version control and others can be subjected to the horrors (or might find it useful)
 
-## helpful regex for converting python to rust
+## helpful regex for converting rust to C#
 
-Replace : with {}
-    ^([ ]*)([^:]*):$
-    $1$2\n$1{\n$1}
+Change &foo to foo
+    &([a-zA-Z_][a-zA-Z_0-9]*)
+    $1
 
-Optional -> Option
-    typing\.Optional\[([^\]]+)\]
-    Option<$1>
+    Option<([a-zA-Z_][a-zA-Z_0-9]*)>
+    $1?
+
+Change
+    let -> var
+    fn -> static void
+    &str -> string
+    String -> string
+    :: -> .
+
+Remove
+    mut
+    .as_str()

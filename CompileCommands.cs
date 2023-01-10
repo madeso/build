@@ -141,7 +141,7 @@ internal class MainCommandSettings : CommandSettings
     }
 }
 
-/// list all files in the compile commands class
+
 internal sealed class FilesCommand : Command<FilesCommand.Arg>
 {
     public sealed class Arg : MainCommandSettings
@@ -168,7 +168,7 @@ internal sealed class FilesCommand : Command<FilesCommand.Arg>
     }
 }
 
-/// list include directories per file
+
 internal sealed class IncludesCommand : Command<IncludesCommand.Arg>
 {
     public sealed class Arg : MainCommandSettings
@@ -203,7 +203,6 @@ internal sealed class IncludesCommand : Command<IncludesCommand.Arg>
     }
 }
 
-/// list include directories per file
 internal sealed class DefinesCommand : Command<DefinesCommand.Arg>
 {
     public sealed class Arg : MainCommandSettings
@@ -238,16 +237,16 @@ internal sealed class DefinesCommand : Command<DefinesCommand.Arg>
     }
 }
 
-/// Tool to list headers
 internal static class Main
 {
     internal static void Configure(IConfigurator config, string name)
     {
         config.AddBranch(name, cmake =>
         {
-            cmake.AddCommand<FilesCommand>("files");
-            cmake.AddCommand<IncludesCommand>("includes");
-            cmake.AddCommand<DefinesCommand>("defines");
+            cmake.SetDescription("Tool to list headers");
+            cmake.AddCommand<FilesCommand>("files").WithDescription("list all files in the compile commands class");
+            cmake.AddCommand<IncludesCommand>("includes").WithDescription("list include directories per file");
+            cmake.AddCommand<DefinesCommand>("defines").WithDescription("list include directories per file");
         });
     }
 }
