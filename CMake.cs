@@ -143,7 +143,7 @@ public class CMake
 
     // run cmake configure step
     public void config(Printer printer) { this.config_with_print(printer, false); }
-    void config_with_print(Printer printer, bool only_print)
+    public void config_with_print(Printer printer, bool only_print)
     {
         var cmake = CmakeTools.find_cmake_executable(printer);
         if(cmake == null)

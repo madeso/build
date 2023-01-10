@@ -12,6 +12,12 @@ namespace Workbench
                     config.PropagateExceptions();
                     config.ValidateExamples();
 #endif
+
+                MinorCommands.Main.ConfigureLs(config, "ls");
+                MinorCommands.Main.ConfigureCat(config, "cat");
+                MinorCommands.Main.ConfigureDebug(config, "status");
+
+                Build.Main.Configure(config, "build");
                 Indent.Main.Configure(config, "indent");
                 Cmake.Main.Configure(config, "cmake");
                 Git.Main.Configure(config, "git");
@@ -19,6 +25,8 @@ namespace Workbench
                 CheckIncludes.Main.Configure(config, "check-includes");
                 ListHeaders.Main.Configure(config, "list-headers");
                 Clang.Main.Configure(config, "clang");
+
+                // todo(Gustav): header hero port
             });
             return app.Run(args);
         }

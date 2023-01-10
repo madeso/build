@@ -1,3 +1,5 @@
+using Spectre.Console.Cli;
+using System.ComponentModel;
 using System.Text.RegularExpressions;
 using Workbench.CMake;
 
@@ -116,15 +118,21 @@ public class BuildEnviroment
 }
 
 
-public class EnviromentArgument
+public class EnviromentArgument : CommandSettings
 {
-    // #[structopt(long)]
+    [Description("The compiler to use")]
+    [CommandOption("--compiler")]
+    [DefaultValue(null)]
     public Compiler? compiler { get; set; }
 
-    // #[structopt(long)]
+    [Description("The platform to use")]
+    [CommandOption("--platform")]
+    [DefaultValue(null)]
     public Platform? platform { get; set; }
 
-    // #[structopt(long)]
+    [Description("force a change if the compiler or platform differs from last time")]
+    [CommandOption("--force")]
+    [DefaultValue(false)]
     public bool force { get; set; }
 }
 
