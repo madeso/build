@@ -1,3 +1,5 @@
+namespace Workbench;
+
 public static class StringExtensions
 {
     public static string Repeat(this string text, int count)

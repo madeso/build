@@ -2,12 +2,11 @@
 using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using Workbench.CMake;
 
-namespace Workbench.Cmake;
+namespace Workbench.CMake;
 
 
-internal sealed class Trace : Command<Trace.Arg>
+internal sealed class TraceCommand : Command<TraceCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -22,7 +21,7 @@ internal sealed class Trace : Command<Trace.Arg>
 
         try
         {
-            var lines = CMake.Trace.TraceDirectory(settings.File);
+            var lines = Trace.TraceDirectory(settings.File);
             foreach (var li in lines)
             {
                 AnsiConsole.MarkupLine($"Running [green]{li.Cmd}[/].");
@@ -37,7 +36,7 @@ internal sealed class Trace : Command<Trace.Arg>
     }
 }
 
-internal sealed class Dot : Command<Dot.Arg>
+internal sealed class DotCommand : Command<DotCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -83,7 +82,7 @@ internal sealed class Dot : Command<Dot.Arg>
         {
             var ignores = settings.NamesToIgnore ?? Array.Empty<string>();
             AnsiConsole.MarkupLine($"Ignoring [red]{ignores.Length}[/] projects.");
-            var lines = CMake.Trace.TraceDirectory(settings.File);
+            var lines = Trace.TraceDirectory(settings.File);
             var solution = Solution.Parse(lines);
 
             if (settings.RemoveInterface)
@@ -130,8 +129,8 @@ internal class Main
     {
         config.AddBranch(name, cmake =>
         {
-            cmake.AddCommand<Trace>("trace");
-            cmake.AddCommand<Dot>("dot");
+            cmake.AddCommand<TraceCommand>("trace");
+            cmake.AddCommand<DotCommand>("dot");
         });
     }
 }

@@ -20,7 +20,7 @@ namespace Workbench
 
                 Build.Main.Configure(config, "build");
                 Indent.Main.Configure(config, "indent");
-                Cmake.Main.Configure(config, "cmake");
+                CMake.Main.Configure(config, "cmake");
                 Git.Main.Configure(config, "git");
                 CompileCommands.Main.Configure(config, "compile-commands");
                 CheckIncludes.Main.Configure(config, "check-includes");

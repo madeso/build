@@ -1,3 +1,5 @@
+namespace Workbench;
+
 using Spectre.Console;
 
 public class Printer

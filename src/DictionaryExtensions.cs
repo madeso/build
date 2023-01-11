@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
 
-namespace WorkBench;
+namespace Workbench;
 
 public static class DictionaryExtensions
 {
