@@ -3,71 +3,108 @@ namespace Workbench;
 using System.Diagnostics;
 using System.Text;
 
+internal record ProcessExit(string CommandLine, int ExitCode);
+
 internal class CommandResult
 {
-    public int ExitCode { get; init; }
-    public string stdout { get; init; }
+    public string CommandLine { get; private init; }
+    public int ExitCode { get; private init; }
+    public string[] Output { get; private init; }
 
-    public CommandResult(int exitCode, string stdout)
+    public CommandResult(ProcessExit pe, string[] output)
     {
-        this.ExitCode = exitCode;
-        this.stdout = stdout;
+        CommandLine = pe.CommandLine;
+        ExitCode = pe.ExitCode;
+        this.Output = output;
     }
 
-    public void Print(Printer print)
+    public CommandResult PrintOutput(Printer print)
     {
-        if (string.IsNullOrWhiteSpace(stdout) == false)
+        foreach(var line in this.Output)
         {
-            print.info(stdout);
+            print.info(line);
         }
+
+        return this;
+    }
+
+    public CommandResult PrintStatus(Printer print)
+    {
+        print.info($"Return value: {ExitCode}");
+        if (ExitCode != 0)
+        {
+            print.error($"Failed to run command: {CommandLine}");
+        }
+
+        return this;
+    }
+
+    public CommandResult PrintStatusAndUpdate(Printer print)
+    {
+        this.PrintStatus(print);
+        this.PrintOutput(print);
+        return this;
     }
 }
 
 public class Command
 {
-    internal CommandResult wait_for_exit(Printer print)
+    internal ProcessExit RunWithCallback(Action<string> onLine)
     {
         // Prepare the process to run
         ProcessStartInfo start = new()
         {
             Arguments = CollectArguments(),
-            FileName = app,
+            FileName = Executable,
+            UseShellExecute = false,
+
+            WorkingDirectory = WorkingDirectory ?? Environment.CurrentDirectory,
+
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            UseShellExecute = false,
-            WorkingDirectory = workingDirectory
         };
 
         var proc = new Process { StartInfo = start };
-        var stdout = new StringBuilder();
-        proc.OutputDataReceived += (sender, e) => { stdout.AppendLine(e.Data); };
-        proc.ErrorDataReceived += (sender, e) => { stdout.AppendLine(e.Data); };
-        proc.Start();
+        proc.OutputDataReceived += (sender, e) => { if(e.Data != null) { onLine(e.Data); } };
+        proc.ErrorDataReceived += (sender, e) => { if(e.Data != null) { onLine(e.Data); } };
 
-        // required?
+        proc.Start();
         proc.BeginOutputReadLine();
         proc.BeginErrorReadLine();
         proc.WaitForExit();
 
-        return new(proc.ExitCode, stdout.ToString());
+        return new(this.ToString(), proc.ExitCode);
     }
 
-    private readonly string app;
-
-    public Command(string app, params string[] args)
+    internal CommandResult RunAndGetOutput()
     {
-        this.app = app;
-        foreach (var a in args)
+        var output = new List<string>();
+
+        var ret = RunWithCallback(line => output.Add(line));
+
+        return new(ret, output.ToArray());
+    }
+
+    private string Executable { get; }
+    private readonly List<string> arguments = new();
+    public string? WorkingDirectory { get; set; } = "";
+
+    public Command(string executable, params string[] arguments)
+    {
+        this.Executable = executable;
+        foreach (var arg in arguments)
         {
-            arg(a);
+            AddArgument(arg);
         }
     }
 
-    List<string> arguments = new();
+    public Command InDirectory(string directory)
+    {
+        this.WorkingDirectory = directory;
+        return this;
+    }
 
-    private string workingDirectory = "";
-
-    internal void arg(string argument)
+    internal void AddArgument(string argument)
     {
         arguments.Add(argument);
     }
@@ -132,28 +169,9 @@ public class Command
         return result;
     }
 
-    internal CommandResult check_call(Printer print)
-    {
-        var ret = wait_for_exit(print);
-        print.info($"Return value: {ret}");
-        if (ret.ExitCode != 0)
-        {
-            print.error($"Failed to run command: {this}");
-        }
-
-        ret.Print(print);
-
-        return ret;
-    }
-
-    internal void current_dir(string build_folder)
-    {
-        workingDirectory = build_folder;
-    }
-
     public override string ToString()
     {
         var args = CollectArguments();
-        return $"{app} {args}";
+        return $"{Executable} {args}";
     }
 }

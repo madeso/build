@@ -14,10 +14,10 @@ internal class Store
 
 internal class TidyOutput
 {
-    public string Output { get; init; }
+    public string[] Output { get; init; }
     public TimeSpan Taken { get; init; }
 
-    public TidyOutput(string output, TimeSpan taken)
+    public TidyOutput(string[] output, TimeSpan taken)
     {
         Output = output;
         Taken = taken;
@@ -26,11 +26,11 @@ internal class TidyOutput
 
 internal class TidyStore
 {
-    public string Output { get; init; }
+    public string[] Output { get; init; }
     public TimeSpan Taken { get; init; }
     public DateTime Modifed { get; init; }
 
-    public TidyStore(string output, TimeSpan taken, DateTime modified)
+    public TidyStore(string[] output, TimeSpan taken, DateTime modified)
     {
         Output = output;
         Taken = taken;
@@ -264,7 +264,7 @@ internal static class F
         return null;
     }
 
-    private static void set_existing_output(Store store, Printer printer, string root, string project_build_folder, string source_file, string existing_output, TimeSpan time)
+    private static void set_existing_output(Store store, Printer printer, string root, string project_build_folder, string source_file, string[] existing_output, TimeSpan time)
     {
         var root_file = clang_tidy_root(root);
         var data = new TidyStore(existing_output, time, get_last_modification(new string[] { root_file, source_file }));
@@ -285,29 +285,29 @@ internal static class F
         }
 
         var command = new Command(tidy_path);
-        command.arg("-p");
-        command.arg(project_build_folder);
+        command.AddArgument("-p");
+        command.AddArgument(project_build_folder);
         if (fix)
         {
-            command.arg("--fix");
+            command.AddArgument("--fix");
         }
-        command.arg(source_file);
+        command.AddArgument(source_file);
 
         name_printer.print_name();
         var start = new DateTime();
-        var output = command.wait_for_exit(printer);
+        var output = command.RunAndGetOutput();
 
         if (output.ExitCode != 0)
         {
             printer.error($"Error: {output.ExitCode}");
-            output.Print(printer);
+            output.PrintOutput(printer);
             // System.Exit(-1);
         }
 
         var end = new DateTime();
         var took = end - start;
-        set_existing_output(store, printer, root, project_build_folder, source_file, output.stdout, took);
-        return new TidyOutput(output.stdout, took);
+        set_existing_output(store, printer, root, project_build_folder, source_file, output.Output, took);
+        return new TidyOutput(output.Output, took);
     }
 
     // runs the clang-tidy process, printing status to terminal
@@ -326,7 +326,7 @@ internal static class F
         stats.add(printable_file, time_taken);
         var print_empty = false;
         var hidden = only.Length > 0;
-        foreach (var line in output.Split("\n"))
+        foreach (var line in output)
         {
             if (line.Contains("warnings generated"))
             {
@@ -608,10 +608,10 @@ internal static class F
                 printer.info(Path.GetRelativePath(source_file, root));
                 if (args_nop == false)
                 {
-                    var res = new Command("clang-format", "-i", source_file).wait_for_exit(printer);
+                    var res = new Command("clang-format", "-i", source_file).RunAndGetOutput();
                     if (res.ExitCode != 0)
                     {
-                        res.Print(printer);
+                        res.PrintOutput(printer);
                         return -1;
                     }
                 }

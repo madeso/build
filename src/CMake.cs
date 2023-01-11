@@ -157,20 +157,20 @@ public class CMake
         {
             var argument = arg.format_cmake_argument();
             printer.info($"Setting CMake argument for config: {argument}");
-            command.arg(argument);
+            command.AddArgument(argument);
         }
 
-        command.arg(this.source_folder);
-        command.arg("-G");
-        command.arg(this.generator.generator);
+        command.AddArgument(this.source_folder);
+        command.AddArgument("-G");
+        command.AddArgument(this.generator.generator);
         if (generator.arch != null)
         {
-            command.arg("-A");
-            command.arg(generator.arch);
+            command.AddArgument("-A");
+            command.AddArgument(generator.arch);
         }
 
         Core.verify_dir_exist(printer, this.build_folder);
-        command.current_dir(this.build_folder);
+        command.WorkingDirectory = this.build_folder;
 
         if (Core.is_windows())
         {
@@ -180,7 +180,7 @@ public class CMake
             }
             else
             {
-                command.check_call(printer);
+                command.RunAndGetOutput().PrintStatusAndUpdate(printer);
             }
         }
         else
@@ -200,23 +200,23 @@ public class CMake
         }
 
         var command = new Command(cmake);
-        command.arg("--build");
-        command.arg(".");
+        command.AddArgument("--build");
+        command.AddArgument(".");
 
         if (install)
         {
-            command.arg("--target");
-            command.arg("install");
+            command.AddArgument("--target");
+            command.AddArgument("install");
         }
-        command.arg("--config");
-        command.arg("Release");
+        command.AddArgument("--config");
+        command.AddArgument("Release");
 
         Core.verify_dir_exist(printer, this.build_folder);
-        command.current_dir(this.build_folder);
+        command.WorkingDirectory = this.build_folder;
 
         if (Core.is_windows())
         {
-            command.check_call(printer);
+            command.RunAndGetOutput().PrintStatusAndUpdate(printer);
         }
         else
         {
