@@ -161,25 +161,30 @@ public struct BuildData
 
     public static BuildData? load_from_dir(string root, Printer print)
     {
-        var file = Path.Join(root, "project.wb.json");
-        if(File.Exists(file) == false)
+        string file = GetBuildDataPath(root);
+        if (File.Exists(file) == false)
         {
             print.error($"Unable to read file: {file}");
             return null;
         }
         var content = File.ReadAllText(file);
         var loaded = JsonUtil.Parse<ProjectFile>(print, file, content);
-        if(loaded == null)
+        if (loaded == null)
         {
             return null;
         }
 
         var bd = new BuildData(loaded.name, root, loaded.includes, print);
-        foreach(var dependency_name in loaded.dependencies)
+        foreach (var dependency_name in loaded.dependencies)
         {
             bd.dependencies.Add(Dependencies.CreateDependency(dependency_name, bd));
         }
         return bd;
+    }
+
+    public static string GetBuildDataPath(string root)
+    {
+        return Path.Join(root, "project.wb.json");
     }
 
     public static BuildData? load(Printer print)

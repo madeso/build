@@ -1,5 +1,6 @@
 using Spectre.Console.Cli;
 using System.ComponentModel;
+using System.Data;
 using System.Diagnostics.CodeAnalysis;
 using Workbench;
 using Workbench.CMake;
@@ -15,6 +16,7 @@ internal class Main
         config.AddBranch(name, cmake =>
         {
             cmake.SetDescription("Build commands for windows");
+            cmake.AddCommand<InitCommand>("init").WithDescription("Create a build command");
             cmake.AddCommand<StatusCommand>("status").WithDescription("Print the status of the build");
             cmake.AddCommand<InstallCommand>("install").WithDescription("Install dependencies");
             cmake.AddCommand<CmakeCommand>("cmake").WithDescription("Configure cmake project");
@@ -24,6 +26,42 @@ internal class Main
     }
 }
 
+internal sealed class InitCommand : Command<InitCommand.Arg>
+{
+    public sealed class Arg : CommandSettings
+    {
+        [Description("If output exists, force overwrite")]
+        [CommandOption("--overwrite")]
+        [DefaultValue(false)]
+        public bool Overwrite { get; set; }
+    }
+
+    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    {
+        return CommonExecute.WithPrinter(print =>
+        {
+            var path = BuildData.GetBuildDataPath(Environment.CurrentDirectory);
+            var data = new ProjectFile
+            {
+                name = new DirectoryInfo(Environment.CurrentDirectory).Name
+            };
+            data.includes.Add(new(){ "list of regexes", "that are used by check-includes" });
+            data.includes.Add(new(){ "they are grouped into arrays, there needs to be a space between each group" });
+            data.dependencies.AddRange(Enum.GetValues<DependencyName>());
+
+            var content = JsonUtil.Write(data);
+            if(settings.Overwrite == false && File.Exists(path) )
+            {
+                print.error($"{path} already exist and overwrite was not requested");
+                return -1;
+            }
+
+            File.WriteAllText(path, content);
+            print.info($"Wrote {path}");
+            return 0;
+        });
+    }
+}
 
 internal sealed class StatusCommand : Command<StatusCommand.Arg>
 {
