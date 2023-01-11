@@ -1,0 +1,301 @@
+﻿using System.ComponentModel;
+using System.Linq;
+
+namespace Workbench.Hero;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// MainForm
+
+
+internal static class Ui
+{
+
+    public static void scan_and_generate_html(Printer printer, Data.UserInput input, Data.OutputFolders root)
+    {
+        var project = new Data.Project(input);
+        var scanner = new Parser.Scanner();
+        var feedback = new Parser.ProgressFeedback(printer);
+        scanner.rescan(project, feedback);
+        generate_report(root, project, scanner);
+    }
+
+    public static void scan_and_generate_dot(Printer printer, Data.UserInput input, Data.OutputFolders root, bool simplifyGraphviz, bool onlyHeaders, string[] exclude, bool cluster)
+    {
+        var project = new Data.Project(input);
+        var scanner = new Parser.Scanner();
+        var feedback = new Parser.ProgressFeedback(printer);
+        scanner.rescan(project, feedback);
+        generate_dot(printer, root, project, scanner, simplifyGraphviz, onlyHeaders, exclude, input, cluster);
+    }
+
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    // ReportForm
+
+    static bool is_header(string path)
+    {
+        return Path.GetExtension(path) switch
+        {
+            "" => true,
+            ".h" => true,
+            ".hpp" => true,
+            _ => false
+        };
+    }
+
+    static bool file_is_in_file_list(string f, IEnumerable<string> list)
+    {
+        var ff = new FileInfo(f);
+        foreach(var p in list)
+        {
+            var pp = new FileInfo(p);
+
+            // todo(Gustav): improve this match
+            if(ff.FullName== pp.FullName)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static bool exclude_file(string file, Data.UserInput input, bool only_headers, IEnumerable<string> exclude)
+    {
+        if(file_is_in_file_list(file, input.project_directories))
+        {
+            // explicit inlcuded... then it's not excluded
+            return false;
+        }
+        else if(only_headers && is_header(file) == false)
+        {
+            return true;
+        }
+        else if(file_is_in_file_list(file, exclude))
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    static void generate_dot(Printer print, Data.OutputFolders root, Data.Project project, Parser.Scanner scanner, bool simplifyGraphviz, bool onlyHeaders, string[] exclude, Data.UserInput input, bool cluster)
+    {
+        var analytics = Parser.Analytics.analyze(project);
+        var gv = new Graphviz();
+
+        foreach(var file in project.scanned_files.Keys)
+        {
+            if(exclude_file(file, input, onlyHeaders, exclude))
+            {
+                print.info($"{file} rejected due to non-header");
+                continue;
+            }
+            else
+            {
+                print.info($"{file} added as a node");
+            }
+            var display_name = Html.get_filename(root.InputRoot, file);
+            var node_id = Html.safe_inspect_filename_without_html(file);
+            var addedNode = gv.add_node_with_id(display_name, "box", node_id);
+            if(cluster)
+            {
+                var parent = new FileInfo(file).Directory?.FullName;
+                if(parent != null)
+                {
+                    addedNode.cluster = Path.GetRelativePath(root.InputRoot, parent);
+                }
+            }
+        }
+
+        foreach(var file in project.scanned_files.Keys)
+        {
+            if (exclude_file(file, input, onlyHeaders, exclude))
+            {
+                print.info($"{file} rejected due to non-header");
+                continue;
+            }
+
+            var from_file = Html.safe_inspect_filename_without_html(file);
+            var from_id = gv.get_node_id(from_file);
+            if(from_id == null)
+            {
+                throw new Exception("BUG: Node not added");
+            }
+
+            foreach(var s in project.scanned_files[file].absolute_includes)
+            {
+                if (exclude_file(s, input, onlyHeaders, exclude))
+                {
+                    print.info($"{s} rejected due to non-header");
+                    continue;
+                }
+
+                var to_file = Html.safe_inspect_filename_without_html(s);
+                var to_id = gv.get_node_id(to_file);
+                if (to_id == null)
+                {
+                    throw new Exception("BUG: Node not added");
+                }
+
+                // todo(Gustav): add edge label
+                // let display_count    = rust::num_format(length_fun(&analytics.file_to_data[s]));
+                // let display_lines    = rust::num_format(analytics.file_to_data[s].total_included_lines);
+                gv.AddEdge(from_id, to_id);
+            }
+        }
+
+        if(simplifyGraphviz)
+        {
+            gv.Simplify();
+        }
+
+        gv.write_file_to(root.OutputDirectory);
+    }
+
+    static void generate_report(Data.OutputFolders root, Data.Project project, Parser.Scanner scanner)
+    {
+        {
+            var html = new Html();
+            html.begin("Errors");
+            foreach(var s in scanner.errors)
+            {
+                html.push_str($"<p>{s}</p>");
+            }
+            html.push_str("<h1>Unhandled extensions</h1>");
+            foreach(var (ext, count) in scanner.missing_ext.MostCommon())
+            {
+                html.push_str($"<p>{ext} {count}</p>");
+            }
+            html.end();
+
+            var path = Path.Join(root.OutputDirectory, "errors.html");
+            html.write_to_file(path);
+        }
+    
+        {
+            var html = new Html();
+            html.begin("Missing");
+            // todo(Gustav): sort missing on paths or count?
+            foreach(var (include_path, origins) in scanner.not_found_origins)
+            {
+                var count = origins.Count;
+                var s = count == 1 ? "" : "s";
+                html.push_str($"<div class=\"missing\">{include_path} from <span class=\"num\">{count}</span> file{s} <ul>");
+            
+                foreach(var file in origins)
+                {
+                    html.push_str($"<li>{Html.inspect_filename_link(root.InputRoot, file)}</li>");
+                }
+                html.push_str("</ul></div>");
+
+            }
+            html.end();
+
+            var path = Path.Join(root.OutputDirectory, "missing.html");
+            html.write_to_file(path);
+        }
+
+        var analytics = Parser.Analytics.analyze(project);
+        Html.write_css_file(root.OutputDirectory);
+        Parser.Report.generate_index_page(root, project, analytics);
+
+        foreach(var f in project.scanned_files.Keys)
+        {
+            write_inspection_page(root, f, project, analytics);
+        }
+    }
+
+
+    static void write_inspect_header_table
+    (
+        Html html,
+        Data.OutputFolders root,
+        Parser.Analytics analytics,
+        IEnumerable<string> included,
+        string klass,
+        string header,
+        Func<Parser.ItemAnalytics, int> length_fun
+    )
+    {
+        html.push_str($"<div id=\"{klass}\">\n");
+        html.push_str($"<h2>{header}</h2>\n");
+        html.push_str("<table class=\"list\">\n");
+        html.push_str("<tr>  <th class=\"file\">File</th>  <th>Count</th>  <th>Lines</th>  </tr>\n");
+
+        foreach (var s in included.OrderByDescending(s => length_fun(analytics.file_to_data[s])))
+        {
+            var display_filename = Html.inspect_filename_link(root.InputRoot, s);
+            var display_count    = Core.num_format(length_fun(analytics.file_to_data[s]));
+            var display_lines    = Core.num_format(analytics.file_to_data[s].total_included_lines);
+
+            html.push_str($"<tr><td class=\"file\">{display_filename}</td> <td class=\"num\">{display_count}</td> <td class=\"num\">{display_lines}</td></tr>");
+        }
+
+        html.push_str("</table>\n");
+        html.push_str("</div>\n");
+    }
+
+
+    static void write_inspection_page(Data.OutputFolders root, string file, Data.Project project, Parser.Analytics analytics)
+    {
+        var html = new Html();
+
+        var display_name = Html.get_filename(root.InputRoot, file);
+
+        html.begin($"Inspecting - {display_name}");
+
+        write_inspect_header_table
+        (
+            html, root,
+            analytics,
+            project.scanned_files
+                .Where(kvp => kvp.Value.absolute_includes.Contains(file))
+                .Select(kvp => kvp.Key),
+            "included_by", $"Theese include {display_name}",
+            it => it.all_included_by.Count
+        );
+    
+        {
+            html.push_str("<div id=\"file\">\n");
+
+            var project_file = project.scanned_files[file];
+            var analytics_file = analytics.file_to_data[file];
+            var file_lines = Core.num_format(project_file.number_of_lines);
+            var direct_lines = Core.num_format(project_file.absolute_includes.Select(f => project.scanned_files[f].number_of_lines).Sum());
+            var direct_count = Core.num_format(project_file.absolute_includes.Count);
+            var total_lines = Core.num_format(analytics_file.total_included_lines);
+            var total_count = Core.num_format(analytics_file.all_includes.Count);
+        
+            html.push_str($"<h2>{display_name}</h2>\n");
+
+            html.push_str("<table class=\"summary\">");
+
+            html.push_str(         "<tr>  <th></th>                 <th>Lines</th>              <th>Files</th>           </tr>\n");
+            html.push_str($"<tr>  <th>Lines:</th>           <td class=\"num\">{file_lines}</td>   <td class=\"num\">1</td> </tr>\n");
+            html.push_str($"<tr>  <th>Direct Includes:</th> <td class=\"num\">{direct_lines}</td>  <td class=\"num\">{direct_count}</td>  </tr>\n");
+            html.push_str($"<tr>  <th>Total Includes:</th>  <td class=\"num\">{total_lines}</td>  <td class=\"num\">{total_count}</td> </tr>\n");
+
+            html.push_str("</table>");
+
+            html.push_str("</div>\n");
+        }
+
+        write_inspect_header_table
+        (
+            html, root,
+            analytics,
+            project.scanned_files[file].absolute_includes,
+            "includes", $"{display_name} includes theese",
+            it => it.all_includes.Count
+        );
+
+        html.end();
+
+        var filename = Html.safe_inspect_filename_html(file);
+        var path = Path.Join(root.OutputDirectory, filename);
+        html.write_to_file(path);
+    }
+
+}

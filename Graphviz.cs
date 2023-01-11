@@ -1,4 +1,6 @@
-﻿namespace Workbench;
+﻿using System.Collections.Immutable;
+
+namespace Workbench;
 
 
 public class Graphviz
@@ -8,7 +10,7 @@ public class Graphviz
         public readonly string id;
         public readonly string display;
         public readonly string shape;
-        public readonly string? cluster;
+        public string? cluster;
 
         public Node(string id, string display, string shape, string? cluster)
         {
@@ -16,6 +18,11 @@ public class Graphviz
             this.display = display;
             this.shape = shape;
             this.cluster = cluster;
+        }
+
+        public override string ToString()
+        {
+            return display;
         }
     }
 
@@ -29,23 +36,28 @@ public class Graphviz
             this.from = from;
             this.to = to;
         }
+
+        public override string ToString()
+        {
+            return $"{from} -> {to}";
+        }
     }
 
     readonly List<Node> nodes = new();
-    readonly Dictionary<string, int> id_to_node = new();
+    readonly Dictionary<string, Node> id_to_node = new();
     readonly List<Edge> edges = new();
 
     public Node add_node_with_id(string display, string shape, string id)
     {
-        var index = this.nodes.Count;
-        this.id_to_node.Add(id, index);
-        this.nodes.Add(new Node(id, display, shape, cluster: null));
-        return this.nodes[index];
+        var newNode = new Node(id, display, shape, cluster: null);
+        this.id_to_node.Add(id, newNode);
+        this.nodes.Add(newNode);
+        return newNode;
     }
 
     public string GetUniqueId(string display)
     {
-        var id = ReplaceNonId(display.ToLower().Trim().Replace(" ", ""));
+        var id = ConvertIntoSafeId(display, "node");
         var baseId = id;
         var index = 2;
         while (this.id_to_node.ContainsKey(id) == true)
@@ -62,31 +74,33 @@ public class Graphviz
         return add_node_with_id(display, shape, id);
     }
 
-    private static string ReplaceNonId(string v)
+    private static string ConvertIntoSafeId(string a, string defaultName)
     {
-        string r = string.Empty;
+        var suggestedId = a.ToLower().Trim().Replace(" ", "");
+        
+        string cleanedId = string.Empty;
         bool first = true;
-        foreach (var c in v)
+        foreach (var c in suggestedId)
         {
             if (first && char.IsLetter(c) || c == '_')
             {
-                r += c;
+                cleanedId += c;
             }
             else if (char.IsLetter(c) || char.IsNumber(c) || c == '_')
             {
-                r += c;
+                cleanedId += c;
             }
         }
 
-        if (r.Length == 0)
+        if (cleanedId.Length == 0)
         {
-            return "node";
+            return defaultName;
         }
 
-        return r;
+        return cleanedId;
     }
 
-    private int? get_node_id(string id)
+    public Node? get_node_id(string id)
     {
         if(this.id_to_node.TryGetValue(id, out var ret))
         {
@@ -122,13 +136,13 @@ public class Graphviz
                 var indent = string.Empty;
                 if (cluster != null)
                 {
-                    yield return $"    subgraph cluster_{cluster} {{\n";
+                    yield return $"    subgraph cluster_{ConvertIntoSafeId(cluster, "cluster")} {{\n";
                     indent = "    ";
                 }
 
                 foreach (var n in nodes)
                 {
-                    yield return $"    {indent}{n.id} [label=\"{n.display}\" shape={n.shape}];\n";
+                    yield return $"    {indent}{n.id} [label=\"{Escape(n.display)}\" shape={n.shape}];\n";
                 }
 
                 if (cluster != null)
@@ -147,6 +161,21 @@ public class Graphviz
 
             yield return "}\n";
         }
+    }
+
+    private string Escape(string display)
+    {
+        string r = "";
+        foreach(var c  in display)
+        {
+            r += c switch
+            {
+                '\\' => @"\\",
+                '"' => "\\\"",
+                _ => c
+            };
+        }
+        return r;
     }
 
     private IEnumerable<Node> get_all_dependencies_for_node(Node thisnode)
@@ -197,7 +226,7 @@ public class Graphviz
             this.deep_add_all_dependencies(se, node, false);
 
             // get all dependencies from current, and remove all from list
-            var deps = this.get_all_dependencies_for_node(node);
+            var deps = this.get_all_dependencies_for_node(node).ToImmutableArray();
             this.edges.RemoveAll(e => e.from == node);
 
             // add them back

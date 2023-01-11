@@ -111,3 +111,5 @@ bin/*
 obj/*
 .vs/*
 Properties/*
+
+junk/

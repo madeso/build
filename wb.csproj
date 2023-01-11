@@ -15,6 +15,12 @@
     </ItemGroup>
 
     <ItemGroup>
+		<Compile Include="DictionaryExtensions.cs" />
+		<Compile Include="HeroData.cs" />
+		<Compile Include="HeroParser.cs" />
+		<Compile Include="HeroUi.cs" />
+		<Compile Include="HeroMain.cs" />
+		
 		<Compile Include="Build.cs" />
 		<Compile Include="BuildData.cs" />
 		<Compile Include="BuildEnv.cs" />

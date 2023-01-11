@@ -4,6 +4,11 @@ internal class Html
 {
     public string str = "";
 
+    public void push_str(string s)
+    {
+        str += s;
+    }
+
     public void begin(string title)
     {
         begin_x(title, true);
@@ -108,16 +113,16 @@ internal class Html
     }
 
 
-    public static string get_filename(string path)
+    public static string get_filename(string root, string path)
     {
-        return path;
+        return Path.GetRelativePath(root, path);
     }
 
 
-    public static string inspect_filename_link(string path)
+    public static string inspect_filename_link(string root, string path)
     {
         var file = safe_inspect_filename_html(path);
-        var name = get_filename(path);
+        var name = get_filename(root, path);
 
         return $"<a href=\"{file}\">{name}</a>";
     }
@@ -129,6 +134,11 @@ internal class Html
     public static void write_css_file(string root)
     {
         File.WriteAllText(path_to_css_file(root), CSS_SOURCE);
+    }
+
+    internal void write_to_file(string path)
+    {
+        File.WriteAllText(path, str);
     }
 
     const string CSS_SOURCE = @"

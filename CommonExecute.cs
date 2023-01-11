@@ -5,7 +5,9 @@ public static class CommonExecute
     public static int WithPrinter(Func<Printer, int> callback)
     {
         var printer = new Printer();
-        return callback(printer);
+        var ret = callback(printer);
+        printer.exit_with_code();
+        return ret;
     }
 
     public static int WithLoadedBuildData(Func<Printer, BuildData, int> callback)

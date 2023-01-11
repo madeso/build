@@ -26,7 +26,7 @@ namespace Workbench
                 ListHeaders.Main.Configure(config, "list-headers");
                 Clang.Main.Configure(config, "clang");
 
-                // todo(Gustav): header hero port
+                Hero.Main.Configure(config, "hero");
             });
             return app.Run(args);
         }
