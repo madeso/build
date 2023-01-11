@@ -21,7 +21,11 @@ public static class Git
 {
     public static IEnumerable<GitStatusEntry> Status(string folder)
     {
-        var output = Run.GetOutput(Run.CreateProcessInFolder("git", "status --porcelain=v1", folder));
+        var output = new Command("git", "status", "--porcelain=v1")
+            .InDirectory(folder)
+            .RunAndGetOutput()
+            .RequireSuccess()
+            ;
         foreach (var item in output)
         {
             if (string.IsNullOrWhiteSpace(item)) { continue; }

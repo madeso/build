@@ -285,7 +285,11 @@ public class Trace
             error.Add(src);
         }
 
-        int ret = Run.GetOutput(Run.CreateProcessInFolder("cmake", "--trace-format=json-v1", dir), m => on_line(m), e => on_line(e));
+        var ret = new Command("cmake", "--trace-format=json-v1")
+            .InDirectory(dir)
+            .RunWithCallback(on_line)
+            .ExitCode
+            ;
 
         if (ret != 0)
         {

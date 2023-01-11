@@ -46,7 +46,6 @@
         <Compile Include="src/Graphviz.cs" />
         <Compile Include="src/IndentationMain.cs" />
         <Compile Include="src/main.cs" />
-        <Compile Include="src/Run.cs" />
         <Compile Include="src/Solution.cs" />
         <Compile Include="src/Which.cs" />
     </ItemGroup>

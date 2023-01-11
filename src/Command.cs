@@ -18,6 +18,17 @@ internal class CommandResult
         this.Output = output;
     }
 
+    public string[] RequireSuccess()
+    {
+        if (ExitCode != 0)
+        {
+            var outputString = string.Join('\n', Output);
+            throw new Exception($"{CommandLine} has exit code {ExitCode}:\n{outputString}");
+        }
+
+        return this.Output;
+    }
+
     public CommandResult PrintOutput(Printer print)
     {
         foreach(var line in this.Output)
