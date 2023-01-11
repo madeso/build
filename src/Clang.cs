@@ -2,10 +2,7 @@ using Spectre.Console;
 using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using static Workbench.Graphviz;
 
 namespace Workbench.Clang;
 
@@ -52,7 +49,7 @@ internal class FileStatistics
 
     internal void print_data()
     {
-        if(this.data.Count == 0) { return; }
+        if (this.data.Count == 0) { return; }
         var average_value = TimeSpan.FromSeconds(data.Average(x => x.Value.TotalSeconds));
         var mi = data.MinBy(x => x.Value);
         var ma = data.MaxBy(x => x.Value);
@@ -74,12 +71,12 @@ internal class NamePrinter
     }
 
     internal void print_name()
-   {
-        if(printed) { return; }
+    {
+        if (printed) { return; }
 
         AnsiConsole.WriteLine(this.name);
         this.printed = true;
-   }
+    }
 }
 
 internal static class F
@@ -116,7 +113,7 @@ internal static class F
     private static bool is_file_ignored(string path)
     {
         var lines = File.ReadAllLines(path);
-        if(lines.Length == 0) { return false; }
+        if (lines.Length == 0) { return false; }
 
         var firstLine = lines[0];
         return firstLine.StartsWith("// clang-tidy: ignore");
@@ -124,10 +121,10 @@ internal static class F
 
     private static IEnumerable<string> list_files_in_folder(string path, string[] extensions)
     {
-        foreach(var f in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+        foreach (var f in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
         {
             var ext = Path.GetExtension(f);
-            if(extensions.Contains(ext))
+            if (extensions.Contains(ext))
             {
                 yield return f;
             }
@@ -145,12 +142,12 @@ internal static class F
         var clang_tidy_file = File.ReadAllLines(clang_tidy_root(root));
         var write = false;
         var checks = new List<string>();
-        foreach(var line in clang_tidy_file)
+        foreach (var line in clang_tidy_file)
         {
-            if(write)
+            if (write)
             {
                 var l = line.TrimEnd();
-                if(false == l.TrimStart().StartsWith("//"))
+                if (false == l.TrimStart().StartsWith("//"))
                 {
                     yield return l;
                 }
@@ -192,7 +189,7 @@ internal static class F
         var files = iterator_files
             .OrderByDescending(x => Path.GetExtension(x))
             .OrderBy(x => Path.GetFileName(x));
-        foreach(var file in files)
+        foreach (var file in files)
         {
             var rel = Path.GetRelativePath(root, file);
             // ignore external folder
@@ -201,16 +198,16 @@ internal static class F
             {
                 // pass
             }
-            else if(false == is_file_ignored(file))
+            else if (false == is_file_ignored(file))
             {
                 var cat = rel.Split(Path.DirectorySeparatorChar, 2)[0];
-                if(ret.TryGetValue(cat, out var values))
+                if (ret.TryGetValue(cat, out var values))
                 {
                     values.Add(file);
                 }
                 else
                 {
-                    ret.Add(cat, new(){ file });
+                    ret.Add(cat, new() { file });
                 }
             }
         }
@@ -225,7 +222,7 @@ internal static class F
 
     private static bool filter_out_file(string[]? filters, string file)
     {
-        if(filters == null)
+        if (filters == null)
         {
             return false;
         }
@@ -254,12 +251,12 @@ internal static class F
     {
         var root_file = clang_tidy_root(root);
 
-        if(store.Cache.TryGetValue(source_file, out var stored) == false)
+        if (store.Cache.TryGetValue(source_file, out var stored) == false)
         {
             return null;
         }
-        
-        if(is_all_up_to_date(new string[] { root_file, source_file }, stored.Modifed))
+
+        if (is_all_up_to_date(new string[] { root_file, source_file }, stored.Modifed))
         {
             return new TidyOutput(stored.Output, stored.Taken);
         }
@@ -278,10 +275,10 @@ internal static class F
     // runs clang-tidy and returns all the text output
     private static TidyOutput call_clang_tidy(Store store, Printer printer, string root, bool force, string tidy_path, string project_build_folder, string source_file, NamePrinter name_printer, bool fix)
     {
-        if(false == force)
+        if (false == force)
         {
             var existing_output = get_existing_output(store, printer, root, project_build_folder, source_file);
-            if(existing_output != null)
+            if (existing_output != null)
             {
                 return existing_output;
             }
@@ -290,17 +287,17 @@ internal static class F
         var command = new Command(tidy_path);
         command.arg("-p");
         command.arg(project_build_folder);
-        if(fix)
+        if (fix)
         {
             command.arg("--fix");
         }
         command.arg(source_file);
-        
+
         name_printer.print_name();
         var start = new DateTime();
         var output = command.wait_for_exit(printer);
 
-        if(output.ExitCode != 0)
+        if (output.ExitCode != 0)
         {
             printer.error($"Error: {output.ExitCode}");
             output.Print(printer);
@@ -321,7 +318,7 @@ internal static class F
         var time_taken = co.Taken;
         var warnings = new ColCounter<string>();
         var classes = new ColCounter<string>();
-        if(false== shortList && only.Length == 0)
+        if (false == shortList && only.Length == 0)
         {
             name_printer.print_name();
             printer.info($"took {time_taken:.2f}s");
@@ -329,47 +326,47 @@ internal static class F
         stats.add(printable_file, time_taken);
         var print_empty = false;
         var hidden = only.Length > 0;
-        foreach(var line in output.Split("\n"))
+        foreach (var line in output.Split("\n"))
         {
-            if(line.Contains("warnings generated"))
+            if (line.Contains("warnings generated"))
             {
                 // pass;
             }
-            else if(line.Contains("Use -header-filter=.* to display errors"))
+            else if (line.Contains("Use -header-filter=.* to display errors"))
             {
                 // pass
             }
-            else if(line.Contains("Suppressed") && line.Contains("NOLINT)."))
+            else if (line.Contains("Suppressed") && line.Contains("NOLINT)."))
             {
                 // pass
             }
-            else if(line.Contains("Suppressed") && line.Contains("non-user code"))
+            else if (line.Contains("Suppressed") && line.Contains("non-user code"))
             {
                 // pass
             }
             else
             {
-                if(line.Contains("warning: "))
+                if (line.Contains("warning: "))
                 {
                     warnings.AddOne(printable_file);
                     var tidy_class = CLANG_TIDY_WARNING_CLASS.Match(line);
-                    if(tidy_class.Success)
+                    if (tidy_class.Success)
                     {
                         var warning_classes = tidy_class.Groups[1];
-                        foreach(var warning_class in warning_classes.Value.Split(','))
+                        foreach (var warning_class in warning_classes.Value.Split(','))
                         {
                             classes.AddOne(warning_class);
                             hidden = only.Length > 0;
-                            if(only.Contains(warning_class))
+                            if (only.Contains(warning_class))
                             {
                                 hidden = false;
                             }
                         }
                     }
                 }
-                if(line.Trim() == "")
+                if (line.Trim() == "")
                 {
-                    if(false == hidden && print_empty)
+                    if (false == hidden && print_empty)
                     {
                         printer.info("");
                         print_empty = false;
@@ -377,7 +374,7 @@ internal static class F
                 }
                 else
                 {
-                    if(false == hidden)
+                    if (false == hidden)
                     {
                         print_empty = true;
                         printer.info(line);
@@ -385,7 +382,7 @@ internal static class F
                 }
             }
         }
-        if(false == shortList && only.Length == 0)
+        if (false == shortList && only.Length == 0)
         {
             print_warning_counter(printer, classes, printable_file);
             printer.info("");
@@ -418,7 +415,7 @@ internal static class F
     internal static void handle_make_tidy(bool nop)
     {
         var root = Environment.CurrentDirectory;
-        if(nop)
+        if (nop)
         {
             print_clang_tidy_source(root);
         }
@@ -428,15 +425,15 @@ internal static class F
         }
     }
 
-    static readonly string[] HEADER_FILES = new string[]{"", ".h", ".hpp", ".hxx"};
-    static readonly string[] SOURCE_FILES = new string[]{".cc", ".cpp", ".cxx", ".inl"};
+    static readonly string[] HEADER_FILES = new string[] { "", ".h", ".hpp", ".hxx" };
+    static readonly string[] SOURCE_FILES = new string[] { ".cc", ".cpp", ".cxx", ".inl" };
 
     internal static int handle_list(Printer print, bool args_sort)
     {
         var root = Environment.CurrentDirectory;
 
         var project_build_folder = CompileCommands.Utils.find_build_root(root);
-        if(project_build_folder is null)
+        if (project_build_folder is null)
         {
             print.error("unable to find build folder");
             return -1;
@@ -444,13 +441,13 @@ internal static class F
 
         var files = list_files_in_folder(root, SOURCE_FILES);
 
-        if(args_sort)
+        if (args_sort)
         {
             var sorted = sort_and_map_files(root, files);
-            foreach(var (project, source_files) in sorted)
+            foreach (var (project, source_files) in sorted)
             {
                 print.header(project);
-                foreach(var source_file in source_files)
+                foreach (var source_file in source_files)
                 {
                     print.info(source_file);
                 }
@@ -459,7 +456,7 @@ internal static class F
         }
         else
         {
-            foreach(var file in files)
+            foreach (var file in files)
             {
                 print.info(file);
             }
@@ -480,7 +477,7 @@ internal static class F
         }
 
         var store = get_store(printe, project_build_folder);
-        if(store == null)
+        if (store == null)
         {
             printe.error("unable to find load store");
             return -1;
@@ -496,39 +493,39 @@ internal static class F
         var data = extract_data_from_root(root, headers ? SOURCE_FILES.Concat(HEADER_FILES).ToArray() : SOURCE_FILES);
         var stats = new FileStatistics();
 
-        foreach(var (project, source_files) in data)
+        foreach (var (project, source_files) in data)
         {
             var first_file = true;
             var project_counter = new ColCounter<string>();
-            foreach(var source_file in source_files)
+            foreach (var source_file in source_files)
             {
                 var printable_file = Path.GetRelativePath(root, source_file);
-                if(filter_out_file(args_filter, source_file))
+                if (filter_out_file(args_filter, source_file))
                 {
                     continue;
                 }
                 var print_name = new NamePrinter(printable_file);
-                if(first_file)
+                if (first_file)
                 {
-                    if(false == short_args)
+                    if (false == short_args)
                     {
                         printe.header(project);
                     }
                     first_file = false;
                 }
-                if(args_nop is false)
+                if (args_nop is false)
                 {
                     var (warnings, classes) = run_clang_tidy(store, printe, root, force, tidy_path, source_file, project_build_folder, stats, short_args, print_name, args_fix, printable_file, args_only);
-                    if(short_args && warnings.TotalCount() > 0)
+                    if (short_args && warnings.TotalCount() > 0)
                     {
                         break;
                     }
                     project_counter.update(warnings);
                     total_counter.update(warnings);
                     total_classes.update(classes);
-                    foreach(var k in classes.Keys)
+                    foreach (var k in classes.Keys)
                     {
-                        if(warnings_per_file.TryGetValue(k, out var warnings_list))
+                        if (warnings_per_file.TryGetValue(k, out var warnings_list))
                         {
                             warnings_list.Add(printable_file);
                         }
@@ -544,9 +541,9 @@ internal static class F
                 }
             }
 
-            if(!first_file && !short_args)
+            if (!first_file && !short_args)
             {
-                if(args_only.Length == 0)
+                if (args_only.Length == 0)
                 {
                     print_warning_counter(printe, project_counter, project);
                     printe.info("");
@@ -555,7 +552,7 @@ internal static class F
             }
         }
 
-        if(false == short_args && args_only.Length == 0)
+        if (false == short_args && args_only.Length == 0)
         {
             printe.header("TIDY REPORT");
             print_warning_counter(printe, total_counter, "total");
@@ -564,10 +561,10 @@ internal static class F
             printe.info("");
             printe.line();
             printe.info("");
-            foreach(var (k,v) in warnings_per_file)
+            foreach (var (k, v) in warnings_per_file)
             {
                 printe.info($"{k}:");
-                foreach(var f in v)
+                foreach (var f in v)
                 {
                     printe.info($"  {f}");
                 }
@@ -579,7 +576,7 @@ internal static class F
             stats.print_data();
         }
 
-        if(total_counter.TotalCount() > 0)
+        if (total_counter.TotalCount() > 0)
         {
             return -1;
         }
@@ -603,16 +600,16 @@ internal static class F
 
         var data = extract_data_from_root(root, SOURCE_FILES.Concat(HEADER_FILES).ToArray());
 
-        foreach(var (project, source_files) in data)
+        foreach (var (project, source_files) in data)
         {
             printer.header(project);
-            foreach(var source_file in source_files)
+            foreach (var source_file in source_files)
             {
                 printer.info(Path.GetRelativePath(source_file, root));
-                if(args_nop == false)
+                if (args_nop == false)
                 {
                     var res = new Command("clang-format", "-i", source_file).wait_for_exit(printer);
-                    if(res.ExitCode != 0)
+                    if (res.ExitCode != 0)
                     {
                         res.Print(printer);
                         return -1;
@@ -697,11 +694,11 @@ internal sealed class TidyCommand : Command<TidyCommand.Arg>
         [CommandOption("--force")]
         [DefaultValue(true)]
         public bool Force { get; set; }
-        
+
         // [Description("try to fix the source")]
         [CommandOption("--only")]
         [DefaultValue(null)]
-        public string[]? Only {get; set;}
+        public string[]? Only { get; set; }
 
         [Description("the clang-tidy to use")]
         [CommandOption("--tidy")]

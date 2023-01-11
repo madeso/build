@@ -1,6 +1,3 @@
-using Workbench.CMake;
-using static System.Net.Mime.MediaTypeNames;
-
 namespace Workbench;
 
 public enum DependencyName
@@ -30,7 +27,7 @@ public interface Dependency
 
     // add arguments to the main cmake
     void add_cmake_arguments(CMake.CMake cmake);
-    
+
     // install the dependency
     public void install(BuildEnviroment env, Printer print, BuildData data);
 
@@ -88,10 +85,10 @@ internal class DependencySdl2 : Dependency
         var generator = env.get_cmake_generator();
 
         print.header("Installing dependency sdl2");
-        
+
         var zip_file = Path.Join(deps, $"{this.folder_name}.zip");
-        
-        if(false == File.Exists(zip_file))
+
+        if (false == File.Exists(zip_file))
         {
             Core.verify_dir_exist(print, root);
             Core.verify_dir_exist(print, deps);
@@ -103,7 +100,7 @@ internal class DependencySdl2 : Dependency
             print.info("SDL2 zip file exist, not downloading again...");
         }
 
-        if(false == File.Exists(Path.Join(root, "INSTALL.txt")))
+        if (false == File.Exists(Path.Join(root, "INSTALL.txt")))
         {
             Core.extract_zip(print, zip_file, root);
             Core.move_files(print, Path.Join(root, this.folder_name), root);
@@ -112,8 +109,8 @@ internal class DependencySdl2 : Dependency
         {
             print.info("SDL2 is unzipped, not unzipping again");
         }
-        
-        if(false == File.Exists(Path.Join(build, "SDL2.sln")))
+
+        if (false == File.Exists(Path.Join(build, "SDL2.sln")))
         {
             var project = new CMake.CMake(build, root, generator);
             // project.make_static_library()
@@ -156,7 +153,7 @@ internal class DependencyPython : Dependency
 
     public void add_cmake_arguments(CMake.CMake cmake)
     {
-        if(this.python_env == null) { return; }
+        if (this.python_env == null) { return; }
 
         var python_exe = Path.Join(python_env, "python.exe");
         cmake.add_argument("PYTHON_EXECUTABLE:FILEPATH", python_exe);
@@ -214,7 +211,7 @@ internal class DependencyAssimp : Dependency
 
         print.header("Installing dependency assimp");
         var zip_file = Path.Join(deps, "assimp.zip");
-        if(false == Directory.Exists(root))
+        if (false == Directory.Exists(root))
         {
             Core.verify_dir_exist(print, root);
             Core.verify_dir_exist(print, deps);
@@ -227,7 +224,7 @@ internal class DependencyAssimp : Dependency
 
             var project = new CMake.CMake(build, root, generator);
             project.add_argument("ASSIMP_BUILD_X3D_IMPORTER", "0");
-            if(this.use_static)
+            if (this.use_static)
             {
                 project.make_static_library();
             }

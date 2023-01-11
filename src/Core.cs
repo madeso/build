@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.IO.Compression;
-using System.Net;
 using System.Runtime.InteropServices;
 
 namespace Workbench;
@@ -12,14 +11,14 @@ public static class Core
         var dirs = new Queue<string>();
         dirs.Enqueue(sdir);
 
-        while(dirs.Count > 0)
+        while (dirs.Count > 0)
         {
             var dir = new DirectoryInfo(dirs.Dequeue());
-            foreach(var di in dir.GetDirectories())
+            foreach (var di in dir.GetDirectories())
             {
                 dirs.Enqueue(di.FullName);
             }
-            foreach(var f in dir.GetFiles())
+            foreach (var f in dir.GetFiles())
             {
                 yield return f.FullName;
             }
@@ -40,7 +39,7 @@ public static class Core
     /// make sure directory exists 
     public static void verify_dir_exist(Printer print, string dir)
     {
-        if(Directory.Exists(dir))
+        if (Directory.Exists(dir))
         {
             print.info($"Dir exist, not creating {dir}");
         }
@@ -51,7 +50,7 @@ public static class Core
             {
                 Directory.CreateDirectory(dir);
             }
-            catch(Exception x)
+            catch (Exception x)
             {
                 print.error($"Failed to create directory {dir}: {x.Message}");
             }
@@ -71,7 +70,7 @@ public static class Core
     /// download file if not already downloaded 
     public static void download_file(Printer print, string url, string dest)
     {
-        if(File.Exists(dest))
+        if (File.Exists(dest))
         {
             print.info($"Already downloaded {dest}");
         }
@@ -93,7 +92,7 @@ public static class Core
     /// moves all file from one directory to another
     public static void move_files(Printer print, string from, string to)
     {
-        if(Path.Exists(from) == false)
+        if (Path.Exists(from) == false)
         {
             print.error($"Missing src {from} when moving to {to}");
             return;
@@ -110,15 +109,15 @@ public static class Core
     public static string move_files_rec(string from, string to)
     {
         var paths = new DirectoryInfo(from);
-        
-        foreach(var file in paths.EnumerateFiles())
+
+        foreach (var file in paths.EnumerateFiles())
         {
             var src = Path.Join(from, file.Name);
             var dst = Path.Join(to, file.Name);
             File.Move(src, dst);
         }
 
-        foreach(var dir in paths.EnumerateDirectories())
+        foreach (var dir in paths.EnumerateDirectories())
         {
             var src = Path.Join(from, dir.Name);
             var dst = Path.Join(to, dir.Name);

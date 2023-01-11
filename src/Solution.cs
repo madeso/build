@@ -46,9 +46,9 @@ public class Solution
     public static Solution Parse(IEnumerable<CMake.Trace> lines)
     {
         CmakeSolutionParser parser = new();
-        foreach(var line in lines)
+        foreach (var line in lines)
         {
-            switch(line.Cmd.ToLower())
+            switch (line.Cmd.ToLower())
             {
                 case "add_executable": parser.AddExecutable(line); break;
                 case "add_library": parser.AddLibrary(line); break;
@@ -60,20 +60,20 @@ public class Solution
 
     private static IEnumerable<string> ChildrenNames(Project proj, bool add)
     {
-        foreach(var p in proj.Dependencies)
+        foreach (var p in proj.Dependencies)
         {
-            if(add)
+            if (add)
             {
                 yield return p.Name;
             }
 
-            foreach(var n in ChildrenNames(p, true))
+            foreach (var n in ChildrenNames(p, true))
             {
                 yield return n;
             }
         }
     }
-    
+
     public void Simplify()
     {
         /*
@@ -83,14 +83,14 @@ public class Solution
         a -> c
         simplify will remove the last dependency (a->c) to 'simplify' the graph
         */
-        foreach(var project in JustProjects)
+        foreach (var project in JustProjects)
         {
             var se = ChildrenNames(project, false).ToHashSet();
             List<string> dependencies = new();
             foreach (var dependency in project.Dependencies)
             {
                 //if(has_dependency(project, dependency_name, false) == false)
-                if(se.Contains(dependency.Name) == false)
+                if (se.Contains(dependency.Name) == false)
                 {
                     dependencies.Add(dependency.Name);
                 }
@@ -108,7 +108,7 @@ public class Solution
 
         var projects = JustProjects.ToArray();
 
-        if(removeEmpty)
+        if (removeEmpty)
         {
             var names = projects.SelectMany(p => p.Dependencies).Select(p => p.Name).ToHashSet();
             projects = projects.Where(p => p.Dependencies.Count > 0 || names.Contains(p.Name)).ToArray();
@@ -117,7 +117,7 @@ public class Solution
         Dictionary<string, Graphviz.Node> nodes = new();
         foreach (var p in projects)
         {
-            if(ni.Contains(p.Name.ToLower().Trim())) continue;
+            if (ni.Contains(p.Name.ToLower().Trim())) continue;
             nodes.Add(p.Name, gv.AddNode(p.Name, GetGraphvizType(p)));
         }
 
@@ -148,7 +148,7 @@ public class Solution
         var set = names.ToHashSet();
 
         // remove links
-        foreach(var p in this.JustProjects)
+        foreach (var p in this.JustProjects)
         {
             p.NamedDependencies = p.NamedDependencies.Where(n => set.Contains(n) == false).ToList();
         }
@@ -159,7 +159,7 @@ public class Solution
         // remove links
         // a name can be 2 keys (alias)
         var keysToRemove = Projects.Where(p => set.Contains(p.Value.Name)).Select(p => p.Key).ToArray();
-        foreach(var key in keysToRemove)
+        foreach (var key in keysToRemove)
         {
             Projects.Remove(key);
         }
@@ -184,7 +184,7 @@ public class Solution
 
     public void PostLoad()
     {
-        foreach(var p in this.JustProjects)
+        foreach (var p in this.JustProjects)
         {
             p.Resolve(Projects);
         }
@@ -192,17 +192,17 @@ public class Solution
 
     private bool has_dependency(Project project, string dependency_name, bool self_reference)
     {
-        foreach(var current_name in project.NamedDependencies)
+        foreach (var current_name in project.NamedDependencies)
         {
-            if(self_reference && current_name == dependency_name)
+            if (self_reference && current_name == dependency_name)
             {
                 return true;
             }
-            if(Projects.ContainsKey(current_name) == false)
+            if (Projects.ContainsKey(current_name) == false)
             {
                 return false;
             }
-            if(has_dependency(Projects[current_name], dependency_name, true))
+            if (has_dependency(Projects[current_name], dependency_name, true))
             {
                 return true;
             }
@@ -229,7 +229,7 @@ internal class CmakeSolutionParser
     {
         var lib = line.Args[0];
         AnsiConsole.MarkupLine($"Adding lib {lib}");
-        if(allProjects.ContainsKey(lib))
+        if (allProjects.ContainsKey(lib))
         {
             // todo(Gustav): add warning
             return;

@@ -1,8 +1,6 @@
 using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Xml.Linq;
-using Workbench.Git;
 
 namespace Workbench.Hero;
 
@@ -40,7 +38,7 @@ internal sealed class NewHeroCommand : Command<NewHeroCommand.Arg>
         {
             return CommonExecute.WithPrinter(print =>
             {
-                if(File.Exists(settings.ProjectFile) && settings.Overwrite == false)
+                if (File.Exists(settings.ProjectFile) && settings.Overwrite == false)
                 {
                     print.error($"{settings.ProjectFile} already exists.");
                     return -1;
@@ -118,7 +116,7 @@ internal sealed class RunHeroDotCommand : Command<RunHeroDotCommand.Arg>
         [Description("Cluster files based on parent folder")]
         [CommandOption("--cluster")]
         [DefaultValue(false)]
-        public bool Cluster{ get; init; }
+        public bool Cluster { get; init; }
 
         [Description("Exclude some files")]
         [CommandOption("--exclude")]

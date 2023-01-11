@@ -1,9 +1,6 @@
 using Spectre.Console.Cli;
 using System.ComponentModel;
-using System.Data;
 using System.Diagnostics.CodeAnalysis;
-using Workbench;
-using Workbench.CMake;
 using Workbench.MinorCommands;
 
 namespace Workbench.Build;
@@ -45,12 +42,12 @@ internal sealed class InitCommand : Command<InitCommand.Arg>
             {
                 name = new DirectoryInfo(Environment.CurrentDirectory).Name
             };
-            data.includes.Add(new(){ "list of regexes", "that are used by check-includes" });
-            data.includes.Add(new(){ "they are grouped into arrays, there needs to be a space between each group" });
+            data.includes.Add(new() { "list of regexes", "that are used by check-includes" });
+            data.includes.Add(new() { "they are grouped into arrays, there needs to be a space between each group" });
             data.dependencies.AddRange(Enum.GetValues<DependencyName>());
 
             var content = JsonUtil.Write(data);
-            if(settings.Overwrite == false && File.Exists(path) )
+            if (settings.Overwrite == false && File.Exists(path))
             {
                 print.error($"{path} already exist and overwrite was not requested");
                 return -1;
@@ -175,7 +172,7 @@ internal static class F
     {
         var project = new CMake.CMake(data.build_dir, data.root_dir, build.get_cmake_generator());
 
-        foreach(var dep in data.dependencies)
+        foreach (var dep in data.dependencies)
         {
             dep.add_cmake_arguments(project);
         }
@@ -187,7 +184,7 @@ internal static class F
     // install dependencies
     internal static void run_install(BuildEnviroment env, BuildData data, Printer print)
     {
-        foreach(var dep in data.dependencies)
+        foreach (var dep in data.dependencies)
         {
             dep.install(env, print, data);
         }
@@ -210,7 +207,7 @@ internal static class F
     internal static void handle_build_status(Printer printer)
     {
         var loaded_data = BuildData.load(printer);
-        if(loaded_data == null)
+        if (loaded_data == null)
         {
             printer.error("Unable to load the data");
             return;
@@ -226,11 +223,11 @@ internal static class F
         printer.info($"Build: {data.build_dir}");
         printer.info($"Dependencies: {data.dependency_dir}");
         var indent = "    ";
-        foreach(var dep in data.dependencies)
+        foreach (var dep in data.dependencies)
         {
             printer.info($"{indent}{dep.get_name()}");
             var lines = dep.status();
-            foreach(var line in lines)
+            foreach (var line in lines)
             {
                 printer.info($"{indent}{indent}{line}");
             }
@@ -240,7 +237,7 @@ internal static class F
     internal static int handle_generic_build(Printer printer, EnviromentArgument args, Func<Printer, BuildEnviroment, BuildData, int> callback)
     {
         var loaded_data = BuildData.load(printer);
-        if(loaded_data == null)
+        if (loaded_data == null)
         {
             printer.error("Unable to load the data");
             return -1;
@@ -248,7 +245,7 @@ internal static class F
         var data = loaded_data.Value;
         var env = BuildUitls.load_from_file(data.get_path_to_settings(), printer);
         env.update_from_args(printer, args);
-        if(env.validate(printer) == false)
+        if (env.validate(printer) == false)
         {
             return -1;
         }

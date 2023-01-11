@@ -1,7 +1,6 @@
 namespace Workbench;
 
 using System.Diagnostics;
-using System.Security.Cryptography;
 using System.Text;
 
 internal class CommandResult
@@ -49,7 +48,7 @@ public class Command
         proc.BeginOutputReadLine();
         proc.BeginErrorReadLine();
         proc.WaitForExit();
-        
+
         return new(proc.ExitCode, stdout.ToString());
     }
 
@@ -58,7 +57,7 @@ public class Command
     public Command(string app, params string[] args)
     {
         this.app = app;
-        foreach(var a in args)
+        foreach (var a in args)
         {
             arg(a);
         }
@@ -137,7 +136,7 @@ public class Command
     {
         var ret = wait_for_exit(print);
         print.info($"Return value: {ret}");
-        if(ret.ExitCode != 0)
+        if (ret.ExitCode != 0)
         {
             print.error($"Failed to run command: {this}");
         }

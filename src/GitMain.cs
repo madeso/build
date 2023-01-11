@@ -29,7 +29,7 @@ internal sealed class Status : Command<Status.Arg>
             {
                 status = "dir";
             }
-            
+
             switch (line.Status)
             {
                 case GitStatus.Unknown:

@@ -1,5 +1,5 @@
-﻿using Spectre.Console.Cli;
-using Spectre.Console;
+﻿using Spectre.Console;
+using Spectre.Console.Cli;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
@@ -95,7 +95,7 @@ internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
         };
 
         var dir = new DirectoryInfo(folder);
-        if(dir.Exists == false)
+        if (dir.Exists == false)
         {
             AnsiConsole.MarkupLineInterpolated($"[blue]ERROR[/]: Unable to open [red]{dir.FullName}[/]");
             return -1;
@@ -206,7 +206,7 @@ internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
             else if (enableJavadocHack && c == '*')
             {
                 // assume javadoc comment
-                if(indent %2 == 1)
+                if (indent % 2 == 1)
                 {
                     return indent -= 1;
                 }

@@ -2,7 +2,7 @@
 
 public class Found
 {
-    public string? value {get;}
+    public string? value { get; }
     public string name { get; }
 
     public Found(string? value, string name)
@@ -13,7 +13,7 @@ public class Found
 
     public override string ToString()
     {
-        if(value != null)
+        if (value != null)
         {
             return $"Found {value} from {name}";
         }

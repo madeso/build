@@ -4,7 +4,6 @@ namespace Workbench;
 using Newtonsoft.Json;
 using System.IO;
 using System.Text.RegularExpressions;
-using static Workbench.Core;
 
 class ProjectFile
 {
@@ -35,7 +34,7 @@ public class OptionalRegexDynamic : OptionalRegex
     public Regex? GetRegex(Printer print, TextReplacer replacer)
     {
         var regex_source = replacer.replace(regex);
-        switch(BuildData.CompileRegex(regex_source))
+        switch (BuildData.CompileRegex(regex_source))
         {
             case RegexOrErr.Value re:
                 return re.regex;
@@ -110,7 +109,7 @@ public struct BuildData
                 }
                 else
                 {
-                    switch(CompileRegex(regex_source))
+                    switch (CompileRegex(regex_source))
                     {
                         case RegexOrErr.Value re:
                             return new OptionalRegexStatic(re.regex);

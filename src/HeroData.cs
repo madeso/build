@@ -1,5 +1,4 @@
 ﻿using System.Collections.Immutable;
-using System.Xml.Serialization;
 
 namespace Workbench.Hero.Data;
 
@@ -7,7 +6,7 @@ namespace Workbench.Hero.Data;
 // Project
 
 // use root to create pretty display names
-public record OutputFolders (string InputRoot, string OutputDirectory);
+public record OutputFolders(string InputRoot, string OutputDirectory);
 
 public class UserInput
 {
@@ -29,7 +28,7 @@ public class UserInput
 
         static void decorate_this(Printer printer, string root, List<string> d, string name, Func<string, bool> exists)
         {
-            var missing = d.Where(d => Path.IsPathFullyQualified(d)== false || exists(d) == false).ToImmutableHashSet();
+            var missing = d.Where(d => Path.IsPathFullyQualified(d) == false || exists(d) == false).ToImmutableHashSet();
             var changes = missing
                 .Select(d => new { Src = d, Dst = Path.Join(root, d) })
                 .Select(d => new { Src = d.Src, Dst = d.Dst, Exist = exists(d.Dst) })
@@ -47,7 +46,7 @@ public class UserInput
             }
 
             d.RemoveAll(missing.Contains);
-            foreach(var f in d)
+            foreach (var f in d)
             {
                 printer.info($"{f} was kept in {name}");
             }
@@ -94,7 +93,7 @@ public class SourceFile
     {
     }
 
-    public SourceFile (int number_of_lines, List<string> local_includes, List<string> system_includes, bool is_precompiled)
+    public SourceFile(int number_of_lines, List<string> local_includes, List<string> system_includes, bool is_precompiled)
     {
         this.local_includes = local_includes;
         this.system_includes = system_includes;

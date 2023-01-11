@@ -1,7 +1,5 @@
 using Spectre.Console.Cli;
 using System.ComponentModel;
-using System.Text.RegularExpressions;
-using Workbench.CMake;
 
 namespace Workbench;
 

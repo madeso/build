@@ -1,8 +1,5 @@
 using Spectre.Console.Cli;
-using System;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
-using Workbench;
 using Workbench.CMake;
 
 namespace Workbench.MinorCommands;
@@ -86,7 +83,7 @@ internal static class F
     {
         var found = Found.first_value_or_none(list) ?? "<None>";
         printer.info($"{name}: {found}");
-        foreach(var f in list)
+        foreach (var f in list)
         {
             printer.info($"    {f}");
         }
@@ -110,7 +107,7 @@ internal static class F
         }
 
         var ccs = cc.get_argument_or_none_with_cwd();
-        if(ccs != null )
+        if (ccs != null)
         {
             printer.info($"Compile commands: {ccs}");
         }

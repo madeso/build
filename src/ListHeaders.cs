@@ -7,9 +7,7 @@ using Spectre.Console;
 using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics.Metrics;
 using System.Text.RegularExpressions;
-using System.Windows.Markup;
 
 namespace Workbench.ListHeaders;
 
@@ -121,7 +119,7 @@ internal class CommentStripper
 
     void add_last()
     {
-        if(this.last != '\0')
+        if (this.last != '\0')
         {
             this.mem += this.last;
         }
@@ -131,7 +129,7 @@ internal class CommentStripper
     public void complete()
     {
         this.add_last();
-        if(string.IsNullOrEmpty(this.mem) == false)
+        if (string.IsNullOrEmpty(this.mem) == false)
         {
             this.add_mem();
         }
@@ -146,12 +144,12 @@ internal class CommentStripper
     public void add(char c)
     {
         var last = this.last;
-        if(c != '\n')
+        if (c != '\n')
         {
             this.last = c;
         }
 
-        if(c == '\n')
+        if (c == '\n')
         {
             this.add_last();
             this.add_mem();
@@ -159,25 +157,25 @@ internal class CommentStripper
             this.single_line_comment = false;
             return;
         }
-        if(this.single_line_comment)
+        if (this.single_line_comment)
         {
             return;
         }
-        if(this.multi_line_comment)
+        if (this.multi_line_comment)
         {
-            if(last == '*' && c == '/')
+            if (last == '*' && c == '/')
             {
                 this.multi_line_comment = false;
             }
 
             return;
         }
-        if(last == '/' && c == '/')
+        if (last == '/' && c == '/')
         {
             this.single_line_comment = true;
         }
 
-        if(last == '/' && c == '*')
+        if (last == '/' && c == '*')
         {
             this.multi_line_comment = true;
             return;
@@ -189,8 +187,8 @@ internal class CommentStripper
 
 class Preproc
 {
-    public string command {get; init;}
-    public string arguments {get; init;}
+    public string command { get; init; }
+    public string arguments { get; init; }
     public int line { get; init; }
 
     public Preproc(string command, string arguments, int line)
@@ -216,10 +214,10 @@ class PreprocParser
     {
         return this.index < this.commands.Count;
     }
-    
+
     public Preproc? opeek()
     {
-        if(this.validate_index())
+        if (this.validate_index())
         {
             return this.commands[this.index];
         }
@@ -228,12 +226,12 @@ class PreprocParser
             return null;
         }
     }
-    
+
     public void skip()
     {
         this.index += 1;
     }
-    
+
     public void undo()
     {
         this.index -= 1;
@@ -241,7 +239,7 @@ class PreprocParser
 
     public Preproc? next()
     {
-        if(this.validate_index())
+        if (this.validate_index())
         {
             var it = this.index;
             this.index += 1;
@@ -381,14 +379,14 @@ class FileWalker
         if (F.is_source(path))
         {
             var bblocks = this.parse_file_to_blocks(path, print);
-            if(bblocks == null)
+            if (bblocks == null)
             {
                 return false;
             }
             return this.block_rec(print, directories, included_file_cache, path, defines, bblocks, file_cache, depth);
         }
 
-        
+
         if (file_cache.TryGetValue(path, out var blocks) == false)
         {
             blocks = this.parse_file_to_blocks(path, print) ?? new();
@@ -517,15 +515,15 @@ internal static class F
     internal static IEnumerable<string> join_lines(IEnumerable<string> lines)
     {
         string? last_line = null;
-    
-        foreach(var line in lines)
+
+        foreach (var line in lines)
         {
-            if(line.EndsWith('\\'))
+            if (line.EndsWith('\\'))
             {
                 var without = line[..(line.Length - 1)];
-                last_line = last_line??"" + without;
+                last_line = last_line ?? "" + without;
             }
-            else if(last_line != null)
+            else if (last_line != null)
             {
                 yield return last_line + line;
                 last_line = null;
@@ -536,7 +534,7 @@ internal static class F
             }
         }
 
-        if(last_line != null)
+        if (last_line != null)
         {
             yield return last_line;
         }
@@ -545,9 +543,9 @@ internal static class F
     internal static List<Line> remove_cpp_comments(List<string> lines)
     {
         var cs = new CommentStripper();
-        foreach(var line in lines)
+        foreach (var line in lines)
         {
-            foreach(var c in line)
+            foreach (var c in line)
             {
                 cs.add(c);
             }
@@ -573,26 +571,26 @@ internal static class F
             ;
     }
 
-    
+
     static void group_commands(string path, Printer print, List<Statement> ret, PreprocParser commands, int depth)
     {
-        while(true)
+        while (true)
         {
             var command = commands.next();
-            if(command == null ) { break; }
+            if (command == null) { break; }
 
-            if(is_if_start(command.command))
+            if (is_if_start(command.command))
             {
                 var group = new Block(command.command, command.arguments);
-                group_commands(path, print, group.true_block, commands, depth+1);
-                while(peek_name(commands) == "elif")
+                group_commands(path, print, group.true_block, commands, depth + 1);
+                while (peek_name(commands) == "elif")
                 {
                     var next = commands.next();
-                    if(next == null) { throw new NullReferenceException(); }
+                    if (next == null) { throw new NullReferenceException(); }
 
                     var elif_args = next.arguments;
                     var block = new List<Statement>();
-                    group_commands(path, print, block, commands, depth+1);
+                    group_commands(path, print, block, commands, depth + 1);
                     group.elifs.Add
                     (
                         new Elif
@@ -602,12 +600,12 @@ internal static class F
                         )
                     );
                 }
-                if(peek_name(commands) == "else")
+                if (peek_name(commands) == "else")
                 {
                     commands.skip();
-                    group_commands(path, print, group.false_block, commands, depth+1);
+                    group_commands(path, print, group.false_block, commands, depth + 1);
                 }
-                if(peek_name(commands) == "endif")
+                if (peek_name(commands) == "endif")
                 {
                     commands.skip();
                 }
@@ -617,14 +615,14 @@ internal static class F
                 }
                 ret.Add(group);
             }
-            else if(command.command == "else")
+            else if (command.command == "else")
             {
                 commands.undo();
                 return;
             }
-            else if(command.command == "endif")
+            else if (command.command == "endif")
             {
-                if(depth > 0)
+                if (depth > 0)
                 {
                     commands.undo();
                     return;
@@ -634,9 +632,9 @@ internal static class F
                     print.error($"{path}({command.line}): Ignored unmatched endif");
                 }
             }
-            else if(command.command == "elif")
+            else if (command.command == "elif")
             {
-                if(depth > 0)
+                if (depth > 0)
                 {
                     commands.undo();
                     return;
@@ -648,9 +646,13 @@ internal static class F
             }
             else
             {
-                switch(command.command)
+                switch (command.command)
                 {
-                    case "define": case "error": case "include": case "pragma": case "undef":
+                    case "define":
+                    case "error":
+                    case "include":
+                    case "pragma":
+                    case "undef":
                         ret.Add(new Command(
                             name: command.command,
                             value: command.arguments
@@ -673,7 +675,7 @@ internal static class F
         var re_ident = new Regex(@"[a-zA-Z_][a-zA-Z_0-9]*");
 
         var f = re_ident.Match(val);
-        if(f.Success)
+        if (f.Success)
         {
             var capt = f.Captures[0];
             var key = capt.Value;
@@ -686,12 +688,12 @@ internal static class F
             return (val, "");
         }
     }
-    
+
     internal static IEnumerable<Preproc> parse_to_statements(IEnumerable<Line> lines)
     {
-        foreach(var line in lines)
+        foreach (var line in lines)
         {
-            if(line.text.StartsWith('#'))
+            if (line.text.StartsWith('#'))
             {
                 var li = line.text[1..].TrimStart();
                 var (command, arguments) = ident_split(li);
@@ -715,28 +717,28 @@ internal static class F
         return ret;
     }
 
-    
+
     internal static void handle_lines(Printer print, LinesArg args)
     {
         var source_lines = File.ReadLines(args.filename);
         var joined_lines = join_lines(source_lines);
         var trim_lines = joined_lines.Select(str => str.TrimStart()).ToList();
         var lines = remove_cpp_comments(trim_lines);
-        if(args.statements || args.blocks)
+        if (args.statements || args.blocks)
         {
             var statements = parse_to_statements(lines).ToList();
 
-            if(args.blocks)
+            if (args.blocks)
             {
                 var blocks = parse_to_blocks(args.filename, print, statements);
-                foreach(var block in blocks)
+                foreach (var block in blocks)
                 {
                     print.info($"{block}");
                 }
             }
             else
             {
-                foreach(var statement in statements)
+                foreach (var statement in statements)
                 {
                     print.info($"{statement}");
                 }
@@ -744,7 +746,7 @@ internal static class F
         }
         else
         {
-            foreach(var line in lines)
+            foreach (var line in lines)
             {
                 print.info(line.text);
             }
@@ -752,26 +754,26 @@ internal static class F
     }
 
 
-    
+
     internal static string? resolve_path(string[] directories, string stem, string caller_file, bool use_relative_path)
     {
-        if(use_relative_path)
+        if (use_relative_path)
         {
             var caller = new FileInfo(caller_file).Directory?.FullName;
-            if(caller != null)
+            if (caller != null)
             {
                 var r = Path.Join(caller, stem);
-                if(File.Exists(r))
+                if (File.Exists(r))
                 {
                     return r;
                 }
             }
         }
 
-        foreach(var dd in directories)
+        foreach (var dd in directories)
         {
             var r = Path.Join(dd, stem);
-            if(File.Exists(r))
+            if (File.Exists(r))
             {
                 return r;
             }
@@ -791,18 +793,18 @@ internal static class F
     }
 
 
-    
+
     internal static bool handle_files(Printer print, FilesArg args)
     {
         var ccpath = args.get_argument_or_none(Environment.CurrentDirectory);
-        if(ccpath == null)
+        if (ccpath == null)
         {
             print.error("Failed to get compile commands");
             return false;
         }
 
         var commands = CompileCommands.Utils.load_compile_commands(print, ccpath);
-        if(commands == null)
+        if (commands == null)
         {
             print.error("Failed to load compile commands");
             return false;
@@ -812,11 +814,11 @@ internal static class F
 
         var file_cache = new Dictionary<string, List<Statement>>();
 
-        foreach(var file in args.sources)
+        foreach (var file in args.sources)
         {
-            if(File.Exists(file))
+            if (File.Exists(file))
             {
-                if( false == walker.walk(print, file, file_cache))
+                if (false == walker.walk(print, file, file_cache))
                 {
                     return false;
                 }
@@ -824,7 +826,7 @@ internal static class F
             else
             {
                 var f = new DirectoryInfo(file).FullName;
-                if(false == walker.walk(print, f, file_cache))
+                if (false == walker.walk(print, f, file_cache))
                 {
                     return false;
                 }
@@ -835,7 +837,7 @@ internal static class F
 
         print.info($"Top {args.count} includes are:");
 
-        foreach(var (file, count) in stats.includes.MostCommon().Take(args.count))
+        foreach (var (file, count) in stats.includes.MostCommon().Take(args.count))
         {
             var d = Path.GetRelativePath(Environment.CurrentDirectory, file);
             var times = (double)count / (double)stats.file_count;

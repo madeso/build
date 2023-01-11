@@ -77,7 +77,7 @@ public class Graphviz
     private static string ConvertIntoSafeId(string a, string defaultName)
     {
         var suggestedId = a.ToLower().Trim().Replace(" ", "");
-        
+
         string cleanedId = string.Empty;
         bool first = true;
         foreach (var c in suggestedId)
@@ -102,7 +102,7 @@ public class Graphviz
 
     public Node? get_node_id(string id)
     {
-        if(this.id_to_node.TryGetValue(id, out var ret))
+        if (this.id_to_node.TryGetValue(id, out var ret))
         {
             return ret;
         }
@@ -166,7 +166,7 @@ public class Graphviz
     private string Escape(string display)
     {
         string r = "";
-        foreach(var c  in display)
+        foreach (var c in display)
         {
             r += c switch
             {
@@ -180,9 +180,9 @@ public class Graphviz
 
     private IEnumerable<Node> get_all_dependencies_for_node(Node thisnode)
     {
-        foreach(var e in this.edges)
+        foreach (var e in this.edges)
         {
-            if(e.from == thisnode)
+            if (e.from == thisnode)
             {
                 yield return e.to;
             }
@@ -192,11 +192,11 @@ public class Graphviz
     private void deep_add_all_dependencies(HashSet<Node> children, Node node, bool add)
     {
         var deps = this.get_all_dependencies_for_node(node);
-        foreach(var p in deps)
+        foreach (var p in deps)
         {
-            if(p == null) { throw new Exception("invalid internal state"); }
+            if (p == null) { throw new Exception("invalid internal state"); }
 
-            if(add)
+            if (add)
             {
                 children.Add(p);
             }
@@ -214,12 +214,12 @@ public class Graphviz
     */
     public void Simplify()
     {
-        if(this.nodes.Count <= 0)
+        if (this.nodes.Count <= 0)
         {
             return;
         }
-        
-        foreach(var node in this.nodes)
+
+        foreach (var node in this.nodes)
         {
             // get all unique dependencies
             var se = new HashSet<Node>();
@@ -230,9 +230,9 @@ public class Graphviz
             this.edges.RemoveAll(e => e.from == node);
 
             // add them back
-            foreach(var dependency in deps)
+            foreach (var dependency in deps)
             {
-                if(se.Contains(dependency) == false)
+                if (se.Contains(dependency) == false)
                 {
                     this.AddEdge(node, dependency);
                 }

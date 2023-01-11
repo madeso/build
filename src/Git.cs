@@ -22,14 +22,14 @@ public static class Git
     public static IEnumerable<GitStatusEntry> Status(string folder)
     {
         var output = Run.GetOutput(Run.CreateProcessInFolder("git", "status --porcelain=v1", folder));
-        foreach(var item in output)
+        foreach (var item in output)
         {
-            if(string.IsNullOrWhiteSpace(item)) { continue; }
+            if (string.IsNullOrWhiteSpace(item)) { continue; }
 
             var line = item.Trim().Split(' ', 2, StringSplitOptions.TrimEntries);
             var type = line[0];
             var path = Path.Join(folder, ToPath(line[1]));
-            switch(type)
+            switch (type)
             {
                 case "??": yield return new(GitStatus.Unknown, path); break;
                 case "M": yield return new(GitStatus.Modified, path); break;

@@ -7,10 +7,11 @@ namespace Workbench
         static int Main(string[] args)
         {
             var app = new CommandApp();
-            app.Configure( config => {
-                #if DEBUG
-                    config.PropagateExceptions();
-                    config.ValidateExamples();
+            app.Configure(config =>
+            {
+#if DEBUG
+                config.PropagateExceptions();
+                config.ValidateExamples();
 #endif
 
                 MinorCommands.Main.ConfigureLs(config, "ls");

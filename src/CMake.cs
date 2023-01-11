@@ -28,7 +28,7 @@ static class CmakeTools
     {
         var path_source = "path";
         var path = Which.Find("cmake");
-        if(path == null)
+        if (path == null)
         {
             return new Found(null, path_source);
         }
@@ -146,14 +146,14 @@ public class CMake
     public void config_with_print(Printer printer, bool only_print)
     {
         var cmake = CmakeTools.find_cmake_executable(printer);
-        if(cmake == null)
+        if (cmake == null)
         {
             printer.error("CMake executable not found");
             return;
         }
-        
+
         var command = new Command(cmake);
-        foreach(var arg in this.arguments)
+        foreach (var arg in this.arguments)
         {
             var argument = arg.format_cmake_argument();
             printer.info($"Setting CMake argument for config: {argument}");
@@ -163,18 +163,18 @@ public class CMake
         command.arg(this.source_folder);
         command.arg("-G");
         command.arg(this.generator.generator);
-        if(generator.arch != null)
+        if (generator.arch != null)
         {
             command.arg("-A");
             command.arg(generator.arch);
         }
-        
+
         Core.verify_dir_exist(printer, this.build_folder);
         command.current_dir(this.build_folder);
-        
-        if(Core.is_windows())
+
+        if (Core.is_windows())
         {
-            if(only_print)
+            if (only_print)
             {
                 printer.info($"Configuring cmake: {command}");
             }
@@ -203,7 +203,7 @@ public class CMake
         command.arg("--build");
         command.arg(".");
 
-        if(install)
+        if (install)
         {
             command.arg("--target");
             command.arg("install");
@@ -214,7 +214,7 @@ public class CMake
         Core.verify_dir_exist(printer, this.build_folder);
         command.current_dir(this.build_folder);
 
-        if(Core.is_windows())
+        if (Core.is_windows())
         {
             command.check_call(printer);
         }

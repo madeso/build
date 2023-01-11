@@ -1,7 +1,4 @@
-﻿using System.ComponentModel;
-using System.Linq;
-
-namespace Workbench.Hero;
+﻿namespace Workbench.Hero;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // MainForm
@@ -46,12 +43,12 @@ internal static class Ui
     static bool file_is_in_file_list(string f, IEnumerable<string> list)
     {
         var ff = new FileInfo(f);
-        foreach(var p in list)
+        foreach (var p in list)
         {
             var pp = new FileInfo(p);
 
             // todo(Gustav): improve this match
-            if(ff.FullName== pp.FullName)
+            if (ff.FullName == pp.FullName)
             {
                 return true;
             }
@@ -61,16 +58,16 @@ internal static class Ui
 
     static bool exclude_file(string file, Data.UserInput input, bool only_headers, IEnumerable<string> exclude)
     {
-        if(file_is_in_file_list(file, input.project_directories))
+        if (file_is_in_file_list(file, input.project_directories))
         {
             // explicit inlcuded... then it's not excluded
             return false;
         }
-        else if(only_headers && is_header(file) == false)
+        else if (only_headers && is_header(file) == false)
         {
             return true;
         }
-        else if(file_is_in_file_list(file, exclude))
+        else if (file_is_in_file_list(file, exclude))
         {
             return true;
         }
@@ -85,9 +82,9 @@ internal static class Ui
         var analytics = Parser.Analytics.analyze(project);
         var gv = new Graphviz();
 
-        foreach(var file in project.scanned_files.Keys)
+        foreach (var file in project.scanned_files.Keys)
         {
-            if(exclude_file(file, input, onlyHeaders, exclude))
+            if (exclude_file(file, input, onlyHeaders, exclude))
             {
                 print.info($"{file} rejected due to non-header");
                 continue;
@@ -99,17 +96,17 @@ internal static class Ui
             var display_name = Html.get_filename(root.InputRoot, file);
             var node_id = Html.safe_inspect_filename_without_html(file);
             var addedNode = gv.add_node_with_id(display_name, "box", node_id);
-            if(cluster)
+            if (cluster)
             {
                 var parent = new FileInfo(file).Directory?.FullName;
-                if(parent != null)
+                if (parent != null)
                 {
                     addedNode.cluster = Path.GetRelativePath(root.InputRoot, parent);
                 }
             }
         }
 
-        foreach(var file in project.scanned_files.Keys)
+        foreach (var file in project.scanned_files.Keys)
         {
             if (exclude_file(file, input, onlyHeaders, exclude))
             {
@@ -119,12 +116,12 @@ internal static class Ui
 
             var from_file = Html.safe_inspect_filename_without_html(file);
             var from_id = gv.get_node_id(from_file);
-            if(from_id == null)
+            if (from_id == null)
             {
                 throw new Exception("BUG: Node not added");
             }
 
-            foreach(var s in project.scanned_files[file].absolute_includes)
+            foreach (var s in project.scanned_files[file].absolute_includes)
             {
                 if (exclude_file(s, input, onlyHeaders, exclude))
                 {
@@ -146,7 +143,7 @@ internal static class Ui
             }
         }
 
-        if(simplifyGraphviz)
+        if (simplifyGraphviz)
         {
             gv.Simplify();
         }
@@ -159,12 +156,12 @@ internal static class Ui
         {
             var html = new Html();
             html.begin("Errors");
-            foreach(var s in scanner.errors)
+            foreach (var s in scanner.errors)
             {
                 html.push_str($"<p>{s}</p>");
             }
             html.push_str("<h1>Unhandled extensions</h1>");
-            foreach(var (ext, count) in scanner.missing_ext.MostCommon())
+            foreach (var (ext, count) in scanner.missing_ext.MostCommon())
             {
                 html.push_str($"<p>{ext} {count}</p>");
             }
@@ -173,18 +170,18 @@ internal static class Ui
             var path = Path.Join(root.OutputDirectory, "errors.html");
             html.write_to_file(path);
         }
-    
+
         {
             var html = new Html();
             html.begin("Missing");
             // todo(Gustav): sort missing on paths or count?
-            foreach(var (include_path, origins) in scanner.not_found_origins)
+            foreach (var (include_path, origins) in scanner.not_found_origins)
             {
                 var count = origins.Count;
                 var s = count == 1 ? "" : "s";
                 html.push_str($"<div class=\"missing\">{include_path} from <span class=\"num\">{count}</span> file{s} <ul>");
-            
-                foreach(var file in origins)
+
+                foreach (var file in origins)
                 {
                     html.push_str($"<li>{Html.inspect_filename_link(root.InputRoot, file)}</li>");
                 }
@@ -201,7 +198,7 @@ internal static class Ui
         Html.write_css_file(root.OutputDirectory);
         Parser.Report.generate_index_page(root, project, analytics);
 
-        foreach(var f in project.scanned_files.Keys)
+        foreach (var f in project.scanned_files.Keys)
         {
             write_inspection_page(root, f, project, analytics);
         }
@@ -227,8 +224,8 @@ internal static class Ui
         foreach (var s in included.OrderByDescending(s => length_fun(analytics.file_to_data[s])))
         {
             var display_filename = Html.inspect_filename_link(root.InputRoot, s);
-            var display_count    = Core.num_format(length_fun(analytics.file_to_data[s]));
-            var display_lines    = Core.num_format(analytics.file_to_data[s].total_included_lines);
+            var display_count = Core.num_format(length_fun(analytics.file_to_data[s]));
+            var display_lines = Core.num_format(analytics.file_to_data[s].total_included_lines);
 
             html.push_str($"<tr><td class=\"file\">{display_filename}</td> <td class=\"num\">{display_count}</td> <td class=\"num\">{display_lines}</td></tr>");
         }
@@ -256,7 +253,7 @@ internal static class Ui
             "included_by", $"Theese include {display_name}",
             it => it.all_included_by.Count
         );
-    
+
         {
             html.push_str("<div id=\"file\">\n");
 
@@ -267,12 +264,12 @@ internal static class Ui
             var direct_count = Core.num_format(project_file.absolute_includes.Count);
             var total_lines = Core.num_format(analytics_file.total_included_lines);
             var total_count = Core.num_format(analytics_file.all_includes.Count);
-        
+
             html.push_str($"<h2>{display_name}</h2>\n");
 
             html.push_str("<table class=\"summary\">");
 
-            html.push_str(         "<tr>  <th></th>                 <th>Lines</th>              <th>Files</th>           </tr>\n");
+            html.push_str("<tr>  <th></th>                 <th>Lines</th>              <th>Files</th>           </tr>\n");
             html.push_str($"<tr>  <th>Lines:</th>           <td class=\"num\">{file_lines}</td>   <td class=\"num\">1</td> </tr>\n");
             html.push_str($"<tr>  <th>Direct Includes:</th> <td class=\"num\">{direct_lines}</td>  <td class=\"num\">{direct_count}</td>  </tr>\n");
             html.push_str($"<tr>  <th>Total Includes:</th>  <td class=\"num\">{total_lines}</td>  <td class=\"num\">{total_count}</td> </tr>\n");
