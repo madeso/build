@@ -151,7 +151,7 @@ internal static class F
     {
         if (project.scanned_files.TryGetValue(abs, out var file))
         {
-            file.is_touched = true;
+            file.IsTouched = true;
         }
     }
 
@@ -217,11 +217,11 @@ public class Analytics
         };
 
         var sf = project.scanned_files[path];
-        foreach (var include in sf.absolute_includes)
+        foreach (var include in sf.AbsoluteIncludes)
         {
             if (include == path) { continue; }
 
-            var is_tu = Data.Utils.is_translation_unit(path);
+            var is_tu = Data.Utils.IsTranslationUnit(path);
 
             this.analyze(include, project);
 
@@ -254,7 +254,7 @@ public class Analytics
             }
         }
 
-        ret.total_included_lines = ret.all_includes.Select(f => project.scanned_files[f].number_of_lines).Sum();
+        ret.total_included_lines = ret.all_includes.Select(f => project.scanned_files[f].NumberOfLines).Sum();
 
         this.file_to_data.Add(path, ret);
     }
@@ -300,7 +300,7 @@ public static class Report
         foreach (var (path_to_file, count) in count_list)
         {
             var z = Html.inspect_filename_link(root.InputRoot, path_to_file);
-            var nf = Core.num_format(count);
+            var nf = Core.FormatNumber(count);
             sb.push_str($"  <tr><td class=\"num\">{nf}</td> <td class=\"file\">{z}</td></tr>\n");
         }
         sb.push_str("</table>\n");
@@ -322,24 +322,24 @@ public static class Report
         // Summary
         {
             var pch_lines = project.scanned_files
-                .Where(kvp => kvp.Value.is_precompiled)
-                .Select(kvp => kvp.Value.number_of_lines)
+                .Where(kvp => kvp.Value.IsPrecompiled)
+                .Select(kvp => kvp.Value.NumberOfLines)
                 .Sum();
             var super_total_lines = project.scanned_files
-                .Select(kvp => kvp.Value.number_of_lines)
+                .Select(kvp => kvp.Value.NumberOfLines)
                 .Sum();
             var total_lines = super_total_lines - pch_lines;
             var total_parsed = analytics.file_to_data
-                .Where(kvp => Data.Utils.is_translation_unit(kvp.Key) && !project.scanned_files[kvp.Key].is_precompiled)
-                .Select(kvp => kvp.Value.total_included_lines + project.scanned_files[kvp.Key].number_of_lines)
+                .Where(kvp => Data.Utils.IsTranslationUnit(kvp.Key) && !project.scanned_files[kvp.Key].IsPrecompiled)
+                .Select(kvp => kvp.Value.total_included_lines + project.scanned_files[kvp.Key].NumberOfLines)
                 .Sum();
             var factor = (double)total_parsed / (double)total_lines;
             var table = new TableRow[]
             {
-                new TableRow("Files", Core.num_format(project.scanned_files.Count)),
-                new TableRow("Total lines", Core.num_format(total_lines)),
-                new TableRow("Total precompiled", $"{Core.num_format(pch_lines)} (<a href=\"#pch\">list</a>)"),
-                new TableRow("Total parsed", Core.num_format(total_parsed)),
+                new TableRow("Files", Core.FormatNumber(project.scanned_files.Count)),
+                new TableRow("Total lines", Core.FormatNumber(total_lines)),
+                new TableRow("Total precompiled", $"{Core.FormatNumber(pch_lines)} (<a href=\"#pch\">list</a>)"),
+                new TableRow("Total parsed", Core.FormatNumber(total_parsed)),
                 new TableRow("Blowup factor", $"{factor:0.00} (<a href=\"#largest\">largest</a>, <a href=\"#hubs\">hubs</a>)"),
             };
             add_project_table_summary(sb, table);
@@ -347,8 +347,8 @@ public static class Report
 
         {
             var most = analytics.file_to_data
-                .Select(kvp => new PathCount(kvp.Key, project.scanned_files[kvp.Key].number_of_lines * kvp.Value.translation_units_included_by.Count))
-                .Where(kvp => !project.scanned_files[kvp.Path].is_precompiled)
+                .Select(kvp => new PathCount(kvp.Key, project.scanned_files[kvp.Key].NumberOfLines * kvp.Value.translation_units_included_by.Count))
+                .Where(kvp => !project.scanned_files[kvp.Path].IsPrecompiled)
                 .Where(kvp => kvp.Count > 0)
                 .OrderByDescending(kvp => kvp.Count)
                 .ToImmutableArray();
@@ -366,8 +366,8 @@ public static class Report
 
         {
             var pch = project.scanned_files
-                .Where(kvp => kvp.Value.is_precompiled)
-                .Select(kvp => new PathCount(kvp.Key, kvp.Value.number_of_lines))
+                .Where(kvp => kvp.Value.IsPrecompiled)
+                .Select(kvp => new PathCount(kvp.Key, kvp.Value.NumberOfLines))
                 .OrderByDescending(kvp => kvp.Count)
                 .ToImmutableArray();
             add_file_table(sb, root, "pch", "Precompiled Headers", pch);
@@ -395,12 +395,12 @@ public class ProgressFeedback
 
     public void update_title(string new_title)
     {
-        printer.info($"{new_title}");
+        printer.Info($"{new_title}");
     }
 
     public void update_message(string new_message)
     {
-        printer.info($"  {new_message}");
+        printer.Info($"  {new_message}");
     }
 
     public void update_count(int new_count)
@@ -429,8 +429,8 @@ public class Scanner
         feedback.update_title("Scanning precompiled header...");
         foreach (var sf in project.scanned_files.Values)
         {
-            sf.is_touched = false;
-            sf.is_precompiled = false;
+            sf.IsTouched = false;
+            sf.IsPrecompiled = false;
         }
 
         // scan everything that goes into precompiled header
@@ -481,7 +481,7 @@ public class Scanner
         this.file_queue.Clear();
         this.system_includes.Clear();
 
-        project.scanned_files.RemoveAll(kvp => kvp.Value.is_touched == false);
+        project.scanned_files.RemoveAll(kvp => kvp.Value.IsTouched == false);
     }
 
     void scan_directory(string dir, ProgressFeedback feedback)
@@ -521,7 +521,7 @@ public class Scanner
         {
             var file = ffile.FullName;
             var ext = Path.GetExtension(file);
-            if (Data.Utils.is_translation_unit_extension(ext))
+            if (Data.Utils.IsTranslationUnitExtension(ext))
             {
                 this.add_to_queue(file, F.canonicalize_or_default(file));
             }
@@ -557,10 +557,10 @@ public class Scanner
             var res = Result.parse_file(path, this.errors);
             var sf = new Data.SourceFile
             (
-                number_of_lines: res.number_of_lines,
-                local_includes: res.local_includes,
-                system_includes: res.system_includes,
-                is_precompiled: this.is_scanning_pch
+                numberOfLines: res.number_of_lines,
+                localIncludes: res.local_includes,
+                systemIncludes: res.system_includes,
+                isPrecompiled: this.is_scanning_pch
             );
             this.please_scan_file(project, path, sf);
             project.scanned_files.Add(path, sf);
@@ -569,48 +569,48 @@ public class Scanner
 
     void please_scan_file(Data.Project project, string path, Data.SourceFile sf)
     {
-        sf.is_touched = true;
-        sf.absolute_includes.Clear();
+        sf.IsTouched = true;
+        sf.AbsoluteIncludes.Clear();
 
         var local_dir = new FileInfo(path).Directory?.FullName;
         if (local_dir == null)
         {
             throw new Exception($"{path} does not have a directory");
         }
-        foreach (var s in sf.local_includes)
+        foreach (var s in sf.LocalIncludes)
         {
             var inc = Path.Join(local_dir, s);
             var abs = F.canonicalize_or_default(inc);
             // found a header that's part of PCH during regular scan: ignore it
-            if (!this.is_scanning_pch && project.scanned_files.ContainsKey(abs) && project.scanned_files[abs].is_precompiled)
+            if (!this.is_scanning_pch && project.scanned_files.ContainsKey(abs) && project.scanned_files[abs].IsPrecompiled)
             {
                 F.touch_file(project, abs);
                 continue;
             }
             if (!Path.Exists(inc))
             {
-                if (!sf.system_includes.Contains(s))
+                if (!sf.SystemIncludes.Contains(s))
                 {
-                    sf.system_includes.Add(s);
+                    sf.SystemIncludes.Add(s);
                 }
                 continue;
             }
-            sf.absolute_includes.Add(abs);
+            sf.AbsoluteIncludes.Add(abs);
             this.add_to_queue(inc, abs);
         }
 
-        foreach (var s in sf.system_includes)
+        foreach (var s in sf.SystemIncludes)
         {
             if (this.system_includes.ContainsKey(s))
             {
                 var abs = this.system_includes[s];
                 // found a header that's part of PCH during regular scan: ignore it
-                if (!this.is_scanning_pch && project.scanned_files.ContainsKey(abs) && project.scanned_files[abs].is_precompiled)
+                if (!this.is_scanning_pch && project.scanned_files.ContainsKey(abs) && project.scanned_files[abs].IsPrecompiled)
                 {
                     F.touch_file(project, abs);
                     continue;
                 }
-                sf.absolute_includes.Add(abs);
+                sf.AbsoluteIncludes.Add(abs);
             }
             else
             {
@@ -623,13 +623,13 @@ public class Scanner
                 {
                     var abs = F.canonicalize_or_default(found_path);
                     // found a header that's part of PCH during regular scan: ignore it
-                    if (!this.is_scanning_pch && project.scanned_files.ContainsKey(abs) && project.scanned_files[abs].is_precompiled)
+                    if (!this.is_scanning_pch && project.scanned_files.ContainsKey(abs) && project.scanned_files[abs].IsPrecompiled)
                     {
                         F.touch_file(project, abs);
                         continue;
                     }
 
-                    sf.absolute_includes.Add(abs);
+                    sf.AbsoluteIncludes.Add(abs);
                     this.system_includes.Add(s, abs);
                     this.add_to_queue(found_path, abs);
                 }
@@ -652,6 +652,6 @@ public class Scanner
         //   #else
         //   #include <bar>
         //   #endif
-        sf.absolute_includes = sf.absolute_includes.ToImmutableHashSet().ToList();
+        sf.AbsoluteIncludes = sf.AbsoluteIncludes.ToImmutableHashSet().ToList();
     }
 }

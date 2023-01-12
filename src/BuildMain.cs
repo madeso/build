@@ -40,11 +40,11 @@ internal sealed class InitCommand : Command<InitCommand.Arg>
             var path = BuildData.GetBuildDataPath(Environment.CurrentDirectory);
             var data = new ProjectFile
             {
-                name = new DirectoryInfo(Environment.CurrentDirectory).Name
+                Name = new DirectoryInfo(Environment.CurrentDirectory).Name
             };
-            data.includes.Add(new() { "list of regexes", "that are used by check-includes" });
-            data.includes.Add(new() { "they are grouped into arrays, there needs to be a space between each group" });
-            data.dependencies.AddRange(Enum.GetValues<DependencyName>());
+            data.IncludeDirectories.Add(new() { "list of regexes", "that are used by check-includes" });
+            data.IncludeDirectories.Add(new() { "they are grouped into arrays, there needs to be a space between each group" });
+            data.Dependencies.AddRange(Enum.GetValues<DependencyName>());
 
             var content = JsonUtil.Write(data);
             if (settings.Overwrite == false && File.Exists(path))
@@ -54,7 +54,7 @@ internal sealed class InitCommand : Command<InitCommand.Arg>
             }
 
             File.WriteAllText(path, content);
-            print.info($"Wrote {path}");
+            print.Info($"Wrote {path}");
             return 0;
         });
     }
@@ -88,8 +88,8 @@ internal sealed class InstallCommand : Command<InstallCommand.Arg>
             print, settings,
             (printer, build, data) =>
             {
-                F.save_build(printer, build, data);
-                F.run_install(build, data, printer);
+                F.SaveBuildData(printer, build, data);
+                F.RunInstall(build, data, printer);
                 return 0;
             })
         );
@@ -101,10 +101,10 @@ internal sealed class CmakeCommand : Command<CmakeCommand.Arg>
 {
     public sealed class Arg : EnviromentArgument
     {
-        // [Description("Simplify dotfile output")]
-        [CommandOption("--print")]
+        [Description("Don't run command, only print")]
+        [CommandOption("--nop")]
         [DefaultValue(false)]
-        public bool Print { get; set; }
+        public bool Nop { get; set; }
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
@@ -113,8 +113,8 @@ internal sealed class CmakeCommand : Command<CmakeCommand.Arg>
             print, settings,
             (printer, build, data) =>
             {
-                F.save_build(printer, build, data);
-                F.run_cmake(build, data, printer, settings.Print);
+                F.SaveBuildData(printer, build, data);
+                F.RunCmake(build, data, printer, settings.Nop);
                 return 0;
             })
         );
@@ -134,9 +134,9 @@ internal sealed class DevCommand : Command<DevCommand.Arg>
             print, settings,
             (printer, build, data) =>
             {
-                F.save_build(printer, build, data);
-                F.run_install(build, data, printer);
-                F.run_cmake(build, data, printer, false);
+                F.SaveBuildData(printer, build, data);
+                F.RunInstall(build, data, printer);
+                F.RunCmake(build, data, printer, false);
                 return 0;
             })
         );
@@ -156,8 +156,8 @@ internal sealed class BuildCommand : Command<BuildCommand.Arg>
             print, settings,
             (printer, build, data) =>
             {
-                F.save_build(printer, build, data);
-                F.generate_cmake_project(build, data).build(printer);
+                F.SaveBuildData(printer, build, data);
+                F.generate_cmake_project(build, data).Build(printer);
                 return 0;
             })
         );
@@ -170,11 +170,11 @@ internal static class F
     // generate the ride project
     internal static CMake.CMake generate_cmake_project(BuildEnviroment build, BuildData data)
     {
-        var project = new CMake.CMake(data.build_dir, data.root_dir, build.get_cmake_generator());
+        var project = new CMake.CMake(data.ProjectDirectory, data.RootDirectory, build.get_cmake_generator());
 
-        foreach (var dep in data.dependencies)
+        foreach (var dep in data.Dependencies)
         {
-            dep.add_cmake_arguments(project);
+            dep.AddCmakeArguments(project);
         }
 
         return project;
@@ -182,25 +182,25 @@ internal static class F
 
 
     // install dependencies
-    internal static void run_install(BuildEnviroment env, BuildData data, Printer print)
+    internal static void RunInstall(BuildEnviroment env, BuildData data, Printer print)
     {
-        foreach (var dep in data.dependencies)
+        foreach (var dep in data.Dependencies)
         {
-            dep.install(env, print, data);
+            dep.Install(env, print, data);
         }
     }
 
 
     // configure the euphoria cmake project
-    internal static void run_cmake(BuildEnviroment build, BuildData data, Printer printer, bool only_print)
+    internal static void RunCmake(BuildEnviroment build, BuildData data, Printer printer, bool nop)
     {
-        generate_cmake_project(build, data).config_with_print(printer, only_print);
+        generate_cmake_project(build, data).Configure(printer, nop);
     }
 
     // save the build environment to the settings file
-    internal static void save_build(Printer print, BuildEnviroment build, BuildData data)
+    internal static void SaveBuildData(Printer print, BuildEnviroment build, BuildData data)
     {
-        Core.verify_dir_exist(print, data.build_base_dir);
+        Core.VerifyDirectoryExists(print, data.BuildDirectory);
         BuildUitls.save_to_file(build, data.get_path_to_settings());
     }
 
@@ -215,21 +215,21 @@ internal static class F
         var data = loaded_data.Value;
         var env = BuildUitls.load_from_file(data.get_path_to_settings(), printer);
 
-        printer.info($"Project: {data.name}");
-        printer.info($"Enviroment: {env}");
-        printer.info("");
-        printer.info($"Data: {data.get_path_to_settings()}");
-        printer.info($"Root: {data.root_dir}");
-        printer.info($"Build: {data.build_dir}");
-        printer.info($"Dependencies: {data.dependency_dir}");
+        printer.Info($"Project: {data.name}");
+        printer.Info($"Enviroment: {env}");
+        printer.Info("");
+        printer.Info($"Data: {data.get_path_to_settings()}");
+        printer.Info($"Root: {data.RootDirectory}");
+        printer.Info($"Build: {data.ProjectDirectory}");
+        printer.Info($"Dependencies: {data.DependencyDirectory}");
         var indent = "    ";
-        foreach (var dep in data.dependencies)
+        foreach (var dep in data.Dependencies)
         {
-            printer.info($"{indent}{dep.get_name()}");
-            var lines = dep.status();
+            printer.Info($"{indent}{dep.GetName()}");
+            var lines = dep.GetStatus();
             foreach (var line in lines)
             {
-                printer.info($"{indent}{indent}{line}");
+                printer.Info($"{indent}{indent}{line}");
             }
         }
     }

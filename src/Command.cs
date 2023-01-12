@@ -32,7 +32,7 @@ internal class CommandResult
     {
         foreach (var line in this.Output)
         {
-            print.info(line);
+            print.Info(line);
         }
 
         return this;
@@ -40,7 +40,7 @@ internal class CommandResult
 
     public CommandResult PrintStatus(Printer print)
     {
-        print.info($"Return value: {ExitCode}");
+        print.Info($"Return value: {ExitCode}");
         if (ExitCode != 0)
         {
             print.error($"Failed to run command: {CommandLine}");

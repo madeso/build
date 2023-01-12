@@ -335,7 +335,7 @@ class FileWalker
         Dictionary<string, List<Statement>> file_cache
     )
     {
-        print.info($"Parsing {path}");
+        print.Info($"Parsing {path}");
         this.stats.file_count += 1;
 
         if (this.commands.TryGetValue(path, out var cc) == false)
@@ -733,14 +733,14 @@ internal static class F
                 var blocks = parse_to_blocks(args.filename, print, statements);
                 foreach (var block in blocks)
                 {
-                    print.info($"{block}");
+                    print.Info($"{block}");
                 }
             }
             else
             {
                 foreach (var statement in statements)
                 {
-                    print.info($"{statement}");
+                    print.Info($"{statement}");
                 }
             }
         }
@@ -748,7 +748,7 @@ internal static class F
         {
             foreach (var line in lines)
             {
-                print.info(line.text);
+                print.Info(line.text);
             }
         }
     }
@@ -835,13 +835,13 @@ internal static class F
 
         var stats = walker.stats;
 
-        print.info($"Top {args.count} includes are:");
+        print.Info($"Top {args.count} includes are:");
 
         foreach (var (file, count) in stats.includes.MostCommon().Take(args.count))
         {
             var d = Path.GetRelativePath(Environment.CurrentDirectory, file);
             var times = (double)count / (double)stats.file_count;
-            print.info($" - {d} {times:.2}x ({count}/{stats.file_count})");
+            print.Info($" - {d} {times:.2}x ({count}/{stats.file_count})");
         }
 
         return true;

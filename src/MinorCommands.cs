@@ -1,4 +1,5 @@
 using Spectre.Console.Cli;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Workbench.CMake;
 
@@ -26,7 +27,7 @@ internal sealed class CatCommand : Command<CatCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
-        // [Description("File to read")]
+        [Description("File to print")]
         [CommandArgument(0, "<input file>")]
         public string Path { get; set; } = "";
     }
@@ -61,7 +62,7 @@ internal sealed class LsCommand : Command<LsCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
-        // [Description("File to read")]
+        [Description("Directoy to list")]
         [CommandArgument(0, "<input file>")]
         public string Path { get; set; } = "";
     }
@@ -82,10 +83,10 @@ internal static class F
     private static void print_found_list(Printer printer, string name, List<Found> list)
     {
         var found = Found.first_value_or_none(list) ?? "<None>";
-        printer.info($"{name}: {found}");
+        printer.Info($"{name}: {found}");
         foreach (var f in list)
         {
-            printer.info($"    {f}");
+            printer.Info($"    {f}");
         }
     }
 
@@ -94,7 +95,7 @@ internal static class F
         print_found_list(printer, "cmake", CmakeTools.list_all(printer).ToList());
 
         var root = Environment.CurrentDirectory;
-        printer.info($"Root: {root}");
+        printer.Info($"Root: {root}");
 
         var project_build_folder = CompileCommands.Utils.find_build_root(root);
         if (project_build_folder is null)
@@ -103,17 +104,17 @@ internal static class F
         }
         else
         {
-            printer.info($"Project build folder: {project_build_folder}");
+            printer.Info($"Project build folder: {project_build_folder}");
         }
 
         var ccs = cc.get_argument_or_none_with_cwd();
         if (ccs != null)
         {
-            printer.info($"Compile commands: {ccs}");
+            printer.Info($"Compile commands: {ccs}");
         }
         else
         {
-            printer.info("Compile commands: <NONE>");
+            printer.Info("Compile commands: <NONE>");
         }
     }
 }

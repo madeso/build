@@ -312,7 +312,7 @@ internal static class F
         var classes = new ColCounter<string>();
         if (false == shortList && only.Length == 0)
         {
-            printer.info($"took {time_taken:.2f}s");
+            printer.Info($"took {time_taken:.2f}s");
         }
         stats.Add(printable_file, time_taken);
         var print_empty = false;
@@ -359,7 +359,7 @@ internal static class F
                 {
                     if (false == hidden && print_empty)
                     {
-                        printer.info("");
+                        printer.Info("");
                         print_empty = false;
                     }
                 }
@@ -368,7 +368,7 @@ internal static class F
                     if (false == hidden)
                     {
                         print_empty = true;
-                        printer.info(line);
+                        printer.Info(line);
                     }
                 }
             }
@@ -376,7 +376,7 @@ internal static class F
         if (false == shortList && only.Length == 0)
         {
             PrintWarningCounter(printer, classes, printable_file);
-            printer.info("");
+            printer.Info("");
         }
         return (warnings, classes);
     }
@@ -384,10 +384,10 @@ internal static class F
     // print warning counter to the console
     private static void PrintWarningCounter(Printer print, ColCounter<string> project_counter, string project)
     {
-        print.info($"{project_counter.TotalCount()} warnings in {project}.");
+        print.Info($"{project_counter.TotalCount()} warnings in {project}.");
         foreach (var (file, count) in project_counter.MostCommon().Take(10))
         {
-            print.info($"{file} at {count}");
+            print.Info($"{file} at {count}");
         }
     }
 
@@ -416,7 +416,7 @@ internal static class F
         }
     }
 
-    internal static int HandleTidyListCommand(Printer print, bool args_sort)
+    internal static int HandleTidyListFilesCommand(Printer print, bool args_sort)
     {
         var root = Environment.CurrentDirectory;
 
@@ -434,19 +434,19 @@ internal static class F
             var sorted = MapFilesOnFirstDir(root, files);
             foreach (var (project, source_files) in sorted)
             {
-                print.header(project);
+                print.Header(project);
                 foreach (var source_file in source_files)
                 {
-                    print.info(source_file);
+                    print.Info(source_file);
                 }
-                print.info("");
+                print.Info("");
             }
         }
         else
         {
             foreach (var file in files)
             {
-                print.info(file);
+                print.Info(file);
             }
         }
 
@@ -454,25 +454,25 @@ internal static class F
     }
 
     // callback function called when running clang.py tidy
-    internal static int handle_tidy(Printer printe, string tidy_path, bool force, bool headers, bool short_args, bool args_nop, string[] args_filter, string[] args_only, bool args_fix)
+    internal static int HandleRunClangTidyCommand(Printer printer, string tidy_path, bool force, bool headers, bool short_args, bool args_nop, string[] args_filter, string[] args_only, bool args_fix)
     {
         var root = Environment.CurrentDirectory;
         var project_build_folder = CompileCommands.Utils.find_build_root(root);
         if (project_build_folder is null)
         {
-            printe.error("unable to find build folder");
+            printer.error("unable to find build folder");
             return -1;
         }
 
-        var store = LoadStore(printe, project_build_folder);
+        var store = LoadStore(printer, project_build_folder);
         if (store == null)
         {
-            printe.error("unable to find load store");
+            printer.error("unable to find load store");
             return -1;
         }
 
         WriteTidyFileToDisk(root);
-        printe.info($"using clang-tidy: {tidy_path}");
+        printer.Info($"using clang-tidy: {tidy_path}");
 
         var total_counter = new ColCounter<string>();
         var total_classes = new ColCounter<string>();
@@ -497,13 +497,13 @@ internal static class F
                 {
                     if (false == short_args)
                     {
-                        printe.header(project);
+                        printer.Header(project);
                     }
                     first_file = false;
                 }
                 if (args_nop is false)
                 {
-                    var (warnings, classes) = RunTidy(store, printe, root, force, tidy_path, source_file, project_build_folder, stats, short_args, print_name, args_fix, printable_file, args_only);
+                    var (warnings, classes) = RunTidy(store, printer, root, force, tidy_path, source_file, project_build_folder, stats, short_args, print_name, args_fix, printable_file, args_only);
                     if (short_args && warnings.TotalCount() > 0)
                     {
                         break;
@@ -533,34 +533,34 @@ internal static class F
             {
                 if (args_only.Length == 0)
                 {
-                    PrintWarningCounter(printe, project_counter, project);
-                    printe.info("");
-                    printe.info("");
+                    PrintWarningCounter(printer, project_counter, project);
+                    printer.Info("");
+                    printer.Info("");
                 }
             }
         }
 
         if (false == short_args && args_only.Length == 0)
         {
-            printe.header("TIDY REPORT");
-            PrintWarningCounter(printe, total_counter, "total");
-            printe.info("");
-            PrintWarningCounter(printe, total_classes, "classes");
-            printe.info("");
-            printe.line();
-            printe.info("");
+            printer.Header("TIDY REPORT");
+            PrintWarningCounter(printer, total_counter, "total");
+            printer.Info("");
+            PrintWarningCounter(printer, total_classes, "classes");
+            printer.Info("");
+            printer.line();
+            printer.Info("");
             foreach (var (k, v) in warnings_per_file)
             {
-                printe.info($"{k}:");
+                printer.Info($"{k}:");
                 foreach (var f in v)
                 {
-                    printe.info($"  {f}");
+                    printer.Info($"  {f}");
                 }
-                printe.info("");
+                printer.Info("");
             }
 
-            printe.line();
-            printe.info("");
+            printer.line();
+            printer.Info("");
             stats.Print();
         }
 
@@ -575,7 +575,7 @@ internal static class F
     }
 
     // callback function called when running clang.py format
-    internal static int handle_format(Printer printer, bool args_nop)
+    internal static int HandleClangFormatCommand(Printer printer, bool args_nop)
     {
         var root = Environment.CurrentDirectory;
 
@@ -590,10 +590,10 @@ internal static class F
 
         foreach (var (project, source_files) in data)
         {
-            printer.header(project);
+            printer.Header(project);
             foreach (var source_file in source_files)
             {
-                printer.info(Path.GetRelativePath(source_file, root));
+                printer.Info(Path.GetRelativePath(source_file, root));
                 if (args_nop == false)
                 {
                     var res = new Command("clang-format", "-i", source_file).RunAndGetOutput();
@@ -604,7 +604,7 @@ internal static class F
                     }
                 }
             }
-            printer.info("");
+            printer.Info("");
         }
 
         return 0;
@@ -641,7 +641,7 @@ internal sealed class ListCommand : Command<ListCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => F.HandleTidyListCommand(print, settings.Sort));
+        return CommonExecute.WithPrinter(print => F.HandleTidyListFilesCommand(print, settings.Sort));
     }
 }
 
@@ -683,7 +683,7 @@ internal sealed class TidyCommand : Command<TidyCommand.Arg>
         [DefaultValue(true)]
         public bool Force { get; set; }
 
-        // [Description("try to fix the source")]
+        [Description("Only tidy files matching theese")]
         [CommandOption("--only")]
         [DefaultValue(null)]
         public string[]? Only { get; set; }
@@ -696,7 +696,7 @@ internal sealed class TidyCommand : Command<TidyCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => F.handle_tidy(
+        return CommonExecute.WithPrinter(print => F.HandleRunClangTidyCommand(
             print,
             settings.ClangTidy,
             settings.Force,
@@ -721,7 +721,7 @@ internal sealed class FormatCommand : Command<FormatCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => F.handle_format(print, settings.Nop));
+        return CommonExecute.WithPrinter(print => F.HandleClangFormatCommand(print, settings.Nop));
     }
 }
 

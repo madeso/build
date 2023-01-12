@@ -86,12 +86,12 @@ internal static class Ui
         {
             if (exclude_file(file, input, onlyHeaders, exclude))
             {
-                print.info($"{file} rejected due to non-header");
+                print.Info($"{file} rejected due to non-header");
                 continue;
             }
             else
             {
-                print.info($"{file} added as a node");
+                print.Info($"{file} added as a node");
             }
             var display_name = Html.get_filename(root.InputRoot, file);
             var node_id = Html.safe_inspect_filename_without_html(file);
@@ -110,7 +110,7 @@ internal static class Ui
         {
             if (exclude_file(file, input, onlyHeaders, exclude))
             {
-                print.info($"{file} rejected due to non-header");
+                print.Info($"{file} rejected due to non-header");
                 continue;
             }
 
@@ -121,11 +121,11 @@ internal static class Ui
                 throw new Exception("BUG: Node not added");
             }
 
-            foreach (var s in project.scanned_files[file].absolute_includes)
+            foreach (var s in project.scanned_files[file].AbsoluteIncludes)
             {
                 if (exclude_file(s, input, onlyHeaders, exclude))
                 {
-                    print.info($"{s} rejected due to non-header");
+                    print.Info($"{s} rejected due to non-header");
                     continue;
                 }
 
@@ -224,8 +224,8 @@ internal static class Ui
         foreach (var s in included.OrderByDescending(s => length_fun(analytics.file_to_data[s])))
         {
             var display_filename = Html.inspect_filename_link(root.InputRoot, s);
-            var display_count = Core.num_format(length_fun(analytics.file_to_data[s]));
-            var display_lines = Core.num_format(analytics.file_to_data[s].total_included_lines);
+            var display_count = Core.FormatNumber(length_fun(analytics.file_to_data[s]));
+            var display_lines = Core.FormatNumber(analytics.file_to_data[s].total_included_lines);
 
             html.push_str($"<tr><td class=\"file\">{display_filename}</td> <td class=\"num\">{display_count}</td> <td class=\"num\">{display_lines}</td></tr>");
         }
@@ -248,7 +248,7 @@ internal static class Ui
             html, root,
             analytics,
             project.scanned_files
-                .Where(kvp => kvp.Value.absolute_includes.Contains(file))
+                .Where(kvp => kvp.Value.AbsoluteIncludes.Contains(file))
                 .Select(kvp => kvp.Key),
             "included_by", $"Theese include {display_name}",
             it => it.all_included_by.Count
@@ -259,11 +259,11 @@ internal static class Ui
 
             var project_file = project.scanned_files[file];
             var analytics_file = analytics.file_to_data[file];
-            var file_lines = Core.num_format(project_file.number_of_lines);
-            var direct_lines = Core.num_format(project_file.absolute_includes.Select(f => project.scanned_files[f].number_of_lines).Sum());
-            var direct_count = Core.num_format(project_file.absolute_includes.Count);
-            var total_lines = Core.num_format(analytics_file.total_included_lines);
-            var total_count = Core.num_format(analytics_file.all_includes.Count);
+            var file_lines = Core.FormatNumber(project_file.NumberOfLines);
+            var direct_lines = Core.FormatNumber(project_file.AbsoluteIncludes.Select(f => project.scanned_files[f].NumberOfLines).Sum());
+            var direct_count = Core.FormatNumber(project_file.AbsoluteIncludes.Count);
+            var total_lines = Core.FormatNumber(analytics_file.total_included_lines);
+            var total_count = Core.FormatNumber(analytics_file.all_includes.Count);
 
             html.push_str($"<h2>{display_name}</h2>\n");
 
@@ -283,7 +283,7 @@ internal static class Ui
         (
             html, root,
             analytics,
-            project.scanned_files[file].absolute_includes,
+            project.scanned_files[file].AbsoluteIncludes,
             "includes", $"{display_name} includes theese",
             it => it.all_includes.Count
         );

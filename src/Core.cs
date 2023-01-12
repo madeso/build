@@ -6,10 +6,10 @@ namespace Workbench;
 
 public static class Core
 {
-    public static IEnumerable<string> walk_files(string sdir)
+    public static IEnumerable<string> ListAllFiles(string rootDirectory)
     {
         var dirs = new Queue<string>();
-        dirs.Enqueue(sdir);
+        dirs.Enqueue(rootDirectory);
 
         while (dirs.Count > 0)
         {
@@ -25,27 +25,27 @@ public static class Core
         }
     }
 
-    public static bool is_windows()
+    public static bool IsWindows()
     {
         return System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
     }
 
     // check if the script is running on 64bit or not
-    public static bool is_64bit()
+    public static bool Is64Bit()
     {
         return System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture == Architecture.X64;
     }
 
     /// make sure directory exists 
-    public static void verify_dir_exist(Printer print, string dir)
+    public static void VerifyDirectoryExists(Printer print, string dir)
     {
         if (Directory.Exists(dir))
         {
-            print.info($"Dir exist, not creating {dir}");
+            print.Info($"Dir exist, not creating {dir}");
         }
         else
         {
-            print.info($"Not a directory, creating {dir}");
+            print.Info($"Not a directory, creating {dir}");
             try
             {
                 Directory.CreateDirectory(dir);
@@ -57,7 +57,7 @@ public static class Core
         }
     }
 
-    internal static string[]? read_file_to_lines(string filename)
+    internal static string[]? ReadFileToLines(string filename)
     {
         if (File.Exists(filename))
         {
@@ -68,29 +68,29 @@ public static class Core
 
 
     /// download file if not already downloaded 
-    public static void download_file(Printer print, string url, string dest)
+    public static void DownloadFileIfMissing(Printer print, string url, string dest)
     {
         if (File.Exists(dest))
         {
-            print.info($"Already downloaded {dest}");
+            print.Info($"Already downloaded {dest}");
         }
         else
         {
-            print.info($"Downloading {dest}");
-            download_file_now(print, url, dest);
+            print.Info($"Downloading {dest}");
+            DownloadFile(print, url, dest);
+        }
+
+        static void DownloadFile(Printer print, string url, string dest)
+        {
+            using var client = new HttpClient();
+            using var s = client.GetStreamAsync(url);
+            using var fs = new FileStream(dest, FileMode.OpenOrCreate);
+            s.Result.CopyTo(fs);
         }
     }
 
-    private static void download_file_now(Printer print, string url, string dest)
-    {
-        using var client = new HttpClient();
-        using var s = client.GetStreamAsync(url);
-        using var fs = new FileStream(dest, FileMode.OpenOrCreate);
-        s.Result.CopyTo(fs);
-    }
-
     /// moves all file from one directory to another
-    public static void move_files(Printer print, string from, string to)
+    public static void MoveFiles(Printer print, string from, string to)
     {
         if (Path.Exists(from) == false)
         {
@@ -98,127 +98,64 @@ public static class Core
             return;
         }
 
-        verify_dir_exist(print, to);
-        var error = move_files_rec(from, to);
-        if (string.IsNullOrEmpty(error) == false)
+        VerifyDirectoryExists(print, to);
+        MoveFilesRecursivly(from, to);
+
+        static void MoveFilesRecursivly(string from, string to)
         {
-            print.error($"Failed to move {from} to {to}: {error}");
+            var paths = new DirectoryInfo(from);
+
+            foreach (var file in paths.EnumerateFiles())
+            {
+                var src = Path.Join(from, file.Name);
+                var dst = Path.Join(to, file.Name);
+                File.Move(src, dst);
+            }
+
+            foreach (var dir in paths.EnumerateDirectories())
+            {
+                var src = Path.Join(from, dir.Name);
+                var dst = Path.Join(to, dir.Name);
+                Directory.CreateDirectory(dst);
+                MoveFilesRecursivly(src, dst);
+                Directory.Delete(src, false);
+            }
         }
-    }
-
-    public static string move_files_rec(string from, string to)
-    {
-        var paths = new DirectoryInfo(from);
-
-        foreach (var file in paths.EnumerateFiles())
-        {
-            var src = Path.Join(from, file.Name);
-            var dst = Path.Join(to, file.Name);
-            File.Move(src, dst);
-        }
-
-        foreach (var dir in paths.EnumerateDirectories())
-        {
-            var src = Path.Join(from, dir.Name);
-            var dst = Path.Join(to, dir.Name);
-            Directory.CreateDirectory(dst);
-            move_files_rec(src, dst);
-            Directory.Delete(src, false);
-        }
-
-        return "";
     }
 
     /// extract a zip file to folder
-    public static void extract_zip(Printer print, string zip, string to)
+    public static void ExtractZip(Printer print, string zip, string to)
     {
         ZipFile.ExtractToDirectory(zip, to);
     }
 
-    public static string num_format(int num)
+    public static string FormatNumber(int num)
     {
         var r = num.ToString("n0", CultureInfo.CurrentCulture);
         return r;
-        // return $"{num}";
-#if false
-        // println!("Formatting {}", num);
-
-        let str = format!("{}", num);
-
-        // println!("  str {}", str);
-        let mut vec : Vec<char> = str.chars().collect();
-        vec.reverse();
-        // println!("  vec {:?}", vec);
-        let mut new  = Vec::new();
-        let mut index = 0;
-        for c in vec
-        {
-            if index == 3
-            {
-                index = 1;
-                new.push(' ');
-                // println!("  with space");
-            }
-            else
-            {
-                index += 1;
-            }
-            new.push(c);
-        }
-        new.reverse();
-        // println!("  new {:?}", new);
-
-        let mut r = String::new();
-        for c in new
-        {
-            r.push(c);
-        }
-
-        // println!("  ret {}", r);
-
-        r
-#endif
     }
-
-#if false
-    extern crate chrono;
-    use chrono::offset::Local;
-    use chrono::DateTime;
-    use std::time::SystemTime;
-
-    public void display_time(system_time: SystemTime) -> string
-    {
-        //let system_time = SystemTime::now();
-        let datetime: DateTime<Local> = system_time.into();
-        datetime.format("%c").to_string()
-    }
-#endif
 }
-
-public readonly record struct SingleReplacement
-    (
-        string old,
-        string neww
-    );
 
 /// multi replace calls on a single text 
 public class TextReplacer
 {
+    private readonly record struct SingleReplacement(string From, string To);
+
     List<SingleReplacement> replacements = new();
 
     // add a replacement command 
-    public void add(string old, string neww)
+    public void Add(string old, string neww)
     {
         replacements.Add(new SingleReplacement(old, neww));
     }
 
-    public string replace(string in_text)
+    public string Replace(string in_text)
     {
         var text = in_text;
 
         foreach (var replacement in replacements)
         {
-            text = text.Replace(replacement.old, replacement.neww);
+            text = text.Replace(replacement.From, replacement.To);
         }
 
         return text;

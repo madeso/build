@@ -8,7 +8,7 @@ public class Printer
     readonly List<string> errors = new();
 
     // print a "pretty" header to the terminal
-    public void header(string project_name) { this.header_with_custom_char(project_name, "-"); }
+    public void Header(string project_name) { this.header_with_custom_char(project_name, "-"); }
     void header_with_custom_char(string project_name, string header_character)
     {
         var header_size = 65;
@@ -32,7 +32,7 @@ public class Printer
         AnsiConsole.MarkupLine($"{header_string}");
     }
 
-    public void info(string text)
+    public void Info(string text)
     {
         AnsiConsole.MarkupLine($"{text}");
     }

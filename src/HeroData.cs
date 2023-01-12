@@ -37,18 +37,18 @@ public class UserInput
 
             foreach (var x in changes.Where(x => x.Exist == true))
             {
-                printer.info($"{x.Src} does not exist in {name}, but was replaced with {x.Dst}");
+                printer.Info($"{x.Src} does not exist in {name}, but was replaced with {x.Dst}");
             }
 
             foreach (var x in changes.Where(x => x.Exist == false))
             {
-                printer.info($"{x.Src} was removed from {name} since it doesn't exist and the replacement {x.Dst} was found");
+                printer.Info($"{x.Src} was removed from {name} since it doesn't exist and the replacement {x.Dst} was found");
             }
 
             d.RemoveAll(missing.Contains);
             foreach (var f in d)
             {
-                printer.info($"{f} was kept in {name}");
+                printer.Info($"{f} was kept in {name}");
             }
             d.AddRange(changes.Where(x => x.Exist).Select(x => x.Dst));
         }
@@ -82,30 +82,29 @@ public class Project
 
 public class SourceFile
 {
-    public readonly List<string> local_includes = new();
-    public readonly List<string> system_includes = new();
-    public List<string> absolute_includes = new(); // change to a hash set?
-    public int number_of_lines = 0;
-    public bool is_touched = false;
-    public bool is_precompiled = false;
+    public List<string> LocalIncludes { get; } = new();
+    public List<string> SystemIncludes { get; } = new();
+    public List<string> AbsoluteIncludes { get; set; } = new(); // change to a hash set?
+    public int NumberOfLines { get; set; } = 0;
+    public bool IsTouched { get; set; } = false;
+    public bool IsPrecompiled { get; set; } = false;
 
     private SourceFile()
     {
     }
 
-    public SourceFile(int number_of_lines, List<string> local_includes, List<string> system_includes, bool is_precompiled)
+    public SourceFile(int numberOfLines, List<string> localIncludes, List<string> systemIncludes, bool isPrecompiled)
     {
-        this.local_includes = local_includes;
-        this.system_includes = system_includes;
-        this.number_of_lines = number_of_lines;
-        this.is_precompiled = is_precompiled;
+        this.LocalIncludes = localIncludes;
+        this.SystemIncludes = systemIncludes;
+        this.NumberOfLines = numberOfLines;
+        this.IsPrecompiled = isPrecompiled;
     }
 }
 
 public static class Utils
 {
-
-    public static bool is_translation_unit_extension(string ext)
+    public static bool IsTranslationUnitExtension(string ext)
     {
         return ext switch
         {
@@ -114,8 +113,8 @@ public static class Utils
         };
     }
 
-    public static bool is_translation_unit(string path)
+    public static bool IsTranslationUnit(string path)
     {
-        return is_translation_unit_extension(Path.GetExtension(path));
+        return IsTranslationUnitExtension(Path.GetExtension(path));
     }
 }

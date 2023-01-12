@@ -161,7 +161,7 @@ internal sealed class FilesCommand : Command<FilesCommand.Arg>
                         var commands = Utils.load_compile_commands(print, path);
                         if (commands == null) { return -1; }
 
-                        print.info($"{commands}");
+                        print.Info($"{commands}");
                     }
                     return 0;
                 }
@@ -190,11 +190,11 @@ internal sealed class IncludesCommand : Command<IncludesCommand.Arg>
 
                         foreach (var (file, command) in commands)
                         {
-                            print.info($"{file}");
+                            print.Info($"{file}");
                             var dirs = command.get_relative_includes();
                             foreach (var d in dirs)
                             {
-                                print.info($"    {d}");
+                                print.Info($"    {d}");
                             }
                         }
                     }
@@ -224,11 +224,11 @@ internal sealed class DefinesCommand : Command<DefinesCommand.Arg>
 
                         foreach (var (file, command) in commands)
                         {
-                            print.info($"{file}");
+                            print.Info($"{file}");
                             var defs = command.get_defines();
                             foreach (var (k, v) in defs)
                             {
-                                print.info($"    {k} = {v}");
+                                print.Info($"    {k} = {v}");
                             }
                         }
                     }

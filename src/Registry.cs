@@ -6,7 +6,7 @@ public static class Registry
 {
     public static string? hklm(string key_name, string value_name)
     {
-        if (Core.is_windows() == false)
+        if (Core.IsWindows() == false)
         {
             return null;
         }

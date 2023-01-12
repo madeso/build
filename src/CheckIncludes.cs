@@ -167,7 +167,7 @@ public static class IncludeTools
     public static TextReplacer get_replacer(string file_stem)
     {
         var replacer = new TextReplacer();
-        replacer.add("{file_stem}", file_stem);
+        replacer.Add("{file_stem}", file_stem);
         return replacer;
     }
 
@@ -184,7 +184,7 @@ public static class IncludeTools
     {
         var replacer = get_replacer(Path.GetFileNameWithoutExtension(filename));
 
-        foreach (var (index, included_regex_group) in data.includes.Select(((value, i) => (i, value))))
+        foreach (var (index, included_regex_group) in data.IncludeDirectories.Select(((value, i) => (i, value))))
         {
             foreach (var included_regex in included_regex_group)
             {
@@ -287,7 +287,7 @@ public static class IncludeTools
             last_class = line_class.Value;
             if (verbose)
             {
-                print.info($"{line_class.Value} {l}");
+                print.Info($"{line_class.Value} {l}");
             }
         }
 
@@ -394,14 +394,14 @@ public static class IncludeTools
 
     private static void print_lines(Printer print, IEnumerable<string> lines)
     {
-        print.info("*************************************************");
+        print.Info("*************************************************");
         foreach (var line in lines)
         {
-            print.info(line);
+            print.Info(line);
         }
-        print.info("*************************************************");
-        print.info("");
-        print.info("");
+        print.Info("*************************************************");
+        print.Info("");
+        print.Info("");
     }
 
 
@@ -423,10 +423,10 @@ public static class IncludeTools
 
         if (verbose)
         {
-            print.info($"Opening file {filename}");
+            print.Info($"Opening file {filename}");
         }
 
-        var lines = Core.read_file_to_lines(filename);
+        var lines = Core.ReadFileToLines(filename);
         if (lines == null)
         {
             print.error($"Failed to load {filename}");
@@ -470,7 +470,7 @@ public static class IncludeTools
         bool print_first_error_only = command switch
         {
             Command.Fix => true,
-            Command.ListUnfixable p => p.print_first_error_only,
+            Command.ListUnfixable p => p.printFirstErrorOnly,
             _ => false // don't care, shouldn't be possible
         };
 
@@ -494,7 +494,7 @@ public static class IncludeTools
 
                 if (nop.nop)
                 {
-                    print.info($"Will write the following to {filename}");
+                    print.Info($"Will write the following to {filename}");
                     print_lines(print, file_data);
                 }
                 else
@@ -503,7 +503,7 @@ public static class IncludeTools
                 }
                 break;
             default:
-                print.info("I think the correct order would be:");
+                print.Info("I think the correct order would be:");
                 print_lines(print, sorted_include_lines);
                 break;
         }
@@ -553,9 +553,9 @@ public static class IncludeTools
 
         if (args.status)
         {
-            print.info($"Files parsed: {file_count}");
-            print.info($"Files errored: {file_error}");
-            print.info($"Errors found: {error_count}");
+            print.Info($"Files parsed: {file_count}");
+            print.Info($"Files errored: {file_error}");
+            print.Info($"Errors found: {error_count}");
         }
 
         return error_count;
@@ -575,7 +575,7 @@ public class ClassifiedFile
 public abstract record Command
 {
     public record MissingPatterns() : Command;
-    public record ListUnfixable(bool print_first_error_only) : Command;
+    public record ListUnfixable(bool printFirstErrorOnly) : Command;
     public record Check() : Command;
     public record Fix(bool nop) : Command;
 }

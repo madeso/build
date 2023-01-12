@@ -8,13 +8,13 @@ using System.Text.RegularExpressions;
 class ProjectFile
 {
     [JsonProperty("name")]
-    public string name = "";
+    public string Name { get; set; } = "";
 
     [JsonProperty("dependencies")]
-    public List<DependencyName> dependencies = new();
+    public List<DependencyName> Dependencies { get; } = new();
 
     [JsonProperty("includes")]
-    public List<List<string>> includes = new();
+    public List<List<string>> IncludeDirectories { get; } = new();
 }
 
 public interface OptionalRegex
@@ -24,7 +24,7 @@ public interface OptionalRegex
 
 public class OptionalRegexDynamic : OptionalRegex
 {
-    readonly string regex;
+    private readonly string regex;
 
     public OptionalRegexDynamic(string regex)
     {
@@ -33,13 +33,13 @@ public class OptionalRegexDynamic : OptionalRegex
 
     public Regex? GetRegex(Printer print, TextReplacer replacer)
     {
-        var regex_source = replacer.replace(regex);
-        switch (BuildData.CompileRegex(regex_source))
+        var regexSource = replacer.Replace(regex);
+        switch (BuildData.CompileRegex(regexSource))
         {
             case RegexOrErr.Value re:
                 return re.regex;
             case RegexOrErr.Error error:
-                print.error($"{regex} -> {regex_source} is invalid regex: {error.error}");
+                print.error($"{regex} -> {regexSource} is invalid regex: {error.error}");
                 return null;
             default:
                 throw new ArgumentException("invalid state");
@@ -85,16 +85,15 @@ abstract record RegexOrErr
 }
 
 
-// #[derive(Debug)]
 public struct BuildData
 {
     public string name;
-    public List<Dependency> dependencies;
-    public string root_dir;
-    public string build_base_dir;
-    public string build_dir;
-    public string dependency_dir;
-    public List<List<OptionalRegex>> includes;
+    public List<Dependency> Dependencies;
+    public string RootDirectory;
+    public string BuildDirectory;
+    public string ProjectDirectory;
+    public string DependencyDirectory;
+    public List<List<OptionalRegex>> IncludeDirectories;
 
     private static IEnumerable<OptionalRegex> strings_to_regex(TextReplacer replacer, IEnumerable<string> includes, Printer print)
     {
@@ -102,7 +101,7 @@ public struct BuildData
         (
             (Func<string, OptionalRegex>)(regex =>
             {
-                var regex_source = replacer.replace(regex);
+                var regex_source = replacer.Replace(regex);
                 if (regex_source != regex)
                 {
                     return new OptionalRegexDynamic(regex);
@@ -141,21 +140,21 @@ public struct BuildData
     public BuildData(string name, string root_dir, List<List<string>> includes, Printer print)
     {
         this.name = name;
-        this.dependencies = new();
-        this.root_dir = root_dir;
-        this.build_base_dir = Path.Join(root_dir, "build");
-        this.build_dir = Path.Join(build_base_dir, name);
-        this.dependency_dir = Path.Join(build_base_dir, "deps");
+        this.Dependencies = new();
+        this.RootDirectory = root_dir;
+        this.BuildDirectory = Path.Join(root_dir, "build");
+        this.ProjectDirectory = Path.Join(BuildDirectory, name);
+        this.DependencyDirectory = Path.Join(BuildDirectory, "deps");
 
         var replacer = CheckIncludes.IncludeTools.get_replacer("file_stem");
-        this.includes = includes.Select(includes => strings_to_regex(replacer, includes, print).ToList()).ToList();
+        this.IncludeDirectories = includes.Select(includes => strings_to_regex(replacer, includes, print).ToList()).ToList();
     }
 
 
     // get the path to the settings file
     public string get_path_to_settings()
     {
-        return Path.Join(build_base_dir, "settings.json");
+        return Path.Join(BuildDirectory, "settings.json");
     }
 
     public static BuildData? load_from_dir(string root, Printer print)
@@ -173,10 +172,10 @@ public struct BuildData
             return null;
         }
 
-        var bd = new BuildData(loaded.name, root, loaded.includes, print);
-        foreach (var dependency_name in loaded.dependencies)
+        var bd = new BuildData(loaded.Name, root, loaded.IncludeDirectories, print);
+        foreach (var dependency_name in loaded.Dependencies)
         {
-            bd.dependencies.Add(Dependencies.CreateDependency(dependency_name, bd));
+            bd.Dependencies.Add(Workbench.Dependencies.CreateDependency(dependency_name, bd));
         }
         return bd;
     }

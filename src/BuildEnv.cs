@@ -167,7 +167,7 @@ public static class BuildUitls
     {
         return platform switch
         {
-            Platform.Auto => Core.is_64bit(),
+            Platform.Auto => Core.Is64Bit(),
             Platform.Win32 => false,
             Platform.X64 => true,
             _ => false,

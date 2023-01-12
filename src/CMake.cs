@@ -107,43 +107,42 @@ public class CMake
     public CMake(string build_folder, string source_folder, Generator generator)
     {
         this.generator = generator;
-        this.build_folder = build_folder;
-        this.source_folder = source_folder;
+        this.buildFolder = build_folder;
+        this.sourceFolder = source_folder;
     }
 
-    Generator generator { get; }
-    string build_folder { get; }
-    string source_folder { get; }
-    List<Argument> arguments { get; } = new List<Argument>();
+    private readonly Generator generator;
+    private readonly string buildFolder;
+    private readonly string sourceFolder;
+    private readonly List<Argument> arguments = new List<Argument>();
 
 
     // add argument with a explicit type set
-    void add_argument_with_type(string name, string value, string typename)
+    private void AddArgumentWithType(string name, string value, string typename)
     {
         this.arguments.Add(new Argument(name, value, typename));
     }
 
     // add argument
-    public void add_argument(string name, string value)
+    public void AddArgument(string name, string value)
     {
         this.arguments.Add(new Argument(name, value));
     }
 
     // set the install folder
-    public void set_install_folder(string folder)
+    public void SetInstallFolder(string folder)
     {
-        this.add_argument_with_type("CMAKE_INSTALL_PREFIX", folder, "PATH");
+        this.AddArgumentWithType("CMAKE_INSTALL_PREFIX", folder, "PATH");
     }
 
     // set cmake to make static (not shared) library
-    public void make_static_library()
+    public void MakeStaticLibrary()
     {
-        this.add_argument("BUILD_SHARED_LIBS", "0");
+        this.AddArgument("BUILD_SHARED_LIBS", "0");
     }
 
     // run cmake configure step
-    public void config(Printer printer) { this.config_with_print(printer, false); }
-    public void config_with_print(Printer printer, bool only_print)
+    public void Configure(Printer printer, bool nop = false)
     {
         var cmake = CmakeTools.find_cmake_executable(printer);
         if (cmake == null)
@@ -156,11 +155,11 @@ public class CMake
         foreach (var arg in this.arguments)
         {
             var argument = arg.format_cmake_argument();
-            printer.info($"Setting CMake argument for config: {argument}");
+            printer.Info($"Setting CMake argument for config: {argument}");
             command.AddArgument(argument);
         }
 
-        command.AddArgument(this.source_folder);
+        command.AddArgument(this.sourceFolder);
         command.AddArgument("-G");
         command.AddArgument(this.generator.generator);
         if (generator.arch != null)
@@ -169,14 +168,14 @@ public class CMake
             command.AddArgument(generator.arch);
         }
 
-        Core.verify_dir_exist(printer, this.build_folder);
-        command.WorkingDirectory = this.build_folder;
+        Core.VerifyDirectoryExists(printer, this.buildFolder);
+        command.WorkingDirectory = this.buildFolder;
 
-        if (Core.is_windows())
+        if (Core.IsWindows())
         {
-            if (only_print)
+            if (nop)
             {
-                printer.info($"Configuring cmake: {command}");
+                printer.Info($"Configuring cmake: {command}");
             }
             else
             {
@@ -185,12 +184,12 @@ public class CMake
         }
         else
         {
-            printer.info($"Configuring cmake: {command}");
+            printer.Info($"Configuring cmake: {command}");
         }
     }
 
     // run cmake build step
-    void build_cmd(Printer printer, bool install)
+    private void RunBuildCommand(Printer printer, bool install)
     {
         var cmake = CmakeTools.find_cmake_executable(printer);
         if (cmake == null)
@@ -211,29 +210,29 @@ public class CMake
         command.AddArgument("--config");
         command.AddArgument("Release");
 
-        Core.verify_dir_exist(printer, this.build_folder);
-        command.WorkingDirectory = this.build_folder;
+        Core.VerifyDirectoryExists(printer, this.buildFolder);
+        command.WorkingDirectory = this.buildFolder;
 
-        if (Core.is_windows())
+        if (Core.IsWindows())
         {
             command.RunAndGetOutput().PrintStatusAndUpdate(printer);
         }
         else
         {
-            printer.info($"Found path to cmake in path ({command}) but it didn't exist");
+            printer.Info($"Found path to cmake in path ({command}) but it didn't exist");
         }
     }
 
     // build cmake project
-    public void build(Printer printer)
+    public void Build(Printer printer)
     {
-        this.build_cmd(printer, false);
+        this.RunBuildCommand(printer, false);
     }
 
     // install cmake project
-    public void install(Printer printer)
+    public void Install(Printer printer)
     {
-        this.build_cmd(printer, true);
+        this.RunBuildCommand(printer, true);
     }
 }
 

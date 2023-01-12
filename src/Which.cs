@@ -6,7 +6,7 @@ public static class Which
 
     public static string? Find(string binaryArg)
     {
-        var binary = Core.is_windows() && Path.GetExtension(binaryArg) != ".exe"
+        var binary = Core.IsWindows() && Path.GetExtension(binaryArg) != ".exe"
             ? Path.ChangeExtension(binaryArg.Trim(), "exe")
             : binaryArg.Trim()
             ;
