@@ -1,7 +1,6 @@
 namespace Workbench;
 
 using System.Diagnostics;
-using System.Text;
 
 internal record ProcessExit(string CommandLine, int ExitCode);
 
@@ -31,7 +30,7 @@ internal class CommandResult
 
     public CommandResult PrintOutput(Printer print)
     {
-        foreach(var line in this.Output)
+        foreach (var line in this.Output)
         {
             print.info(line);
         }
@@ -76,8 +75,8 @@ public class Command
         };
 
         var proc = new Process { StartInfo = start };
-        proc.OutputDataReceived += (sender, e) => { if(e.Data != null) { onLine(e.Data); } };
-        proc.ErrorDataReceived += (sender, e) => { if(e.Data != null) { onLine(e.Data); } };
+        proc.OutputDataReceived += (sender, e) => { if (e.Data != null) { onLine(e.Data); } };
+        proc.ErrorDataReceived += (sender, e) => { if (e.Data != null) { onLine(e.Data); } };
 
         proc.Start();
         proc.BeginOutputReadLine();
