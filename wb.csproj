@@ -48,5 +48,6 @@
         <Compile Include="src/main.cs" />
         <Compile Include="src/Solution.cs" />
         <Compile Include="src/Which.cs" />
+        <Compile Include="src/FileUtil.cs" />
     </ItemGroup>
 </Project>
