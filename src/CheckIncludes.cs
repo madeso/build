@@ -9,17 +9,17 @@ internal class MainCommandSettings : CommandSettings
 {
     [Description("Files to look at")]
     [CommandArgument(0, "<file>")]
-    public string[] files { get; set; } = Array.Empty<string>();
+    public string[] Files { get; set; } = Array.Empty<string>();
 
     [Description("Print general file status at the end")]
     [CommandOption("--status")]
     [DefaultValue(false)]
-    public bool status { get; set; }
+    public bool PrintStatusAtTheEnd { get; set; }
 
     [Description("Use verbose output")]
     [CommandOption("--verbose")]
     [DefaultValue(false)]
-    public bool verbose { get; set; }
+    public bool UseVerboseOutput { get; set; }
 }
 
 
@@ -49,7 +49,7 @@ internal sealed class MissingPatternsCommand : Command<MissingPatternsCommand.Ar
     {
         return CommonExecute.WithLoadedBuildData
             (
-                (print, data) => IncludeTools.common_main(settings, print, data, new Command.MissingPatterns())
+                (print, data) => IncludeTools.CommonMain(settings, print, data, new Command.MissingPatterns())
             );
     }
 }
@@ -62,14 +62,14 @@ internal sealed class ListUnfixableCommand : Command<ListUnfixableCommand.Arg>
         [Description("Print all errors per file, not just the first one")]
         [CommandOption("--all")]
         [DefaultValue(false)]
-        public bool all { get; set; }
+        public bool PrintAllErrors { get; set; }
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return CommonExecute.WithLoadedBuildData
             (
-                (print, data) => IncludeTools.common_main(settings, print, data, new Command.ListUnfixable(settings.all == false))
+                (print, data) => IncludeTools.CommonMain(settings, print, data, new Command.ListUnfixable(settings.PrintAllErrors == false))
             );
     }
 }
@@ -85,7 +85,7 @@ internal sealed class CheckCommand : Command<CheckCommand.Arg>
     {
         return CommonExecute.WithLoadedBuildData
             (
-                (print, data) => IncludeTools.common_main(settings, print, data, new Command.Check())
+                (print, data) => IncludeTools.CommonMain(settings, print, data, new Command.Check())
             );
     }
 }
@@ -98,14 +98,14 @@ internal sealed class FixCommand : Command<FixCommand.Arg>
         [Description("Write fixes to file")]
         [CommandOption("--write")]
         [DefaultValue(false)]
-        public bool write { get; set; }
+        public bool WriteToFile { get; set; }
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return CommonExecute.WithLoadedBuildData
             (
-                (print, data) => IncludeTools.common_main(settings, print, data, new Command.Fix(settings.write == false))
+                (print, data) => IncludeTools.CommonMain(settings, print, data, new Command.Fix(settings.WriteToFile == false))
             );
     }
 }
@@ -113,13 +113,13 @@ internal sealed class FixCommand : Command<FixCommand.Arg>
 
 public class Include : IComparable<Include>
 {
-    public int line_class;
-    public string line;
+    public int LineClass {get;}
+    public string Line {get;}
 
     public Include(int line_class, string line)
     {
-        this.line_class = line_class;
-        this.line = line;
+        this.LineClass = line_class;
+        this.Line = line;
     }
 
     public int CompareTo(Include? rhs)
@@ -127,13 +127,13 @@ public class Include : IComparable<Include>
         if (rhs == null) return 1;
 
         var lhs = this;
-        if (lhs.line_class == rhs.line_class)
+        if (lhs.LineClass == rhs.LineClass)
         {
-            return lhs.line.CompareTo(rhs.line);
+            return lhs.Line.CompareTo(rhs.Line);
         }
         else
         {
-            return lhs.line_class.CompareTo(rhs.line_class);
+            return lhs.LineClass.CompareTo(rhs.LineClass);
         }
     }
 }
@@ -145,26 +145,26 @@ public enum MessageType
 
 public static class IncludeTools
 {
-    private static void error(Printer print, string filename, int line, string message)
+    private static void PrintError(Printer print, string filename, int line, string message)
     {
         print.error($"{filename}({line}): error CHK3030: {message}");
     }
 
-    private static void warning(Printer print, string filename, int line, string message)
+    private static void PrintWarning(Printer print, string filename, int line, string message)
     {
         print.warning($"{filename}({line}): warning CHK3030: {message}");
     }
 
-    private static void print_message(MessageType message_type, Printer print, string filename, int line, string message)
+    private static void PrintMessage(MessageType messageType, Printer print, string filename, int line, string message)
     {
-        switch (message_type)
+        switch (messageType)
         {
-            case MessageType.Error: error(print, filename, line, message); break;
-            case MessageType.Warning: warning(print, filename, line, message); break;
+            case MessageType.Error: PrintError(print, filename, line, message); break;
+            case MessageType.Warning: PrintWarning(print, filename, line, message); break;
         }
     }
 
-    public static TextReplacer get_replacer(string file_stem)
+    public static TextReplacer CreateReplacer(string file_stem)
     {
         var replacer = new TextReplacer();
         replacer.Add("{file_stem}", file_stem);
@@ -172,17 +172,17 @@ public static class IncludeTools
     }
 
 
-    private static int? classify_line
+    private static int? ClassifySingleLine
     (
-        HashSet<string> missing_files,
+        HashSet<string> missingFiles,
         Printer print,
         BuildData data,
         string line,
         string filename,
-        int line_num
+        int lineNumber
     )
     {
-        var replacer = get_replacer(Path.GetFileNameWithoutExtension(filename));
+        var replacer = CreateReplacer(Path.GetFileNameWithoutExtension(filename));
 
         foreach (var (index, included_regex_group) in data.IncludeDirectories.Select(((value, i) => (i, value))))
         {
@@ -199,35 +199,33 @@ public static class IncludeTools
             }
         }
 
-        if (missing_files.Contains(line) == false)
+        if (missingFiles.Contains(line) == false)
         {
-            missing_files.Add(line);
-            error(print, filename, line_num, $"{line} is a invalid header");
+            missingFiles.Add(line);
+            PrintError(print, filename, lineNumber, $"{line} is a invalid header");
         }
 
         return null;
     }
 
 
-
-    private static string get_text_after_include_quote(string line)
+    private static string GetTextAfterInclude(string line)
     {
-        var start_quote = line.IndexOf('"');
-        if (start_quote == -1) { return ""; }
+        static string GetTextAfterQuote(string line)
+        {
+            var start_quote = line.IndexOf('"');
+            if (start_quote == -1) { return ""; }
 
-        var end_quote = line.IndexOf(line, start_quote + 1, '"');
-        if (end_quote == -1) { return ""; }
+            var end_quote = line.IndexOf(line, start_quote + 1, '"');
+            if (end_quote == -1) { return ""; }
 
-        return line[(end_quote + 1)..];
-    }
+            return line[(end_quote + 1)..];
+        }
 
-
-    private static string get_text_after_include(string line)
-    {
         var angle = line.IndexOf('>');
         if (angle == -1)
         {
-            return get_text_after_include_quote(line);
+            return GetTextAfterQuote(line);
         }
 
         var start_quote = line.IndexOf('"');
@@ -236,7 +234,7 @@ public static class IncludeTools
         {
             if (start_quote < angle)
             {
-                return get_text_after_include_quote(line);
+                return GetTextAfterQuote(line);
             }
         }
 
@@ -244,7 +242,7 @@ public static class IncludeTools
     }
 
 
-    private static ClassifiedFile? classify_file
+    private static ClassifiedFile ClassifyFile
     (
         IEnumerable<string> lines,
         HashSet<string> missing_files,
@@ -266,23 +264,23 @@ public static class IncludeTools
 
             if (line.StartsWith("#include") == false) { continue; }
 
-            if (r.first_line == null)
+            if (r.firstLineIndex == null)
             {
-                r.first_line = line_num;
+                r.firstLineIndex = line_num;
             }
-            r.last_line = line_num;
+            r.lastLineIndex = line_num;
 
             var l = line.TrimEnd();
-            var line_class = classify_line(missing_files, print, data, l, filename, line_num);
+            var line_class = ClassifySingleLine(missing_files, print, data, l, filename, line_num);
             if (line_class == null) { continue; }
-            r.includes.Add(new Include(line_class.Value, l));
+            r.Includes.Add(new Include(line_class.Value, l));
             if (last_class > line_class.Value)
             {
                 if (print_include_order_error_for_include)
                 {
-                    print_message(include_error_message, print, filename, line_num, $"Include order error for {l}");
+                    PrintMessage(include_error_message, print, filename, line_num, $"Include order error for {l}");
                 }
-                r.invalid_order = true;
+                r.HasInvalidOrder = true;
             }
             last_class = line_class.Value;
             if (verbose)
@@ -291,32 +289,32 @@ public static class IncludeTools
             }
         }
 
-        r.includes.Sort();
+        r.Includes.Sort();
         return r;
     }
 
-    private static bool can_fix_and_print_errors
+    private static bool CanFixAndPrintErrors
     (
         string[] lines,
         ClassifiedFile f,
         Printer print,
         string filename,
-        bool first_error_only
+        bool printFirstErrorOnly
     )
     {
-        if (f.first_line == null || f.last_line == null)
+        if (f.firstLineIndex == null || f.lastLineIndex == null)
         {
             return true;
         }
 
         var ok = true;
 
-        var first_line_found = f.first_line.Value;
-        var last_line_found = f.last_line.Value;
+        var first_line_found = f.firstLineIndex.Value;
+        var last_line_found = f.lastLineIndex.Value;
 
         for (var line_num = first_line_found; line_num < last_line_found; line_num += 1)
         {
-            var print_this_error = (ok, first_error_only) switch
+            var print_this_error = (ok, printFirstErrorOnly) switch
             {
                 // this is not the first error AND we only want to print the first error
                 (false, true) => false,
@@ -332,12 +330,12 @@ public static class IncludeTools
 
             if (line.StartsWith("#include"))
             {
-                var end = get_text_after_include(line).Trim();
+                var end = GetTextAfterInclude(line).Trim();
                 if (string.IsNullOrEmpty(end) == false && end.StartsWith("//") == false)
                 {
                     if (print_this_error)
                     {
-                        error(print, filename, line_num, $"Invalid text after include: {end}");
+                        PrintError(print, filename, line_num, $"Invalid text after include: {end}");
                     }
                     ok = false;
                 }
@@ -346,7 +344,7 @@ public static class IncludeTools
             {
                 if (print_this_error)
                 {
-                    error(print, filename, line_num, $"Invalid line {line}");
+                    PrintError(print, filename, line_num, $"Invalid line {line}");
                 }
                 ok = false;
             }
@@ -355,23 +353,23 @@ public static class IncludeTools
         return ok;
     }
 
-    private static IEnumerable<string> generate_suggested_include_lines_from_sorted_includes(IEnumerable<Include> includes)
+    private static IEnumerable<string> GenerateSuggestedIncludeLinesFromSortedIncludes(IEnumerable<Include> includes)
     {
         int? current_class = null;
         foreach (var i in includes)
         {
             if (current_class == null)
             {
-                current_class = i.line_class;
+                current_class = i.LineClass;
             }
 
-            if (current_class.Value != i.line_class)
+            if (current_class.Value != i.LineClass)
             {
                 yield return "";
             }
-            current_class = i.line_class;
+            current_class = i.LineClass;
 
-            yield return i.line;
+            yield return i.Line;
         }
     }
 
@@ -405,9 +403,9 @@ public static class IncludeTools
     }
 
 
-    private static bool run_file
+    private static bool RunFile
     (
-        HashSet<string> missing_files,
+        HashSet<string> missingFiles,
         Printer print,
         BuildData data,
         bool verbose,
@@ -433,10 +431,10 @@ public static class IncludeTools
             return false;
         }
 
-        var classified = classify_file
+        var classified = ClassifyFile
         (
             lines,
-            missing_files,
+            missingFiles,
             print,
             data,
             filename,
@@ -450,16 +448,16 @@ public static class IncludeTools
             return false;
         };
 
-        if (classified.invalid_order == false)
+        if (classified.HasInvalidOrder == false)
         {
             // this file is ok, don't touch it
             return true;
         }
 
-        if (classified.first_line == null || classified.last_line == null) { throw new Exception("bug!"); }
+        if (classified.firstLineIndex == null || classified.lastLineIndex == null) { throw new Exception("bug!"); }
         // if the include order is invalid, that means there needs to be a include and we know the start and end of it
-        var first_line = classified.first_line.Value;
-        var last_line = classified.last_line.Value;
+        var firstLine = classified.firstLineIndex.Value;
+        var lastLine = classified.lastLineIndex.Value;
 
         if (!(command_is_fix || command_is_check || command_is_list_unfixable))
         {
@@ -467,14 +465,14 @@ public static class IncludeTools
             return true;
         }
 
-        bool print_first_error_only = command switch
+        bool printFirstErrorOnly = command switch
         {
             Command.Fix => true,
             Command.ListUnfixable p => p.printFirstErrorOnly,
             _ => false // don't care, shouldn't be possible
         };
 
-        if (can_fix_and_print_errors(lines, classified, print, filename, print_first_error_only) == false && command_is_fix)
+        if (CanFixAndPrintErrors(lines, classified, print, filename, printFirstErrorOnly) == false && command_is_fix)
         {
             // can't fix this file... error out
             return false;
@@ -485,33 +483,33 @@ public static class IncludeTools
             return true;
         }
 
-        var sorted_include_lines = generate_suggested_include_lines_from_sorted_includes(classified.includes).ToArray();
+        var sortedIncludeLines = GenerateSuggestedIncludeLinesFromSortedIncludes(classified.Includes).ToArray();
 
         switch (command)
         {
             case Command.Fix nop:
-                var file_data = compose_new_file_content(first_line, last_line, sorted_include_lines, lines);
+                var fileData = compose_new_file_content(firstLine, lastLine, sortedIncludeLines, lines);
 
                 if (nop.nop)
                 {
                     print.Info($"Will write the following to {filename}");
-                    print_lines(print, file_data);
+                    print_lines(print, fileData);
                 }
                 else
                 {
-                    File.WriteAllLines(filename, file_data);
+                    File.WriteAllLines(filename, fileData);
                 }
                 break;
             default:
                 print.Info("I think the correct order would be:");
-                print_lines(print, sorted_include_lines);
+                print_lines(print, sortedIncludeLines);
                 break;
         }
 
         return true;
     }
 
-    internal static int common_main
+    internal static int CommonMain
     (
         MainCommandSettings args,
         Printer print,
@@ -519,56 +517,56 @@ public static class IncludeTools
         Command command
     )
     {
-        var error_count = 0;
-        var file_count = 0;
-        var file_error = 0;
+        var errorCount = 0;
+        var fileCount = 0;
+        var fileError = 0;
 
-        var missing_files = new HashSet<string>();
+        var missingFiles = new HashSet<string>();
 
-        foreach (var filename in args.files)
+        foreach (var filename in args.Files)
         {
-            file_count += 1;
-            var stored_error = error_count;
+            fileCount += 1;
+            var storedError = errorCount;
 
-            var ok = run_file
+            var ok = RunFile
             (
-                missing_files,
+                missingFiles,
                 print,
                 data,
-                args.verbose,
+                args.UseVerboseOutput,
                 filename,
                 command
             );
 
             if (ok == false)
             {
-                error_count += 1;
+                errorCount += 1;
             }
 
-            if (error_count != stored_error)
+            if (errorCount != storedError)
             {
-                file_error += 1;
+                fileError += 1;
             }
         }
 
-        if (args.status)
+        if (args.PrintStatusAtTheEnd)
         {
-            print.Info($"Files parsed: {file_count}");
-            print.Info($"Files errored: {file_error}");
-            print.Info($"Errors found: {error_count}");
+            print.Info($"Files parsed: {fileCount}");
+            print.Info($"Files errored: {fileError}");
+            print.Info($"Errors found: {errorCount}");
         }
 
-        return error_count;
+        return errorCount;
     }
 
 }
 
 public class ClassifiedFile
 {
-    public int? first_line;
-    public int? last_line;
-    public List<Include> includes = new();
-    public bool invalid_order = false;
+    public int? firstLineIndex{get; set;}
+    public int? lastLineIndex{get; set;}
+    public List<Include> Includes { get; } = new();
+    public bool HasInvalidOrder { get; set; } = false;
 }
 
 

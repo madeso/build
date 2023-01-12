@@ -6,7 +6,7 @@ namespace Workbench.CMake;
 
 static class CmakeTools
 {
-    public static Found find_cmake_in_registry(Printer printer)
+    private static Found FindnRegistry(Printer printer)
     {
         var registry_source = "registry";
 
@@ -24,7 +24,7 @@ static class CmakeTools
     }
 
 
-    public static Found find_cmake_in_path(Printer printer)
+    private static Found FindInPath(Printer printer)
     {
         var path_source = "path";
         var path = Which.Find("cmake");
@@ -42,16 +42,16 @@ static class CmakeTools
     }
 
 
-    public static IEnumerable<Found> list_all(Printer printer)
+    public static IEnumerable<Found> ListAll(Printer printer)
     {
-        yield return find_cmake_in_registry(printer);
-        yield return find_cmake_in_path(printer);
+        yield return FindnRegistry(printer);
+        yield return FindInPath(printer);
     }
 
 
-    public static string? find_cmake_executable(Printer printer)
+    public static string? FindOrNull(Printer printer)
     {
-        return Found.first_value_or_none(list_all(printer));
+        return Found.first_value_or_none(ListAll(printer));
     }
 }
 
@@ -60,45 +60,45 @@ public class Argument
 {
     public Argument(string name, string value)
     {
-        this.name = name;
-        this.value = value;
+        this.Name = name;
+        this.Value = value;
     }
 
     public Argument(string name, string value, string typename) : this(name, value)
     {
-        this.typename = typename;
+        this.TypeName = typename;
     }
 
     // format for commandline
-    public string format_cmake_argument()
+    public string FormatForCmakeArgument()
     {
-        if (typename == null)
+        if (TypeName == null)
         {
-            return $"-D{this.name}={this.value}";
+            return $"-D{this.Name}={this.Value}";
         }
         else
         {
-            return $"-D{this.name}:{typename}={this.value}";
+            return $"-D{this.Name}:{TypeName}={this.Value}";
         }
     }
 
-    public string name { get; }
-    public string value { get; }
-    public string? typename { get; }
+    public string Name { get; }
+    public string Value { get; }
+    public string? TypeName { get; }
 }
 
 
 // cmake generator
 public class Generator
 {
-    public Generator(string generator, string? arch = null)
+    public Generator(string name, string? arch = null)
     {
-        this.generator = generator;
-        this.arch = arch;
+        this.Name = name;
+        this.Arch = arch;
     }
 
-    public string generator { get; }
-    public string? arch { get; }
+    public string Name { get; }
+    public string? Arch { get; }
 }
 
 // utility to call cmake commands on a project
@@ -144,7 +144,7 @@ public class CMake
     // run cmake configure step
     public void Configure(Printer printer, bool nop = false)
     {
-        var cmake = CmakeTools.find_cmake_executable(printer);
+        var cmake = CmakeTools.FindOrNull(printer);
         if (cmake == null)
         {
             printer.error("CMake executable not found");
@@ -154,18 +154,18 @@ public class CMake
         var command = new Command(cmake);
         foreach (var arg in this.arguments)
         {
-            var argument = arg.format_cmake_argument();
+            var argument = arg.FormatForCmakeArgument();
             printer.Info($"Setting CMake argument for config: {argument}");
             command.AddArgument(argument);
         }
 
         command.AddArgument(this.sourceFolder);
         command.AddArgument("-G");
-        command.AddArgument(this.generator.generator);
-        if (generator.arch != null)
+        command.AddArgument(this.generator.Name);
+        if (generator.Arch != null)
         {
             command.AddArgument("-A");
-            command.AddArgument(generator.arch);
+            command.AddArgument(generator.Arch);
         }
 
         Core.VerifyDirectoryExists(printer, this.buildFolder);
@@ -191,7 +191,7 @@ public class CMake
     // run cmake build step
     private void RunBuildCommand(Printer printer, bool install)
     {
-        var cmake = CmakeTools.find_cmake_executable(printer);
+        var cmake = CmakeTools.FindOrNull(printer);
         if (cmake == null)
         {
             printer.error("CMake executable not found");

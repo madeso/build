@@ -14,7 +14,7 @@ public static class CommonExecute
     {
         return WithPrinter(print =>
         {
-            var data = BuildData.load(print);
+            var data = BuildData.LoadOrNull(print);
             if (data == null)
             {
                 print.error("Unable to load the data");

@@ -87,13 +87,13 @@ abstract record RegexOrErr
 
 public struct BuildData
 {
-    public string name;
-    public List<Dependency> Dependencies;
-    public string RootDirectory;
-    public string BuildDirectory;
-    public string ProjectDirectory;
-    public string DependencyDirectory;
-    public List<List<OptionalRegex>> IncludeDirectories;
+    public string Name {get;}
+    public List<Dependency> Dependencies {get;}
+    public string RootDirectory {get;}
+    public string BuildDirectory {get;}
+    public string ProjectDirectory {get;}
+    public string DependencyDirectory {get;}
+    public List<List<OptionalRegex>> IncludeDirectories { get; }
 
     private static IEnumerable<OptionalRegex> strings_to_regex(TextReplacer replacer, IEnumerable<string> includes, Printer print)
     {
@@ -139,25 +139,25 @@ public struct BuildData
 
     public BuildData(string name, string root_dir, List<List<string>> includes, Printer print)
     {
-        this.name = name;
+        this.Name = name;
         this.Dependencies = new();
         this.RootDirectory = root_dir;
         this.BuildDirectory = Path.Join(root_dir, "build");
         this.ProjectDirectory = Path.Join(BuildDirectory, name);
         this.DependencyDirectory = Path.Join(BuildDirectory, "deps");
 
-        var replacer = CheckIncludes.IncludeTools.get_replacer("file_stem");
+        var replacer = CheckIncludes.IncludeTools.CreateReplacer("file_stem");
         this.IncludeDirectories = includes.Select(includes => strings_to_regex(replacer, includes, print).ToList()).ToList();
     }
 
 
     // get the path to the settings file
-    public string get_path_to_settings()
+    public string GetPathToSettingsFile()
     {
         return Path.Join(BuildDirectory, "settings.json");
     }
 
-    public static BuildData? load_from_dir(string root, Printer print)
+    public static BuildData? LoadFromDirectoryOrNull(string root, Printer print)
     {
         string file = GetBuildDataPath(root);
         if (File.Exists(file) == false)
@@ -185,9 +185,9 @@ public struct BuildData
         return Path.Join(root, "project.wb.json");
     }
 
-    public static BuildData? load(Printer print)
+    public static BuildData? LoadOrNull(Printer print)
     {
-        return load_from_dir(Environment.CurrentDirectory, print);
+        return LoadFromDirectoryOrNull(Environment.CurrentDirectory, print);
     }
 
 }

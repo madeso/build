@@ -29,20 +29,20 @@ public class BuildEnviroment
     public Compiler? compiler = null;
     public Platform? platform = null;
 
-    public static BuildEnviroment new_empty()
+    public static BuildEnviroment CreateEmpty()
     {
         return new BuildEnviroment();
     }
 
-    public CMake.Generator get_cmake_generator()
+    public CMake.Generator CreateCmakeGenerator()
     {
         if (compiler == null) { throw new ArgumentNullException(nameof(compiler)); }
         if (platform == null) { throw new ArgumentNullException(nameof(platform)); }
-        return BuildUitls.create_cmake_generator(compiler.Value, platform.Value);
+        return BuildUitls.CreateCmakeGenerator(compiler.Value, platform.Value);
     }
 
     // validate the build environment
-    public bool validate(Printer printer)
+    public bool Validate(Printer printer)
     {
         var status = true;
 
@@ -62,54 +62,54 @@ public class BuildEnviroment
     }
 
     // update the build environment from an argparse namespace
-    public void update_from_args(Printer printer, EnviromentArgument args)
+    public void UpdateFromArguments(Printer printer, EnviromentArgument args)
     {
-        updateCompiler(printer, args);
-        updatePlatform(printer, args);
+        UpdateCompiler(printer, args);
+        UpdatePlatform(printer, args);
 
-        void updateCompiler(Printer printer, EnviromentArgument args)
+        void UpdateCompiler(Printer printer, EnviromentArgument args)
         {
-            if (args.compiler == null) { return; }
+            if (args.Compiler == null) { return; }
 
             if (this.compiler == null)
             {
-                this.compiler = args.compiler;
+                this.compiler = args.Compiler;
                 return;
             }
 
-            if (args.compiler == this.compiler) { return; }
+            if (args.Compiler == this.compiler) { return; }
 
-            if (args.force)
+            if (args.ForceChange)
             {
-                printer.warning($"Compiler changed via argument from {this.compiler} to {args.compiler}");
-                this.compiler = args.compiler;
+                printer.warning($"Compiler changed via argument from {this.compiler} to {args.Compiler}");
+                this.compiler = args.Compiler;
             }
             else
             {
-                printer.error($"Compiler changed via argument from {this.compiler} to {args.compiler}");
+                printer.error($"Compiler changed via argument from {this.compiler} to {args.Compiler}");
             }
         }
 
-        void updatePlatform(Printer printer, EnviromentArgument args)
+        void UpdatePlatform(Printer printer, EnviromentArgument args)
         {
-            if (args.platform == null) { return; }
+            if (args.Platform == null) { return; }
 
             if (this.platform == null)
             {
-                this.platform = args.platform;
+                this.platform = args.Platform;
                 return;
             }
 
-            if (args.platform == this.platform) { return; }
+            if (args.Platform == this.platform) { return; }
 
-            if (args.force)
+            if (args.ForceChange)
             {
-                printer.warning($"Platform changed via argument from {this.platform} to {args.platform}");
-                this.platform = args.platform;
+                printer.warning($"Platform changed via argument from {this.platform} to {args.Platform}");
+                this.platform = args.Platform;
             }
             else
             {
-                printer.error($"Platform changed via argument from {this.platform} to {args.platform}");
+                printer.error($"Platform changed via argument from {this.platform} to {args.Platform}");
             }
         }
     }
@@ -121,22 +121,22 @@ public class EnviromentArgument : CommandSettings
     [Description("The compiler to use")]
     [CommandOption("--compiler")]
     [DefaultValue(null)]
-    public Compiler? compiler { get; set; }
+    public Compiler? Compiler { get; set; }
 
     [Description("The platform to use")]
     [CommandOption("--platform")]
     [DefaultValue(null)]
-    public Platform? platform { get; set; }
+    public Platform? Platform { get; set; }
 
     [Description("force a change if the compiler or platform differs from last time")]
     [CommandOption("--force")]
     [DefaultValue(false)]
-    public bool force { get; set; }
+    public bool ForceChange { get; set; }
 }
 
 public static class BuildUitls
 {
-    static Compiler? compiler_from_string(string input)
+    static Compiler? ParseCompilerFromString(string input)
     {
         return input.ToLowerInvariant() switch
         {
@@ -151,7 +151,7 @@ public static class BuildUitls
         };
     }
 
-    static Platform? platform_from_string(string input)
+    static Platform? ParsePlatformFromString(string input)
     {
         return input.ToLowerInvariant() switch
         {
@@ -163,7 +163,7 @@ public static class BuildUitls
         };
     }
 
-    static bool is_64bit(Platform platform)
+    static bool Is64Bit(Platform platform)
     {
         return platform switch
         {
@@ -175,9 +175,9 @@ public static class BuildUitls
     }
 
 
-    static string create_cmake_arch(Platform platform)
+    static string GetCmakeArchitctureArgument(Platform platform)
     {
-        if (is_64bit(platform))
+        if (Is64Bit(platform))
         {
             return "x64";
         }
@@ -188,40 +188,40 @@ public static class BuildUitls
     }
 
     // gets the visual studio cmake generator argument for the compiler and platform
-    internal static CMake.Generator create_cmake_generator(Compiler compiler, Platform platform)
+    internal static CMake.Generator CreateCmakeGenerator(Compiler compiler, Platform platform)
     {
         switch (compiler)
         {
             case Compiler.VisualStudio2015:
-                return is_64bit(platform)
+                return Is64Bit(platform)
                     ? new CMake.Generator("Visual Studio 14 2015 Win64")
                     : new CMake.Generator("Visual Studio 14 2015")
                     ;
             case Compiler.VisualStudio2017:
-                return is_64bit(platform)
+                return Is64Bit(platform)
                     ? new CMake.Generator("Visual Studio 15 Win64")
                     : new CMake.Generator("Visual Studio 15")
                     ;
             case Compiler.VisualStudio2019:
-                return new CMake.Generator("Visual Studio 16 2019", create_cmake_arch(platform));
+                return new CMake.Generator("Visual Studio 16 2019", GetCmakeArchitctureArgument(platform));
             case Compiler.VisualStudio2022:
-                return new CMake.Generator("Visual Studio 17 2022", create_cmake_arch(platform));
+                return new CMake.Generator("Visual Studio 17 2022", GetCmakeArchitctureArgument(platform));
             default:
                 throw new Exception("Invalid compiler");
         }
     }
 
-    public static void save_to_file(BuildEnviroment self, string path)
+    public static void SaveToFile(BuildEnviroment self, string path)
     {
         File.WriteAllText(path, JsonUtil.Write(self));
     }
 
     // load build enviroment from json file
-    public static BuildEnviroment load_from_file(string path, Printer printer)
+    public static BuildEnviroment LoadFromFileOrCreateEmpty(string path, Printer printer)
     {
         if (File.Exists(path) == false)
         {
-            return BuildEnviroment.new_empty();
+            return BuildEnviroment.CreateEmpty();
         }
 
         var content = File.ReadAllText(path);
@@ -229,7 +229,7 @@ public static class BuildUitls
         var loaded = JsonUtil.Parse<BuildEnviroment>(printer, path, content);
         if (loaded == null)
         {
-            return BuildEnviroment.new_empty();
+            return BuildEnviroment.CreateEmpty();
         }
 
         return loaded;

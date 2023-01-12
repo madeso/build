@@ -170,7 +170,7 @@ internal static class F
     // generate the ride project
     internal static CMake.CMake generate_cmake_project(BuildEnviroment build, BuildData data)
     {
-        var project = new CMake.CMake(data.ProjectDirectory, data.RootDirectory, build.get_cmake_generator());
+        var project = new CMake.CMake(data.ProjectDirectory, data.RootDirectory, build.CreateCmakeGenerator());
 
         foreach (var dep in data.Dependencies)
         {
@@ -201,24 +201,24 @@ internal static class F
     internal static void SaveBuildData(Printer print, BuildEnviroment build, BuildData data)
     {
         Core.VerifyDirectoryExists(print, data.BuildDirectory);
-        BuildUitls.save_to_file(build, data.get_path_to_settings());
+        BuildUitls.SaveToFile(build, data.GetPathToSettingsFile());
     }
 
     internal static void handle_build_status(Printer printer)
     {
-        var loaded_data = BuildData.load(printer);
+        var loaded_data = BuildData.LoadOrNull(printer);
         if (loaded_data == null)
         {
             printer.error("Unable to load the data");
             return;
         }
         var data = loaded_data.Value;
-        var env = BuildUitls.load_from_file(data.get_path_to_settings(), printer);
+        var env = BuildUitls.LoadFromFileOrCreateEmpty(data.GetPathToSettingsFile(), printer);
 
-        printer.Info($"Project: {data.name}");
+        printer.Info($"Project: {data.Name}");
         printer.Info($"Enviroment: {env}");
         printer.Info("");
-        printer.Info($"Data: {data.get_path_to_settings()}");
+        printer.Info($"Data: {data.GetPathToSettingsFile()}");
         printer.Info($"Root: {data.RootDirectory}");
         printer.Info($"Build: {data.ProjectDirectory}");
         printer.Info($"Dependencies: {data.DependencyDirectory}");
@@ -236,16 +236,16 @@ internal static class F
 
     internal static int handle_generic_build(Printer printer, EnviromentArgument args, Func<Printer, BuildEnviroment, BuildData, int> callback)
     {
-        var loaded_data = BuildData.load(printer);
+        var loaded_data = BuildData.LoadOrNull(printer);
         if (loaded_data == null)
         {
             printer.error("Unable to load the data");
             return -1;
         }
         var data = loaded_data.Value;
-        var env = BuildUitls.load_from_file(data.get_path_to_settings(), printer);
-        env.update_from_args(printer, args);
-        if (env.validate(printer) == false)
+        var env = BuildUitls.LoadFromFileOrCreateEmpty(data.GetPathToSettingsFile(), printer);
+        env.UpdateFromArguments(printer, args);
+        if (env.Validate(printer) == false)
         {
             return -1;
         }

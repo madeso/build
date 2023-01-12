@@ -92,7 +92,7 @@ internal static class F
 
     internal static void handle_debug(Printer printer, CompileCommands.MainCommandSettings cc)
     {
-        print_found_list(printer, "cmake", CmakeTools.list_all(printer).ToList());
+        print_found_list(printer, "cmake", CmakeTools.ListAll(printer).ToList());
 
         var root = Environment.CurrentDirectory;
         printer.Info($"Root: {root}");

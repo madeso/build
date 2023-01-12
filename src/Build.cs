@@ -82,7 +82,7 @@ internal class DependencySdl2 : Dependency
         var deps = data.DependencyDirectory;
         var root = this.root_folder;
         var build = this.build_folder;
-        var generator = env.get_cmake_generator();
+        var generator = env.CreateCmakeGenerator();
 
         print.Header("Installing dependency sdl2");
 
@@ -207,7 +207,7 @@ internal class DependencyAssimp : Dependency
         var deps = data.DependencyDirectory;
         var root = this.dependencyFolder;
         var install = this.installFolder;
-        var generator = env.get_cmake_generator();
+        var generator = env.CreateCmakeGenerator();
 
         print.Header("Installing dependency assimp");
         var zipFile = Path.Join(deps, "assimp.zip");
