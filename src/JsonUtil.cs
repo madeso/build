@@ -28,6 +28,10 @@ public static class JsonUtil
 
     internal static string Write<T>(T self)
     {
-        return JsonSerializer.Serialize<T>(self, new JsonSerializerOptions { WriteIndented = true});
+        return JsonSerializer.Serialize<T>(self, new JsonSerializerOptions{
+            WriteIndented = true,
+            ReadCommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true,
+        });
     }
 }
