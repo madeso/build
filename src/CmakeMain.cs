@@ -17,19 +17,19 @@ internal sealed class TraceCommand : Command<TraceCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        AnsiConsole.MarkupLine($"Loading [green]{settings.File}[/].");
+        AnsiConsole.MarkupLineInterpolated($"Loading [green]{settings.File}[/].");
 
         try
         {
             var lines = Trace.TraceDirectory(settings.File);
             foreach (var li in lines)
             {
-                AnsiConsole.MarkupLine($"Running [green]{li.Cmd}[/].");
+                AnsiConsole.MarkupLineInterpolated($"Running [green]{li.Cmd}[/].");
             }
         }
         catch (TraceError x)
         {
-            AnsiConsole.MarkupLine($"Error: [red]{x.Message}[/]");
+            AnsiConsole.MarkupLineInterpolated($"Error: [red]{x.Message}[/]");
         }
 
         return 0;
@@ -76,19 +76,19 @@ internal sealed class DotCommand : Command<DotCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        AnsiConsole.MarkupLine($"Loading [green]{settings.File}[/].");
+        AnsiConsole.MarkupLineInterpolated($"Loading [green]{settings.File}[/].");
 
         try
         {
             var ignores = settings.NamesToIgnore ?? Array.Empty<string>();
-            AnsiConsole.MarkupLine($"Ignoring [red]{ignores.Length}[/] projects.");
+            AnsiConsole.MarkupLineInterpolated($"Ignoring [red]{ignores.Length}[/] projects.");
             var lines = Trace.TraceDirectory(settings.File);
             var solution = Solution.Parse(lines);
 
             if (settings.RemoveInterface)
             {
                 var interaces = solution.JustProjects.Where(p => p.Type == Solution.ProjectType.Interface).Select(p => p.Name).ToArray();
-                AnsiConsole.MarkupLine($"Removing [red]{interaces.Length}[/] interfaces.");
+                AnsiConsole.MarkupLineInterpolated($"Removing [red]{interaces.Length}[/] interfaces.");
                 solution.RemoveProjects(interaces);
             }
 
@@ -110,13 +110,13 @@ internal sealed class DotCommand : Command<DotCommand.Arg>
             }
             else
             {
-                AnsiConsole.MarkupLine($"Writing {output.Length} lines of dot to {settings.Output}");
+                AnsiConsole.MarkupLineInterpolated($"Writing {output.Length} lines of dot to {settings.Output}");
                 File.WriteAllLines(settings.Output, output);
             }
         }
         catch (TraceError x)
         {
-            AnsiConsole.MarkupLine($"Error: [red]{x.Message}[/]");
+            AnsiConsole.MarkupLineInterpolated($"Error: [red]{x.Message}[/]");
         }
 
         return 0;

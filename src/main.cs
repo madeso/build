@@ -1,35 +1,59 @@
 ﻿using Spectre.Console.Cli;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 
-namespace Workbench
+namespace Workbench;
+
+internal sealed class DummyCommand : Command<DummyCommand.Arg>
 {
-    internal class Program
+    public sealed class Arg : CommandSettings
     {
-        static int Main(string[] args)
+        [Description("Number")]
+        [CommandOption("--number")]
+        public int Number { get; set; } = 42;
+    }
+
+    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    {
+        return CommonExecute.WithPrinter(print =>
         {
-            var app = new CommandApp();
-            app.Configure(config =>
-            {
+            print.cat($"Number is {settings.Number}");
+            return 0;
+        });
+    }
+}
+
+
+
+internal class Program
+{
+    static int Main(string[] args)
+    {
+        var app = new CommandApp();
+        app.Configure(config =>
+        {
 #if DEBUG
-                config.PropagateExceptions();
-                config.ValidateExamples();
+            config.PropagateExceptions();
+            config.ValidateExamples();
 #endif
 
-                MinorCommands.Main.ConfigureLs(config, "ls");
-                MinorCommands.Main.ConfigureCat(config, "cat");
-                MinorCommands.Main.ConfigureDebug(config, "status");
+            config.AddCommand<DummyCommand>("dummy").WithDescription("Just a dummy");
 
-                Build.Main.Configure(config, "build");
-                Indent.Main.Configure(config, "indent");
-                CMake.Main.Configure(config, "cmake");
-                Git.Main.Configure(config, "git");
-                CompileCommands.Main.Configure(config, "compile-commands");
-                CheckIncludes.Main.Configure(config, "check-includes");
-                ListHeaders.Main.Configure(config, "list-headers");
-                Clang.Main.Configure(config, "clang");
+            MinorCommands.Main.ConfigureLs(config, "ls");
+            MinorCommands.Main.ConfigureCat(config, "cat");
+            MinorCommands.Main.ConfigureDebug(config, "status");
 
-                Hero.Main.Configure(config, "hero");
-            });
-            return app.Run(args);
-        }
+            Build.Main.Configure(config, "build");
+            Indent.Main.Configure(config, "indent");
+            CMake.Main.Configure(config, "cmake");
+            Git.Main.Configure(config, "git");
+            CompileCommands.Main.Configure(config, "compile-commands");
+            CheckIncludes.Main.Configure(config, "check-includes");
+            ListHeaders.Main.Configure(config, "list-headers");
+            Clang.Main.Configure(config, "clang");
+
+            Hero.Main.Configure(config, "hero");
+        });
+        return app.Run(args);
     }
 }

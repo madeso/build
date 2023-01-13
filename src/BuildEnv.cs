@@ -1,11 +1,11 @@
+using Newtonsoft.Json;
 using Spectre.Console.Cli;
 using System.ComponentModel;
 
 namespace Workbench;
 
-class CompilerConverter : EnumTypeConverter<Compiler> { }
-
-[TypeConverter(typeof(CompilerConverter))]
+[TypeConverter(typeof(EnumTypeConverter<Compiler>))]
+[JsonConverter(typeof(EnumJsonConverter<Compiler>))]
 public enum Compiler
 {
     // fallbacks are github actions installed compiler
@@ -24,9 +24,8 @@ public enum Compiler
 }
 
 
-class PlatformConverter : EnumTypeConverter<Platform> { }
-
-[TypeConverter(typeof(PlatformConverter))]
+[TypeConverter(typeof(EnumTypeConverter<Platform>))]
+[JsonConverter(typeof(EnumJsonConverter<Platform>))]
 public enum Platform
 {
     [EnumString("auto")]

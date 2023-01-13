@@ -1,10 +1,10 @@
+using Newtonsoft.Json;
 using System.ComponentModel;
 
 namespace Workbench;
 
-class DepenedencyNameConverter : EnumTypeConverter<DependencyName> { }
-
-[TypeConverter(typeof(DepenedencyNameConverter))]
+[TypeConverter(typeof(EnumTypeConverter<DependencyName>))]
+[JsonConverter(typeof(EnumJsonConverter<DependencyName>))]
 public enum DependencyName
 {
     [EnumString("sdl-2.0.8")]

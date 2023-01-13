@@ -1,8 +1,9 @@
-﻿using System.ComponentModel;
+﻿using Newtonsoft.Json;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using Workbench;
+using System.IO;
 
 namespace Workbench;
 
@@ -47,6 +48,11 @@ internal class EnumConverter<T>
         var suggestions = StringListCombiner.EnglishOr()
             .combine(EditDistance.ClosestMatches(3, Transform(name), fromString.Keys.Select(x => Transform(x))));
         return (default(T), $"Invalid value {name}, did you mean {suggestions}?");
+    }
+
+    public static bool IsError(T? ret, string error)
+    {
+        return ret == null || string.IsNullOrEmpty(error) == false;
     }
 
     private static string Transform(string name)
@@ -101,7 +107,7 @@ class EnumTypeConverter<T> : TypeConverter
         }
 
         var (ret, error) = Data.StringToEnum(casted);
-        if (ret == null || string.IsNullOrEmpty(error) == false)
+        if (EnumConverter<T>.IsError(ret, error))
         {
             throw new NotSupportedException(error);
         }
@@ -119,5 +125,53 @@ class EnumTypeConverter<T> : TypeConverter
         return destinationType == typeof(string) && value != null && value is T
             ? Data.EnumToString((T)value)
             : base.ConvertTo(context, culture, value, destinationType);
+    }
+}
+
+
+class EnumJsonConverter<T> : JsonConverter
+    where T: Enum
+{
+    private static readonly EnumConverter<T> data = EnumConverter<T>.ReflectValues();
+
+    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
+    {
+        if (value == null)
+        {
+            return;
+        }
+
+        writer.WriteValue(data.EnumToString((T)value));
+    }
+
+    public override bool CanConvert(Type objectType)
+    {
+        return objectType == typeof(T);
+    }
+
+    public override bool CanRead => true;
+    public override bool CanWrite => true;
+
+    private static JsonSerializationException SeriError(string message)
+    {
+        // todo(Gustav): use JsonSerializationException.Create but that is internal
+        return new JsonSerializationException(message);
+    }
+
+    public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+    {
+        if(reader.Value == null)
+        {
+            throw SeriError($"Cannot convert null value to {objectType}.");
+        }
+        var casted = (string)reader.Value;
+
+        var (ret, error) = data.StringToEnum(casted);
+        if (EnumConverter<T>.IsError(ret, error))
+        {
+            throw SeriError(error);
+        }
+
+        return ret;
     }
 }

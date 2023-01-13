@@ -16,7 +16,7 @@ internal sealed class Status : Command<Status.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        AnsiConsole.MarkupLine($"Status for [green]{settings.Root}[/].");
+        AnsiConsole.MarkupLineInterpolated($"Status for [green]{settings.Root}[/].");
         var r = Git.Status(settings.Root);
         foreach (var line in r)
         {
@@ -33,10 +33,10 @@ internal sealed class Status : Command<Status.Arg>
             switch (line.Status)
             {
                 case GitStatus.Unknown:
-                    AnsiConsole.MarkupLine($"Unknown [green]{line.Path}[/] ([blue]{status}[/]).");
+                    AnsiConsole.MarkupLineInterpolated($"Unknown [green]{line.Path}[/] ([blue]{status}[/]).");
                     break;
                 case GitStatus.Modified:
-                    AnsiConsole.MarkupLine($"Modified [blue]{line.Path}[/]  ([blue]{status}[/]).");
+                    AnsiConsole.MarkupLineInterpolated($"Modified [blue]{line.Path}[/]  ([blue]{status}[/]).");
                     break;
             }
         }
@@ -60,7 +60,7 @@ internal sealed class RemoveUnknown : Command<RemoveUnknown.Arg>
 
     private static void WalkDirectory(string dir, bool recursive)
     {
-        AnsiConsole.MarkupLine($"Removing unknowns from [green]{dir}[/].");
+        AnsiConsole.MarkupLineInterpolated($"Removing unknowns from [green]{dir}[/].");
         var r = Git.Status(dir);
         foreach (var line in r)
         {
@@ -69,19 +69,19 @@ internal sealed class RemoveUnknown : Command<RemoveUnknown.Arg>
                 case GitStatus.Unknown:
                     if (Directory.Exists(line.Path))
                     {
-                        AnsiConsole.MarkupLine($"Removing directory [blue]{line.Path}[/].");
+                        AnsiConsole.MarkupLineInterpolated($"Removing directory [blue]{line.Path}[/].");
                         Directory.Delete(line.Path, true);
                     }
                     else
                     {
-                        AnsiConsole.MarkupLine($"Removing file [red]{line.Path}[/].");
+                        AnsiConsole.MarkupLineInterpolated($"Removing file [red]{line.Path}[/].");
                         File.Delete(line.Path);
                     }
                     break;
                 case GitStatus.Modified:
                     if (recursive && Directory.Exists(line.Path))
                     {
-                        AnsiConsole.MarkupLine($"Modified directory [blue]{line.Path}[/] assumed to be submodule.");
+                        AnsiConsole.MarkupLineInterpolated($"Modified directory [blue]{line.Path}[/] assumed to be submodule.");
                         WalkDirectory(line.Path, recursive);
                     }
                     break;

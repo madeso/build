@@ -27,14 +27,14 @@ public class Printer
             : ""
             ;
 
-        AnsiConsole.MarkupLine($"{header_string}");
-        AnsiConsole.MarkupLine($"{start}{project}{right}");
-        AnsiConsole.MarkupLine($"{header_string}");
+        AnsiConsole.MarkupLineInterpolated($"{header_string}");
+        AnsiConsole.MarkupLineInterpolated($"{start}{project}{right}");
+        AnsiConsole.MarkupLineInterpolated($"{header_string}");
     }
 
     public void Info(string text)
     {
-        AnsiConsole.MarkupLine($"{text}");
+        AnsiConsole.MarkupLineInterpolated($"{text}");
     }
 
     public void line()
@@ -46,12 +46,12 @@ public class Printer
     {
         this.error_count += 1;
         this.errors.Add(text);
-        AnsiConsole.MarkupLine($"ERROR: {text}");
+        AnsiConsole.MarkupLineInterpolated($"[red]ERROR: {text}[/]");
     }
 
     public void warning(string text)
     {
-        AnsiConsole.MarkupLine($"WARNING: {text}");
+        AnsiConsole.MarkupLineInterpolated($"WARNING: {text}");
     }
 
     // print the contents of a single file
@@ -59,15 +59,15 @@ public class Printer
     {
         if (File.Exists(path))
         {
-            AnsiConsole.MarkupLine($"{path}>");
+            AnsiConsole.MarkupLineInterpolated($"{path}>");
             foreach (var line in File.ReadAllLines(path))
             {
-                AnsiConsole.MarkupLine($"---->{line}");
+                AnsiConsole.MarkupLineInterpolated($"---->{line}");
             }
         }
         else
         {
-            AnsiConsole.MarkupLine($"Failed to open '{path}'");
+            AnsiConsole.MarkupLineInterpolated($"Failed to open '{path}'");
         }
     }
 
@@ -86,20 +86,15 @@ public class Printer
 
         foreach (var file_path in paths.EnumerateFiles())
         {
-            AnsiConsole.MarkupLine($"{start}{file_path.Name}");
+            AnsiConsole.MarkupLineInterpolated($"{start}{file_path.Name}");
         }
     }
 
-    public void exit_with_code()
+    public void PrintErrorCount()
     {
         if (error_count > 0)
         {
-            AnsiConsole.MarkupLine($"Errors detected: ({error_count})");
-        }
-
-        foreach (var error in errors)
-        {
-            AnsiConsole.MarkupLine($"{error}");
+            AnsiConsole.MarkupLineInterpolated($"Errors detected: ({error_count})");
         }
     }
 }

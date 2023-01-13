@@ -6,7 +6,7 @@ public static class CommonExecute
     {
         var printer = new Printer();
         var ret = callback(printer);
-        printer.exit_with_code();
+        printer.PrintErrorCount();
         return ret;
     }
 

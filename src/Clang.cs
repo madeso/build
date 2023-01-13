@@ -53,10 +53,10 @@ internal class FileStatistics
         var average_value = TimeSpan.FromSeconds(data.Average(x => x.Value.TotalSeconds));
         var mi = data.MinBy(x => x.Value);
         var ma = data.MaxBy(x => x.Value);
-        AnsiConsole.MarkupLine($"average: {average_value:.2f}s");
-        AnsiConsole.MarkupLine($"max: {ma.Value:.2f}s foreach {ma.Key}");
-        AnsiConsole.MarkupLine($"min: {mi.Value:.2f}s foreach {mi.Key}");
-        AnsiConsole.MarkupLine($"{data.Count} files");
+        AnsiConsole.MarkupLineInterpolated($"average: {average_value:.2f}s");
+        AnsiConsole.MarkupLineInterpolated($"max: {ma.Value:.2f}s foreach {ma.Key}");
+        AnsiConsole.MarkupLineInterpolated($"min: {mi.Value:.2f}s foreach {mi.Key}");
+        AnsiConsole.MarkupLineInterpolated($"{data.Count} files");
     }
 }
 

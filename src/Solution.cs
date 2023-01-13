@@ -219,7 +219,7 @@ internal class CmakeSolutionParser
     internal void AddExecutable(Trace line)
     {
         var app = line.Args[0];
-        AnsiConsole.MarkupLine($"Adding executable {app}");
+        AnsiConsole.MarkupLineInterpolated($"Adding executable {app}");
         var p = new Solution.Project(Solution.ProjectType.Executable, app);
         allProjects.Add(app, p);
         projects.Add(p);
@@ -228,7 +228,7 @@ internal class CmakeSolutionParser
     internal void AddLibrary(Trace line)
     {
         var lib = line.Args[0];
-        AnsiConsole.MarkupLine($"Adding lib {lib}");
+        AnsiConsole.MarkupLineInterpolated($"Adding lib {lib}");
         if (allProjects.ContainsKey(lib))
         {
             // todo(Gustav): add warning
