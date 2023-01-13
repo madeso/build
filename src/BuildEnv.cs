@@ -1,10 +1,11 @@
 using Spectre.Console.Cli;
+using System;
 using System.ComponentModel;
+using System.Globalization;
 
 namespace Workbench;
 
-// list of compilers
-// #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+[TypeConverter(typeof(CompilerConverter))]
 public enum Compiler
 {
     VisualStudio2015,
@@ -13,14 +14,39 @@ public enum Compiler
     VisualStudio2022
 }
 
+class CompilerConverter : EnumTypeConverter<Compiler>
+{
+    public CompilerConverter()
+    {
+        // fallbacks: github actions installed compiler
+        Data
+            .Add(Compiler.VisualStudio2015, "vs2015")
+            .Add(Compiler.VisualStudio2017, "vs2017", "windows-2016")
+            .Add(Compiler.VisualStudio2019, "vs2019", "windows-2019")
+            .Add(Compiler.VisualStudio2022, "vs2022")
+            ;
+    }
+}
 
-// list of platforms
-// #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+
+[TypeConverter(typeof(PlatformConverter))]
 public enum Platform
 {
     Auto,
     Win32,
     X64
+}
+
+class PlatformConverter : EnumTypeConverter<Platform>
+{
+    public PlatformConverter()
+    {
+        Data
+            .Add(Platform.Auto, "auto")
+            .Add(Platform.Win32, "win32", "x86")
+            .Add(Platform.X64, "win64", "x64")
+            ;
+    }
 }
 
 // #[derive(Serialize, Deserialize, Debug)]
@@ -136,33 +162,6 @@ public class EnviromentArgument : CommandSettings
 
 public static class BuildUitls
 {
-    static Compiler? ParseCompilerFromString(string input)
-    {
-        return input.ToLowerInvariant() switch
-        {
-            "vs2015" => Compiler.VisualStudio2015,
-            "vs2017" => Compiler.VisualStudio2017,
-            "vs2019" => Compiler.VisualStudio2019,
-            "vs2022" => Compiler.VisualStudio2022,
-            // github actions installed compiler
-            "windows-2016" => Compiler.VisualStudio2017,
-            "windows-2019" => Compiler.VisualStudio2019,
-            _ => null,
-        };
-    }
-
-    static Platform? ParsePlatformFromString(string input)
-    {
-        return input.ToLowerInvariant() switch
-        {
-            "auto" => Platform.Auto,
-            "win32" => Platform.Win32,
-            "x64" => Platform.X64,
-            "win64" => Platform.X64,
-            _ => null,
-        };
-    }
-
     static bool Is64Bit(Platform platform)
     {
         return platform switch

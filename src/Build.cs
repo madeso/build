@@ -1,5 +1,9 @@
+using System.ComponentModel;
+using System.Globalization;
+
 namespace Workbench;
 
+[TypeConverter(typeof(DepenedencyNameConverter))]
 public enum DependencyName
 {
     // #[serde(rename = "sdl-2.0.8")]
@@ -19,6 +23,20 @@ public enum DependencyName
 
     // earlier dependencies were wxWidgets and to a lesser extent: boost and libxml
     // if we need them we should probably replace this whole setup with a package manager
+}
+
+class DepenedencyNameConverter : EnumTypeConverter<DependencyName>
+{
+    public DepenedencyNameConverter()
+    {
+        Data
+            .Add(DependencyName.Sdl2dot0dot8, "sdl-2.0.8")
+            .Add(DependencyName.Sdl2dot0dot20, "sdl-2.0.20")
+            .Add(DependencyName.Python, "python")
+            .Add(DependencyName.Assimp, "assimp")
+            .Add(DependencyName.AssimpStatic, "assimp_static")
+            ;
+    }
 }
 
 public interface Dependency
