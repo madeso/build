@@ -3,49 +3,42 @@ using System.ComponentModel;
 
 namespace Workbench;
 
+class CompilerConverter : EnumTypeConverter<Compiler> { }
+
 [TypeConverter(typeof(CompilerConverter))]
 public enum Compiler
 {
+    // fallbacks are github actions installed compiler
+
+    [EnumString("vs2015")]
     VisualStudio2015,
+    
+    [EnumString("vs2017", "windows-2016")]
     VisualStudio2017,
+    
+    [EnumString("vs2019", "windows-2019")]
     VisualStudio2019,
-    VisualStudio2022
+
+    [EnumString("vs2022")]
+    VisualStudio2022,
 }
 
-class CompilerConverter : EnumTypeConverter<Compiler>
-{
-    public CompilerConverter()
-    {
-        // fallbacks: github actions installed compiler
-        Data
-            .Add(Compiler.VisualStudio2015, "vs2015")
-            .Add(Compiler.VisualStudio2017, "vs2017", "windows-2016")
-            .Add(Compiler.VisualStudio2019, "vs2019", "windows-2019")
-            .Add(Compiler.VisualStudio2022, "vs2022")
-            ;
-    }
-}
 
+class PlatformConverter : EnumTypeConverter<Platform> { }
 
 [TypeConverter(typeof(PlatformConverter))]
 public enum Platform
 {
+    [EnumString("auto")]
     Auto,
+    
+    [EnumString("win32", "x86")]
     Win32,
-    X64
+
+    [EnumString("win64", "x64")]
+    X64,
 }
 
-class PlatformConverter : EnumTypeConverter<Platform>
-{
-    public PlatformConverter()
-    {
-        Data
-            .Add(Platform.Auto, "auto")
-            .Add(Platform.Win32, "win32", "x86")
-            .Add(Platform.X64, "win64", "x64")
-            ;
-    }
-}
 
 // #[derive(Serialize, Deserialize, Debug)]
 public class BuildEnviroment

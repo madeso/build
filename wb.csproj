@@ -51,6 +51,7 @@
         <Compile Include="src/Which.cs" />
         <Compile Include="src/FileUtil.cs" />
         <Compile Include="src\EditDistance.cs" />
+        <Compile Include="src\Reflect.cs" />
         <Compile Include="src\StringListCombiner.cs" />
     </ItemGroup>
 </Project>

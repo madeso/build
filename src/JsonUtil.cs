@@ -22,6 +22,7 @@ public static class JsonUtil
 
     internal static string Write<T>(T self)
     {
+        // return System.Text.Json.JsonSerializer.Serialize<T>(self, new System.Text.Json.JsonSerializerOptions { WriteIndented = true});
         return JsonConvert.SerializeObject(self, Formatting.Indented);
     }
 }

@@ -44,7 +44,8 @@ internal class EnumConverter<T>
 
         Debug.Assert(fromString.Count > 0);
 
-        var suggestions = StringListCombiner.EnglishOr().combine(EditDistance.ClosestMatches(3, Transform(name), fromString.Keys.Select(x => Transform(x))));
+        var suggestions = StringListCombiner.EnglishOr()
+            .combine(EditDistance.ClosestMatches(3, Transform(name), fromString.Keys.Select(x => Transform(x))));
         return (default(T), $"Invalid value {name}, did you mean {suggestions}?");
     }
 
@@ -52,55 +53,69 @@ internal class EnumConverter<T>
     {
         return name.Trim().ToLowerInvariant();
     }
+
+    public static EnumConverter<T> ReflectValues()
+    {
+        var ret = new EnumConverter<T>();
+
+        foreach(var (att, val) in Reflect.PublicStaticValuesOf<T, EnumStringAttribute>(Reflect.Atributes<EnumStringAttribute>()))
+        {
+            ret.Add(val, att.PrimaryName, att.OtherNames);
+        }
+
+        Debug.Assert(ret.toString.Count > 0, "Missing entries");
+
+        return ret;
+    }
 }
 
-// todo(Gustav): add attribute types
-// todo(Gustav): add code to grab a converter from reflecting a enum
+public class EnumStringAttribute : Attribute
+{
+    public string PrimaryName{get;}
+    public string[] OtherNames { get; }
 
+    public EnumStringAttribute(string primaryName, params string[] otherNames)
+    {
+        PrimaryName = primaryName;
+        OtherNames = otherNames;
+    }
+}
 
 
 class EnumTypeConverter<T> : TypeConverter
     where T : Enum
 {
-    internal EnumConverter<T> Data { get; set; } = new EnumConverter<T>();
+    private static readonly EnumConverter<T> Data = EnumConverter<T>.ReflectValues();
 
     public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType)
     {
-        Console.WriteLine("can convert from");
         return sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
     }
 
     public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value)
     {
-        Console.WriteLine($"Convert from: {value}");
         var casted = value as string;
         if (casted == null)
         {
-            Console.WriteLine("Value is null");
             return base.ConvertFrom(context, culture, value);
         }
 
-        Console.WriteLine("parsing...");
         var (ret, error) = Data.StringToEnum(casted);
         if (ret == null || string.IsNullOrEmpty(error) == false)
         {
-            Console.WriteLine($"throwing error... {error}");
             throw new NotSupportedException(error);
         }
 
-        Console.WriteLine("parsing ok");
         return ret;
     }
 
     public override bool CanConvertTo(ITypeDescriptorContext? context, [NotNullWhen(true)] Type? destinationType)
     {
-        Console.WriteLine("Can convert to");
         return base.CanConvertTo(context, destinationType);
     }
 
     public override object? ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture, object? value, Type destinationType)
     {
-        Console.WriteLine("Convert to");
         return destinationType == typeof(string) && value != null && value is T
             ? Data.EnumToString((T)value)
             : base.ConvertTo(context, culture, value, destinationType);
