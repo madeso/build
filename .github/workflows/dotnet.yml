@@ -15,7 +15,11 @@ jobs:
         dotnet-version: 7.0.x
     - name: Restore dependencies
       run: dotnet restore
+      working-directory: ./Workbench
+      working-directory: ./Workbench
     - name: Build
       run: dotnet build --no-restore
+      working-directory: ./Workbench
     - name: Test
       run: dotnet test --no-build --verbosity normal
+      working-directory: ./Workbench
