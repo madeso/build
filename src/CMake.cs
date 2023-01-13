@@ -236,28 +236,19 @@ public class CMake
     }
 }
 
-[JsonObject(MemberSerialization.OptIn)]
 public class Trace
 {
-    public Trace(string file, int line, string cmd, string[] args)
-    {
-        this.File = file;
-        this.Line = line;
-        this.Cmd = cmd;
-        this.Args = args;
-    }
-
     [JsonProperty("file")]
-    public string File { get; }
+    public string File { set; get; } = string.Empty;
 
     [JsonProperty("line")]
-    public int Line { get; }
+    public int Line { set; get; }
 
     [JsonProperty("cmd")]
-    public string Cmd { get; }
+    public string Cmd { set; get; } = string.Empty;
 
     [JsonProperty("args")]
-    public string[] Args { get; }
+    public string[] Args { set; get; } = Array.Empty<string>();
 
     public static IEnumerable<Trace> TraceDirectory(string dir)
     {
@@ -273,15 +264,20 @@ public class Trace
                 {
                     // file != null ignores the version json object
                     lines.Add(parsed);
-                    return;
+                }
+                else
+                {
+                    error.Add($"{src}: null object after parsing");
                 }
             }
-            catch (Newtonsoft.Json.JsonReaderException)
+            catch (JsonReaderException ex)
             {
-                // pass
+                error.Add($"{src}: {ex.Message}");
             }
-
-            error.Add(src);
+            catch (NotSupportedException ex)
+            {
+                error.Add($"{src}: {ex.Message}");
+            }
         }
 
         var ret = new Command("cmake", "--trace-format=json-v1")
