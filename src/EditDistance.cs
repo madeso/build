@@ -18,6 +18,7 @@ public static class EditDistance
             .ToArray();
     }
 
+    // edit distance implementation from: https://gist.github.com/Davidblkx/e12ab0bb2aff7fd8072632b396538560
 
     /// <summary>
     ///     Calculate the difference between 2 strings using the Levenshtein distance algorithm
@@ -25,7 +26,7 @@ public static class EditDistance
     /// <param name="source1">First string</param>
     /// <param name="source2">Second string</param>
     /// <returns></returns>
-    public static int Calculate(string source1, string source2) //O(n*m)
+    private static int Calculate(string source1, string source2) //O(n*m)
     {
         var source1Length = source1.Length;
         var source2Length = source2.Length;
