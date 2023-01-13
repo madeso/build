@@ -44,7 +44,7 @@ internal class EnumConverter<T>
 
         Debug.Assert(fromString.Count > 0);
 
-        var suggestions = StringListCombiner.EnglishOr().combine(EditDistance.ClosestMatches(3, name, fromString.Keys));
+        var suggestions = StringListCombiner.EnglishOr().combine(EditDistance.ClosestMatches(3, Transform(name), fromString.Keys.Select(x => Transform(x))));
         return (default(T), $"Invalid value {name}, did you mean {suggestions}?");
     }
 
