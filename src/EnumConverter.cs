@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Text.Json.Serialization;
 using System;
+using System.Text;
 
 namespace Workbench;
 
@@ -47,9 +48,29 @@ internal class EnumConverter<T>
 
         Debug.Assert(fromString.Count > 0);
 
-        var suggestions = StringListCombiner.EnglishOr()
-            .combine(EditDistance.ClosestMatches(3, Transform(name), fromString.Keys.Select(x => Transform(x))));
-        return (null, $"Invalid value {name}, did you mean {suggestions}?");
+        static string SimpleQuote(string s)
+        {
+            if(s.Contains('"'))
+            {
+                s = s.Replace("\\", "\\\\")
+                     .Replace("\"", "\\\"")
+                     ;
+            }
+            return $"\"{s}\"";
+        }
+
+        var suggestions = EditDistance.ClosestMatches(3, Transform(name), maxDiff: 5, candidates: fromString.Keys)
+            .Select(SimpleQuote).ToArray();
+        if (suggestions.Length == 0)
+        {
+            var all = StringListCombiner.EnglishOr().combine(fromString.Keys.Select(SimpleQuote).ToArray());
+            return (null, $"Invalid value {SimpleQuote(name)}! You need to select either {all}");
+        }
+        else
+        {
+            var mean = StringListCombiner.EnglishOr().combine(suggestions);
+            return (null, $"Invalid value {SimpleQuote(name)}! Perhaps you meant {mean}?");
+        }
     }
 
     private static string Transform(string name)

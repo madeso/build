@@ -8,14 +8,14 @@ namespace Workbench;
 
 public static class EditDistance
 {
-    public static string[] ClosestMatches(int count, string input, IEnumerable<string> candidates)
+    public static IEnumerable<string> ClosestMatches(int count, string input, int maxDiff, IEnumerable<string> candidates)
     {
         return candidates
             .Select(name => new { Name=name, Distance=Calculate(input, name)})
+            .Where(entry => entry.Distance <= maxDiff)
             .OrderBy(entry => entry.Distance)
             .Take(count)
-            .Select(entry => entry.Name)
-            .ToArray();
+            .Select(entry => entry.Name);
     }
 
     // edit distance implementation from: https://gist.github.com/Davidblkx/e12ab0bb2aff7fd8072632b396538560
