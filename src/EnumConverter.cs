@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using Workbench;
 
 namespace Workbench;
 
@@ -15,7 +16,7 @@ internal class EnumConverter<T>
     {
         toString.Add(value, primaryName);
         fromString.Add(Transform(primaryName), value);
-        foreach(var name in otherNames)
+        foreach (var name in otherNames)
         {
             fromString.Add(Transform(name), value);
         }
@@ -25,7 +26,7 @@ internal class EnumConverter<T>
 
     public string EnumToString(T value)
     {
-        if(toString.TryGetValue(value, out var str))
+        if (toString.TryGetValue(value, out var str))
         {
             return str;
         }
@@ -36,7 +37,7 @@ internal class EnumConverter<T>
 
     public (T?, string) StringToEnum(string name)
     {
-        if(fromString.TryGetValue(Transform(name), out var ret))
+        if (fromString.TryGetValue(Transform(name), out var ret))
         {
             return (ret, string.Empty);
         }
@@ -73,7 +74,7 @@ class EnumTypeConverter<T> : TypeConverter
     {
         Console.WriteLine($"Convert from: {value}");
         var casted = value as string;
-        if(casted == null)
+        if (casted == null)
         {
             Console.WriteLine("Value is null");
             return base.ConvertFrom(context, culture, value);
@@ -81,7 +82,7 @@ class EnumTypeConverter<T> : TypeConverter
 
         Console.WriteLine("parsing...");
         var (ret, error) = Data.StringToEnum(casted);
-        if(ret == null || string.IsNullOrEmpty(error) == false)
+        if (ret == null || string.IsNullOrEmpty(error) == false)
         {
             Console.WriteLine($"throwing error... {error}");
             throw new NotSupportedException(error);

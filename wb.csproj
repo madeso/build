@@ -15,7 +15,7 @@
     </ItemGroup>
 
     <ItemGroup>
-		<Compile Include="EnumConverter.cs" />
+		<Compile Include="src\EnumConverter.cs" />
 		<Compile Include="src/DictionaryExtensions.cs" />
 		<Compile Include="src/HeroData.cs" />
 		<Compile Include="src/HeroParser.cs" />
