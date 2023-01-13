@@ -1,6 +1,7 @@
-using Newtonsoft.Json;
+using System.Text.Json;
 using Spectre.Console.Cli;
 using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace Workbench;
 

@@ -1,9 +1,11 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
+using System.Text.Json.Serialization;
+using System;
 
 namespace Workbench;
 
@@ -139,40 +141,24 @@ class EnumTypeConverter<T> : TypeConverter
 }
 
 
-class EnumJsonConverter<T> : JsonConverter
+class EnumJsonConverter<T> : JsonConverter<T>
     where T: struct
 {
-    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
-    {
-        if (value == null)
-        {
-            return;
-        }
+    public override bool HandleNull => false;
 
-        writer.WriteValue(ReflectedValues<T>.Converter.EnumToString((T)value));
+    public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(ReflectedValues<T>.Converter.EnumToString(value));
     }
 
-    public override bool CanConvert(Type objectType)
+    public override bool CanConvert(Type typeToConvert)
     {
-        return objectType == typeof(T);
+        return base.CanConvert(typeToConvert);
     }
 
-    public override bool CanRead => true;
-    public override bool CanWrite => true;
-
-    private static JsonSerializationException SeriError(string message)
+    public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        // todo(Gustav): use JsonSerializationException.Create but that is internal
-        return new JsonSerializationException(message);
-    }
-
-    public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
-    {
-        if(reader.Value == null)
-        {
-            throw SeriError($"Cannot convert null value to {objectType}.");
-        }
-        var casted = (string)reader.Value;
+        var casted = reader.GetString()!;
 
         var (ret, error) = ReflectedValues<T>.Converter.StringToEnum(casted);
         if (ret == null)
@@ -180,6 +166,15 @@ class EnumJsonConverter<T> : JsonConverter
             throw SeriError(error);
         }
 
-        return ret;
+        return ret.Value;
+    }
+
+    private static JsonException SeriError(string message)
+    {
+        // AppendPathInformation is internal
+        throw new JsonException(message);//  { AppendPathInformation = true };
+
+        // use JsonSerializationException.Create but that is internal
+        // same issue with Json.Net
     }
 }

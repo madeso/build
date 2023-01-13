@@ -1,7 +1,8 @@
-using Newtonsoft.Json;
+using System.Text.Json;
 using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 
 namespace Workbench.CompileCommands;
 
@@ -54,13 +55,13 @@ public class CompileCommand
 
 internal class CompileCommandJson
 {
-    [JsonProperty("file")]
+    [JsonPropertyName("file")]
     public string file = "";
 
-    [JsonProperty("directory")]
+    [JsonPropertyName("directory")]
     public string directory = "";
 
-    [JsonProperty("command")]
+    [JsonPropertyName("command")]
     public string command = "";
 }
 

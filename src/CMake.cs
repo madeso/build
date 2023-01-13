@@ -1,5 +1,6 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 using System.Runtime.Serialization;
+using System.Text.Json;
 
 namespace Workbench.CMake;
 
@@ -238,16 +239,16 @@ public class CMake
 
 public class Trace
 {
-    [JsonProperty("file")]
+    [JsonPropertyName("file")]
     public string File { set; get; } = string.Empty;
 
-    [JsonProperty("line")]
+    [JsonPropertyName("line")]
     public int Line { set; get; }
 
-    [JsonProperty("cmd")]
+    [JsonPropertyName("cmd")]
     public string Cmd { set; get; } = string.Empty;
 
-    [JsonProperty("args")]
+    [JsonPropertyName("args")]
     public string[] Args { set; get; } = Array.Empty<string>();
 
     public static IEnumerable<Trace> TraceDirectory(string dir)
@@ -259,7 +260,7 @@ public class Trace
         {
             try
             {
-                var parsed = JsonConvert.DeserializeObject<Trace>(src);
+                var parsed = JsonSerializer.Deserialize<Trace>(src);
                 if (parsed != null && parsed.File != null)
                 {
                     // file != null ignores the version json object
@@ -270,7 +271,7 @@ public class Trace
                     error.Add($"{src}: null object after parsing");
                 }
             }
-            catch (JsonReaderException ex)
+            catch (JsonException ex)
             {
                 error.Add($"{src}: {ex.Message}");
             }

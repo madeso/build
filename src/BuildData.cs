@@ -1,20 +1,21 @@
 namespace Workbench;
 
 
-using Newtonsoft.Json;
+using System.Text.Json;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Text.Json.Serialization;
 
 class ProjectFile
 {
-    [JsonProperty("name")]
+    [JsonPropertyName("name")]
     public string Name { get; set; } = "";
 
-    [JsonProperty("dependencies")]
-    public List<DependencyName> Dependencies { get; } = new();
+    [JsonPropertyName("dependencies")]
+    public List<DependencyName> Dependencies { get; set; } = new();
 
-    [JsonProperty("includes")]
-    public List<List<string>> IncludeDirectories { get; } = new();
+    [JsonPropertyName("includes")]
+    public List<List<string>> IncludeDirectories { get; set; } = new();
 }
 
 public interface OptionalRegex
