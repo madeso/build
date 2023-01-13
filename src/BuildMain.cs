@@ -215,14 +215,30 @@ internal static class F
         var data = loaded_data.Value;
         var env = BuildUitls.LoadFromFileOrCreateEmpty(data.GetPathToSettingsFile(), printer);
 
+        printer.Header(data.Name);
         printer.Info($"Project: {data.Name}");
-        printer.Info($"Enviroment: {env}");
+        printer.Info($"Dependencies: {data.Dependencies.Count}");
+        if(env == null)
+        {
+            printer.Info("Enviroment: <missing>");
+        }
+        else
+        {
+            printer.Info("Enviroment:");
+            printer.Info($"  Compiler: {EnumTools.GetString(env.compiler) ?? "missing"}");
+            printer.Info($"  Platform: {EnumTools.GetString(env.platform) ?? "missing"}");
+        }
         printer.Info("");
-        printer.Info($"Data: {data.GetPathToSettingsFile()}");
-        printer.Info($"Root: {data.RootDirectory}");
-        printer.Info($"Build: {data.ProjectDirectory}");
-        printer.Info($"Dependencies: {data.DependencyDirectory}");
+        printer.Info("Folders:");
+        printer.Info($"  Data: {data.GetPathToSettingsFile()}");
+        printer.Info($"  Root: {data.RootDirectory}");
+        printer.Info($"  Build: {data.ProjectDirectory}");
+        printer.Info($"  Dependencies: {data.DependencyDirectory}");
         var indent = "    ";
+        if(data.Dependencies.Count > 0)
+        {
+            printer.Info("");
+        }
         foreach (var dep in data.Dependencies)
         {
             printer.Info($"{indent}{dep.GetName()}");

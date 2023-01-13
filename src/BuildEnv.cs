@@ -42,8 +42,8 @@ public enum Platform
 // #[derive(Serialize, Deserialize, Debug)]
 public class BuildEnviroment
 {
-    public Compiler? compiler = null;
-    public Platform? platform = null;
+    public Compiler? compiler { get; set; }  = null;
+    public Platform? platform { get; set; } = null;
 
     public static BuildEnviroment CreateEmpty()
     {

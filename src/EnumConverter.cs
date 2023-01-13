@@ -8,7 +8,7 @@ using System.IO;
 namespace Workbench;
 
 internal class EnumConverter<T>
-    where T : Enum
+    where T : struct
 {
     private readonly Dictionary<string, T> fromString = new();
     private readonly Dictionary<T, string> toString = new();
@@ -47,7 +47,7 @@ internal class EnumConverter<T>
 
         var suggestions = StringListCombiner.EnglishOr()
             .combine(EditDistance.ClosestMatches(3, Transform(name), fromString.Keys.Select(x => Transform(x))));
-        return (default(T), $"Invalid value {name}, did you mean {suggestions}?");
+        return (null, $"Invalid value {name}, did you mean {suggestions}?");
     }
 
     public static bool IsError(T? ret, string error)
@@ -60,11 +60,11 @@ internal class EnumConverter<T>
         return name.Trim().ToLowerInvariant();
     }
 
-    public static EnumConverter<T> ReflectValues()
+    internal static EnumConverter<T> ReflectValues()
     {
         var ret = new EnumConverter<T>();
 
-        foreach(var (att, val) in Reflect.PublicStaticValuesOf<T, EnumStringAttribute>(Reflect.Atributes<EnumStringAttribute>()))
+        foreach (var (att, val) in Reflect.PublicStaticValuesOf<T, EnumStringAttribute>(Reflect.Atributes<EnumStringAttribute>()))
         {
             ret.Add(val, att.PrimaryName, att.OtherNames);
         }
@@ -74,6 +74,23 @@ internal class EnumConverter<T>
         return ret;
     }
 }
+
+internal static class ReflectedValues<T>
+    where T: struct
+{
+    public static readonly EnumConverter<T> Converter = EnumConverter<T>.ReflectValues();
+}
+
+public static class EnumTools
+{
+    public static string? GetString<T>(T? t)
+        where T : struct
+    {
+        if(t == null) return null;
+        else return ReflectedValues<T>.Converter.EnumToString(t.Value);
+    }
+}
+    
 
 public class EnumStringAttribute : Attribute
 {
@@ -89,10 +106,8 @@ public class EnumStringAttribute : Attribute
 
 
 class EnumTypeConverter<T> : TypeConverter
-    where T : Enum
+    where T : struct
 {
-    private static readonly EnumConverter<T> Data = EnumConverter<T>.ReflectValues();
-
     public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType)
     {
         return sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
@@ -106,7 +121,7 @@ class EnumTypeConverter<T> : TypeConverter
             return base.ConvertFrom(context, culture, value);
         }
 
-        var (ret, error) = Data.StringToEnum(casted);
+        var (ret, error) = ReflectedValues<T>.Converter.StringToEnum(casted);
         if (EnumConverter<T>.IsError(ret, error))
         {
             throw new NotSupportedException(error);
@@ -123,17 +138,15 @@ class EnumTypeConverter<T> : TypeConverter
     public override object? ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture, object? value, Type destinationType)
     {
         return destinationType == typeof(string) && value != null && value is T
-            ? Data.EnumToString((T)value)
+            ? ReflectedValues<T>.Converter.EnumToString((T)value)
             : base.ConvertTo(context, culture, value, destinationType);
     }
 }
 
 
 class EnumJsonConverter<T> : JsonConverter
-    where T: Enum
+    where T: struct
 {
-    private static readonly EnumConverter<T> data = EnumConverter<T>.ReflectValues();
-
     public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
     {
         if (value == null)
@@ -141,7 +154,7 @@ class EnumJsonConverter<T> : JsonConverter
             return;
         }
 
-        writer.WriteValue(data.EnumToString((T)value));
+        writer.WriteValue(ReflectedValues<T>.Converter.EnumToString((T)value));
     }
 
     public override bool CanConvert(Type objectType)
@@ -166,7 +179,7 @@ class EnumJsonConverter<T> : JsonConverter
         }
         var casted = (string)reader.Value;
 
-        var (ret, error) = data.StringToEnum(casted);
+        var (ret, error) = ReflectedValues<T>.Converter.StringToEnum(casted);
         if (EnumConverter<T>.IsError(ret, error))
         {
             throw SeriError(error);
