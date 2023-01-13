@@ -50,11 +50,6 @@ internal class EnumConverter<T>
         return (null, $"Invalid value {name}, did you mean {suggestions}?");
     }
 
-    public static bool IsError(T? ret, string error)
-    {
-        return ret == null || string.IsNullOrEmpty(error) == false;
-    }
-
     private static string Transform(string name)
     {
         return name.Trim().ToLowerInvariant();
@@ -122,7 +117,7 @@ class EnumTypeConverter<T> : TypeConverter
         }
 
         var (ret, error) = ReflectedValues<T>.Converter.StringToEnum(casted);
-        if (EnumConverter<T>.IsError(ret, error))
+        if (ret == null)
         {
             throw new NotSupportedException(error);
         }
@@ -180,7 +175,7 @@ class EnumJsonConverter<T> : JsonConverter
         var casted = (string)reader.Value;
 
         var (ret, error) = ReflectedValues<T>.Converter.StringToEnum(casted);
-        if (EnumConverter<T>.IsError(ret, error))
+        if (ret == null)
         {
             throw SeriError(error);
         }
