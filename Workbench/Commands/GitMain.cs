@@ -2,8 +2,9 @@
 using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using Workbench;
 
-namespace Workbench.Git;
+namespace Workbench.Commands.GitCommands;
 
 internal sealed class Status : Command<Status.Arg>
 {
@@ -32,10 +33,10 @@ internal sealed class Status : Command<Status.Arg>
 
             switch (line.Status)
             {
-                case GitStatus.Unknown:
+                case Git.GitStatus.Unknown:
                     AnsiConsole.MarkupLineInterpolated($"Unknown [green]{line.Path}[/] ([blue]{status}[/]).");
                     break;
-                case GitStatus.Modified:
+                case Git.GitStatus.Modified:
                     AnsiConsole.MarkupLineInterpolated($"Modified [blue]{line.Path}[/]  ([blue]{status}[/]).");
                     break;
             }
@@ -66,7 +67,7 @@ internal sealed class RemoveUnknown : Command<RemoveUnknown.Arg>
         {
             switch (line.Status)
             {
-                case GitStatus.Unknown:
+                case Git.GitStatus.Unknown:
                     if (Directory.Exists(line.Path))
                     {
                         AnsiConsole.MarkupLineInterpolated($"Removing directory [blue]{line.Path}[/].");
@@ -78,7 +79,7 @@ internal sealed class RemoveUnknown : Command<RemoveUnknown.Arg>
                         File.Delete(line.Path);
                     }
                     break;
-                case GitStatus.Modified:
+                case Git.GitStatus.Modified:
                     if (recursive && Directory.Exists(line.Path))
                     {
                         AnsiConsole.MarkupLineInterpolated($"Modified directory [blue]{line.Path}[/] assumed to be submodule.");

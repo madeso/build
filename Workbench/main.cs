@@ -45,8 +45,8 @@ internal class Program
 
             Build.Main.Configure(config, "build");
             Indent.Main.Configure(config, "indent");
-            CMake.Main.Configure(config, "cmake");
-            Git.Main.Configure(config, "git");
+            Commands.CmakeCommands.Main.Configure(config, "cmake");
+            Commands.GitCommands.Main.Configure(config, "git");
             CompileCommands.Main.Configure(config, "compile-commands");
             CheckIncludes.Main.Configure(config, "check-includes");
             ListHeaders.Main.Configure(config, "list-headers");

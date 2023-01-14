@@ -2,8 +2,9 @@
 using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using Workbench.CMake;
 
-namespace Workbench.CMake;
+namespace Workbench.Commands.CmakeCommands;
 
 
 internal sealed class TraceCommand : Command<TraceCommand.Arg>

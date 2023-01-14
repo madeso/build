@@ -1,24 +1,25 @@
-﻿namespace Workbench.Git;
+﻿namespace Workbench;
 
-public enum GitStatus
-{
-    Unknown, Modified
-}
-
-public class GitStatusEntry
-{
-    public GitStatusEntry(GitStatus status, string path)
-    {
-        Status = status;
-        Path = path;
-    }
-
-    public GitStatus Status { get; }
-    public string Path { get; }
-}
 
 public static class Git
 {
+    public enum GitStatus
+    {
+        Unknown, Modified
+    }
+
+    public class GitStatusEntry
+    {
+        public GitStatusEntry(GitStatus status, string path)
+        {
+            Status = status;
+            Path = path;
+        }
+
+        public GitStatus Status { get; }
+        public string Path { get; }
+    }
+
     public static IEnumerable<GitStatusEntry> Status(string folder)
     {
         var output = new Command("git", "status", "--porcelain=v1")

@@ -41,10 +41,10 @@
 		<Compile Include="Registry.cs" />
 		<Compile Include="StringExtensions.cs" />
         <Compile Include="CMake.cs" />
-        <Compile Include="CmakeMain.cs" />
+        <Compile Include="Commands\CmakeMain.cs" />
         <Compile Include="Found.cs" />
         <Compile Include="Git.cs" />
-        <Compile Include="GitMain.cs" />
+        <Compile Include="Commands\GitMain.cs" />
         <Compile Include="Graphviz.cs" />
         <Compile Include="IndentationMain.cs" />
         <Compile Include="main.cs" />
