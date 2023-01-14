@@ -16,16 +16,17 @@
     </ItemGroup>
 
     <ItemGroup>
+		<Compile Include="Commands\BuildMain.cs" />
 		<Compile Include="EnumConverter.cs" />
 		<Compile Include="DictionaryExtensions.cs" />
 		<Compile Include="HeroData.cs" />
 		<Compile Include="HeroParser.cs" />
 		<Compile Include="HeroUi.cs" />
 		<Compile Include="HeroMain.cs" />
-		<Compile Include="Build.cs" />
+		<Compile Include="BuildDependencies.cs" />
 		<Compile Include="BuildData.cs" />
 		<Compile Include="BuildEnv.cs" />
-		<Compile Include="BuildMain.cs" />
+		<Compile Include="BuildFuncs.cs" />
 		<Compile Include="CheckIncludes.cs" />
 		<Compile Include="Clang.cs" />
 		<Compile Include="ColCounter.cs" />

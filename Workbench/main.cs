@@ -43,7 +43,7 @@ internal class Program
             MinorCommands.Main.ConfigureCat(config, "cat");
             MinorCommands.Main.ConfigureDebug(config, "status");
 
-            Build.Main.Configure(config, "build");
+            Commands.BuildCommands.Main.Configure(config, "build");
             Indent.Main.Configure(config, "indent");
             Commands.CmakeCommands.Main.Configure(config, "cmake");
             Commands.GitCommands.Main.Configure(config, "git");
