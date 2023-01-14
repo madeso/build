@@ -39,14 +39,14 @@ internal class Program
 
             config.AddCommand<DummyCommand>("dummy").WithDescription("Just a dummy");
 
-            MinorCommands.Main.ConfigureLs(config, "ls");
-            MinorCommands.Main.ConfigureCat(config, "cat");
-            MinorCommands.Main.ConfigureDebug(config, "status");
-
+            Commands.MinorCommands.ConfigureLs(config, "ls");
+            Commands.MinorCommands.ConfigureCat(config, "cat");
+            Commands.StatusCommands.Main.ConfigureStatus(config, "status");
             Commands.BuildCommands.Main.Configure(config, "build");
             Commands.IndentCommands.Main.Configure(config, "indent");
             Commands.CmakeCommands.Main.Configure(config, "cmake");
             Commands.GitCommands.Main.Configure(config, "git");
+
             CompileCommands.Main.Configure(config, "compile-commands");
             CheckIncludes.Main.Configure(config, "check-includes");
             ListHeaders.Main.Configure(config, "list-headers");

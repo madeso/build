@@ -17,7 +17,9 @@
 
     <ItemGroup>
 		<Compile Include="Commands\BuildMain.cs" />
+		<Compile Include="Commands\StatusMain.cs" />
 		<Compile Include="Commands\IndentMain.cs" />
+		<Compile Include="Commands\MinorCommands.cs" />
 		<Compile Include="EnumConverter.cs" />
 		<Compile Include="DictionaryExtensions.cs" />
 		<Compile Include="Functional.cs" />
@@ -39,9 +41,9 @@
 		<Compile Include="Html.cs" />
 		<Compile Include="JsonUtil.cs" />
 		<Compile Include="ListHeaders.cs" />
-		<Compile Include="MinorCommands.cs" />
 		<Compile Include="Printer.cs" />
 		<Compile Include="Registry.cs" />
+		<Compile Include="Status.cs" />
 		<Compile Include="StringExtensions.cs" />
         <Compile Include="CMake.cs" />
         <Compile Include="Commands\CmakeMain.cs" />
