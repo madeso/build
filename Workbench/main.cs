@@ -44,7 +44,7 @@ internal class Program
             MinorCommands.Main.ConfigureDebug(config, "status");
 
             Commands.BuildCommands.Main.Configure(config, "build");
-            Indent.Main.Configure(config, "indent");
+            Commands.IndentCommands.Main.Configure(config, "indent");
             Commands.CmakeCommands.Main.Configure(config, "cmake");
             Commands.GitCommands.Main.Configure(config, "git");
             CompileCommands.Main.Configure(config, "compile-commands");

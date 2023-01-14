@@ -17,8 +17,10 @@
 
     <ItemGroup>
 		<Compile Include="Commands\BuildMain.cs" />
+		<Compile Include="Commands\IndentMain.cs" />
 		<Compile Include="EnumConverter.cs" />
 		<Compile Include="DictionaryExtensions.cs" />
+		<Compile Include="Functional.cs" />
 		<Compile Include="HeroData.cs" />
 		<Compile Include="HeroParser.cs" />
 		<Compile Include="HeroUi.cs" />
@@ -47,7 +49,7 @@
         <Compile Include="Git.cs" />
         <Compile Include="Commands\GitMain.cs" />
         <Compile Include="Graphviz.cs" />
-        <Compile Include="IndentationMain.cs" />
+        <Compile Include="FileIndent.cs" />
         <Compile Include="main.cs" />
         <Compile Include="Solution.cs" />
         <Compile Include="Which.cs" />
