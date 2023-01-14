@@ -4,13 +4,13 @@ using System.Diagnostics;
 
 internal record ProcessExit(string CommandLine, int ExitCode);
 
-internal class CommandResult
+internal class ProcessExitWithOutput
 {
     public string CommandLine { get; private init; }
     public int ExitCode { get; private init; }
     public string[] Output { get; private init; }
 
-    public CommandResult(ProcessExit pe, string[] output)
+    public ProcessExitWithOutput(ProcessExit pe, string[] output)
     {
         CommandLine = pe.CommandLine;
         ExitCode = pe.ExitCode;
@@ -28,7 +28,7 @@ internal class CommandResult
         return this.Output;
     }
 
-    public CommandResult PrintOutput(Printer print)
+    public ProcessExitWithOutput PrintOutput(Printer print)
     {
         foreach (var line in this.Output)
         {
@@ -38,7 +38,7 @@ internal class CommandResult
         return this;
     }
 
-    public CommandResult PrintStatus(Printer print)
+    public ProcessExitWithOutput PrintStatus(Printer print)
     {
         print.Info($"Return value: {ExitCode}");
         if (ExitCode != 0)
@@ -49,7 +49,7 @@ internal class CommandResult
         return this;
     }
 
-    public CommandResult PrintStatusAndUpdate(Printer print)
+    public ProcessExitWithOutput PrintStatusAndUpdate(Printer print)
     {
         this.PrintStatus(print);
         this.PrintOutput(print);
@@ -57,7 +57,7 @@ internal class CommandResult
     }
 }
 
-public class Command
+public class ProcessBuilder
 {
     internal ProcessExit RunWithCallback(Action<string> onLine)
     {
@@ -86,7 +86,7 @@ public class Command
         return new(this.ToString(), proc.ExitCode);
     }
 
-    internal CommandResult RunAndGetOutput()
+    internal ProcessExitWithOutput RunAndGetOutput()
     {
         var output = new List<string>();
 
@@ -99,7 +99,7 @@ public class Command
     private readonly List<string> arguments = new();
     public string? WorkingDirectory { get; set; } = "";
 
-    public Command(string executable, params string[] arguments)
+    public ProcessBuilder(string executable, params string[] arguments)
     {
         this.Executable = executable;
         foreach (var arg in arguments)
@@ -108,7 +108,7 @@ public class Command
         }
     }
 
-    public Command InDirectory(string directory)
+    public ProcessBuilder InDirectory(string directory)
     {
         this.WorkingDirectory = directory;
         return this;

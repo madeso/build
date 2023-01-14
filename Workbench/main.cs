@@ -46,12 +46,11 @@ internal class Program
             Commands.IndentCommands.Main.Configure(config, "indent");
             Commands.CmakeCommands.Main.Configure(config, "cmake");
             Commands.GitCommands.Main.Configure(config, "git");
-
             Commands.CompileCommandsCommands.Main.Configure(config, "compile-commands");
-            CheckIncludes.Main.Configure(config, "check-includes");
+            Commands.CheckIncludesCommands.Main.Configure(config, "check-includes");
+
             ListHeaders.Main.Configure(config, "list-headers");
             Clang.Main.Configure(config, "clang");
-
             Hero.Main.Configure(config, "hero");
         });
         return app.Run(args);

@@ -22,7 +22,7 @@ public static class Git
 
     public static IEnumerable<GitStatusEntry> Status(string folder)
     {
-        var output = new Command("git", "status", "--porcelain=v1")
+        var output = new ProcessBuilder("git", "status", "--porcelain=v1")
             .InDirectory(folder)
             .RunAndGetOutput()
             .RequireSuccess()

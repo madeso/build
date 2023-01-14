@@ -271,7 +271,7 @@ internal static class F
 
     private static TidyOutput CallClangTidy(Printer printer, string tidy_path, string project_build_folder, string source_file, bool fix)
     {
-        var command = new Command(tidy_path);
+        var command = new ProcessBuilder(tidy_path);
         command.AddArgument("-p");
         command.AddArgument(project_build_folder);
         if (fix)
@@ -596,7 +596,7 @@ internal static class F
                 printer.Info(Path.GetRelativePath(source_file, root));
                 if (args_nop == false)
                 {
-                    var res = new Command("clang-format", "-i", source_file).RunAndGetOutput();
+                    var res = new ProcessBuilder("clang-format", "-i", source_file).RunAndGetOutput();
                     if (res.ExitCode != 0)
                     {
                         res.PrintOutput(printer);

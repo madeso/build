@@ -152,7 +152,7 @@ public class CMake
             return;
         }
 
-        var command = new Command(cmake);
+        var command = new ProcessBuilder(cmake);
         foreach (var arg in this.arguments)
         {
             var argument = arg.FormatForCmakeArgument();
@@ -199,7 +199,7 @@ public class CMake
             return;
         }
 
-        var command = new Command(cmake);
+        var command = new ProcessBuilder(cmake);
         command.AddArgument("--build");
         command.AddArgument(".");
 
@@ -281,7 +281,7 @@ public class Trace
             }
         }
 
-        var ret = new Command("cmake", "--trace-format=json-v1")
+        var ret = new ProcessBuilder("cmake", "--trace-format=json-v1")
             .InDirectory(dir)
             .RunWithCallback(on_line)
             .ExitCode

@@ -5,111 +5,12 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Workbench.CheckIncludes;
 
-internal class MainCommandSettings : CommandSettings
-{
-    [Description("Files to look at")]
-    [CommandArgument(0, "<file>")]
-    public string[] Files { get; set; } = Array.Empty<string>();
-
-    [Description("Print general file status at the end")]
-    [CommandOption("--status")]
-    [DefaultValue(false)]
-    public bool PrintStatusAtTheEnd { get; set; }
-
-    [Description("Use verbose output")]
-    [CommandOption("--verbose")]
-    [DefaultValue(false)]
-    public bool UseVerboseOutput { get; set; }
-}
-
-
-internal class Main
-{
-    internal static void Configure(IConfigurator config, string name)
-    {
-        config.AddBranch(name, cmake =>
-        {
-            cmake.SetDescription("Check the order of the #include statements");
-            cmake.AddCommand<MissingPatternsCommand>("missing-patterns").WithDescription("Print headers that don't match any pattern so you can add more regexes");
-            cmake.AddCommand<ListUnfixableCommand>("list-unfixable").WithDescription("Print headers that can't be fixed");
-            cmake.AddCommand<CheckCommand>("check").WithDescription("Check for style errors and error out");
-            cmake.AddCommand<FixCommand>("fix").WithDescription("Fix style errors and print unfixable");
-        });
-    }
-}
-
-
-internal sealed class MissingPatternsCommand : Command<MissingPatternsCommand.Arg>
-{
-    public sealed class Arg : MainCommandSettings
-    {
-    }
-
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
-    {
-        return CommonExecute.WithLoadedBuildData
-            (
-                (print, data) => IncludeTools.CommonMain(settings, print, data, new Command.MissingPatterns())
-            );
-    }
-}
-
-
-internal sealed class ListUnfixableCommand : Command<ListUnfixableCommand.Arg>
-{
-    public sealed class Arg : MainCommandSettings
-    {
-        [Description("Print all errors per file, not just the first one")]
-        [CommandOption("--all")]
-        [DefaultValue(false)]
-        public bool PrintAllErrors { get; set; }
-    }
-
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
-    {
-        return CommonExecute.WithLoadedBuildData
-            (
-                (print, data) => IncludeTools.CommonMain(settings, print, data, new Command.ListUnfixable(settings.PrintAllErrors == false))
-            );
-    }
-}
-
-
-internal sealed class CheckCommand : Command<CheckCommand.Arg>
-{
-    public sealed class Arg : MainCommandSettings
-    {
-    }
-
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
-    {
-        return CommonExecute.WithLoadedBuildData
-            (
-                (print, data) => IncludeTools.CommonMain(settings, print, data, new Command.Check())
-            );
-    }
-}
-
-
-internal sealed class FixCommand : Command<FixCommand.Arg>
-{
-    public sealed class Arg : MainCommandSettings
-    {
-        [Description("Write fixes to file")]
-        [CommandOption("--write")]
-        [DefaultValue(false)]
-        public bool WriteToFile { get; set; }
-    }
-
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
-    {
-        return CommonExecute.WithLoadedBuildData
-            (
-                (print, data) => IncludeTools.CommonMain(settings, print, data, new Command.Fix(settings.WriteToFile == false))
-            );
-    }
-}
-
+internal record CommonArgs
+(
+    string[] Files,
+    bool PrintStatusAtTheEnd,
+    bool UseVerboseOutput
+);
 
 public class Include : IComparable<Include>
 {
@@ -410,12 +311,12 @@ public static class IncludeTools
         BuildData data,
         bool verbose,
         string filename,
-        Command command
+        CheckAction command
     )
     {
-        var command_is_list_unfixable = command is Command.ListUnfixable;
-        var command_is_check = command is Command.Check;
-        var command_is_fix = command is Command.Fix;
+        var command_is_list_unfixable = command is CheckAction.ListUnfixable;
+        var command_is_check = command is CheckAction.Check;
+        var command_is_fix = command is CheckAction.Fix;
 
         var print_include_order_error_for_include = command_is_check || command_is_fix;
 
@@ -467,8 +368,8 @@ public static class IncludeTools
 
         bool printFirstErrorOnly = command switch
         {
-            Command.Fix => true,
-            Command.ListUnfixable p => p.printFirstErrorOnly,
+            CheckAction.Fix => true,
+            CheckAction.ListUnfixable p => p.printFirstErrorOnly,
             _ => false // don't care, shouldn't be possible
         };
 
@@ -487,7 +388,7 @@ public static class IncludeTools
 
         switch (command)
         {
-            case Command.Fix nop:
+            case CheckAction.Fix nop:
                 var fileData = compose_new_file_content(firstLine, lastLine, sortedIncludeLines, lines);
 
                 if (nop.nop)
@@ -511,10 +412,10 @@ public static class IncludeTools
 
     internal static int CommonMain
     (
-        MainCommandSettings args,
+        CommonArgs args,
         Printer print,
         BuildData data,
-        Command command
+        CheckAction command
     )
     {
         var errorCount = 0;
@@ -570,11 +471,11 @@ public class ClassifiedFile
 }
 
 
-public abstract record Command
+public abstract record CheckAction
 {
-    public record MissingPatterns() : Command;
-    public record ListUnfixable(bool printFirstErrorOnly) : Command;
-    public record Check() : Command;
-    public record Fix(bool nop) : Command;
+    public record MissingPatterns() : CheckAction;
+    public record ListUnfixable(bool printFirstErrorOnly) : CheckAction;
+    public record Check() : CheckAction;
+    public record Fix(bool nop) : CheckAction;
 }
 
