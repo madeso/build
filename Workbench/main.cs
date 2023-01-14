@@ -47,7 +47,7 @@ internal class Program
             Commands.CmakeCommands.Main.Configure(config, "cmake");
             Commands.GitCommands.Main.Configure(config, "git");
 
-            CompileCommands.Main.Configure(config, "compile-commands");
+            Commands.CompileCommandsCommands.Main.Configure(config, "compile-commands");
             CheckIncludes.Main.Configure(config, "check-includes");
             ListHeaders.Main.Configure(config, "list-headers");
             Clang.Main.Configure(config, "clang");

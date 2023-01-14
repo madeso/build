@@ -3,6 +3,7 @@ using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
+using System.Net.WebSockets;
 
 namespace Workbench.CompileCommands;
 
@@ -17,7 +18,7 @@ public class CompileCommand
         this.command = command;
     }
 
-    public IEnumerable<string> get_relative_includes()
+    public IEnumerable<string> GetRelativeIncludes()
     {
         // shitty comamndline parser... beware
         foreach (var c in command.Split(' '))
@@ -29,7 +30,7 @@ public class CompileCommand
         }
     }
 
-    public Dictionary<string, string> get_defines()
+    public Dictionary<string, string> GetDefines()
     {
         // shitty comamndline parser... beware
         var r = new Dictionary<string, string>();
@@ -51,8 +52,6 @@ public class CompileCommand
     }
 }
 
-
-
 internal class CompileCommandJson
 {
     [JsonPropertyName("file")]
@@ -67,7 +66,7 @@ internal class CompileCommandJson
 
 internal static class Utils
 {
-    internal static Dictionary<string, CompileCommand>? load_compile_commands(Printer printer, string path)
+    internal static Dictionary<string, CompileCommand>? LoadCompileCommandsOrNull(Printer printer, string path)
     {
         var content = File.ReadAllText(path);
         var store = JsonUtil.Parse<List<CompileCommandJson>>(printer, path, content);
@@ -98,7 +97,7 @@ internal static class Utils
     internal const string COMPILE_COMMANDS_FILE_NAME = "compile_commands.json";
 
     /// find the build folder containing the compile_commands file or None
-    public static string? find_build_root(string root)
+    public static string? FindBuildRootOrNull(string root)
     {
         var common_roots = new string[] { "build", "build/debug-clang" };
 
@@ -117,142 +116,35 @@ internal static class Utils
 }
 
 
-internal class MainCommandSettings : CommandSettings
+internal class CommonArguments : CommandSettings
 {
     [Description("the path to compile_commands.json")]
     [CommandOption("--compile-commands")]
     [DefaultValue(null)]
-    string? compile_commands { get; set; }
+    string? compileCommands { get; set; }
 
-    public string? get_argument_or_none_with_cwd()
+    public string? GetPathToCompileCommandsOrNull(Printer print)
     {
-        return get_argument_or_none(Environment.CurrentDirectory);
+        var ret = get_argument_or_none(Environment.CurrentDirectory);
+        if(ret == null)
+        {
+            print.error($"Unable to locate {Utils.COMPILE_COMMANDS_FILE_NAME}");
+        }
+        return ret;
     }
 
-    public string? get_argument_or_none(string cwd)
+    private string? get_argument_or_none(string cwd)
     {
-        if (compile_commands != null)
+        if (compileCommands != null)
         {
-            return compile_commands;
+            return compileCommands;
         }
 
-        var r = Utils.find_build_root(cwd);
+        var r = Utils.FindBuildRootOrNull(cwd);
         if (r == null) { return null; }
         return Path.Join(r, Utils.COMPILE_COMMANDS_FILE_NAME);
     }
 }
-
-
-internal sealed class FilesCommand : Command<FilesCommand.Arg>
-{
-    public sealed class Arg : MainCommandSettings
-    {
-    }
-
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
-    {
-        return CommonExecute.WithPrinter
-            (
-                print =>
-                {
-
-                    var path = settings.get_argument_or_none_with_cwd();
-                    if (path != null)
-                    {
-                        var commands = Utils.load_compile_commands(print, path);
-                        if (commands == null) { return -1; }
-
-                        print.Info($"{commands}");
-                    }
-                    return 0;
-                }
-            );
-    }
-}
-
-
-internal sealed class IncludesCommand : Command<IncludesCommand.Arg>
-{
-    public sealed class Arg : MainCommandSettings
-    {
-    }
-
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
-    {
-        return CommonExecute.WithPrinter
-            (
-                print =>
-                {
-                    var path = settings.get_argument_or_none_with_cwd();
-                    if (path != null)
-                    {
-                        var commands = Utils.load_compile_commands(print, path);
-                        if (commands == null) { return -1; }
-
-                        foreach (var (file, command) in commands)
-                        {
-                            print.Info($"{file}");
-                            var dirs = command.get_relative_includes();
-                            foreach (var d in dirs)
-                            {
-                                print.Info($"    {d}");
-                            }
-                        }
-                    }
-                    return 0;
-                }
-            );
-    }
-}
-
-internal sealed class DefinesCommand : Command<DefinesCommand.Arg>
-{
-    public sealed class Arg : MainCommandSettings
-    {
-    }
-
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
-    {
-        return CommonExecute.WithPrinter
-            (
-                print =>
-                {
-                    var path = settings.get_argument_or_none_with_cwd();
-                    if (path != null)
-                    {
-                        var commands = Utils.load_compile_commands(print, path);
-                        if (commands == null) { return -1; }
-
-                        foreach (var (file, command) in commands)
-                        {
-                            print.Info($"{file}");
-                            var defs = command.get_defines();
-                            foreach (var (k, v) in defs)
-                            {
-                                print.Info($"    {k} = {v}");
-                            }
-                        }
-                    }
-                    return 0;
-                }
-            );
-    }
-}
-
-internal static class Main
-{
-    internal static void Configure(IConfigurator config, string name)
-    {
-        config.AddBranch(name, cmake =>
-        {
-            cmake.SetDescription("Tool to list headers");
-            cmake.AddCommand<FilesCommand>("files").WithDescription("list all files in the compile commands class");
-            cmake.AddCommand<IncludesCommand>("includes").WithDescription("list include directories per file");
-            cmake.AddCommand<DefinesCommand>("defines").WithDescription("list include directories per file");
-        });
-    }
-}
-
 
 
 

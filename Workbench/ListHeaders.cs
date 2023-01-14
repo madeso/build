@@ -30,7 +30,7 @@ internal class LinesArg : CommandSettings
 
 
 // #[derive(StructOpt, Debug)]
-internal class FilesArg : CompileCommands.MainCommandSettings
+internal class FilesArg : CompileCommands.CommonArguments
 {
     [Description("project file")]
     [CommandArgument(0, "<source>")]
@@ -344,10 +344,10 @@ class FileWalker
             return true;
         };
 
-        var directories = cc.get_relative_includes();
+        var directories = cc.GetRelativeIncludes();
 
         var included_file_cache = new HashSet<string>();
-        var defines = cc.get_defines();
+        var defines = cc.GetDefines();
 
         return this.walk_rec(print, directories.ToArray(), included_file_cache, path, defines, file_cache, 0);
     }
@@ -796,19 +796,11 @@ internal static class F
 
     internal static bool handle_files(Printer print, FilesArg args)
     {
-        var ccpath = args.get_argument_or_none(Environment.CurrentDirectory);
-        if (ccpath == null)
-        {
-            print.error("Failed to get compile commands");
-            return false;
-        }
+        var ccpath = args.GetPathToCompileCommandsOrNull(print);
+        if (ccpath == null) { return false; }
 
-        var commands = CompileCommands.Utils.load_compile_commands(print, ccpath);
-        if (commands == null)
-        {
-            print.error("Failed to load compile commands");
-            return false;
-        }
+        var commands = CompileCommands.Utils.LoadCompileCommandsOrNull(print, ccpath);
+        if (commands == null) { return false; }
 
         var walker = new FileWalker(commands);
 

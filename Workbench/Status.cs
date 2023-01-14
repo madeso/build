@@ -14,31 +14,27 @@ internal static class Status
         }
     }
 
-    internal static void HandleStatus(Printer printer, CompileCommands.MainCommandSettings cc)
+    internal static void HandleStatus(Printer printer, CompileCommands.CommonArguments cc)
     {
         print_found_list(printer, "cmake", CmakeTools.ListAll(printer).ToList());
 
         var root = Environment.CurrentDirectory;
         printer.Info($"Root: {root}");
 
-        var project_build_folder = CompileCommands.Utils.find_build_root(root);
-        if (project_build_folder is null)
+        var project_build_folder = CompileCommands.Utils.FindBuildRootOrNull(root);
+        if (project_build_folder == null)
         {
-            printer.error("unable to find build folder");
+            printer.error("Unable to find build folder");
         }
         else
         {
             printer.Info($"Project build folder: {project_build_folder}");
         }
 
-        var ccs = cc.get_argument_or_none_with_cwd();
+        var ccs = cc.GetPathToCompileCommandsOrNull(printer);
         if (ccs != null)
         {
             printer.Info($"Compile commands: {ccs}");
-        }
-        else
-        {
-            printer.Info("Compile commands: <NONE>");
         }
     }
 }

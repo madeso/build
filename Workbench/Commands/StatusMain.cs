@@ -15,7 +15,7 @@ public static class Main
 
 internal sealed class DebugCommand : Command<DebugCommand.Arg>
 {
-    public sealed class Arg : CompileCommands.MainCommandSettings
+    public sealed class Arg : CompileCommands.CommonArguments
     {
     }
 
