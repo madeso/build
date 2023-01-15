@@ -31,10 +31,10 @@
 		<Compile Include="Hero\HeroData.cs" />
 		<Compile Include="Hero\HeroParser.cs" />
 		<Compile Include="Hero\HeroUi.cs" />
-		<Compile Include="BuildDependencies.cs" />
-		<Compile Include="BuildData.cs" />
-		<Compile Include="BuildEnv.cs" />
-		<Compile Include="BuildFuncs.cs" />
+		<Compile Include="Build\BuildDependencies.cs" />
+		<Compile Include="Build\BuildData.cs" />
+		<Compile Include="Build\BuildEnv.cs" />
+		<Compile Include="Build\BuildFuncs.cs" />
 		<Compile Include="CheckIncludes.cs" />
 		<Compile Include="Clang.cs" />
 		<Compile Include="ColCounter.cs" />
