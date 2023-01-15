@@ -1,5 +1,6 @@
 namespace Workbench;
 
+using System.ComponentModel;
 using System.Diagnostics;
 
 internal record ProcessExit(string CommandLine, int ExitCode);
@@ -78,12 +79,21 @@ public class ProcessBuilder
         proc.OutputDataReceived += (sender, e) => { if (e.Data != null) { onLine(e.Data); } };
         proc.ErrorDataReceived += (sender, e) => { if (e.Data != null) { onLine(e.Data); } };
 
-        proc.Start();
-        proc.BeginOutputReadLine();
-        proc.BeginErrorReadLine();
-        proc.WaitForExit();
+        try
+        {
+            proc.Start();
+            proc.BeginOutputReadLine();
+            proc.BeginErrorReadLine();
+            proc.WaitForExit();
 
-        return new(ToString(), proc.ExitCode);
+            return new(ToString(), proc.ExitCode);
+        }
+        catch (Win32Exception err)
+        {
+            onLine($"Failed to run {ToString()}");
+            onLine(err.Message);
+            return new(ToString(), -42);
+        }
     }
 
     internal ProcessExitWithOutput RunAndGetOutput()
