@@ -23,7 +23,7 @@ public class Found
         }
     }
 
-    public static string? first_value_or_none(IEnumerable<Found> founds)
+    public static string? GetFirstValueOrNull(IEnumerable<Found> founds)
     {
         return founds
             .Where(found => found.value != null)

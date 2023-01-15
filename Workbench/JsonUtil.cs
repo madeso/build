@@ -15,12 +15,12 @@ public static class JsonUtil
         }
         catch (JsonException err)
         {
-            print.error($"Unable to parse json {file}: {err.Message}");
+            print.Error($"Unable to parse json {file}: {err.Message}");
             return null;
         }
         catch (NotSupportedException err)
         {
-            print.error($"Unable to parse json {file}: {err.Message}");
+            print.Error($"Unable to parse json {file}: {err.Message}");
             return null;
         }
     }

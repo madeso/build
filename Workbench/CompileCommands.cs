@@ -70,7 +70,7 @@ internal static class Utils
 
         if (store == null)
         {
-            printer.error($"Unable to load compile commands from {path}");
+            printer.Error($"Unable to load compile commands from {path}");
             return null;
         }
 
@@ -125,7 +125,7 @@ internal class CommonArguments : CommandSettings
         var ret = get_argument_or_none(Environment.CurrentDirectory);
         if (ret == null)
         {
-            print.error($"Unable to locate {Utils.COMPILE_COMMANDS_FILE_NAME}");
+            print.Error($"Unable to locate {Utils.COMPILE_COMMANDS_FILE_NAME}");
         }
         return ret;
     }

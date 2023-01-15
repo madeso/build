@@ -43,7 +43,7 @@ internal class ProcessExitWithOutput
         print.Info($"Return value: {ExitCode}");
         if (ExitCode != 0)
         {
-            print.error($"Failed to run command: {CommandLine}");
+            print.Error($"Failed to run command: {CommandLine}");
         }
 
         return this;

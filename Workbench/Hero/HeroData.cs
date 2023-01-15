@@ -10,23 +10,23 @@ public record OutputFolders(string InputRoot, string OutputDirectory);
 
 public class UserInput
 {
-    public List<string> project_directories = new();
-    public List<string> include_directories = new();
-    public List<string> precompiled_headers = new();
+    public List<string> ProjectDirectories = new();
+    public List<string> IncludeDirectories = new();
+    public List<string> PrecompiledHeaders = new();
 
-    public static UserInput? load_from_file(Printer print, string file)
+    public static UserInput? LoadFromFile(Printer print, string file)
     {
         var content = File.ReadAllText(file);
         var data = JsonUtil.Parse<UserInput>(print, file, content);
         return data;
     }
 
-    public void decorate(Printer printer, string root)
+    public void Decorate(Printer printer, string root)
     {
-        decorate_this(printer, root, project_directories, "Project directories", f => Directory.Exists(f) || File.Exists(f));
-        decorate_this(printer, root, include_directories, "Include directories", Directory.Exists);
+        DecorateThis(printer, root, ProjectDirectories, "Project directories", f => Directory.Exists(f) || File.Exists(f));
+        DecorateThis(printer, root, IncludeDirectories, "Include directories", Directory.Exists);
 
-        static void decorate_this(Printer printer, string root, List<string> d, string name, Func<string, bool> exists)
+        static void DecorateThis(Printer printer, string root, List<string> d, string name, Func<string, bool> exists)
         {
             var missing = d.Where(d => Path.IsPathFullyQualified(d) == false || exists(d) == false).ToImmutableHashSet();
             var changes = missing
@@ -65,9 +65,9 @@ public class Project
 
     public Project(UserInput input)
     {
-        scan_directories = input.project_directories;
-        include_directories = input.include_directories;
-        precompiled_headers = input.precompiled_headers;
+        scan_directories = input.ProjectDirectories;
+        include_directories = input.IncludeDirectories;
+        precompiled_headers = input.PrecompiledHeaders;
         // LastScan = DateTime.Now
     }
 

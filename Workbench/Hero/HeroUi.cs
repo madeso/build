@@ -47,7 +47,7 @@ internal static class Ui
 
     private static bool exclude_file(string file, Data.UserInput input, bool only_headers, IEnumerable<string> exclude)
     {
-        if (file_is_in_file_list(file, input.project_directories))
+        if (file_is_in_file_list(file, input.ProjectDirectories))
         {
             // explicit inlcuded... then it's not excluded
             return false;
@@ -84,7 +84,7 @@ internal static class Ui
             }
             var display_name = Html.get_filename(root.InputRoot, file);
             var node_id = Html.safe_inspect_filename_without_html(file);
-            var addedNode = gv.add_node_with_id(display_name, "box", node_id);
+            var addedNode = gv.AddNodeWithId(display_name, "box", node_id);
             if (cluster)
             {
                 var parent = new FileInfo(file).Directory?.FullName;
@@ -104,7 +104,7 @@ internal static class Ui
             }
 
             var from_file = Html.safe_inspect_filename_without_html(file);
-            var from_id = gv.get_node_id(from_file);
+            var from_id = gv.GetNodeFromId(from_file);
             if (from_id == null)
             {
                 throw new Exception("BUG: Node not added");
@@ -119,7 +119,7 @@ internal static class Ui
                 }
 
                 var to_file = Html.safe_inspect_filename_without_html(s);
-                var to_id = gv.get_node_id(to_file);
+                var to_id = gv.GetNodeFromId(to_file);
                 if (to_id == null)
                 {
                     throw new Exception("BUG: Node not added");
@@ -137,7 +137,7 @@ internal static class Ui
             gv.Simplify();
         }
 
-        gv.write_file_to(root.OutputDirectory);
+        gv.WriteFile(root.OutputDirectory);
     }
 
     private static void generate_report(Data.OutputFolders root, Data.Project project, Parser.Scanner scanner)
@@ -185,7 +185,7 @@ internal static class Ui
 
         var analytics = Parser.Analytics.analyze(project);
         Html.write_css_file(root.OutputDirectory);
-        Parser.Report.generate_index_page(root, project, analytics);
+        Parser.Report.GenerateIndexPage(root, project, analytics);
 
         foreach (var f in project.scanned_files.Keys)
         {
@@ -291,13 +291,13 @@ internal static class F
     {
         if (File.Exists(projectFile) && overwrite == false)
         {
-            print.error($"{projectFile} already exists.");
+            print.Error($"{projectFile} already exists.");
             return -1;
         }
         var input = new Data.UserInput();
-        input.include_directories.Add("list of relative or absolute directories");
-        input.project_directories.Add("list of relative or absolute source directories (or files)");
-        input.precompiled_headers.Add("list of relative pchs, if there are any");
+        input.IncludeDirectories.Add("list of relative or absolute directories");
+        input.ProjectDirectories.Add("list of relative or absolute source directories (or files)");
+        input.PrecompiledHeaders.Add("list of relative pchs, if there are any");
 
         var content = JsonUtil.Write(input);
         File.WriteAllText(projectFile, content);
@@ -306,13 +306,13 @@ internal static class F
 
     internal static int HandleRunHeroHtml(string projectFile, string outputDirectory, Printer print)
     {
-        var input = Data.UserInput.load_from_file(print, projectFile);
+        var input = Data.UserInput.LoadFromFile(print, projectFile);
         if (input == null)
         {
             return -1;
         }
         var inputRoot = new FileInfo(projectFile).DirectoryName ?? Environment.CurrentDirectory;
-        input.decorate(print, inputRoot);
+        input.Decorate(print, inputRoot);
         Directory.CreateDirectory(outputDirectory);
         Ui.scan_and_generate_html(print, input, new(inputRoot, outputDirectory));
         return 0;
@@ -325,13 +325,13 @@ internal static class F
         bool cluster,
         string[] exclude, Printer print)
     {
-        var input = Data.UserInput.load_from_file(print, projectFile);
+        var input = Data.UserInput.LoadFromFile(print, projectFile);
         if (input == null)
         {
             return -1;
         }
         var inputRoot = new FileInfo(projectFile).DirectoryName ?? Environment.CurrentDirectory;
-        input.decorate(print, inputRoot);
+        input.Decorate(print, inputRoot);
         Ui.scan_and_generate_dot(print, input, new(inputRoot, outputFile), simplifyGraphviz, onlyHeaders, exclude, cluster);
         return 0;
     }

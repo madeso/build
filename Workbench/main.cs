@@ -17,7 +17,7 @@ internal sealed class DummyCommand : Command<DummyCommand.Arg>
     {
         return CommonExecute.WithPrinter(print =>
         {
-            print.cat($"Number is {settings.Number}");
+            print.PrintContentsOfFile($"Number is {settings.Number}");
             return 0;
         });
     }

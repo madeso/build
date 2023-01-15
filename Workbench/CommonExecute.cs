@@ -17,7 +17,7 @@ public static class CommonExecute
             var data = BuildData.LoadOrNull(print);
             if (data == null)
             {
-                print.error("Unable to load the data");
+                print.Error("Unable to load the data");
                 return -1;
             }
             else

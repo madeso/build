@@ -10,13 +10,13 @@ internal static class CmakeTools
     {
         var registry_source = "registry";
 
-        var install_dir = Registry.hklm(@"SOFTWARE\Kitware\CMake", "InstallDir");
+        var install_dir = Registry.Hklm(@"SOFTWARE\Kitware\CMake", "InstallDir");
         if (install_dir == null) { return new Found(null, registry_source); }
 
         var path = Path.Join(install_dir, "bin", "cmake.exe");
         if (File.Exists(path) == false)
         {
-            printer.error($"Found path to cmake in registry ({path}) but it didn't exist");
+            printer.Error($"Found path to cmake in registry ({path}) but it didn't exist");
             return new Found(null, registry_source);
         }
 
@@ -35,7 +35,7 @@ internal static class CmakeTools
 
         if (File.Exists(path) == false)
         {
-            printer.error($"Found path to cmake in path ({path}) but it didn't exist");
+            printer.Error($"Found path to cmake in path ({path}) but it didn't exist");
             return new Found(null, path_source);
         }
         return new Found(path, path_source);
@@ -51,7 +51,7 @@ internal static class CmakeTools
 
     public static string? FindOrNull(Printer printer)
     {
-        return Found.first_value_or_none(ListAll(printer));
+        return Found.GetFirstValueOrNull(ListAll(printer));
     }
 }
 
@@ -104,17 +104,17 @@ public class Generator
 // utility to call cmake commands on a project
 public class CMake
 {
-    public CMake(string build_folder, string source_folder, Generator generator)
+    public CMake(string buildFolder, string sourceFolder, Generator generator)
     {
         this.generator = generator;
-        buildFolder = build_folder;
-        sourceFolder = source_folder;
+        this.buildFolder = buildFolder;
+        this.sourceFolder = sourceFolder;
     }
 
     private readonly Generator generator;
     private readonly string buildFolder;
     private readonly string sourceFolder;
-    private readonly List<Argument> arguments = new List<Argument>();
+    private readonly List<Argument> arguments = new();
 
 
     // add argument with a explicit type set
@@ -147,7 +147,7 @@ public class CMake
         var cmake = CmakeTools.FindOrNull(printer);
         if (cmake == null)
         {
-            printer.error("CMake executable not found");
+            printer.Error("CMake executable not found");
             return;
         }
 
@@ -194,7 +194,7 @@ public class CMake
         var cmake = CmakeTools.FindOrNull(printer);
         if (cmake == null)
         {
-            printer.error("CMake executable not found");
+            printer.Error("CMake executable not found");
             return;
         }
 

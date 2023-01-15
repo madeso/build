@@ -64,13 +64,13 @@ public class BuildEnviroment
 
         if (compiler == null)
         {
-            printer.error("Compiler not set");
+            printer.Error("Compiler not set");
             status = false;
         }
 
         if (platform == null)
         {
-            printer.error("Platform not set");
+            printer.Error("Platform not set");
             status = false;
         }
 
@@ -97,12 +97,12 @@ public class BuildEnviroment
 
             if (args.ForceChange)
             {
-                printer.warning($"Compiler changed via argument from {compiler} to {args.Compiler}");
+                printer.Warning($"Compiler changed via argument from {compiler} to {args.Compiler}");
                 compiler = args.Compiler;
             }
             else
             {
-                printer.error($"Compiler changed via argument from {compiler} to {args.Compiler}");
+                printer.Error($"Compiler changed via argument from {compiler} to {args.Compiler}");
             }
         }
 
@@ -120,12 +120,12 @@ public class BuildEnviroment
 
             if (args.ForceChange)
             {
-                printer.warning($"Platform changed via argument from {platform} to {args.Platform}");
+                printer.Warning($"Platform changed via argument from {platform} to {args.Platform}");
                 platform = args.Platform;
             }
             else
             {
-                printer.error($"Platform changed via argument from {platform} to {args.Platform}");
+                printer.Error($"Platform changed via argument from {platform} to {args.Platform}");
             }
         }
     }

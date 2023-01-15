@@ -39,7 +39,7 @@ public class OptionalRegexDynamic : OptionalRegex
             case RegexOrErr.Value re:
                 return re.regex;
             case RegexOrErr.Error error:
-                print.error($"{regex} -> {regexSource} is invalid regex: {error.error}");
+                print.Error($"{regex} -> {regexSource} is invalid regex: {error.error}");
                 return null;
             default:
                 throw new ArgumentException("invalid state");
@@ -73,7 +73,7 @@ public class OptionalRegexFailed : OptionalRegex
 
     public Regex? GetRegex(Printer print, TextReplacer replacer)
     {
-        print.error(error);
+        print.Error(error);
         return null;
     }
 }
@@ -115,7 +115,7 @@ public struct BuildData
 
                         case RegexOrErr.Error err:
                             var error = $"{regex} is invalid regex: {err.error}";
-                            print.error(error);
+                            print.Error(error);
                             return new OptionalRegexFailed(error);
                         default:
                             throw new Exception("unhandled case");
@@ -137,12 +137,12 @@ public struct BuildData
         }
     }
 
-    public BuildData(string name, string root_dir, List<List<string>> includes, Printer print)
+    public BuildData(string name, string rootDir, List<List<string>> includes, Printer print)
     {
         Name = name;
         Dependencies = new();
-        RootDirectory = root_dir;
-        BuildDirectory = Path.Join(root_dir, "build");
+        RootDirectory = rootDir;
+        BuildDirectory = Path.Join(rootDir, "build");
         ProjectDirectory = Path.Join(BuildDirectory, name);
         DependencyDirectory = Path.Join(BuildDirectory, "deps");
 
@@ -162,7 +162,7 @@ public struct BuildData
         string file = GetBuildDataPath(root);
         if (File.Exists(file) == false)
         {
-            print.error($"Unable to read file: {file}");
+            print.Error($"Unable to read file: {file}");
             return null;
         }
         var content = File.ReadAllText(file);

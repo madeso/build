@@ -8,23 +8,23 @@ public class Printer
     private readonly List<string> errors = new();
 
     // print a "pretty" header to the terminal
-    public void Header(string project_name) { header_with_custom_char(project_name, "-"); }
+    public void Header(string headerText) { HeaderWithCustomChar(headerText, "-"); }
 
-    private void header_with_custom_char(string project_name, string header_character)
+    private void HeaderWithCustomChar(string projectName, string headerCharacter)
     {
         var header_size = 65;
         var header_spacing = 1;
         var header_start = 3;
 
         var spacing_string = " ".Repeat(header_spacing);
-        var header_string = header_character.Repeat(header_size);
+        var header_string = headerCharacter.Repeat(header_size);
 
-        var project = $"{spacing_string}{project_name}{spacing_string}";
-        var start = header_character.Repeat(header_start);
+        var project = $"{spacing_string}{projectName}{spacing_string}";
+        var start = headerCharacter.Repeat(header_start);
 
         var left = header_size - (project.Length + header_start);
         var right =
-            left > 1 ? header_character.Repeat(left)
+            left > 1 ? headerCharacter.Repeat(left)
             : ""
             ;
 
@@ -38,25 +38,24 @@ public class Printer
         AnsiConsole.MarkupLineInterpolated($"{text}");
     }
 
-    public void line()
+    public void Line()
     {
         AnsiConsole.MarkupLine("-------------------------------------------------------------");
     }
 
-    public void error(string text)
+    public void Error(string text)
     {
         error_count += 1;
         errors.Add(text);
         AnsiConsole.MarkupLineInterpolated($"[red]ERROR: {text}[/]");
     }
 
-    public void warning(string text)
+    public void Warning(string text)
     {
         AnsiConsole.MarkupLineInterpolated($"WARNING: {text}");
     }
 
-    // print the contents of a single file
-    public void cat(string path)
+    public void PrintContentsOfFile(string path)
     {
         if (File.Exists(path))
         {
@@ -73,23 +72,27 @@ public class Printer
     }
 
     // print files and folder recursivly
-    public void ls(string root) { ls_recursive(root, ""); }
-    private void ls_recursive(string root, string start)
-    {
-        var ident = " ".Repeat(4);
+    public void PrintDirectoryStructure(string root) {
+        PrinteRecursive(root, "");
 
-        var paths = new DirectoryInfo(root);
-        foreach (var file_path in paths.EnumerateDirectories())
+        static void PrinteRecursive(string root, string start)
         {
-            AnsiConsole.MarkupLine("{}{}/", start, file_path.Name);
-            ls_recursive(file_path.FullName, $"{start}{ident}");
-        }
+            var ident = " ".Repeat(4);
 
-        foreach (var file_path in paths.EnumerateFiles())
-        {
-            AnsiConsole.MarkupLineInterpolated($"{start}{file_path.Name}");
+            var paths = new DirectoryInfo(root);
+            foreach (var file_path in paths.EnumerateDirectories())
+            {
+                AnsiConsole.MarkupLine("{}{}/", start, file_path.Name);
+                PrinteRecursive(file_path.FullName, $"{start}{ident}");
+            }
+
+            foreach (var file_path in paths.EnumerateFiles())
+            {
+                AnsiConsole.MarkupLineInterpolated($"{start}{file_path.Name}");
+            }
         }
     }
+    
 
     public void PrintErrorCount()
     {

@@ -282,7 +282,7 @@ internal static class F
 
         if (output.ExitCode != 0)
         {
-            printer.error($"Error: {output.ExitCode}");
+            printer.Error($"Error: {output.ExitCode}");
             output.PrintOutput(printer);
             // System.Exit(-1);
         }
@@ -420,7 +420,7 @@ internal static class F
         var project_build_folder = CompileCommands.Utils.FindBuildRootOrNull(root);
         if (project_build_folder is null)
         {
-            print.error("unable to find build folder");
+            print.Error("unable to find build folder");
             return -1;
         }
 
@@ -457,14 +457,14 @@ internal static class F
         var project_build_folder = CompileCommands.Utils.FindBuildRootOrNull(root);
         if (project_build_folder is null)
         {
-            printer.error("unable to find build folder");
+            printer.Error("unable to find build folder");
             return -1;
         }
 
         var store = LoadStore(printer, project_build_folder);
         if (store == null)
         {
-            printer.error("unable to find load store");
+            printer.Error("unable to find load store");
             return -1;
         }
 
@@ -544,7 +544,7 @@ internal static class F
             printer.Info("");
             PrintWarningCounter(printer, total_classes, "classes");
             printer.Info("");
-            printer.line();
+            printer.Line();
             printer.Info("");
             foreach (var (k, v) in warnings_per_file)
             {
@@ -556,7 +556,7 @@ internal static class F
                 printer.Info("");
             }
 
-            printer.line();
+            printer.Line();
             printer.Info("");
             stats.Print();
         }
@@ -579,7 +579,7 @@ internal static class F
         var project_build_folder = CompileCommands.Utils.FindBuildRootOrNull(root);
         if (project_build_folder is null)
         {
-            printer.error("unable to find build folder");
+            printer.Error("unable to find build folder");
             return -1;
         }
 

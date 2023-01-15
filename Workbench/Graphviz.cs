@@ -47,7 +47,7 @@ public class Graphviz
     private readonly Dictionary<string, Node> id_to_node = new();
     private readonly List<Edge> edges = new();
 
-    public Node add_node_with_id(string display, string shape, string id)
+    public Node AddNodeWithId(string display, string shape, string id)
     {
         var newNode = new Node(id, display, shape, cluster: null);
         id_to_node.Add(id, newNode);
@@ -71,7 +71,7 @@ public class Graphviz
     public Node AddNode(string display, string shape)
     {
         var id = GetUniqueId(display);
-        return add_node_with_id(display, shape, id);
+        return AddNodeWithId(display, shape, id);
     }
 
     private static string ConvertIntoSafeId(string a, string defaultName)
@@ -100,7 +100,7 @@ public class Graphviz
         return cleanedId;
     }
 
-    public Node? get_node_id(string id)
+    public Node? GetNodeFromId(string id)
     {
         if (id_to_node.TryGetValue(id, out var ret))
         {
@@ -117,7 +117,7 @@ public class Graphviz
         edges.Add(new Edge(from, to));
     }
 
-    public void write_file_to(string path)
+    public void WriteFile(string path)
     {
         File.WriteAllLines(path, Lines);
     }

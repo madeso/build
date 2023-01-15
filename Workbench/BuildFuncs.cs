@@ -18,7 +18,7 @@ internal static class F
         var content = JsonUtil.Write(data);
         if (overwrite == false && File.Exists(path))
         {
-            print.error($"{path} already exist and overwrite was not requested");
+            print.Error($"{path} already exist and overwrite was not requested");
             return -1;
         }
 
@@ -98,7 +98,7 @@ internal static class F
         var loaded_data = BuildData.LoadOrNull(printer);
         if (loaded_data == null)
         {
-            printer.error("Unable to load the data");
+            printer.Error("Unable to load the data");
             return;
         }
         var data = loaded_data.Value;
@@ -144,7 +144,7 @@ internal static class F
         var loaded_data = BuildData.LoadOrNull(printer);
         if (loaded_data == null)
         {
-            printer.error("Unable to load the data");
+            printer.Error("Unable to load the data");
             return -1;
         }
         var data = loaded_data.Value;

@@ -6,7 +6,7 @@ internal static class Status
 {
     private static void print_found_list(Printer printer, string name, List<Found> list)
     {
-        var found = Found.first_value_or_none(list) ?? "<None>";
+        var found = Found.GetFirstValueOrNull(list) ?? "<None>";
         printer.Info($"{name}: {found}");
         foreach (var f in list)
         {
@@ -24,7 +24,7 @@ internal static class Status
         var project_build_folder = CompileCommands.Utils.FindBuildRootOrNull(root);
         if (project_build_folder == null)
         {
-            printer.error("Unable to find build folder");
+            printer.Error("Unable to find build folder");
         }
         else
         {

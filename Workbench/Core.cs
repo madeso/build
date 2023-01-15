@@ -52,7 +52,7 @@ public static class Core
             }
             catch (Exception x)
             {
-                print.error($"Failed to create directory {dir}: {x.Message}");
+                print.Error($"Failed to create directory {dir}: {x.Message}");
             }
         }
     }
@@ -94,7 +94,7 @@ public static class Core
     {
         if (Path.Exists(from) == false)
         {
-            print.error($"Missing src {from} when moving to {to}");
+            print.Error($"Missing src {from} when moving to {to}");
             return;
         }
 
@@ -149,9 +149,9 @@ public class TextReplacer
         replacements.Add(new SingleReplacement(old, neww));
     }
 
-    public string Replace(string in_text)
+    public string Replace(string inText)
     {
-        var text = in_text;
+        var text = inText;
 
         foreach (var replacement in replacements)
         {

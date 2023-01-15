@@ -270,7 +270,7 @@ internal class FileWalker
 
         if (commands.TryGetValue(path, out var cc) == false)
         {
-            print.error($"Unable to get include directories for {path}");
+            print.Error($"Unable to get include directories for {path}");
             return true;
         };
 
@@ -394,7 +394,7 @@ internal class FileWalker
                                     }
                                     break;
                                 default:
-                                    print.error($"unhandled pragma argument: {cmd.value}");
+                                    print.Error($"unhandled pragma argument: {cmd.value}");
                                     break;
                             }
                             break;
@@ -405,7 +405,7 @@ internal class FileWalker
                         case "undef":
                             if (defines.Remove(cmd.value.Trim()) == false)
                             {
-                                print.error($"{cmd.value} was not defined");
+                                print.Error($"{cmd.value} was not defined");
                             }
                             break;
                         case "include":
@@ -558,7 +558,7 @@ internal static class F
                 }
                 else
                 {
-                    print.error($"{path}({command.line}): Ignored unmatched endif");
+                    print.Error($"{path}({command.line}): Ignored unmatched endif");
                 }
             }
             else if (command.command == "elif")
@@ -570,7 +570,7 @@ internal static class F
                 }
                 else
                 {
-                    print.error($"{path}({command.line}): Ignored unmatched elif");
+                    print.Error($"{path}({command.line}): Ignored unmatched elif");
                 }
             }
             else
@@ -592,7 +592,7 @@ internal static class F
                         // pass
                         break;
                     default:
-                        print.error($"{path}({command.line}): unknown pragma {command.command}");
+                        print.Error($"{path}({command.line}): unknown pragma {command.command}");
                         break;
                 }
             }

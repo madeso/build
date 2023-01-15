@@ -14,9 +14,9 @@ public class Include : IComparable<Include>
     public int LineClass { get; }
     public string Line { get; }
 
-    public Include(int line_class, string line)
+    public Include(int lineClass, string line)
     {
-        LineClass = line_class;
+        LineClass = lineClass;
         Line = line;
     }
 
@@ -45,12 +45,12 @@ public static class IncludeTools
 {
     private static void PrintError(Printer print, string filename, int line, string message)
     {
-        print.error($"{filename}({line}): error CHK3030: {message}");
+        print.Error($"{filename}({line}): error CHK3030: {message}");
     }
 
     private static void PrintWarning(Printer print, string filename, int line, string message)
     {
-        print.warning($"{filename}({line}): warning CHK3030: {message}");
+        print.Warning($"{filename}({line}): warning CHK3030: {message}");
     }
 
     private static void PrintMessage(MessageType messageType, Printer print, string filename, int line, string message)
@@ -62,10 +62,10 @@ public static class IncludeTools
         }
     }
 
-    public static TextReplacer CreateReplacer(string file_stem)
+    public static TextReplacer CreateReplacer(string fileStem)
     {
         var replacer = new TextReplacer();
-        replacer.Add("{file_stem}", file_stem);
+        replacer.Add("{file_stem}", fileStem);
         return replacer;
     }
 
@@ -325,7 +325,7 @@ public static class IncludeTools
         var lines = Core.ReadFileToLines(filename);
         if (lines == null)
         {
-            print.error($"Failed to load {filename}");
+            print.Error($"Failed to load {filename}");
             return false;
         }
 

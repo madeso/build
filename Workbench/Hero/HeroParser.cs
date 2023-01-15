@@ -111,7 +111,7 @@ public class Result
     }
 
     /// Simple parser... only looks foreach #include lines. Does not take #defines or comments into account.
-    public static Result parse_file(string fi, List<string> errors)
+    public static Result ParseFile(string fi, List<string> errors)
     {
         var res = new Result();
 
@@ -313,7 +313,7 @@ public static class Report
     { return Path.Join(root, "index.html"); }
 
 
-    public static void generate_index_page(Data.OutputFolders root, Data.Project project, Analytics analytics)
+    public static void GenerateIndexPage(Data.OutputFolders root, Data.Project project, Analytics analytics)
     {
         var sb = new Html();
 
@@ -393,21 +393,21 @@ public class ProgressFeedback
         this.printer = printer;
     }
 
-    public void update_title(string new_title)
+    public void UpdateTitle(string newTitle)
     {
-        printer.Info($"{new_title}");
+        printer.Info($"{newTitle}");
     }
 
-    public void update_message(string new_message)
+    public void UpdateMessage(string newMessage)
     {
-        printer.Info($"  {new_message}");
+        printer.Info($"  {newMessage}");
     }
 
-    public void update_count(int new_count)
+    public void UpdateCount(int newCount)
     {
     }
 
-    public void next_item()
+    public void NextItem()
     {
     }
 }
@@ -426,7 +426,7 @@ public class Scanner
 
     public void rescan(Data.Project project, ProgressFeedback feedback)
     {
-        feedback.update_title("Scanning precompiled header...");
+        feedback.UpdateTitle("Scanning precompiled header...");
         foreach (var sf in project.scanned_files.Values)
         {
             sf.IsTouched = false;
@@ -454,14 +454,14 @@ public class Scanner
         }
         is_scanning_pch = false;
 
-        feedback.update_title("Scanning directories...");
+        feedback.UpdateTitle("Scanning directories...");
         foreach (var dir in project.scan_directories)
         {
-            feedback.update_message($"{dir}");
+            feedback.UpdateMessage($"{dir}");
             scan_directory(dir, feedback);
         }
 
-        feedback.update_title("Scanning files...");
+        feedback.UpdateTitle("Scanning files...");
 
         var dequeued = 0;
 
@@ -472,9 +472,9 @@ public class Scanner
             scan_queue.Clear();
             foreach (var fi in to_scan)
             {
-                feedback.update_count(dequeued + scan_queue.Count);
-                feedback.next_item();
-                feedback.update_message($"{fi}");
+                feedback.UpdateCount(dequeued + scan_queue.Count);
+                feedback.NextItem();
+                feedback.UpdateMessage($"{fi}");
                 scan_file(project, fi);
             }
         }
@@ -494,7 +494,7 @@ public class Scanner
 
     private bool please_scan_directory(string dir, ProgressFeedback feedback)
     {
-        feedback.update_message($"{dir}");
+        feedback.UpdateMessage($"{dir}");
 
         if (File.Exists(dir))
         {
@@ -554,7 +554,7 @@ public class Scanner
         }
         else
         {
-            var res = Result.parse_file(path, errors);
+            var res = Result.ParseFile(path, errors);
             var sf = new Data.SourceFile
             (
                 numberOfLines: res.number_of_lines,

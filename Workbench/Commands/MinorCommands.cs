@@ -30,7 +30,7 @@ internal sealed class CatCommand : Command<CatCommand.Arg>
     {
         return CommonExecute.WithPrinter(print =>
         {
-            print.cat(settings.Path);
+            print.PrintContentsOfFile(settings.Path);
             return 0;
         });
     }
@@ -49,7 +49,7 @@ internal sealed class LsCommand : Command<LsCommand.Arg>
     {
         return CommonExecute.WithPrinter(print =>
         {
-            print.ls(settings.Path);
+            print.PrintDirectoryStructure(settings.Path);
             return 0;
         });
     }
