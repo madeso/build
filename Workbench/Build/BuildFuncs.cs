@@ -7,7 +7,7 @@ internal static class F
     public static int HandleInit(Printer print, bool overwrite)
     {
         var path = BuildData.GetBuildDataPath(Environment.CurrentDirectory);
-        var data = new ProjectFile
+        var data = new Config.BuildFile
         {
             Name = new DirectoryInfo(Environment.CurrentDirectory).Name
         };

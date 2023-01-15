@@ -11,11 +11,7 @@ internal record CommonArgs
     bool UseVerboseOutput
 );
 
-internal class IncludesFile
-{
-    [JsonPropertyName("includes")]
-    public List<List<string>> IncludeDirectories { get; set; } = new();
-}
+
 
 public struct IncludeData
 {
@@ -78,7 +74,7 @@ public struct IncludeData
             return null;
         }
         var content = File.ReadAllText(file);
-        var loaded = JsonUtil.Parse<IncludesFile>(print, file, content);
+        var loaded = JsonUtil.Parse<Config.CheckIncludesFile>(print, file, content);
         if (loaded == null)
         {
             return null;
@@ -618,7 +614,7 @@ public static class IncludeTools
     public static int HandleInit(Printer print, bool overwrite)
     {
         var path = IncludeData.GetBuildDataPath(Environment.CurrentDirectory);
-        var data = new IncludesFile();
+        var data = new Config.CheckIncludesFile();
         data.IncludeDirectories.Add(new() { "list of regexes", "that are used by check-includes" });
         data.IncludeDirectories.Add(new() { "they are grouped into arrays, there needs to be a space between each group" });
 

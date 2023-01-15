@@ -3,16 +3,8 @@ namespace Workbench;
 
 using System.IO;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 
-internal class ProjectFile
-{
-    [JsonPropertyName("name")]
-    public string Name { get; set; } = "";
 
-    [JsonPropertyName("dependencies")]
-    public List<DependencyName> Dependencies { get; set; } = new();
-}
 
 public struct BuildData
 {
@@ -49,7 +41,7 @@ public struct BuildData
             return null;
         }
         var content = File.ReadAllText(file);
-        var loaded = JsonUtil.Parse<ProjectFile>(print, file, content);
+        var loaded = JsonUtil.Parse<Config.BuildFile>(print, file, content);
         if (loaded == null)
         {
             return null;

@@ -25,6 +25,8 @@
 		<Compile Include="Commands\StatusMain.cs" />
 		<Compile Include="Commands\IndentMain.cs" />
 		<Compile Include="Commands\MinorCommands.cs" />
+		<Compile Include="Config\BuildFile.cs" />
+		<Compile Include="Config\CheckIncludesFile.cs" />
 		<Compile Include="EnumConverter.cs" />
 		<Compile Include="DictionaryExtensions.cs" />
 		<Compile Include="Functional.cs" />
