@@ -20,6 +20,7 @@
 		<Compile Include="Commands\CheckIncludesMain.cs" />
 		<Compile Include="Commands\ClangMain.cs" />
 		<Compile Include="Commands\CompileCommandsMain.cs" />
+		<Compile Include="Commands\HeroMain.cs" />
 		<Compile Include="Commands\ListHeadersMain.cs" />
 		<Compile Include="Commands\StatusMain.cs" />
 		<Compile Include="Commands\IndentMain.cs" />
@@ -27,10 +28,9 @@
 		<Compile Include="EnumConverter.cs" />
 		<Compile Include="DictionaryExtensions.cs" />
 		<Compile Include="Functional.cs" />
-		<Compile Include="HeroData.cs" />
-		<Compile Include="HeroParser.cs" />
-		<Compile Include="HeroUi.cs" />
-		<Compile Include="HeroMain.cs" />
+		<Compile Include="Hero\HeroData.cs" />
+		<Compile Include="Hero\HeroParser.cs" />
+		<Compile Include="Hero\HeroUi.cs" />
 		<Compile Include="BuildDependencies.cs" />
 		<Compile Include="BuildData.cs" />
 		<Compile Include="BuildEnv.cs" />
