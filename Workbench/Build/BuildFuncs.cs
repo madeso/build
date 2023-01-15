@@ -11,20 +11,10 @@ internal static class F
         {
             Name = new DirectoryInfo(Environment.CurrentDirectory).Name
         };
-        data.IncludeDirectories.Add(new() { "list of regexes", "that are used by check-includes" });
-        data.IncludeDirectories.Add(new() { "they are grouped into arrays, there needs to be a space between each group" });
         data.Dependencies.AddRange(Enum.GetValues<DependencyName>());
 
         var content = JsonUtil.Write(data);
-        if (overwrite == false && File.Exists(path))
-        {
-            print.Error($"{path} already exist and overwrite was not requested");
-            return -1;
-        }
-
-        File.WriteAllText(path, content);
-        print.Info($"Wrote {path}");
-        return 0;
+        return CommonExecute.WriteContent(print, overwrite, path, content);
     }
 
     public static int HandleInstall(Printer printer, BuildEnviroment build, BuildData data)

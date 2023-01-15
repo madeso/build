@@ -36,10 +36,30 @@ internal class Main
         config.AddBranch(name, cmake =>
         {
             cmake.SetDescription("Check the order of the #include statements");
+            cmake.AddCommand<InitCommand>("init").WithDescription("Create a check includes command");
             cmake.AddCommand<MissingPatternsCommand>("missing-patterns").WithDescription("Print headers that don't match any pattern so you can add more regexes");
             cmake.AddCommand<ListUnfixableCommand>("list-unfixable").WithDescription("Print headers that can't be fixed");
             cmake.AddCommand<CheckCommand>("check").WithDescription("Check for style errors and error out");
             cmake.AddCommand<FixCommand>("fix").WithDescription("Fix style errors and print unfixable");
+        });
+    }
+}
+
+internal sealed class InitCommand : Command<InitCommand.Arg>
+{
+    public sealed class Arg : CommandSettings
+    {
+        [Description("If output exists, force overwrite")]
+        [CommandOption("--overwrite")]
+        [DefaultValue(false)]
+        public bool Overwrite { get; set; }
+    }
+
+    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    {
+        return CommonExecute.WithPrinter(print =>
+        {
+            return IncludeTools.HandleInit(print, settings.Overwrite);
         });
     }
 }
@@ -53,7 +73,7 @@ internal sealed class MissingPatternsCommand : Command<MissingPatternsCommand.Ar
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithLoadedBuildData
+        return CommonExecute.WithLoadedIncludeData
             (
                 (print, data) => IncludeTools.CommonMain(settings.ToCommon(), print, data, new CheckAction.MissingPatterns())
             );
@@ -73,7 +93,7 @@ internal sealed class ListUnfixableCommand : Command<ListUnfixableCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithLoadedBuildData
+        return CommonExecute.WithLoadedIncludeData
             (
                 (print, data) => IncludeTools.CommonMain(settings.ToCommon(), print, data, new CheckAction.ListUnfixable(settings.PrintAllErrors == false))
             );
@@ -89,7 +109,7 @@ internal sealed class CheckCommand : Command<CheckCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithLoadedBuildData
+        return CommonExecute.WithLoadedIncludeData
             (
                 (print, data) => IncludeTools.CommonMain(settings.ToCommon(), print, data, new CheckAction.Check())
             );
@@ -109,7 +129,7 @@ internal sealed class FixCommand : Command<FixCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithLoadedBuildData
+        return CommonExecute.WithLoadedIncludeData
             (
                 (print, data) => IncludeTools.CommonMain(settings.ToCommon(), print, data, new CheckAction.Fix(settings.WriteToFile == false))
             );

@@ -1,4 +1,6 @@
 using Spectre.Console;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 namespace Workbench.CheckIncludes;
 
@@ -8,6 +10,162 @@ internal record CommonArgs
     bool PrintStatusAtTheEnd,
     bool UseVerboseOutput
 );
+
+internal class IncludesFile
+{
+    [JsonPropertyName("includes")]
+    public List<List<string>> IncludeDirectories { get; set; } = new();
+}
+
+public struct IncludeData
+{
+    public List<List<OptionalRegex>> IncludeDirectories { get; }
+
+    private static IEnumerable<OptionalRegex> StringsToRegex(TextReplacer replacer, IEnumerable<string> includes, Printer print)
+    {
+        return includes.Select
+        (
+            (Func<string, OptionalRegex>)(regex =>
+            {
+                var regex_source = replacer.Replace(regex);
+                if (regex_source != regex)
+                {
+                    return new OptionalRegexDynamic(regex);
+                }
+                else
+                {
+                    switch (CompileRegex(regex_source))
+                    {
+                        case RegexOrErr.Value re:
+                            return new OptionalRegexStatic(re.regex);
+
+                        case RegexOrErr.Error err:
+                            var error = $"{regex} is invalid regex: {err.error}";
+                            print.Error(error);
+                            return new OptionalRegexFailed(error);
+                        default:
+                            throw new Exception("unhandled case");
+                    }
+                }
+            })
+        );
+    }
+
+    internal static RegexOrErr CompileRegex(string regex_source)
+    {
+        try
+        {
+            return new RegexOrErr.Value(new Regex(regex_source, RegexOptions.Compiled));
+        }
+        catch (ArgumentException err)
+        {
+            return new RegexOrErr.Error(err.Message);
+        }
+    }
+
+    public IncludeData(List<List<string>> includes, Printer print)
+    {
+        var replacer = IncludeTools.CreateReplacer("file_stem");
+        IncludeDirectories = includes.Select(includes => StringsToRegex(replacer, includes, print).ToList()).ToList();
+    }
+
+    public static IncludeData? LoadFromDirectoryOrNull(string root, Printer print)
+    {
+        string file = GetBuildDataPath(root);
+        if (File.Exists(file) == false)
+        {
+            print.Error($"Unable to read file: {file}");
+            return null;
+        }
+        var content = File.ReadAllText(file);
+        var loaded = JsonUtil.Parse<IncludesFile>(print, file, content);
+        if (loaded == null)
+        {
+            return null;
+        }
+
+        var bd = new IncludeData(loaded.IncludeDirectories, print);
+        return bd;
+    }
+
+    public static string GetBuildDataPath(string root)
+    {
+        return Path.Join(root, "includes.wb.json");
+    }
+
+    public static IncludeData? LoadOrNull(Printer print)
+    {
+        return LoadFromDirectoryOrNull(Environment.CurrentDirectory, print);
+    }
+}
+
+
+public interface OptionalRegex
+{
+    Regex? GetRegex(Printer print, TextReplacer replacer);
+}
+
+public class OptionalRegexDynamic : OptionalRegex
+{
+    private readonly string regex;
+
+    public OptionalRegexDynamic(string regex)
+    {
+        this.regex = regex;
+    }
+
+    public Regex? GetRegex(Printer print, TextReplacer replacer)
+    {
+        var regexSource = replacer.Replace(regex);
+        switch (IncludeData.CompileRegex(regexSource))
+        {
+            case RegexOrErr.Value re:
+                return re.regex;
+            case RegexOrErr.Error error:
+                print.Error($"{regex} -> {regexSource} is invalid regex: {error.error}");
+                return null;
+            default:
+                throw new ArgumentException("invalid state");
+        }
+    }
+}
+
+public class OptionalRegexStatic : OptionalRegex
+{
+    private readonly Regex regex;
+
+    public OptionalRegexStatic(Regex regex)
+    {
+        this.regex = regex;
+    }
+
+    public Regex? GetRegex(Printer print, TextReplacer replacer)
+    {
+        return regex;
+    }
+}
+
+public class OptionalRegexFailed : OptionalRegex
+{
+    private readonly string error;
+
+    public OptionalRegexFailed(string error)
+    {
+        this.error = error;
+    }
+
+    public Regex? GetRegex(Printer print, TextReplacer replacer)
+    {
+        print.Error(error);
+        return null;
+    }
+}
+
+internal abstract record RegexOrErr
+{
+    public record Value(Regex regex) : RegexOrErr;
+    public record Error(string error) : RegexOrErr;
+}
 
 public class Include : IComparable<Include>
 {
@@ -74,7 +232,7 @@ public static class IncludeTools
     (
         HashSet<string> missingFiles,
         Printer print,
-        BuildData data,
+        IncludeData data,
         string line,
         string filename,
         int lineNumber
@@ -145,7 +303,7 @@ public static class IncludeTools
         IEnumerable<string> lines,
         HashSet<string> missing_files,
         Printer print,
-        BuildData data,
+        IncludeData data,
         string filename,
         bool verbose,
         bool print_include_order_error_for_include,
@@ -305,7 +463,7 @@ public static class IncludeTools
     (
         HashSet<string> missingFiles,
         Printer print,
-        BuildData data,
+        IncludeData data,
         bool verbose,
         string filename,
         CheckAction command
@@ -411,7 +569,7 @@ public static class IncludeTools
     (
         CommonArgs args,
         Printer print,
-        BuildData data,
+        IncludeData data,
         CheckAction command
     )
     {
@@ -457,6 +615,16 @@ public static class IncludeTools
         return errorCount;
     }
 
+    public static int HandleInit(Printer print, bool overwrite)
+    {
+        var path = IncludeData.GetBuildDataPath(Environment.CurrentDirectory);
+        var data = new IncludesFile();
+        data.IncludeDirectories.Add(new() { "list of regexes", "that are used by check-includes" });
+        data.IncludeDirectories.Add(new() { "they are grouped into arrays, there needs to be a space between each group" });
+
+        var content = JsonUtil.Write(data);
+        return CommonExecute.WriteContent(print, overwrite, path, content);
+    }
 }
 
 public class ClassifiedFile

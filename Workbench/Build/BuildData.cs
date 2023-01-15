@@ -12,78 +12,7 @@ internal class ProjectFile
 
     [JsonPropertyName("dependencies")]
     public List<DependencyName> Dependencies { get; set; } = new();
-
-    [JsonPropertyName("includes")]
-    public List<List<string>> IncludeDirectories { get; set; } = new();
 }
-
-public interface OptionalRegex
-{
-    Regex? GetRegex(Printer print, TextReplacer replacer);
-}
-
-public class OptionalRegexDynamic : OptionalRegex
-{
-    private readonly string regex;
-
-    public OptionalRegexDynamic(string regex)
-    {
-        this.regex = regex;
-    }
-
-    public Regex? GetRegex(Printer print, TextReplacer replacer)
-    {
-        var regexSource = replacer.Replace(regex);
-        switch (BuildData.CompileRegex(regexSource))
-        {
-            case RegexOrErr.Value re:
-                return re.regex;
-            case RegexOrErr.Error error:
-                print.Error($"{regex} -> {regexSource} is invalid regex: {error.error}");
-                return null;
-            default:
-                throw new ArgumentException("invalid state");
-        }
-    }
-}
-
-public class OptionalRegexStatic : OptionalRegex
-{
-    private readonly Regex regex;
-
-    public OptionalRegexStatic(Regex regex)
-    {
-        this.regex = regex;
-    }
-
-    public Regex? GetRegex(Printer print, TextReplacer replacer)
-    {
-        return regex;
-    }
-}
-
-public class OptionalRegexFailed : OptionalRegex
-{
-    private readonly string error;
-
-    public OptionalRegexFailed(string error)
-    {
-        this.error = error;
-    }
-
-    public Regex? GetRegex(Printer print, TextReplacer replacer)
-    {
-        print.Error(error);
-        return null;
-    }
-}
-
-internal abstract record RegexOrErr
-{
-    public record Value(Regex regex) : RegexOrErr;
-    public record Error(string error) : RegexOrErr;
-}
-
 
 public struct BuildData
 {
@@ -93,51 +22,8 @@ public struct BuildData
     public string BuildDirectory { get; }
     public string ProjectDirectory { get; }
     public string DependencyDirectory { get; }
-    public List<List<OptionalRegex>> IncludeDirectories { get; }
 
-    private static IEnumerable<OptionalRegex> strings_to_regex(TextReplacer replacer, IEnumerable<string> includes, Printer print)
-    {
-        return includes.Select
-        (
-            (Func<string, OptionalRegex>)(regex =>
-            {
-                var regex_source = replacer.Replace(regex);
-                if (regex_source != regex)
-                {
-                    return new OptionalRegexDynamic(regex);
-                }
-                else
-                {
-                    switch (CompileRegex(regex_source))
-                    {
-                        case RegexOrErr.Value re:
-                            return new OptionalRegexStatic(re.regex);
-
-                        case RegexOrErr.Error err:
-                            var error = $"{regex} is invalid regex: {err.error}";
-                            print.Error(error);
-                            return new OptionalRegexFailed(error);
-                        default:
-                            throw new Exception("unhandled case");
-                    }
-                }
-            })
-        );
-    }
-
-    internal static RegexOrErr CompileRegex(string regex_source)
-    {
-        try
-        {
-            return new RegexOrErr.Value(new Regex(regex_source, RegexOptions.Compiled));
-        }
-        catch (ArgumentException err)
-        {
-            return new RegexOrErr.Error(err.Message);
-        }
-    }
-
-    public BuildData(string name, string rootDir, List<List<string>> includes, Printer print)
+    public BuildData(string name, string rootDir, Printer print)
     {
         Name = name;
         Dependencies = new();
@@ -145,9 +31,6 @@ public struct BuildData
         BuildDirectory = Path.Join(rootDir, "build");
         ProjectDirectory = Path.Join(BuildDirectory, name);
         DependencyDirectory = Path.Join(BuildDirectory, "deps");
-
-        var replacer = CheckIncludes.IncludeTools.CreateReplacer("file_stem");
-        IncludeDirectories = includes.Select(includes => strings_to_regex(replacer, includes, print).ToList()).ToList();
     }
 
 
@@ -172,7 +55,7 @@ public struct BuildData
             return null;
         }
 
-        var bd = new BuildData(loaded.Name, root, loaded.IncludeDirectories, print);
+        var bd = new BuildData(loaded.Name, root, print);
         foreach (var dependency_name in loaded.Dependencies)
         {
             bd.Dependencies.Add(Workbench.Dependencies.CreateDependency(dependency_name, bd));
