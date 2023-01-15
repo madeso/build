@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Text.Json.Serialization;
@@ -13,10 +12,10 @@ public enum Compiler
 
     [EnumString("vs2015")]
     VisualStudio2015,
-    
+
     [EnumString("vs2017", "windows-2016")]
     VisualStudio2017,
-    
+
     [EnumString("vs2019", "windows-2019")]
     VisualStudio2019,
 
@@ -31,7 +30,7 @@ public enum Platform
 {
     [EnumString("auto")]
     Auto,
-    
+
     [EnumString("win32", "x86")]
     Win32,
 
@@ -43,7 +42,7 @@ public enum Platform
 // #[derive(Serialize, Deserialize, Debug)]
 public class BuildEnviroment
 {
-    public Compiler? compiler { get; set; }  = null;
+    public Compiler? compiler { get; set; } = null;
     public Platform? platform { get; set; } = null;
 
     public static BuildEnviroment CreateEmpty()

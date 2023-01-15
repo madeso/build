@@ -16,7 +16,7 @@ public static class Reflect
             if (member.FieldType == memberType)
             {
                 var val = member.GetValue(null);
-                if(val == null) { continue; }
+                if (val == null) { continue; }
                 yield return new KeyValuePair<Data, Member>(resolvers.Member(member), (Member)val);
             }
         }
@@ -38,7 +38,7 @@ public static class Reflect
     {
         static Att GetAttribute(IEnumerable<Attribute> attributes)
         {
-            foreach(var attribute in attributes)
+            foreach (var attribute in attributes)
             {
                 if (attribute is Att my)
                 {

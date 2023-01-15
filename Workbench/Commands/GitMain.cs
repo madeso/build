@@ -2,7 +2,6 @@
 using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using Workbench;
 
 namespace Workbench.Commands.GitCommands;
 

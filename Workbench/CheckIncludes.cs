@@ -1,7 +1,4 @@
 using Spectre.Console;
-using Spectre.Console.Cli;
-using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Workbench.CheckIncludes;
 
@@ -14,8 +11,8 @@ internal record CommonArgs
 
 public class Include : IComparable<Include>
 {
-    public int LineClass {get;}
-    public string Line {get;}
+    public int LineClass { get; }
+    public string Line { get; }
 
     public Include(int line_class, string line)
     {
@@ -464,8 +461,8 @@ public static class IncludeTools
 
 public class ClassifiedFile
 {
-    public int? firstLineIndex{get; set;}
-    public int? lastLineIndex{get; set;}
+    public int? firstLineIndex { get; set; }
+    public int? lastLineIndex { get; set; }
     public List<Include> Includes { get; } = new();
     public bool HasInvalidOrder { get; set; } = false;
 }

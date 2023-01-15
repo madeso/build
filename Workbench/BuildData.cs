@@ -2,8 +2,8 @@ namespace Workbench;
 
 
 using System.IO;
-using System.Text.RegularExpressions;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 class ProjectFile
 {
@@ -87,12 +87,12 @@ abstract record RegexOrErr
 
 public struct BuildData
 {
-    public string Name {get;}
-    public List<Dependency> Dependencies {get;}
-    public string RootDirectory {get;}
-    public string BuildDirectory {get;}
-    public string ProjectDirectory {get;}
-    public string DependencyDirectory {get;}
+    public string Name { get; }
+    public List<Dependency> Dependencies { get; }
+    public string RootDirectory { get; }
+    public string BuildDirectory { get; }
+    public string ProjectDirectory { get; }
+    public string DependencyDirectory { get; }
     public List<List<OptionalRegex>> IncludeDirectories { get; }
 
     private static IEnumerable<OptionalRegex> strings_to_regex(TextReplacer replacer, IEnumerable<string> includes, Printer print)

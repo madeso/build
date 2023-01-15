@@ -73,7 +73,7 @@ internal static class FileUtil
                 : FileAttributes.System
         };
 
-        foreach(var f in SubIterateFiles(root, searchOptions, recursive))
+        foreach (var f in SubIterateFiles(root, searchOptions, recursive))
         {
             yield return f;
         }

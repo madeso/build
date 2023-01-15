@@ -1,7 +1,4 @@
 using Spectre.Console;
-using Spectre.Console.Cli;
-using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 
 namespace Workbench.Clang;

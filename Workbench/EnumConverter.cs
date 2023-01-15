@@ -1,12 +1,9 @@
-﻿using System.Text.Json;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.IO;
+using System.Text.Json;
 using System.Text.Json.Serialization;
-using System;
-using System.Text;
 
 namespace Workbench;
 
@@ -50,7 +47,7 @@ internal class EnumConverter<T>
 
         static string SimpleQuote(string s)
         {
-            if(s.Contains('"'))
+            if (s.Contains('"'))
             {
                 s = s.Replace("\\", "\\\\")
                      .Replace("\"", "\\\"")
@@ -94,7 +91,7 @@ internal class EnumConverter<T>
 }
 
 internal static class ReflectedValues<T>
-    where T: struct
+    where T : struct
 {
     public static readonly EnumConverter<T> Converter = EnumConverter<T>.ReflectValues();
 }
@@ -104,15 +101,15 @@ public static class EnumTools
     public static string? GetString<T>(T? t)
         where T : struct
     {
-        if(t == null) return null;
+        if (t == null) return null;
         else return ReflectedValues<T>.Converter.EnumToString(t.Value);
     }
 }
-    
+
 
 public class EnumStringAttribute : Attribute
 {
-    public string PrimaryName{get;}
+    public string PrimaryName { get; }
     public string[] OtherNames { get; }
 
     public EnumStringAttribute(string primaryName, params string[] otherNames)
@@ -163,7 +160,7 @@ class EnumTypeConverter<T> : TypeConverter
 
 
 class EnumJsonConverter<T> : JsonConverter<T>
-    where T: struct
+    where T : struct
 {
     public override bool HandleNull => false;
 

@@ -1,17 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Workbench;
+﻿namespace Workbench;
 
 public static class EditDistance
 {
     public static IEnumerable<string> ClosestMatches(int count, string input, int maxDiff, IEnumerable<string> candidates)
     {
         return candidates
-            .Select(name => new { Name=name, Distance=Calculate(input, name)})
+            .Select(name => new { Name = name, Distance = Calculate(input, name) })
             .Where(entry => entry.Distance <= maxDiff)
             .OrderBy(entry => entry.Distance)
             .Take(count)

@@ -1,9 +1,6 @@
-using System.Text.Json;
 using Spectre.Console.Cli;
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
-using System.Net.WebSockets;
 
 namespace Workbench.CompileCommands;
 
@@ -126,7 +123,7 @@ internal class CommonArguments : CommandSettings
     public string? GetPathToCompileCommandsOrNull(Printer print)
     {
         var ret = get_argument_or_none(Environment.CurrentDirectory);
-        if(ret == null)
+        if (ret == null)
         {
             print.error($"Unable to locate {Utils.COMPILE_COMMANDS_FILE_NAME}");
         }

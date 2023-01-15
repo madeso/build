@@ -107,7 +107,7 @@ internal static class F
         printer.Header(data.Name);
         printer.Info($"Project: {data.Name}");
         printer.Info($"Dependencies: {data.Dependencies.Count}");
-        if(env == null)
+        if (env == null)
         {
             printer.Info("Enviroment: <missing>");
         }
@@ -124,7 +124,7 @@ internal static class F
         printer.Info($"  Build: {data.ProjectDirectory}");
         printer.Info($"  Dependencies: {data.DependencyDirectory}");
         var indent = "    ";
-        if(data.Dependencies.Count > 0)
+        if (data.Dependencies.Count > 0)
         {
             printer.Info("");
         }

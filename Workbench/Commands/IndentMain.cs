@@ -1,9 +1,8 @@
-﻿using Spectre.Console.Cli;
-using Spectre.Console;
+﻿using Spectre.Console;
+using Spectre.Console.Cli;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-
 using Workbench.Indent;
 
 namespace Workbench.Commands.IndentCommands;

@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.ComponentModel;
 
 namespace Workbench;
 
@@ -14,7 +13,7 @@ public static class JsonUtil
             if (loaded == null) { throw new Exception("internal error"); }
             return loaded;
         }
-        catch(JsonException err)
+        catch (JsonException err)
         {
             print.error($"Unable to parse json {file}: {err.Message}");
             return null;
@@ -28,7 +27,8 @@ public static class JsonUtil
 
     internal static string Write<T>(T self)
     {
-        return JsonSerializer.Serialize<T>(self, new JsonSerializerOptions{
+        return JsonSerializer.Serialize<T>(self, new JsonSerializerOptions
+        {
             WriteIndented = true,
             ReadCommentHandling = JsonCommentHandling.Skip,
             AllowTrailingCommas = true,
