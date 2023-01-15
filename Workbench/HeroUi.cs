@@ -296,3 +296,57 @@ internal static class Ui
     }
 
 }
+
+
+internal static class F
+{
+    internal static int HandleNewHero(string projectFile, bool overwrite, Printer print)
+    {
+        if (File.Exists(projectFile) && overwrite == false)
+        {
+            print.error($"{projectFile} already exists.");
+            return -1;
+        }
+        var input = new Data.UserInput();
+        input.include_directories.Add("list of relative or absolute directories");
+        input.project_directories.Add("list of relative or absolute source directories (or files)");
+        input.precompiled_headers.Add("list of relative pchs, if there are any");
+
+        var content = JsonUtil.Write(input);
+        File.WriteAllText(projectFile, content);
+        return 0;
+    }
+
+    internal static int HandleRunHeroHtml(string projectFile, string outputDirectory, Printer print)
+    {
+        var input = Data.UserInput.load_from_file(print, projectFile);
+        if (input == null)
+        {
+            return -1;
+        }
+        var inputRoot = new FileInfo(projectFile).DirectoryName ?? Environment.CurrentDirectory;
+        input.decorate(print, inputRoot);
+        Directory.CreateDirectory(outputDirectory);
+        Ui.scan_and_generate_html(print, input, new(inputRoot, outputDirectory));
+        return 0;
+    }
+
+    internal static int RunHeroGraphviz(string projectFile,
+        string outputFile,
+        bool simplifyGraphviz,
+        bool onlyHeaders,
+        bool cluster,
+        string[] exclude, Printer print)
+    {
+        var input = Data.UserInput.load_from_file(print, projectFile);
+        if (input == null)
+        {
+            return -1;
+        }
+        var inputRoot = new FileInfo(projectFile).DirectoryName ?? Environment.CurrentDirectory;
+        input.decorate(print, inputRoot);
+        Ui.scan_and_generate_dot(print, input, new(inputRoot, outputFile), simplifyGraphviz, onlyHeaders, exclude, cluster);
+        return 0;
+    }
+}
+

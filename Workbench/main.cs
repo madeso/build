@@ -41,6 +41,7 @@ internal class Program
 
             Commands.MinorCommands.ConfigureLs(config, "ls");
             Commands.MinorCommands.ConfigureCat(config, "cat");
+
             Commands.StatusCommands.Main.ConfigureStatus(config, "status");
             Commands.BuildCommands.Main.Configure(config, "build");
             Commands.IndentCommands.Main.Configure(config, "indent");
@@ -48,10 +49,9 @@ internal class Program
             Commands.GitCommands.Main.Configure(config, "git");
             Commands.CompileCommandsCommands.Main.Configure(config, "compile-commands");
             Commands.CheckIncludesCommands.Main.Configure(config, "check-includes");
-
-            ListHeaders.Main.Configure(config, "list-headers");
-            Clang.Main.Configure(config, "clang");
-            Hero.Main.Configure(config, "hero");
+            Commands.ListHeadersCommands.Main.Configure(config, "list-headers");
+            Commands.ClangCommands.Main.Configure(config, "clang");
+            Commands.HeroCommands.Main.Configure(config, "hero");
         });
         return app.Run(args);
     }

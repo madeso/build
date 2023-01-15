@@ -1,8 +1,11 @@
+﻿using Spectre.Console;
 using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using Workbench.Hero;
 
-namespace Workbench.Hero;
+namespace Workbench.Commands.HeroCommands;
+
 
 public static class Main
 {
@@ -38,19 +41,7 @@ internal sealed class NewHeroCommand : Command<NewHeroCommand.Arg>
         {
             return CommonExecute.WithPrinter(print =>
             {
-                if (File.Exists(settings.ProjectFile) && settings.Overwrite == false)
-                {
-                    print.error($"{settings.ProjectFile} already exists.");
-                    return -1;
-                }
-                var input = new Data.UserInput();
-                input.include_directories.Add("list of relative or absolute directories");
-                input.project_directories.Add("list of relative or absolute source directories (or files)");
-                input.precompiled_headers.Add("list of relative pchs, if there are any");
-
-                var content = JsonUtil.Write(input);
-                File.WriteAllText(settings.ProjectFile, content);
-                return 0;
+                return F.HandleNewHero(settings.ProjectFile, settings.Overwrite, print);
             });
         });
     }
@@ -75,16 +66,7 @@ internal sealed class RunHeroHtmlCommand : Command<RunHeroHtmlCommand.Arg>
         {
             return CommonExecute.WithPrinter(print =>
             {
-                var input = Data.UserInput.load_from_file(print, settings.ProjectFile);
-                if (input == null)
-                {
-                    return -1;
-                }
-                var inputRoot = new FileInfo(settings.ProjectFile).DirectoryName ?? Environment.CurrentDirectory;
-                input.decorate(print, inputRoot);
-                Directory.CreateDirectory(settings.OutputDirectory);
-                Ui.scan_and_generate_html(print, input, new(inputRoot, settings.OutputDirectory));
-                return 0;
+                return F.HandleRunHeroHtml(settings.ProjectFile, settings.OutputDirectory, print);
             });
         });
     }
@@ -129,17 +111,15 @@ internal sealed class RunHeroDotCommand : Command<RunHeroDotCommand.Arg>
         {
             return CommonExecute.WithPrinter(print =>
             {
-                var input = Data.UserInput.load_from_file(print, args.ProjectFile);
-                if (input == null)
-                {
-                    return -1;
-                }
-                var inputRoot = new FileInfo(args.ProjectFile).DirectoryName ?? Environment.CurrentDirectory;
-                input.decorate(print, inputRoot);
-                Ui.scan_and_generate_dot(print, input, new(inputRoot, args.OutputFile), args.SimplifyGraphviz, args.OnlyHeaders, args.Exclude ?? Array.Empty<string>(), args.Cluster);
-                return 0;
+                return F.RunHeroGraphviz(
+                    args.ProjectFile,
+                    args.OutputFile,
+                    args.SimplifyGraphviz,
+                    args.OnlyHeaders,
+                    args.Cluster,
+                    args.Exclude ?? Array.Empty<string>(),
+                    print);
             });
         });
     }
 }
-

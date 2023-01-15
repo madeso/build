@@ -18,7 +18,9 @@
     <ItemGroup>
 		<Compile Include="Commands\BuildMain.cs" />
 		<Compile Include="Commands\CheckIncludesMain.cs" />
+		<Compile Include="Commands\ClangMain.cs" />
 		<Compile Include="Commands\CompileCommandsMain.cs" />
+		<Compile Include="Commands\ListHeadersMain.cs" />
 		<Compile Include="Commands\StatusMain.cs" />
 		<Compile Include="Commands\IndentMain.cs" />
 		<Compile Include="Commands\MinorCommands.cs" />
