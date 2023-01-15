@@ -7,52 +7,38 @@ using Spectre.Console;
 using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace Workbench.ListHeaders;
 
-internal class LinesArg : CommandSettings
+[TypeConverter(typeof(EnumTypeConverter<ListAction>))]
+[JsonConverter(typeof(EnumJsonConverter<ListAction>))]
+enum ListAction
 {
-    [Description("File to list lines in")]
-    [CommandArgument(0, "<filename>")]
-    public string filename { get; set; } = string.Empty;
+    [EnumString("lines")]
+    Lines,
 
-    [Description("List statements instead")]
-    [CommandOption("--statements")]
-    [DefaultValue(false)]
-    public bool statements { get; set; }
+    [EnumString("statements")]
+    Statements,
 
-    [Description("List blocks instead")]
-    [CommandOption("--blocks")]
-    [DefaultValue(false)]
-    public bool blocks { get; set; }
+    [EnumString("blocks")]
+    Blocks,
 }
-
-
-// #[derive(StructOpt, Debug)]
-internal class FilesArg : CompileCommands.CommonArguments
-{
-    [Description("project file")]
-    [CommandArgument(0, "<source>")]
-    public List<string> sources { get; set; } = new();
-
-    [Description("number of most common includes to print")]
-    [CommandOption("--count")]
-    [DefaultValue(10)]
-    public int count { get; set; }
-
-    [Description("print debug info")]
-    [CommandOption("--debug")]
-    [DefaultValue(false)]
-    public bool debug { get; set; }
-}
-
 
 
 internal sealed class LinesCommand : Command<LinesCommand.Arg>
 {
-    public sealed class Arg : LinesArg
+    public sealed class Arg : CommandSettings
     {
+        [Description("File to list lines in")]
+        [CommandArgument(0, "<filename>")]
+        public string FileName { get; set; } = string.Empty;
+
+        [Description("The action to perform on the file")]
+        [CommandArgument(1, "<action>")]
+        public ListAction Action { get; set; } = ListAction.Lines;
+
         [Description("Git root to use")]
         [CommandArgument(0, "<git root>")]
         public string Root { get; set; } = "";
@@ -62,20 +48,33 @@ internal sealed class LinesCommand : Command<LinesCommand.Arg>
     {
         return CommonExecute.WithPrinter
             (
-                print => { F.handle_lines(print, settings); return 0; }
+                print => { F.HandleLines(print, settings.FileName, settings.Action); return 0; }
             );
     }
 }
 
 internal sealed class FilesCommand : Command<FilesCommand.Arg>
 {
-    public sealed class Arg : FilesArg
+    public sealed class Arg : CompileCommands.CommonArguments
     {
+        [Description("project file")]
+        [CommandArgument(0, "<source>")]
+        public List<string> Sources { get; set; } = new();
+
+        [Description("number of most common includes to print")]
+        [CommandOption("--count")]
+        [DefaultValue(10)]
+        public int MostCommonCount { get; set; }
+
+        [Description("print debug info")]
+        [CommandOption("--debug")]
+        [DefaultValue(false)]
+        public bool PrintDebugInfo { get; set; }
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return CommonExecute.WithPrinter(print => F.handle_files(print, settings) ? 0 : -1);
+        return CommonExecute.WithPrinter(print => F.HandleFiles(print, arg.GetPathToCompileCommandsOrNull(print), arg.Sources, arg.MostCommonCount, arg.PrintDebugInfo));
     }
 }
 
@@ -340,7 +339,7 @@ class FileWalker
 
         if (this.commands.TryGetValue(path, out var cc) == false)
         {
-            print.error($"Unable to get include directories foreach {path}");
+            print.error($"Unable to get include directories for {path}");
             return true;
         };
 
@@ -355,11 +354,11 @@ class FileWalker
     List<Statement>? parse_file_to_blocks(string path, Printer print)
     {
         var source_lines = File.ReadAllLines(path);
-        var joined_lines = F.join_lines(source_lines);
+        var joined_lines = F.JoinCppLines(source_lines);
         var trim_lines = joined_lines.Select(str => str.TrimStart()).ToList();
-        var lines = F.remove_cpp_comments(trim_lines);
-        var statements = F.parse_to_statements(lines);
-        var b = F.parse_to_blocks(path, print, statements.ToList());
+        var lines = F.RemoveCppComments(trim_lines);
+        var statements = F.ParseToStatements(lines);
+        var b = F.ParseToBlocks(path, print, statements.ToList());
         return b;
     }
 
@@ -376,7 +375,7 @@ class FileWalker
     {
         this.stats.total_file_count += 1;
 
-        if (F.is_source(path))
+        if (F.IsSource(path))
         {
             var bblocks = this.parse_file_to_blocks(path, print);
             if (bblocks == null)
@@ -417,7 +416,7 @@ class FileWalker
                     {
                         case "ifdef":
                         case "ifndef":
-                            var key = F.ident_split(blk.condition).Item1;
+                            var key = F.SplitIdentifier(blk.condition).Item1;
 
                             static bool ifdef(bool t, bool f)
                             { return f && t || (!f && !t); }
@@ -469,7 +468,7 @@ class FileWalker
                             }
                             break;
                         case "define":
-                            var (key, value) = F.ident_split(cmd.value);
+                            var (key, value) = F.SplitIdentifier(cmd.value);
                             defines.Add(key, value.Trim());
                             break;
                         case "undef":
@@ -480,7 +479,7 @@ class FileWalker
                             break;
                         case "include":
                             var include_name = cmd.value.Trim('"', '<', '>', ' ');
-                            var sub_file = F.resolve_path(directories, include_name, path, cmd.value.Trim().StartsWith('\"'));
+                            var sub_file = F.ResolvePath(directories, include_name, path, cmd.value.Trim().StartsWith('\"'));
                             if (sub_file != null)
                             {
                                 this.add_include(sub_file);
@@ -512,7 +511,7 @@ class FileWalker
 
 internal static class F
 {
-    internal static IEnumerable<string> join_lines(IEnumerable<string> lines)
+    internal static IEnumerable<string> JoinCppLines(IEnumerable<string> lines)
     {
         string? last_line = null;
 
@@ -540,7 +539,7 @@ internal static class F
         }
     }
 
-    internal static List<Line> remove_cpp_comments(List<string> lines)
+    internal static List<Line> RemoveCppComments(List<string> lines)
     {
         var cs = new CommentStripper();
         foreach (var line in lines)
@@ -557,12 +556,12 @@ internal static class F
         return cs.ret;
     }
 
-    static bool is_if_start(string name)
+    static bool IsIfStart(string name)
     {
         return name == "if" || name == "ifdef" || name == "ifndef";
     }
 
-    static string peek_name(PreprocParser commands)
+    static string PeekName(PreprocParser commands)
     {
         var peeked = commands.opeek();
         return peeked != null
@@ -572,25 +571,25 @@ internal static class F
     }
 
 
-    static void group_commands(string path, Printer print, List<Statement> ret, PreprocParser commands, int depth)
+    static void GroupCommands(string path, Printer print, List<Statement> ret, PreprocParser commands, int depth)
     {
         while (true)
         {
             var command = commands.next();
             if (command == null) { break; }
 
-            if (is_if_start(command.command))
+            if (IsIfStart(command.command))
             {
                 var group = new Block(command.command, command.arguments);
-                group_commands(path, print, group.true_block, commands, depth + 1);
-                while (peek_name(commands) == "elif")
+                GroupCommands(path, print, group.true_block, commands, depth + 1);
+                while (PeekName(commands) == "elif")
                 {
                     var next = commands.next();
                     if (next == null) { throw new NullReferenceException(); }
 
                     var elif_args = next.arguments;
                     var block = new List<Statement>();
-                    group_commands(path, print, block, commands, depth + 1);
+                    GroupCommands(path, print, block, commands, depth + 1);
                     group.elifs.Add
                     (
                         new Elif
@@ -600,12 +599,12 @@ internal static class F
                         )
                     );
                 }
-                if (peek_name(commands) == "else")
+                if (PeekName(commands) == "else")
                 {
                     commands.skip();
-                    group_commands(path, print, group.false_block, commands, depth + 1);
+                    GroupCommands(path, print, group.false_block, commands, depth + 1);
                 }
-                if (peek_name(commands) == "endif")
+                if (PeekName(commands) == "endif")
                 {
                     commands.skip();
                 }
@@ -670,7 +669,7 @@ internal static class F
         }
     }
 
-    internal static (string, string) ident_split(string val)
+    internal static (string, string) SplitIdentifier(string val)
     {
         var re_ident = new Regex(@"[a-zA-Z_][a-zA-Z_0-9]*");
 
@@ -689,14 +688,14 @@ internal static class F
         }
     }
 
-    internal static IEnumerable<Preproc> parse_to_statements(IEnumerable<Line> lines)
+    internal static IEnumerable<Preproc> ParseToStatements(IEnumerable<Line> lines)
     {
         foreach (var line in lines)
         {
             if (line.text.StartsWith('#'))
             {
                 var li = line.text[1..].TrimStart();
-                var (command, arguments) = ident_split(li);
+                var (command, arguments) = SplitIdentifier(li);
 
                 yield return new
                     Preproc
@@ -709,53 +708,54 @@ internal static class F
         }
     }
 
-    internal static List<Statement> parse_to_blocks(string path, Printer print, List<Preproc> r)
+    internal static List<Statement> ParseToBlocks(string path, Printer print, List<Preproc> r)
     {
         var parser = new PreprocParser(commands: r, index: 0);
         var ret = new List<Statement>();
-        group_commands(path, print, ret, parser, 0);
+        GroupCommands(path, print, ret, parser, 0);
         return ret;
     }
 
 
-    internal static void handle_lines(Printer print, LinesArg args)
+    internal static void HandleLines(Printer print, string fileName, ListAction action)
     {
-        var source_lines = File.ReadLines(args.filename);
-        var joined_lines = join_lines(source_lines);
+        var source_lines = File.ReadLines(fileName);
+        var joined_lines = JoinCppLines(source_lines);
         var trim_lines = joined_lines.Select(str => str.TrimStart()).ToList();
-        var lines = remove_cpp_comments(trim_lines);
-        if (args.statements || args.blocks)
+        var lines = RemoveCppComments(trim_lines);
+        switch (action)
         {
-            var statements = parse_to_statements(lines).ToList();
-
-            if (args.blocks)
-            {
-                var blocks = parse_to_blocks(args.filename, print, statements);
-                foreach (var block in blocks)
+            case ListAction.Lines:
+                foreach (var line in lines)
                 {
-                    print.Info($"{block}");
+                    print.Info(line.text);
                 }
-            }
-            else
-            {
-                foreach (var statement in statements)
+                break;
+            case ListAction.Statements:
                 {
-                    print.Info($"{statement}");
+                    var statements = ParseToStatements(lines).ToList();
+                    foreach (var statement in statements)
+                    {
+                        print.Info($"{statement}");
+                    }
                 }
-            }
-        }
-        else
-        {
-            foreach (var line in lines)
-            {
-                print.Info(line.text);
-            }
+                break;
+            case ListAction.Blocks:
+                {
+                    var statements = ParseToStatements(lines).ToList();
+                    var blocks = ParseToBlocks(fileName, print, statements);
+                    foreach (var block in blocks)
+                    {
+                        print.Info($"{block}");
+                    }
+                }
+                break;
         }
     }
 
 
 
-    internal static string? resolve_path(string[] directories, string stem, string caller_file, bool use_relative_path)
+    internal static string? ResolvePath(string[] directories, string stem, string caller_file, bool use_relative_path)
     {
         if (use_relative_path)
         {
@@ -783,7 +783,7 @@ internal static class F
     }
 
 
-    internal static bool is_source(string path)
+    internal static bool IsSource(string path)
     {
         return Path.GetExtension(path) switch
         {
@@ -794,25 +794,25 @@ internal static class F
 
 
 
-    internal static bool handle_files(Printer print, FilesArg args)
+    internal static int HandleFiles(Printer print, string? ccpath, List<string> sources, int mostCommonCount, bool printDebugInfo)
     {
-        var ccpath = args.GetPathToCompileCommandsOrNull(print);
-        if (ccpath == null) { return false; }
+        // var ccpath = args.GetPathToCompileCommandsOrNull(print);
+        if (ccpath == null) { return -1; }
 
         var commands = CompileCommands.Utils.LoadCompileCommandsOrNull(print, ccpath);
-        if (commands == null) { return false; }
+        if (commands == null) { return -1; }
 
         var walker = new FileWalker(commands);
 
         var file_cache = new Dictionary<string, List<Statement>>();
 
-        foreach (var file in args.sources)
+        foreach (var file in sources)
         {
             if (File.Exists(file))
             {
                 if (false == walker.walk(print, file, file_cache))
                 {
-                    return false;
+                    return -1;
                 }
             }
             else
@@ -820,22 +820,22 @@ internal static class F
                 var f = new DirectoryInfo(file).FullName;
                 if (false == walker.walk(print, f, file_cache))
                 {
-                    return false;
+                    return -1;
                 }
             }
         }
 
         var stats = walker.stats;
 
-        print.Info($"Top {args.count} includes are:");
+        print.Info($"Top {mostCommonCount} includes are:");
 
-        foreach (var (file, count) in stats.includes.MostCommon().Take(args.count))
+        foreach (var (file, count) in stats.includes.MostCommon().Take(mostCommonCount))
         {
             var d = Path.GetRelativePath(Environment.CurrentDirectory, file);
             var times = (double)count / (double)stats.file_count;
             print.Info($" - {d} {times:.2}x ({count}/{stats.file_count})");
         }
 
-        return true;
+        return 0;
     }
 }
