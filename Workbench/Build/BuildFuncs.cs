@@ -1,3 +1,5 @@
+using Workbench.Config;
+
 namespace Workbench.Build;
 
 
@@ -6,15 +8,13 @@ internal static class F
 {
     public static int HandleInit(Printer print, bool overwrite)
     {
-        var path = BuildData.GetBuildDataPath(Environment.CurrentDirectory);
-        var data = new Config.BuildFile
+        var data = new BuildFile
         {
             Name = new DirectoryInfo(Environment.CurrentDirectory).Name
         };
         data.Dependencies.AddRange(Enum.GetValues<DependencyName>());
 
-        var content = JsonUtil.Write(data);
-        return CommonExecute.WriteContent(print, overwrite, path, content);
+        return ConfigFile.WriteInit(print, overwrite, BuildFile.GetBuildDataPath(), data);
     }
 
     public static int HandleInstall(Printer printer, BuildEnviroment build, BuildData data)

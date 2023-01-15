@@ -3,8 +3,7 @@ namespace Workbench;
 
 using System.IO;
 using System.Text.Json.Serialization;
-
-
+using Workbench.Config;
 
 public struct BuildData
 {
@@ -32,37 +31,18 @@ public struct BuildData
         return Path.Join(BuildDirectory, "settings.json");
     }
 
-    public static BuildData? LoadFromDirectoryOrNull(string root, Printer print)
-    {
-        string file = GetBuildDataPath(root);
-        if (File.Exists(file) == false)
-        {
-            print.Error($"Unable to read file: {file}");
-            return null;
-        }
-        var content = File.ReadAllText(file);
-        var loaded = JsonUtil.Parse<Config.BuildFile>(print, file, content);
-        if (loaded == null)
-        {
-            return null;
-        }
-
-        var bd = new BuildData(loaded.Name, root, print);
-        foreach (var dependency_name in loaded.Dependencies)
-        {
-            bd.Dependencies.Add(Workbench.Dependencies.CreateDependency(dependency_name, bd));
-        }
-        return bd;
-    }
-
-    public static string GetBuildDataPath(string root)
-    {
-        return Path.Join(root, "project.wb.json");
-    }
-
     public static BuildData? LoadOrNull(Printer print)
     {
-        return LoadFromDirectoryOrNull(Environment.CurrentDirectory, print);
+        return ConfigFile.LoadOrNull<BuildFile, BuildData>(print, Config.BuildFile.GetBuildDataPath(),
+            loaded =>
+            {
+                var bd = new BuildData(loaded.Name, Environment.CurrentDirectory, print);
+                foreach (var dependency_name in loaded.Dependencies)
+                {
+                    bd.Dependencies.Add(Workbench.Dependencies.CreateDependency(dependency_name, bd));
+                }
+                return bd;
+            }
+        );
     }
-
 }

@@ -1,6 +1,7 @@
 using Spectre.Console;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using Workbench.Config;
 
 namespace Workbench.CheckIncludes;
 
@@ -65,33 +66,15 @@ public struct IncludeData
         IncludeDirectories = includes.Select(includes => StringsToRegex(replacer, includes, print).ToList()).ToList();
     }
 
-    public static IncludeData? LoadFromDirectoryOrNull(string root, Printer print)
+    private static IncludeData? LoadFromDirectoryOrNull(Printer print)
     {
-        string file = GetBuildDataPath(root);
-        if (File.Exists(file) == false)
-        {
-            print.Error($"Unable to read file: {file}");
-            return null;
-        }
-        var content = File.ReadAllText(file);
-        var loaded = JsonUtil.Parse<Config.CheckIncludesFile>(print, file, content);
-        if (loaded == null)
-        {
-            return null;
-        }
-
-        var bd = new IncludeData(loaded.IncludeDirectories, print);
-        return bd;
-    }
-
-    public static string GetBuildDataPath(string root)
-    {
-        return Path.Join(root, "includes.wb.json");
+        return ConfigFile.LoadOrNull<CheckIncludesFile, IncludeData>(
+            print, CheckIncludesFile.GetBuildDataPath(), loaded => new IncludeData(loaded.IncludeDirectories, print));
     }
 
     public static IncludeData? LoadOrNull(Printer print)
     {
-        return LoadFromDirectoryOrNull(Environment.CurrentDirectory, print);
+        return LoadFromDirectoryOrNull(print);
     }
 }
 
@@ -613,13 +596,11 @@ public static class IncludeTools
 
     public static int HandleInit(Printer print, bool overwrite)
     {
-        var path = IncludeData.GetBuildDataPath(Environment.CurrentDirectory);
-        var data = new Config.CheckIncludesFile();
+        var data = new CheckIncludesFile();
         data.IncludeDirectories.Add(new() { "list of regexes", "that are used by check-includes" });
         data.IncludeDirectories.Add(new() { "they are grouped into arrays, there needs to be a space between each group" });
 
-        var content = JsonUtil.Write(data);
-        return CommonExecute.WriteContent(print, overwrite, path, content);
+        return ConfigFile.WriteInit(print, overwrite, CheckIncludesFile.GetBuildDataPath(), data);
     }
 }
 

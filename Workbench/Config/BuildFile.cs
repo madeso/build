@@ -14,4 +14,9 @@ internal class BuildFile
 
     [JsonPropertyName("dependencies")]
     public List<DependencyName> Dependencies { get; set; } = new();
+
+    public static string GetBuildDataPath()
+    {
+        return Path.Join(Environment.CurrentDirectory, "project.wb.json");
+    }
 }

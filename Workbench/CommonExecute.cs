@@ -45,17 +45,4 @@ public static class CommonExecute
             }
         });
     }
-
-    public static int WriteContent(Printer print, bool overwrite, string path, string content)
-    {
-        if (overwrite == false && File.Exists(path))
-        {
-            print.Error($"{path} already exist and overwrite was not requested");
-            return -1;
-        }
-
-        File.WriteAllText(path, content);
-        print.Info($"Wrote {path}");
-        return 0;
-    }
 }
