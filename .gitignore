@@ -7,6 +7,9 @@ Properties/*
 Workbench/bin
 Workbench/obj
 
+# contains debug settings...
+Workbench/Properties
+
 junk/
 project.wb.json
 *.bak
