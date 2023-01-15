@@ -16,7 +16,6 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
       working-directory: ./Workbench
-      working-directory: ./Workbench
     - name: Build
       run: dotnet build --no-restore
       working-directory: ./Workbench
