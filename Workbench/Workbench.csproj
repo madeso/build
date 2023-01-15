@@ -5,7 +5,7 @@
         <TargetFramework>net7.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+        <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
 
 		<AssemblyName>wb</AssemblyName>
     </PropertyGroup>
@@ -13,58 +13,5 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
         <PackageReference Include="Spectre.Console" Version="0.44.0" />
-    </ItemGroup>
-
-    <ItemGroup>
-		<Compile Include="Commands\BuildMain.cs" />
-		<Compile Include="Commands\CheckIncludesMain.cs" />
-		<Compile Include="Commands\ClangMain.cs" />
-		<Compile Include="Commands\CompileCommandsMain.cs" />
-		<Compile Include="Commands\HeroMain.cs" />
-		<Compile Include="Commands\ListHeadersMain.cs" />
-		<Compile Include="Commands\StatusMain.cs" />
-		<Compile Include="Commands\IndentMain.cs" />
-		<Compile Include="Commands\MinorCommands.cs" />
-		<Compile Include="Config\BuildFile.cs" />
-		<Compile Include="Config\CheckIncludesFile.cs" />
-		<Compile Include="Config\ConfigFile.cs" />
-		<Compile Include="EnumConverter.cs" />
-		<Compile Include="DictionaryExtensions.cs" />
-		<Compile Include="Functional.cs" />
-		<Compile Include="Hero\HeroData.cs" />
-		<Compile Include="Hero\HeroParser.cs" />
-		<Compile Include="Hero\HeroUi.cs" />
-		<Compile Include="Build\BuildDependencies.cs" />
-		<Compile Include="Build\BuildData.cs" />
-		<Compile Include="Build\BuildEnv.cs" />
-		<Compile Include="Build\BuildFuncs.cs" />
-		<Compile Include="CheckIncludes.cs" />
-		<Compile Include="Clang.cs" />
-		<Compile Include="ColCounter.cs" />
-		<Compile Include="Command.cs" />
-		<Compile Include="CommonExecute.cs" />
-		<Compile Include="CompileCommands.cs" />
-		<Compile Include="Core.cs" />
-		<Compile Include="Html.cs" />
-		<Compile Include="JsonUtil.cs" />
-		<Compile Include="ListHeaders.cs" />
-		<Compile Include="Printer.cs" />
-		<Compile Include="Registry.cs" />
-		<Compile Include="Status.cs" />
-		<Compile Include="StringExtensions.cs" />
-        <Compile Include="CMake.cs" />
-        <Compile Include="Commands\CmakeMain.cs" />
-        <Compile Include="Found.cs" />
-        <Compile Include="Git.cs" />
-        <Compile Include="Commands\GitMain.cs" />
-        <Compile Include="Graphviz.cs" />
-        <Compile Include="FileIndent.cs" />
-        <Compile Include="main.cs" />
-        <Compile Include="Solution.cs" />
-        <Compile Include="Which.cs" />
-        <Compile Include="FileUtil.cs" />
-        <Compile Include="EditDistance.cs" />
-        <Compile Include="Reflect.cs" />
-        <Compile Include="StringListCombiner.cs" />
     </ItemGroup>
 </Project>
