@@ -71,7 +71,7 @@ internal static class Ui
         var analytics = Parser.Analytics.analyze(project);
         var gv = new Graphviz();
 
-        foreach (var file in project.scanned_files.Keys)
+        foreach (var file in project.ScannedFiles.Keys)
         {
             if (exclude_file(file, input, onlyHeaders, exclude))
             {
@@ -95,7 +95,7 @@ internal static class Ui
             }
         }
 
-        foreach (var file in project.scanned_files.Keys)
+        foreach (var file in project.ScannedFiles.Keys)
         {
             if (exclude_file(file, input, onlyHeaders, exclude))
             {
@@ -110,7 +110,7 @@ internal static class Ui
                 throw new Exception("BUG: Node not added");
             }
 
-            foreach (var s in project.scanned_files[file].AbsoluteIncludes)
+            foreach (var s in project.ScannedFiles[file].AbsoluteIncludes)
             {
                 if (exclude_file(s, input, onlyHeaders, exclude))
                 {
@@ -187,7 +187,7 @@ internal static class Ui
         Html.write_css_file(root.OutputDirectory);
         Parser.Report.GenerateIndexPage(root, project, analytics);
 
-        foreach (var f in project.scanned_files.Keys)
+        foreach (var f in project.ScannedFiles.Keys)
         {
             write_inspection_page(root, f, project, analytics);
         }
@@ -234,7 +234,7 @@ internal static class Ui
         (
             html, root,
             analytics,
-            project.scanned_files
+            project.ScannedFiles
                 .Where(kvp => kvp.Value.AbsoluteIncludes.Contains(file))
                 .Select(kvp => kvp.Key),
             "included_by", $"Theese include {display_name}",
@@ -244,10 +244,10 @@ internal static class Ui
         {
             html.push_str("<div id=\"file\">\n");
 
-            var project_file = project.scanned_files[file];
+            var project_file = project.ScannedFiles[file];
             var analytics_file = analytics.file_to_data[file];
             var file_lines = Core.FormatNumber(project_file.NumberOfLines);
-            var direct_lines = Core.FormatNumber(project_file.AbsoluteIncludes.Select(f => project.scanned_files[f].NumberOfLines).Sum());
+            var direct_lines = Core.FormatNumber(project_file.AbsoluteIncludes.Select(f => project.ScannedFiles[f].NumberOfLines).Sum());
             var direct_count = Core.FormatNumber(project_file.AbsoluteIncludes.Count);
             var total_lines = Core.FormatNumber(analytics_file.total_included_lines);
             var total_count = Core.FormatNumber(analytics_file.all_includes.Count);
@@ -270,7 +270,7 @@ internal static class Ui
         (
             html, root,
             analytics,
-            project.scanned_files[file].AbsoluteIncludes,
+            project.ScannedFiles[file].AbsoluteIncludes,
             "includes", $"{display_name} includes theese",
             it => it.all_includes.Count
         );

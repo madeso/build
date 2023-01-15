@@ -94,9 +94,11 @@ dotnet_diagnostic.ca1715.severity = none
 # explicitly initialized to default value = good for readability
 dotnet_diagnostic.ca1805.severity = none
 
+# add readonly, but triggers even when that's not possible
+dotnet_diagnostic.ca2227.severity = none
+
 # todo(Gustav): change to warning/error leave a comment to why it's disabled
 dotnet_diagnostic.ca1707.severity = warning
-dotnet_diagnostic.ca2227.severity = none
 dotnet_diagnostic.ca1002.severity = none
 dotnet_diagnostic.ca1062.severity = none
 dotnet_diagnostic.ca2201.severity = none

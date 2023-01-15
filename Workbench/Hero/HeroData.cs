@@ -10,9 +10,9 @@ public record OutputFolders(string InputRoot, string OutputDirectory);
 
 public class UserInput
 {
-    public List<string> ProjectDirectories = new();
-    public List<string> IncludeDirectories = new();
-    public List<string> PrecompiledHeaders = new();
+    public List<string> ProjectDirectories {get;}= new();
+    public List<string> IncludeDirectories {get;}= new();
+    public List<string> PrecompiledHeaders { get; } = new();
 
     public static UserInput? LoadFromFile(Printer print, string file)
     {
@@ -57,17 +57,17 @@ public class UserInput
 
 public class Project
 {
-    public List<string> scan_directories;
-    public List<string> include_directories;
-    public List<string> precompiled_headers;
-    public Dictionary<string, SourceFile> scanned_files = new();
+    public ImmutableArray<string> ScanDirectories {get;}
+    public ImmutableArray<string> IncludeDirectories {get;}
+    public ImmutableArray<string> PrecompiledHeaders { get; }
+    public Dictionary<string, SourceFile> ScannedFiles { get; } = new();
     // public DateTime LastScan,
 
     public Project(UserInput input)
     {
-        scan_directories = input.ProjectDirectories;
-        include_directories = input.IncludeDirectories;
-        precompiled_headers = input.PrecompiledHeaders;
+        ScanDirectories = input.ProjectDirectories.ToImmutableArray();
+        IncludeDirectories = input.IncludeDirectories.ToImmutableArray();
+        PrecompiledHeaders = input.PrecompiledHeaders.ToImmutableArray();
         // LastScan = DateTime.Now
     }
 
