@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+using System.Net.NetworkInformation;
 using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -293,6 +295,36 @@ public class Trace
         }
 
         return lines;
+    }
+
+    
+    public IEnumerable<string> ListFilesInCmakeLibrary()
+    {
+        return RunFileList("STATIC");
+    }
+
+    public IEnumerable<string> ListFilesInCmakeExecutable()
+    {
+        return RunFileList("WIN32", "MACOSX_BUNDLE");
+    }
+
+    private IEnumerable<string> RunFileList(params string[] ignoreableArguments)
+    {
+        var cmake = this;
+        var args = cmake.Args.Skip(1).ToImmutableArray();
+        args = Args
+            .Skip(1) // name of library/app
+            .SkipWhile(arg => ignoreableArguments.Contains(arg))
+            .ToImmutableArray();
+        var folder = new FileInfo(cmake.File).Directory?.FullName!;
+
+        foreach (var a in args)
+        {
+            foreach (var f in a.Split(';'))
+            {
+                yield return new FileInfo(Path.Join(folder, f)).FullName;
+            }
+        }
     }
 }
 
