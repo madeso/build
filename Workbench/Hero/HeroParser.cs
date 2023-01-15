@@ -6,8 +6,9 @@ namespace Workbench.Hero.Parser;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Parser
 
-enum States { Start, Hash, Include, AngleBracket, Quote }
-enum ParseResult { Ok, Error }
+internal enum States { Start, Hash, Include, AngleBracket, Quote }
+
+internal enum ParseResult { Ok, Error }
 
 public class Result
 {
@@ -15,7 +16,7 @@ public class Result
     public readonly List<string> local_includes = new();
     public int number_of_lines = 0;
 
-    ParseResult parse_line(string line)
+    private ParseResult parse_line(string line)
     {
         var i = 0;
         var path_start = 0;
@@ -31,7 +32,7 @@ public class Result
             var c = line[i..(i + 1)];
             i += 1;
 
-            if (c == " " || c == "\t")
+            if (c is " " or "\t")
             {
                 // pass
             }
@@ -93,14 +94,14 @@ public class Result
                     case States.AngleBracket:
                         if (c == ">")
                         {
-                            this.system_includes.Add(line.Substring(path_start, i - path_start - 1));
+                            system_includes.Add(line.Substring(path_start, i - path_start - 1));
                             return ParseResult.Ok;
                         }
                         break;
                     case States.Quote:
                         if (c == "\"")
                         {
-                            this.local_includes.Add(line.Substring(path_start, i - path_start - 1));
+                            local_includes.Add(line.Substring(path_start, i - path_start - 1));
                             return ParseResult.Ok;
                         }
                         break;
@@ -187,25 +188,25 @@ public class Analytics
         return analytics;
     }
 
-    void add_trans(string inc, string path)
+    private void add_trans(string inc, string path)
     {
-        if (this.file_to_data.TryGetValue(inc, out var it))
+        if (file_to_data.TryGetValue(inc, out var it))
         {
             it.translation_units_included_by.Add(path);
         }
     }
 
-    void add_all_inc(string inc, string path)
+    private void add_all_inc(string inc, string path)
     {
-        if (this.file_to_data.TryGetValue(inc, out var it))
+        if (file_to_data.TryGetValue(inc, out var it))
         {
             it.all_included_by.Add(path);
         }
     }
 
-    void analyze(string path, Data.Project project)
+    private void analyze(string path, Data.Project project)
     {
-        if (this.file_to_data.TryGetValue(path, out var reta))
+        if (file_to_data.TryGetValue(path, out var reta))
         {
             Debug.Assert(reta.is_analyzed);
             return;
@@ -223,10 +224,10 @@ public class Analytics
 
             var is_tu = FileUtil.IsTranslationUnit(path);
 
-            this.analyze(include, project);
+            analyze(include, project);
 
 
-            if (this.file_to_data.TryGetValue(include, out var ai))
+            if (file_to_data.TryGetValue(include, out var ai))
             {
                 ret.all_includes.Add(include);
                 ai.all_included_by.Add(path);
@@ -241,10 +242,10 @@ public class Analytics
 
                 foreach (var inc in ai.all_includes)
                 {
-                    this.add_all_inc(inc, path);
+                    add_all_inc(inc, path);
                     if (is_tu)
                     {
-                        this.add_trans(inc, path);
+                        add_trans(inc, path);
                     }
                 }
             }
@@ -256,7 +257,7 @@ public class Analytics
 
         ret.total_included_lines = ret.all_includes.Select(f => project.scanned_files[f].NumberOfLines).Sum();
 
-        this.file_to_data.Add(path, ret);
+        file_to_data.Add(path, ret);
     }
 }
 
@@ -265,8 +266,9 @@ public class Analytics
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Report
 
-record TableRow(string Label, string Value);
-record PathCount(string Path, int Count);
+internal record TableRow(string Label, string Value);
+
+internal record PathCount(string Path, int Count);
 
 public static class Report
 {
@@ -278,7 +280,7 @@ public static class Report
     }
 #endif
 
-    static void add_project_table_summary(Html sb, IEnumerable<TableRow> table)
+    private static void add_project_table_summary(Html sb, IEnumerable<TableRow> table)
     {
         sb.push_str("<div id=\"summary\">\n");
         sb.push_str("<table class=\"summary\">\n");
@@ -290,7 +292,7 @@ public static class Report
         sb.push_str("</div>\n");
     }
 
-    static void add_file_table(Html sb, Data.OutputFolders root, string id, string header, IEnumerable<PathCount> count_list)
+    private static void add_file_table(Html sb, Data.OutputFolders root, string id, string header, IEnumerable<PathCount> count_list)
     {
         sb.push_str($"<div id=\"{id}\">\n");
         sb.push_str($"<a name=\"{id}\"></a>");
@@ -307,9 +309,7 @@ public static class Report
         sb.push_str("</div>\n");
     }
 
-
-
-    static string path_to_index_file(string root)
+    private static string path_to_index_file(string root)
     { return Path.Join(root, "index.html"); }
 
 
@@ -333,7 +333,7 @@ public static class Report
                 .Where(kvp => FileUtil.IsTranslationUnit(kvp.Key) && !project.scanned_files[kvp.Key].IsPrecompiled)
                 .Select(kvp => kvp.Value.total_included_lines + project.scanned_files[kvp.Key].NumberOfLines)
                 .Sum();
-            var factor = (double)total_parsed / (double)total_lines;
+            var factor = total_parsed / (double)total_lines;
             var table = new TableRow[]
             {
                 new TableRow("Files", Core.FormatNumber(project.scanned_files.Count)),
@@ -386,7 +386,7 @@ public static class Report
 
 public class ProgressFeedback
 {
-    private Printer printer;
+    private readonly Printer printer;
 
     public ProgressFeedback(Printer printer)
     {
@@ -434,65 +434,65 @@ public class Scanner
         }
 
         // scan everything that goes into precompiled header
-        this.is_scanning_pch = true;
+        is_scanning_pch = true;
         foreach (var inc in project.precompiled_headers)
         {
             if (File.Exists(inc))
             {
-                this.scan_file(project, inc);
-                while (this.scan_queue.Count > 0)
+                scan_file(project, inc);
+                while (scan_queue.Count > 0)
                 {
-                    var to_scan = this.scan_queue.ToImmutableArray();
-                    this.scan_queue.Clear();
+                    var to_scan = scan_queue.ToImmutableArray();
+                    scan_queue.Clear();
                     foreach (var fi in to_scan)
                     {
-                        this.scan_file(project, fi);
+                        scan_file(project, fi);
                     }
                 }
-                this.file_queue.Clear();
+                file_queue.Clear();
             }
         }
-        this.is_scanning_pch = false;
+        is_scanning_pch = false;
 
         feedback.update_title("Scanning directories...");
         foreach (var dir in project.scan_directories)
         {
             feedback.update_message($"{dir}");
-            this.scan_directory(dir, feedback);
+            scan_directory(dir, feedback);
         }
 
         feedback.update_title("Scanning files...");
 
         var dequeued = 0;
 
-        while (this.scan_queue.Count > 0)
+        while (scan_queue.Count > 0)
         {
-            dequeued += this.scan_queue.Count;
-            var to_scan = this.scan_queue.ToImmutableArray();
-            this.scan_queue.Clear();
+            dequeued += scan_queue.Count;
+            var to_scan = scan_queue.ToImmutableArray();
+            scan_queue.Clear();
             foreach (var fi in to_scan)
             {
-                feedback.update_count(dequeued + this.scan_queue.Count);
+                feedback.update_count(dequeued + scan_queue.Count);
                 feedback.next_item();
                 feedback.update_message($"{fi}");
-                this.scan_file(project, fi);
+                scan_file(project, fi);
             }
         }
-        this.file_queue.Clear();
-        this.system_includes.Clear();
+        file_queue.Clear();
+        system_includes.Clear();
 
         project.scanned_files.RemoveAll(kvp => kvp.Value.IsTouched == false);
     }
 
-    void scan_directory(string dir, ProgressFeedback feedback)
+    private void scan_directory(string dir, ProgressFeedback feedback)
     {
-        if (this.please_scan_directory(dir, feedback) == false)
+        if (please_scan_directory(dir, feedback) == false)
         {
-            this.errors.Add($"Cannot descend into {dir}");
+            errors.Add($"Cannot descend into {dir}");
         }
     }
 
-    bool please_scan_directory(string dir, ProgressFeedback feedback)
+    private bool please_scan_directory(string dir, ProgressFeedback feedback)
     {
         feedback.update_message($"{dir}");
 
@@ -512,7 +512,7 @@ public class Scanner
         foreach (var ssubdir in dirinfo.GetDirectories())
         {
             var subdir = ssubdir.FullName;
-            this.scan_directory(subdir, feedback);
+            scan_directory(subdir, feedback);
         }
 
         return true;
@@ -523,51 +523,51 @@ public class Scanner
             var ext = Path.GetExtension(file);
             if (FileUtil.IsTranslationUnitExtension(ext))
             {
-                this.add_to_queue(file, F.canonicalize_or_default(file));
+                add_to_queue(file, F.canonicalize_or_default(file));
             }
             else
             {
                 // printer.info("invalid extension {}", ext);
-                this.missing_ext.AddOne(ext);
+                missing_ext.AddOne(ext);
             }
         }
     }
 
-    void add_to_queue(string inc, string abs)
+    private void add_to_queue(string inc, string abs)
     {
-        if (!this.file_queue.Contains(abs))
+        if (!file_queue.Contains(abs))
         {
-            this.file_queue.Add(abs);
-            this.scan_queue.Add(inc);
+            file_queue.Add(abs);
+            scan_queue.Add(inc);
         }
     }
 
-    void scan_file(Data.Project project, string p)
+    private void scan_file(Data.Project project, string p)
     {
         var path = F.canonicalize_or_default(p);
         // todo(Gustav): add last scan feature!!!
         if (project.scanned_files.ContainsKey(path)) // && project.LastScan > path.LastWriteTime && !this.is_scanning_pch
         {
             var sf = project.scanned_files[path];
-            this.please_scan_file(project, path, sf);
+            please_scan_file(project, path, sf);
             project.scanned_files.Add(path, sf);
         }
         else
         {
-            var res = Result.parse_file(path, this.errors);
+            var res = Result.parse_file(path, errors);
             var sf = new Data.SourceFile
             (
                 numberOfLines: res.number_of_lines,
                 localIncludes: res.local_includes,
                 systemIncludes: res.system_includes,
-                isPrecompiled: this.is_scanning_pch
+                isPrecompiled: is_scanning_pch
             );
-            this.please_scan_file(project, path, sf);
+            please_scan_file(project, path, sf);
             project.scanned_files.Add(path, sf);
         }
     }
 
-    void please_scan_file(Data.Project project, string path, Data.SourceFile sf)
+    private void please_scan_file(Data.Project project, string path, Data.SourceFile sf)
     {
         sf.IsTouched = true;
         sf.AbsoluteIncludes.Clear();
@@ -582,7 +582,7 @@ public class Scanner
             var inc = Path.Join(local_dir, s);
             var abs = F.canonicalize_or_default(inc);
             // found a header that's part of PCH during regular scan: ignore it
-            if (!this.is_scanning_pch && project.scanned_files.ContainsKey(abs) && project.scanned_files[abs].IsPrecompiled)
+            if (!is_scanning_pch && project.scanned_files.ContainsKey(abs) && project.scanned_files[abs].IsPrecompiled)
             {
                 F.touch_file(project, abs);
                 continue;
@@ -596,16 +596,16 @@ public class Scanner
                 continue;
             }
             sf.AbsoluteIncludes.Add(abs);
-            this.add_to_queue(inc, abs);
+            add_to_queue(inc, abs);
         }
 
         foreach (var s in sf.SystemIncludes)
         {
-            if (this.system_includes.ContainsKey(s))
+            if (system_includes.ContainsKey(s))
             {
-                var abs = this.system_includes[s];
+                var abs = system_includes[s];
                 // found a header that's part of PCH during regular scan: ignore it
-                if (!this.is_scanning_pch && project.scanned_files.ContainsKey(abs) && project.scanned_files[abs].IsPrecompiled)
+                if (!is_scanning_pch && project.scanned_files.ContainsKey(abs) && project.scanned_files[abs].IsPrecompiled)
                 {
                     F.touch_file(project, abs);
                     continue;
@@ -623,23 +623,23 @@ public class Scanner
                 {
                     var abs = F.canonicalize_or_default(found_path);
                     // found a header that's part of PCH during regular scan: ignore it
-                    if (!this.is_scanning_pch && project.scanned_files.ContainsKey(abs) && project.scanned_files[abs].IsPrecompiled)
+                    if (!is_scanning_pch && project.scanned_files.ContainsKey(abs) && project.scanned_files[abs].IsPrecompiled)
                     {
                         F.touch_file(project, abs);
                         continue;
                     }
 
                     sf.AbsoluteIncludes.Add(abs);
-                    this.system_includes.Add(s, abs);
-                    this.add_to_queue(found_path, abs);
+                    system_includes.Add(s, abs);
+                    add_to_queue(found_path, abs);
                 }
-                else if (this.not_found_origins.TryGetValue(s, out var file_list))
+                else if (not_found_origins.TryGetValue(s, out var file_list))
                 {
                     file_list.Add(path);
                 }
                 else
                 {
-                    this.not_found_origins.Add(s, new() { path });
+                    not_found_origins.Add(s, new() { path });
                 }
             }
         }

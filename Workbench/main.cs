@@ -27,7 +27,7 @@ internal sealed class DummyCommand : Command<DummyCommand.Arg>
 
 internal class Program
 {
-    static int Main(string[] args)
+    private static int Main(string[] args)
     {
         var app = new CommandApp();
         app.Configure(config =>

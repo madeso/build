@@ -5,7 +5,7 @@ using System.IO;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
-class ProjectFile
+internal class ProjectFile
 {
     [JsonPropertyName("name")]
     public string Name { get; set; } = "";
@@ -49,7 +49,7 @@ public class OptionalRegexDynamic : OptionalRegex
 
 public class OptionalRegexStatic : OptionalRegex
 {
-    readonly Regex regex;
+    private readonly Regex regex;
 
     public OptionalRegexStatic(Regex regex)
     {
@@ -64,7 +64,7 @@ public class OptionalRegexStatic : OptionalRegex
 
 public class OptionalRegexFailed : OptionalRegex
 {
-    readonly string error;
+    private readonly string error;
 
     public OptionalRegexFailed(string error)
     {
@@ -78,7 +78,7 @@ public class OptionalRegexFailed : OptionalRegex
     }
 }
 
-abstract record RegexOrErr
+internal abstract record RegexOrErr
 {
     public record Value(Regex regex) : RegexOrErr;
     public record Error(string error) : RegexOrErr;
@@ -139,15 +139,15 @@ public struct BuildData
 
     public BuildData(string name, string root_dir, List<List<string>> includes, Printer print)
     {
-        this.Name = name;
-        this.Dependencies = new();
-        this.RootDirectory = root_dir;
-        this.BuildDirectory = Path.Join(root_dir, "build");
-        this.ProjectDirectory = Path.Join(BuildDirectory, name);
-        this.DependencyDirectory = Path.Join(BuildDirectory, "deps");
+        Name = name;
+        Dependencies = new();
+        RootDirectory = root_dir;
+        BuildDirectory = Path.Join(root_dir, "build");
+        ProjectDirectory = Path.Join(BuildDirectory, name);
+        DependencyDirectory = Path.Join(BuildDirectory, "deps");
 
         var replacer = CheckIncludes.IncludeTools.CreateReplacer("file_stem");
-        this.IncludeDirectories = includes.Select(includes => strings_to_regex(replacer, includes, print).ToList()).ToList();
+        IncludeDirectories = includes.Select(includes => strings_to_regex(replacer, includes, print).ToList()).ToList();
     }
 
 

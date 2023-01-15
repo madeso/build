@@ -14,7 +14,7 @@ internal class ProcessExitWithOutput
     {
         CommandLine = pe.CommandLine;
         ExitCode = pe.ExitCode;
-        this.Output = output;
+        Output = output;
     }
 
     public string[] RequireSuccess()
@@ -25,12 +25,12 @@ internal class ProcessExitWithOutput
             throw new Exception($"{CommandLine} has exit code {ExitCode}:\n{outputString}");
         }
 
-        return this.Output;
+        return Output;
     }
 
     public ProcessExitWithOutput PrintOutput(Printer print)
     {
-        foreach (var line in this.Output)
+        foreach (var line in Output)
         {
             print.Info(line);
         }
@@ -51,8 +51,8 @@ internal class ProcessExitWithOutput
 
     public ProcessExitWithOutput PrintStatusAndUpdate(Printer print)
     {
-        this.PrintStatus(print);
-        this.PrintOutput(print);
+        PrintStatus(print);
+        PrintOutput(print);
         return this;
     }
 }
@@ -83,7 +83,7 @@ public class ProcessBuilder
         proc.BeginErrorReadLine();
         proc.WaitForExit();
 
-        return new(this.ToString(), proc.ExitCode);
+        return new(ToString(), proc.ExitCode);
     }
 
     internal ProcessExitWithOutput RunAndGetOutput()
@@ -101,7 +101,7 @@ public class ProcessBuilder
 
     public ProcessBuilder(string executable, params string[] arguments)
     {
-        this.Executable = executable;
+        Executable = executable;
         foreach (var arg in arguments)
         {
             AddArgument(arg);
@@ -110,7 +110,7 @@ public class ProcessBuilder
 
     public ProcessBuilder InDirectory(string directory)
     {
-        this.WorkingDirectory = directory;
+        WorkingDirectory = directory;
         return this;
     }
 
@@ -125,9 +125,9 @@ public class ProcessBuilder
         // https://stackoverflow.com/a/10489920
         string result = "";
 
-        if (Environment.OSVersion.Platform == PlatformID.Unix
-            ||
-            Environment.OSVersion.Platform == PlatformID.MacOSX)
+        if (Environment.OSVersion.Platform is PlatformID.Unix
+            or
+            PlatformID.MacOSX)
         {
             foreach (string arg in args)
             {

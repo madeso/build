@@ -58,10 +58,10 @@ public static class Dependencies
 
 internal class DependencySdl2 : Dependency
 {
-    readonly string root_folder;
-    readonly string build_folder;
-    readonly string url;
-    readonly string folderName;
+    private readonly string root_folder;
+    private readonly string build_folder;
+    private readonly string url;
+    private readonly string folderName;
 
     public DependencySdl2(BuildData data, string zipFile, string folderName)
     {
@@ -78,27 +78,27 @@ internal class DependencySdl2 : Dependency
 
     public void AddCmakeArguments(CMake.CMake cmake)
     {
-        cmake.AddArgument("SDL2_HINT_ROOT", this.root_folder);
-        cmake.AddArgument("SDL2_HINT_BUILD", this.build_folder);
+        cmake.AddArgument("SDL2_HINT_ROOT", root_folder);
+        cmake.AddArgument("SDL2_HINT_BUILD", build_folder);
     }
 
     public void Install(BuildEnviroment env, Printer print, BuildData data)
     {
         var deps = data.DependencyDirectory;
-        var root = this.root_folder;
-        var build = this.build_folder;
+        var root = root_folder;
+        var build = build_folder;
         var generator = env.CreateCmakeGenerator();
 
         print.Header("Installing dependency sdl2");
 
-        var zip_file = Path.Join(deps, $"{this.folderName}.zip");
+        var zip_file = Path.Join(deps, $"{folderName}.zip");
 
         if (false == File.Exists(zip_file))
         {
             Core.VerifyDirectoryExists(print, root);
             Core.VerifyDirectoryExists(print, deps);
             print.Info("downloading sdl2");
-            Core.DownloadFileIfMissing(print, this.url, zip_file);
+            Core.DownloadFileIfMissing(print, url, zip_file);
         }
         else
         {
@@ -108,7 +108,7 @@ internal class DependencySdl2 : Dependency
         if (false == File.Exists(Path.Join(root, "INSTALL.txt")))
         {
             Core.ExtractZip(print, zip_file, root);
-            Core.MoveFiles(print, Path.Join(root, this.folderName), root);
+            Core.MoveFiles(print, Path.Join(root, folderName), root);
         }
         else
         {
@@ -135,8 +135,8 @@ internal class DependencySdl2 : Dependency
 
     public IEnumerable<string> GetStatus()
     {
-        yield return $"Root: {this.root_folder}";
-        yield return $"Build: {this.build_folder}";
+        yield return $"Root: {root_folder}";
+        yield return $"Build: {build_folder}";
     }
 }
 
@@ -144,7 +144,7 @@ internal class DependencySdl2 : Dependency
 
 internal class DependencyPython : Dependency
 {
-    readonly string? pathToPythonExe;
+    private readonly string? pathToPythonExe;
 
     internal DependencyPython()
     {
@@ -158,7 +158,7 @@ internal class DependencyPython : Dependency
 
     public void AddCmakeArguments(CMake.CMake cmake)
     {
-        if (this.pathToPythonExe == null) { return; }
+        if (pathToPythonExe == null) { return; }
 
         var python_exe = Path.Join(pathToPythonExe, "python.exe");
         cmake.AddArgument("PYTHON_EXECUTABLE:FILEPATH", python_exe);
@@ -184,9 +184,9 @@ internal class DependencyPython : Dependency
 
 internal class DependencyAssimp : Dependency
 {
-    readonly string dependencyFolder;
-    string installFolder;
-    bool useStaticBuild;
+    private readonly string dependencyFolder;
+    private readonly string installFolder;
+    private readonly bool useStaticBuild;
 
     public DependencyAssimp(BuildData data, bool useStaticBuild)
     {
@@ -202,7 +202,7 @@ internal class DependencyAssimp : Dependency
 
     public void AddCmakeArguments(CMake.CMake cmake)
     {
-        cmake.AddArgument("ASSIMP_ROOT_DIR", this.installFolder);
+        cmake.AddArgument("ASSIMP_ROOT_DIR", installFolder);
     }
 
     public void Install(BuildEnviroment env, Printer print, BuildData data)
@@ -210,8 +210,8 @@ internal class DependencyAssimp : Dependency
         var url = "https://github.com/assimp/assimp/archive/v5.0.1.zip";
 
         var deps = data.DependencyDirectory;
-        var root = this.dependencyFolder;
-        var install = this.installFolder;
+        var root = dependencyFolder;
+        var install = installFolder;
         var generator = env.CreateCmakeGenerator();
 
         print.Header("Installing dependency assimp");
@@ -229,7 +229,7 @@ internal class DependencyAssimp : Dependency
 
             var project = new CMake.CMake(build, root, generator);
             project.AddArgument("ASSIMP_BUILD_X3D_IMPORTER", "0");
-            if (this.useStaticBuild)
+            if (useStaticBuild)
             {
                 project.MakeStaticLibrary();
             }
@@ -251,8 +251,8 @@ internal class DependencyAssimp : Dependency
 
     public IEnumerable<string> GetStatus()
     {
-        yield return $"Root: {this.dependencyFolder}";
-        yield return $"Install: {this.installFolder}";
+        yield return $"Root: {dependencyFolder}";
+        yield return $"Install: {installFolder}";
     }
 }
 

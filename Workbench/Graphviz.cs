@@ -43,15 +43,15 @@ public class Graphviz
         }
     }
 
-    readonly List<Node> nodes = new();
-    readonly Dictionary<string, Node> id_to_node = new();
-    readonly List<Edge> edges = new();
+    private readonly List<Node> nodes = new();
+    private readonly Dictionary<string, Node> id_to_node = new();
+    private readonly List<Edge> edges = new();
 
     public Node add_node_with_id(string display, string shape, string id)
     {
         var newNode = new Node(id, display, shape, cluster: null);
-        this.id_to_node.Add(id, newNode);
-        this.nodes.Add(newNode);
+        id_to_node.Add(id, newNode);
+        nodes.Add(newNode);
         return newNode;
     }
 
@@ -60,7 +60,7 @@ public class Graphviz
         var id = ConvertIntoSafeId(display, "node");
         var baseId = id;
         var index = 2;
-        while (this.id_to_node.ContainsKey(id) == true)
+        while (id_to_node.ContainsKey(id) == true)
         {
             id = $"{baseId}_{index}";
             index += 1;
@@ -102,7 +102,7 @@ public class Graphviz
 
     public Node? get_node_id(string id)
     {
-        if (this.id_to_node.TryGetValue(id, out var ret))
+        if (id_to_node.TryGetValue(id, out var ret))
         {
             return ret;
         }
@@ -114,7 +114,7 @@ public class Graphviz
 
     public void AddEdge(Node from, Node to)
     {
-        this.edges.Add(new Edge(from, to));
+        edges.Add(new Edge(from, to));
     }
 
     public void write_file_to(string path)
@@ -129,7 +129,7 @@ public class Graphviz
             yield return "digraph G\n";
             yield return "{\n";
 
-            foreach (var group in this.nodes.GroupBy(x => x.cluster))
+            foreach (var group in nodes.GroupBy(x => x.cluster))
             {
                 var nodes = group.ToList();
                 var cluster = nodes.FirstOrDefault()?.cluster;
@@ -152,7 +152,7 @@ public class Graphviz
             }
 
             yield return "\n";
-            foreach (var e in this.edges)
+            foreach (var e in edges)
             {
                 var from = e.from;
                 var to = e.to;
@@ -180,7 +180,7 @@ public class Graphviz
 
     private IEnumerable<Node> get_all_dependencies_for_node(Node thisnode)
     {
-        foreach (var e in this.edges)
+        foreach (var e in edges)
         {
             if (e.from == thisnode)
             {
@@ -191,7 +191,7 @@ public class Graphviz
 
     private void deep_add_all_dependencies(HashSet<Node> children, Node node, bool add)
     {
-        var deps = this.get_all_dependencies_for_node(node);
+        var deps = get_all_dependencies_for_node(node);
         foreach (var p in deps)
         {
             if (p == null) { throw new Exception("invalid internal state"); }
@@ -201,7 +201,7 @@ public class Graphviz
                 children.Add(p);
             }
 
-            this.deep_add_all_dependencies(children, p, true);
+            deep_add_all_dependencies(children, p, true);
         }
     }
 
@@ -214,27 +214,27 @@ public class Graphviz
     */
     public void Simplify()
     {
-        if (this.nodes.Count <= 0)
+        if (nodes.Count <= 0)
         {
             return;
         }
 
-        foreach (var node in this.nodes)
+        foreach (var node in nodes)
         {
             // get all unique dependencies
             var se = new HashSet<Node>();
-            this.deep_add_all_dependencies(se, node, false);
+            deep_add_all_dependencies(se, node, false);
 
             // get all dependencies from current, and remove all from list
-            var deps = this.get_all_dependencies_for_node(node).ToImmutableArray();
-            this.edges.RemoveAll(e => e.from == node);
+            var deps = get_all_dependencies_for_node(node).ToImmutableArray();
+            edges.RemoveAll(e => e.from == node);
 
             // add them back
             foreach (var dependency in deps)
             {
                 if (se.Contains(dependency) == false)
                 {
-                    this.AddEdge(node, dependency);
+                    AddEdge(node, dependency);
                 }
             }
         }

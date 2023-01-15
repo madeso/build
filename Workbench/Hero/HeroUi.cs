@@ -29,7 +29,7 @@ internal static class Ui
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     // ReportForm
 
-    static bool file_is_in_file_list(string f, IEnumerable<string> list)
+    private static bool file_is_in_file_list(string f, IEnumerable<string> list)
     {
         var ff = new FileInfo(f);
         foreach (var p in list)
@@ -45,7 +45,7 @@ internal static class Ui
         return false;
     }
 
-    static bool exclude_file(string file, Data.UserInput input, bool only_headers, IEnumerable<string> exclude)
+    private static bool exclude_file(string file, Data.UserInput input, bool only_headers, IEnumerable<string> exclude)
     {
         if (file_is_in_file_list(file, input.project_directories))
         {
@@ -66,7 +66,7 @@ internal static class Ui
         }
     }
 
-    static void generate_dot(Printer print, Data.OutputFolders root, Data.Project project, Parser.Scanner scanner, bool simplifyGraphviz, bool onlyHeaders, string[] exclude, Data.UserInput input, bool cluster)
+    private static void generate_dot(Printer print, Data.OutputFolders root, Data.Project project, Parser.Scanner scanner, bool simplifyGraphviz, bool onlyHeaders, string[] exclude, Data.UserInput input, bool cluster)
     {
         var analytics = Parser.Analytics.analyze(project);
         var gv = new Graphviz();
@@ -140,7 +140,7 @@ internal static class Ui
         gv.write_file_to(root.OutputDirectory);
     }
 
-    static void generate_report(Data.OutputFolders root, Data.Project project, Parser.Scanner scanner)
+    private static void generate_report(Data.OutputFolders root, Data.Project project, Parser.Scanner scanner)
     {
         {
             var html = new Html();
@@ -193,8 +193,7 @@ internal static class Ui
         }
     }
 
-
-    static void write_inspect_header_table
+    private static void write_inspect_header_table
     (
         Html html,
         Data.OutputFolders root,
@@ -223,8 +222,7 @@ internal static class Ui
         html.push_str("</div>\n");
     }
 
-
-    static void write_inspection_page(Data.OutputFolders root, string file, Data.Project project, Parser.Analytics analytics)
+    private static void write_inspection_page(Data.OutputFolders root, string file, Data.Project project, Parser.Analytics analytics)
     {
         var html = new Html();
 

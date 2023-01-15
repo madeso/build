@@ -4,8 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace Workbench.CMake;
 
-
-static class CmakeTools
+internal static class CmakeTools
 {
     private static Found FindnRegistry(Printer printer)
     {
@@ -61,13 +60,13 @@ public class Argument
 {
     public Argument(string name, string value)
     {
-        this.Name = name;
-        this.Value = value;
+        Name = name;
+        Value = value;
     }
 
     public Argument(string name, string value, string typename) : this(name, value)
     {
-        this.TypeName = typename;
+        TypeName = typename;
     }
 
     // format for commandline
@@ -75,11 +74,11 @@ public class Argument
     {
         if (TypeName == null)
         {
-            return $"-D{this.Name}={this.Value}";
+            return $"-D{Name}={Value}";
         }
         else
         {
-            return $"-D{this.Name}:{TypeName}={this.Value}";
+            return $"-D{Name}:{TypeName}={Value}";
         }
     }
 
@@ -94,8 +93,8 @@ public class Generator
 {
     public Generator(string name, string? arch = null)
     {
-        this.Name = name;
-        this.Arch = arch;
+        Name = name;
+        Arch = arch;
     }
 
     public string Name { get; }
@@ -108,8 +107,8 @@ public class CMake
     public CMake(string build_folder, string source_folder, Generator generator)
     {
         this.generator = generator;
-        this.buildFolder = build_folder;
-        this.sourceFolder = source_folder;
+        buildFolder = build_folder;
+        sourceFolder = source_folder;
     }
 
     private readonly Generator generator;
@@ -121,25 +120,25 @@ public class CMake
     // add argument with a explicit type set
     private void AddArgumentWithType(string name, string value, string typename)
     {
-        this.arguments.Add(new Argument(name, value, typename));
+        arguments.Add(new Argument(name, value, typename));
     }
 
     // add argument
     public void AddArgument(string name, string value)
     {
-        this.arguments.Add(new Argument(name, value));
+        arguments.Add(new Argument(name, value));
     }
 
     // set the install folder
     public void SetInstallFolder(string folder)
     {
-        this.AddArgumentWithType("CMAKE_INSTALL_PREFIX", folder, "PATH");
+        AddArgumentWithType("CMAKE_INSTALL_PREFIX", folder, "PATH");
     }
 
     // set cmake to make static (not shared) library
     public void MakeStaticLibrary()
     {
-        this.AddArgument("BUILD_SHARED_LIBS", "0");
+        AddArgument("BUILD_SHARED_LIBS", "0");
     }
 
     // run cmake configure step
@@ -153,24 +152,24 @@ public class CMake
         }
 
         var command = new ProcessBuilder(cmake);
-        foreach (var arg in this.arguments)
+        foreach (var arg in arguments)
         {
             var argument = arg.FormatForCmakeArgument();
             printer.Info($"Setting CMake argument for config: {argument}");
             command.AddArgument(argument);
         }
 
-        command.AddArgument(this.sourceFolder);
+        command.AddArgument(sourceFolder);
         command.AddArgument("-G");
-        command.AddArgument(this.generator.Name);
+        command.AddArgument(generator.Name);
         if (generator.Arch != null)
         {
             command.AddArgument("-A");
             command.AddArgument(generator.Arch);
         }
 
-        Core.VerifyDirectoryExists(printer, this.buildFolder);
-        command.WorkingDirectory = this.buildFolder;
+        Core.VerifyDirectoryExists(printer, buildFolder);
+        command.WorkingDirectory = buildFolder;
 
         if (Core.IsWindows())
         {
@@ -211,8 +210,8 @@ public class CMake
         command.AddArgument("--config");
         command.AddArgument("Release");
 
-        Core.VerifyDirectoryExists(printer, this.buildFolder);
-        command.WorkingDirectory = this.buildFolder;
+        Core.VerifyDirectoryExists(printer, buildFolder);
+        command.WorkingDirectory = buildFolder;
 
         if (Core.IsWindows())
         {
@@ -227,13 +226,13 @@ public class CMake
     // build cmake project
     public void Build(Printer printer)
     {
-        this.RunBuildCommand(printer, false);
+        RunBuildCommand(printer, false);
     }
 
     // install cmake project
     public void Install(Printer printer)
     {
-        this.RunBuildCommand(printer, true);
+        RunBuildCommand(printer, true);
     }
 }
 

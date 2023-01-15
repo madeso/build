@@ -46,7 +46,7 @@ internal class FileStatistics
 
     internal void Print()
     {
-        if (this.data.Count == 0) { return; }
+        if (data.Count == 0) { return; }
         var average_value = TimeSpan.FromSeconds(data.Average(x => x.Value.TotalSeconds));
         var mi = data.MinBy(x => x.Value);
         var ma = data.MaxBy(x => x.Value);
@@ -71,8 +71,8 @@ internal class NamePrinter
     {
         if (printed) { return; }
 
-        AnsiConsole.WriteLine(this.name);
-        this.printed = true;
+        AnsiConsole.WriteLine(name);
+        printed = true;
     }
 }
 

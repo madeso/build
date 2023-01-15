@@ -148,13 +148,13 @@ public class Solution
         var set = names.ToHashSet();
 
         // remove links
-        foreach (var p in this.JustProjects)
+        foreach (var p in JustProjects)
         {
             p.NamedDependencies = p.NamedDependencies.Where(n => set.Contains(n) == false).ToList();
         }
 
         // remove projects
-        JustProjects = this.JustProjects.Where(p => set.Contains(p.Name) == false).ToList();
+        JustProjects = JustProjects.Where(p => set.Contains(p.Name) == false).ToList();
 
         // remove links
         // a name can be 2 keys (alias)
@@ -169,22 +169,18 @@ public class Solution
 
     private string GetGraphvizType(Project p)
     {
-        switch (p.Type)
+        return p.Type switch
         {
-            case ProjectType.Executable:
-                return "folder";
-            case ProjectType.Static:
-                return "component";
-            case ProjectType.Shared:
-                return "ellipse";
-        }
-
-        return "plaintext";
+            ProjectType.Executable => "folder",
+            ProjectType.Static => "component",
+            ProjectType.Shared => "ellipse",
+            _ => "plaintext",
+        };
     }
 
     public void PostLoad()
     {
-        foreach (var p in this.JustProjects)
+        foreach (var p in JustProjects)
         {
             p.Resolve(Projects);
         }
@@ -213,8 +209,8 @@ public class Solution
 
 internal class CmakeSolutionParser
 {
-    Dictionary<string, Solution.Project> allProjects = new();
-    List<Solution.Project> projects = new();
+    private readonly Dictionary<string, Solution.Project> allProjects = new();
+    private readonly List<Solution.Project> projects = new();
 
     internal void AddExecutable(Trace line)
     {
@@ -271,7 +267,7 @@ internal class CmakeSolutionParser
         var target = allProjects[targetName];
         foreach (var c in line.Args.Skip(1))
         {
-            if (c == "PUBLIC" || c == "INTERFACE" || c == "PRIVATE") { continue; }
+            if (c is "PUBLIC" or "INTERFACE" or "PRIVATE") { continue; }
             target.NamedDependencies.Add(c);
         }
     }

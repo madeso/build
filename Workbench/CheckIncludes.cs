@@ -16,8 +16,8 @@ public class Include : IComparable<Include>
 
     public Include(int line_class, string line)
     {
-        this.LineClass = line_class;
-        this.Line = line;
+        LineClass = line_class;
+        Line = line;
     }
 
     public int CompareTo(Include? rhs)

@@ -87,22 +87,22 @@ public class BuildEnviroment
         {
             if (args.Compiler == null) { return; }
 
-            if (this.compiler == null)
+            if (compiler == null)
             {
-                this.compiler = args.Compiler;
+                compiler = args.Compiler;
                 return;
             }
 
-            if (args.Compiler == this.compiler) { return; }
+            if (args.Compiler == compiler) { return; }
 
             if (args.ForceChange)
             {
-                printer.warning($"Compiler changed via argument from {this.compiler} to {args.Compiler}");
-                this.compiler = args.Compiler;
+                printer.warning($"Compiler changed via argument from {compiler} to {args.Compiler}");
+                compiler = args.Compiler;
             }
             else
             {
-                printer.error($"Compiler changed via argument from {this.compiler} to {args.Compiler}");
+                printer.error($"Compiler changed via argument from {compiler} to {args.Compiler}");
             }
         }
 
@@ -110,22 +110,22 @@ public class BuildEnviroment
         {
             if (args.Platform == null) { return; }
 
-            if (this.platform == null)
+            if (platform == null)
             {
-                this.platform = args.Platform;
+                platform = args.Platform;
                 return;
             }
 
-            if (args.Platform == this.platform) { return; }
+            if (args.Platform == platform) { return; }
 
             if (args.ForceChange)
             {
-                printer.warning($"Platform changed via argument from {this.platform} to {args.Platform}");
-                this.platform = args.Platform;
+                printer.warning($"Platform changed via argument from {platform} to {args.Platform}");
+                platform = args.Platform;
             }
             else
             {
-                printer.error($"Platform changed via argument from {this.platform} to {args.Platform}");
+                printer.error($"Platform changed via argument from {platform} to {args.Platform}");
             }
         }
     }
@@ -152,7 +152,7 @@ public class EnviromentArgument : CommandSettings
 
 public static class BuildUitls
 {
-    static bool Is64Bit(Platform platform)
+    private static bool Is64Bit(Platform platform)
     {
         return platform switch
         {
@@ -163,8 +163,7 @@ public static class BuildUitls
         };
     }
 
-
-    static string GetCmakeArchitctureArgument(Platform platform)
+    private static string GetCmakeArchitctureArgument(Platform platform)
     {
         if (Is64Bit(platform))
         {
@@ -179,25 +178,20 @@ public static class BuildUitls
     // gets the visual studio cmake generator argument for the compiler and platform
     internal static CMake.Generator CreateCmakeGenerator(Compiler compiler, Platform platform)
     {
-        switch (compiler)
+        return compiler switch
         {
-            case Compiler.VisualStudio2015:
-                return Is64Bit(platform)
-                    ? new CMake.Generator("Visual Studio 14 2015 Win64")
-                    : new CMake.Generator("Visual Studio 14 2015")
-                    ;
-            case Compiler.VisualStudio2017:
-                return Is64Bit(platform)
-                    ? new CMake.Generator("Visual Studio 15 Win64")
-                    : new CMake.Generator("Visual Studio 15")
-                    ;
-            case Compiler.VisualStudio2019:
-                return new CMake.Generator("Visual Studio 16 2019", GetCmakeArchitctureArgument(platform));
-            case Compiler.VisualStudio2022:
-                return new CMake.Generator("Visual Studio 17 2022", GetCmakeArchitctureArgument(platform));
-            default:
-                throw new Exception("Invalid compiler");
-        }
+            Compiler.VisualStudio2015 => Is64Bit(platform)
+                ? new CMake.Generator("Visual Studio 14 2015 Win64")
+                : new CMake.Generator("Visual Studio 14 2015"),
+            Compiler.VisualStudio2017 => Is64Bit(platform)
+                ? new CMake.Generator("Visual Studio 15 Win64")
+                : new CMake.Generator("Visual Studio 15"),
+            Compiler.VisualStudio2019 =>
+                new CMake.Generator("Visual Studio 16 2019", GetCmakeArchitctureArgument(platform)),
+            Compiler.VisualStudio2022 =>
+                new CMake.Generator("Visual Studio 17 2022", GetCmakeArchitctureArgument(platform)),
+            _ => throw new Exception("Invalid compiler"),
+        };
     }
 
     public static void SaveToFile(BuildEnviroment self, string path)

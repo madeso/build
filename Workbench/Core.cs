@@ -141,7 +141,7 @@ public class TextReplacer
 {
     private readonly record struct SingleReplacement(string From, string To);
 
-    List<SingleReplacement> replacements = new();
+    private readonly List<SingleReplacement> replacements = new();
 
     // add a replacement command 
     public void Add(string old, string neww)

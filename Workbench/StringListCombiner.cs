@@ -14,13 +14,13 @@ public class StringListCombiner
     {
         this.seperator = seperator;
         this.finalSeperator = finalSeperator;
-        this.empty = "";
+        empty = "";
     }
     public StringListCombiner(string seperator)
     {
         this.seperator = seperator;
-        this.finalSeperator = seperator;
-        this.empty = "";
+        finalSeperator = seperator;
+        empty = "";
     }
 
     public static StringListCombiner EnglishOr(string empty = "<none>")
@@ -50,7 +50,7 @@ public class StringListCombiner
         return builder.ToString();
     }
 
-    readonly string seperator;
-    readonly string finalSeperator;
-    readonly string empty;
+    private readonly string seperator;
+    private readonly string finalSeperator;
+    private readonly string empty;
 }

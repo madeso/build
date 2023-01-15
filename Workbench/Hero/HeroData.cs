@@ -23,8 +23,8 @@ public class UserInput
 
     public void decorate(Printer printer, string root)
     {
-        decorate_this(printer, root, this.project_directories, "Project directories", f => Directory.Exists(f) || File.Exists(f));
-        decorate_this(printer, root, this.include_directories, "Include directories", Directory.Exists);
+        decorate_this(printer, root, project_directories, "Project directories", f => Directory.Exists(f) || File.Exists(f));
+        decorate_this(printer, root, include_directories, "Include directories", Directory.Exists);
 
         static void decorate_this(Printer printer, string root, List<string> d, string name, Func<string, bool> exists)
         {
@@ -95,9 +95,9 @@ public class SourceFile
 
     public SourceFile(int numberOfLines, List<string> localIncludes, List<string> systemIncludes, bool isPrecompiled)
     {
-        this.LocalIncludes = localIncludes;
-        this.SystemIncludes = systemIncludes;
-        this.NumberOfLines = numberOfLines;
-        this.IsPrecompiled = isPrecompiled;
+        LocalIncludes = localIncludes;
+        SystemIncludes = systemIncludes;
+        NumberOfLines = numberOfLines;
+        IsPrecompiled = isPrecompiled;
     }
 }

@@ -141,7 +141,7 @@ internal class Html
         File.WriteAllText(path, str);
     }
 
-    const string CSS_SOURCE = @"
+    private const string CSS_SOURCE = @"
 
 /* Reset */
 

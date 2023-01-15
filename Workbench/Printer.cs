@@ -4,12 +4,13 @@ using Spectre.Console;
 
 public class Printer
 {
-    int error_count = 0;
-    readonly List<string> errors = new();
+    private int error_count = 0;
+    private readonly List<string> errors = new();
 
     // print a "pretty" header to the terminal
-    public void Header(string project_name) { this.header_with_custom_char(project_name, "-"); }
-    void header_with_custom_char(string project_name, string header_character)
+    public void Header(string project_name) { header_with_custom_char(project_name, "-"); }
+
+    private void header_with_custom_char(string project_name, string header_character)
     {
         var header_size = 65;
         var header_spacing = 1;
@@ -44,8 +45,8 @@ public class Printer
 
     public void error(string text)
     {
-        this.error_count += 1;
-        this.errors.Add(text);
+        error_count += 1;
+        errors.Add(text);
         AnsiConsole.MarkupLineInterpolated($"[red]ERROR: {text}[/]");
     }
 
@@ -72,7 +73,7 @@ public class Printer
     }
 
     // print files and folder recursivly
-    public void ls(string root) { this.ls_recursive(root, ""); }
+    public void ls(string root) { ls_recursive(root, ""); }
     private void ls_recursive(string root, string start)
     {
         var ident = " ".Repeat(4);
@@ -81,7 +82,7 @@ public class Printer
         foreach (var file_path in paths.EnumerateDirectories())
         {
             AnsiConsole.MarkupLine("{}{}/", start, file_path.Name);
-            this.ls_recursive(file_path.FullName, $"{start}{ident}");
+            ls_recursive(file_path.FullName, $"{start}{ident}");
         }
 
         foreach (var file_path in paths.EnumerateFiles())

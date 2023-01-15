@@ -119,8 +119,7 @@ public class EnumStringAttribute : Attribute
     }
 }
 
-
-class EnumTypeConverter<T> : TypeConverter
+internal class EnumTypeConverter<T> : TypeConverter
     where T : struct
 {
     public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType)
@@ -130,8 +129,7 @@ class EnumTypeConverter<T> : TypeConverter
 
     public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value)
     {
-        var casted = value as string;
-        if (casted == null)
+        if (value is not string casted)
         {
             return base.ConvertFrom(context, culture, value);
         }
@@ -158,8 +156,7 @@ class EnumTypeConverter<T> : TypeConverter
     }
 }
 
-
-class EnumJsonConverter<T> : JsonConverter<T>
+internal class EnumJsonConverter<T> : JsonConverter<T>
     where T : struct
 {
     public override bool HandleNull => false;

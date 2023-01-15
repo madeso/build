@@ -3,7 +3,7 @@
 public class ColCounter<T>
     where T : notnull
 {
-    readonly Dictionary<T, int> data = new();
+    private readonly Dictionary<T, int> data = new();
 
     public void Add(T key, int count)
     {
