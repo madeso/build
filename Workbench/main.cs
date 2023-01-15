@@ -52,6 +52,7 @@ internal class Program
             Commands.ListHeadersCommands.Main.Configure(config, "list-headers");
             Commands.ClangCommands.Main.Configure(config, "clang");
             Commands.HeroCommands.Main.Configure(config, "hero");
+            Commands.CppLintCommands.Main.Configure(config, "cpplint");
         });
         return app.Run(args);
     }

@@ -4,8 +4,9 @@ internal static class FileUtil
 {
     public static readonly string[] HEADER_FILES = new string[] { "", ".h", ".hpp", ".hxx" };
     public static readonly string[] SOURCE_FILES = new string[] { ".cc", ".cpp", ".cxx", ".inl" };
+    public static readonly string[] PITCHFORK_FOLDERS = new string[] { "apps", "libs", "src", "include" };
 
-    public static bool IsTranslationUnitExtension(string ext)
+public static bool IsTranslationUnitExtension(string ext)
     {
         return ext switch
         {
