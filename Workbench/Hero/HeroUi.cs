@@ -29,17 +29,6 @@ internal static class Ui
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     // ReportForm
 
-    static bool is_header(string path)
-    {
-        return Path.GetExtension(path) switch
-        {
-            "" => true,
-            ".h" => true,
-            ".hpp" => true,
-            _ => false
-        };
-    }
-
     static bool file_is_in_file_list(string f, IEnumerable<string> list)
     {
         var ff = new FileInfo(f);
@@ -63,7 +52,7 @@ internal static class Ui
             // explicit inlcuded... then it's not excluded
             return false;
         }
-        else if (only_headers && is_header(file) == false)
+        else if (only_headers && FileUtil.is_header(file) == false)
         {
             return true;
         }

@@ -101,20 +101,3 @@ public class SourceFile
         this.IsPrecompiled = isPrecompiled;
     }
 }
-
-public static class Utils
-{
-    public static bool IsTranslationUnitExtension(string ext)
-    {
-        return ext switch
-        {
-            ".cpp" or ".c" or ".cc" or ".cxx" or ".mm" or ".m" => true,
-            _ => false,
-        };
-    }
-
-    public static bool IsTranslationUnit(string path)
-    {
-        return IsTranslationUnitExtension(Path.GetExtension(path));
-    }
-}

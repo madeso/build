@@ -310,7 +310,7 @@ class FileWalker
     {
         this.stats.total_file_count += 1;
 
-        if (F.IsSource(path))
+        if (FileUtil.IsSource(path))
         {
             var bblocks = this.parse_file_to_blocks(path, print);
             if (bblocks == null)
@@ -718,17 +718,7 @@ internal static class F
     }
 
 
-    internal static bool IsSource(string path)
-    {
-        return Path.GetExtension(path) switch
-        {
-            ".cc" or ".cpp" or ".c" => true,
-            _ => false
-        };
-    }
-
-
-
+    
     internal static int HandleFiles(Printer print, string? ccpath, List<string> sources, int mostCommonCount, bool printDebugInfo)
     {
         // var ccpath = args.GetPathToCompileCommandsOrNull(print);

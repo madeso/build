@@ -221,7 +221,7 @@ public class Analytics
         {
             if (include == path) { continue; }
 
-            var is_tu = Data.Utils.IsTranslationUnit(path);
+            var is_tu = FileUtil.IsTranslationUnit(path);
 
             this.analyze(include, project);
 
@@ -330,7 +330,7 @@ public static class Report
                 .Sum();
             var total_lines = super_total_lines - pch_lines;
             var total_parsed = analytics.file_to_data
-                .Where(kvp => Data.Utils.IsTranslationUnit(kvp.Key) && !project.scanned_files[kvp.Key].IsPrecompiled)
+                .Where(kvp => FileUtil.IsTranslationUnit(kvp.Key) && !project.scanned_files[kvp.Key].IsPrecompiled)
                 .Select(kvp => kvp.Value.total_included_lines + project.scanned_files[kvp.Key].NumberOfLines)
                 .Sum();
             var factor = (double)total_parsed / (double)total_lines;
@@ -521,7 +521,7 @@ public class Scanner
         {
             var file = ffile.FullName;
             var ext = Path.GetExtension(file);
-            if (Data.Utils.IsTranslationUnitExtension(ext))
+            if (FileUtil.IsTranslationUnitExtension(ext))
             {
                 this.add_to_queue(file, F.canonicalize_or_default(file));
             }

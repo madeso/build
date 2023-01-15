@@ -5,6 +5,40 @@ internal static class FileUtil
     public static readonly string[] HEADER_FILES = new string[] { "", ".h", ".hpp", ".hxx" };
     public static readonly string[] SOURCE_FILES = new string[] { ".cc", ".cpp", ".cxx", ".inl" };
 
+    public static bool IsTranslationUnitExtension(string ext)
+    {
+        return ext switch
+        {
+            ".cpp" or ".c" or ".cc" or ".cxx" or ".mm" or ".m" => true,
+            _ => false,
+        };
+    }
+
+    internal static bool IsSource(string path)
+    {
+        return Path.GetExtension(path) switch
+        {
+            ".cc" or ".cpp" or ".c" => true,
+            _ => false
+        };
+    }
+
+    internal static bool is_header(string path)
+    {
+        return Path.GetExtension(path) switch
+        {
+            "" => true,
+            ".h" => true,
+            ".hpp" => true,
+            _ => false
+        };
+    }
+
+    public static bool IsTranslationUnit(string path)
+    {
+        return IsTranslationUnitExtension(Path.GetExtension(path));
+    }
+
     public static bool FileHasAnyExtension(string filePath, string[] extensions)
     {
         var ext = Path.GetExtension(filePath);
