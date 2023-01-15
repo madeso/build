@@ -50,11 +50,7 @@ internal sealed class StatusCommand : Command<StatusCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print =>
-        {
-            F.HandleBuildStatus(print);
-            return 0;
-        });
+        return CommonExecute.WithLoadedBuildData(F.HandleBuildStatus);
     }
 }
 
@@ -66,13 +62,7 @@ internal sealed class InstallCommand : Command<InstallCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => F.HandleGenericBuild(
-            print, settings,
-            (printer, build, data) =>
-            {
-                return F.HandleInstall(printer, build, data);
-            })
-        );
+        return F.HandleGenericBuild(settings, F.HandleInstall);
     }
 }
 
@@ -89,13 +79,12 @@ internal sealed class CmakeCommand : Command<CmakeCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => F.HandleGenericBuild(
-            print, settings,
-            (printer, build, data) =>
+        return F.HandleGenericBuild(
+            settings,
+            (printer, env, data) =>
             {
-                return F.HandleCmake(settings.Nop, printer, build, data);
-            })
-        );
+                return F.HandleCmake(settings.Nop, printer, env, data);
+            });
     }
 }
 
@@ -108,13 +97,7 @@ internal sealed class DevCommand : Command<DevCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => F.HandleGenericBuild(
-            print, settings,
-            (printer, build, data) =>
-            {
-                return F.HandleDev(printer, build, data);
-            })
-        );
+        return F.HandleGenericBuild(settings, F.HandleDev);
     }
 }
 
@@ -127,12 +110,6 @@ internal sealed class BuildCommand : Command<BuildCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => F.HandleGenericBuild(
-            print, settings,
-            (printer, build, data) =>
-            {
-                return F.HandleBuild(printer, build, data);
-            })
-        );
+        return F.HandleGenericBuild(settings, F.HandleBuild);
     }
 }

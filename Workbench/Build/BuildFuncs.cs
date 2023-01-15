@@ -93,15 +93,8 @@ internal static class F
         BuildUitls.SaveToFile(build, data.GetPathToSettingsFile());
     }
 
-    internal static void HandleBuildStatus(Printer printer)
+    internal static int HandleBuildStatus(Printer printer, BuildData data)
     {
-        var loaded_data = BuildData.LoadOrNull(printer);
-        if (loaded_data == null)
-        {
-            printer.Error("Unable to load the data");
-            return;
-        }
-        var data = loaded_data.Value;
         var env = BuildUitls.LoadFromFileOrCreateEmpty(data.GetPathToSettingsFile(), printer);
 
         printer.Header(data.Name);
@@ -137,24 +130,22 @@ internal static class F
                 printer.Info($"{indent}{indent}{line}");
             }
         }
+
+        return 0;
     }
 
-    internal static int HandleGenericBuild(Printer printer, EnviromentArgument args, Func<Printer, BuildEnviroment, BuildData, int> callback)
+    internal static int HandleGenericBuild(EnviromentArgument args, Func<Printer, BuildEnviroment, BuildData, int> callback)
     {
-        var loaded_data = BuildData.LoadOrNull(printer);
-        if (loaded_data == null)
+        return CommonExecute.WithLoadedBuildData((printer, data) =>
         {
-            printer.Error("Unable to load the data");
-            return -1;
-        }
-        var data = loaded_data.Value;
-        var env = BuildUitls.LoadFromFileOrCreateEmpty(data.GetPathToSettingsFile(), printer);
-        env.UpdateFromArguments(printer, args);
-        if (env.Validate(printer) == false)
-        {
-            return -1;
-        }
+            var env = BuildUitls.LoadFromFileOrCreateEmpty(data.GetPathToSettingsFile(), printer);
+            env.UpdateFromArguments(printer, args);
+            if (env.Validate(printer) == false)
+            {
+                return -1;
+            }
 
-        return callback(printer, env, data);
-    }
+            return callback(printer, env, data);
+        });
+}
 }
