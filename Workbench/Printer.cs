@@ -1,6 +1,8 @@
 namespace Workbench;
 
 using Spectre.Console;
+using System;
+using System.Net.Http.Headers;
 
 public class Printer
 {
@@ -99,6 +101,19 @@ public class Printer
         if (error_count > 0)
         {
             AnsiConsole.MarkupLineInterpolated($"Errors detected: ({error_count})");
+        }
+    }
+
+    internal void PrintStatus(ProcessExit pe)
+    {
+        var message = $"{pe.CommandLine} exited with {pe.ExitCode}";
+        if(pe.ExitCode == 0)
+        {
+            Info(message);
+        }
+        else
+        {
+            Error(message);
         }
     }
 }

@@ -49,7 +49,7 @@ internal class ProcessExitWithOutput
         return this;
     }
 
-    public ProcessExitWithOutput PrintStatusAndUpdate(Printer print)
+    public ProcessExitWithOutput PrintStatusAndOuput(Printer print)
     {
         PrintStatus(print);
         PrintOutput(print);
@@ -183,5 +183,10 @@ public class ProcessBuilder
     {
         var args = CollectArguments();
         return $"{Executable} {args}";
+    }
+
+    internal void RunAndPrintOutput(Printer printer)
+    {
+        printer.PrintStatus(RunWithCallback(printer.Info));
     }
 }

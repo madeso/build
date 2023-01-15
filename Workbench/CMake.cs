@@ -1,4 +1,4 @@
-﻿using System.Runtime.Serialization;
+using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -179,7 +179,7 @@ public class CMake
             }
             else
             {
-                command.RunAndGetOutput().PrintStatusAndUpdate(printer);
+                command.RunAndPrintOutput(printer);
             }
         }
         else
@@ -215,7 +215,7 @@ public class CMake
 
         if (Core.IsWindows())
         {
-            command.RunAndGetOutput().PrintStatusAndUpdate(printer);
+            command.RunAndPrintOutput(printer);
         }
         else
         {

@@ -19,35 +19,35 @@ internal static class F
 
     public static int HandleInstall(Printer printer, BuildEnviroment build, BuildData data)
     {
-        F.SaveBuildData(printer, build, data);
-        F.RunInstall(build, data, printer);
+        SaveBuildData(printer, build, data);
+        RunInstall(build, data, printer);
         return 0;
     }
 
     internal static int HandleBuild(Printer printer, BuildEnviroment build, BuildData data)
     {
-        F.SaveBuildData(printer, build, data);
-        F.generate_cmake_project(build, data).Build(printer);
+        SaveBuildData(printer, build, data);
+        GenerateCmakeProject(build, data).Build(printer);
         return 0;
     }
 
     internal static int HandleDev(Printer printer, BuildEnviroment build, BuildData data)
     {
-        F.SaveBuildData(printer, build, data);
-        F.RunInstall(build, data, printer);
-        F.RunCmake(build, data, printer, false);
+        SaveBuildData(printer, build, data);
+        RunInstall(build, data, printer);
+        RunCmake(build, data, printer, false);
         return 0;
     }
 
     public static int HandleCmake(bool nop, Printer printer, BuildEnviroment build, BuildData data)
     {
-        F.SaveBuildData(printer, build, data);
-        F.RunCmake(build, data, printer, nop);
+        SaveBuildData(printer, build, data);
+        RunCmake(build, data, printer, nop);
         return 0;
     }
 
     // generate the ride project
-    internal static CMake.CMake generate_cmake_project(BuildEnviroment build, BuildData data)
+    internal static CMake.CMake GenerateCmakeProject(BuildEnviroment build, BuildData data)
     {
         var project = new CMake.CMake(data.ProjectDirectory, data.RootDirectory, build.CreateCmakeGenerator());
 
@@ -73,7 +73,7 @@ internal static class F
     // configure the euphoria cmake project
     internal static void RunCmake(BuildEnviroment build, BuildData data, Printer printer, bool nop)
     {
-        generate_cmake_project(build, data).Configure(printer, nop);
+        GenerateCmakeProject(build, data).Configure(printer, nop);
     }
 
     // save the build environment to the settings file
