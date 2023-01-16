@@ -318,9 +318,12 @@ internal static class F
             {
                 foundFiles += 1;
 
-                var counts = argsHist
-                    ? get_all_indent(file, discardEmpty).ToArray()
-                    : new int[] { get_max_indent(file, discardEmpty) }
+                var counts = !argsHist
+                    ? new int[] { get_max_indent(file, discardEmpty) }
+                    : get_all_indent(file, discardEmpty)
+                        .Order()
+                        .Distinct()
+                        .ToArray()
                     ;
 
                 foreach(var count in counts) {
