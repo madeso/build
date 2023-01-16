@@ -4,6 +4,8 @@ internal static class FileUtil
 {
     public static readonly string[] HEADER_FILES = new string[] { "", ".h", ".hpp", ".hxx" };
     public static readonly string[] SOURCE_FILES = new string[] { ".cc", ".cpp", ".cxx", ".inl" };
+    public static readonly string[] HEADER_AND_SOURCE_FILES = SOURCE_FILES.Concat(HEADER_FILES).ToArray();
+
     public static readonly string[] PITCHFORK_FOLDERS = new string[] { "apps", "libs", "src", "include" };
 
 public static bool IsTranslationUnitExtension(string ext)
@@ -48,12 +50,19 @@ public static bool IsTranslationUnitExtension(string ext)
 
     public static IEnumerable<string> ListFilesRecursivly(string path, string[] extensions)
     {
-        foreach (var f in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+        if (File.Exists(path))
         {
-            bool x = Workbench.FileUtil.FileHasAnyExtension(f, extensions);
-            if (x)
+            yield return path;
+        }
+        else
+        {
+            foreach (var f in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
             {
-                yield return f;
+                bool x = extensions.Length == 0 || FileHasAnyExtension(f, extensions);
+                if (x)
+                {
+                    yield return f;
+                }
             }
         }
     }
@@ -145,5 +154,16 @@ public static bool IsTranslationUnitExtension(string ext)
             "node_modules" => false,
             _ => true,
         };
+    }
+
+    internal static string RealPath(string rel)
+    {
+        var dir = new DirectoryInfo(rel);
+        if(dir.Exists) { return dir.FullName; }
+
+        var file = new FileInfo(rel);
+        if(file.Exists) { return file.FullName;}
+
+        return rel;
     }
 }

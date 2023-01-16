@@ -53,6 +53,7 @@ internal class Program
             Commands.ClangCommands.Main.Configure(config, "clang");
             Commands.HeroCommands.Main.Configure(config, "hero");
             Commands.CppLintCommands.Main.Configure(config, "cpplint");
+            Commands.ToolsCommands.Main.Configure(config, "tools");
         });
         return app.Run(args);
     }

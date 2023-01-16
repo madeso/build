@@ -122,24 +122,24 @@ internal class CommonArguments : CommandSettings
 
     public string? GetPathToCompileCommandsOrNull(Printer print)
     {
+        string? get_argument_or_none(string cwd)
+        {
+            if (compileCommands != null)
+            {
+                return compileCommands;
+            }
+
+            var r = Utils.FindBuildRootOrNull(cwd);
+            if (r == null) { return null; }
+            return Path.Join(r, Utils.COMPILE_COMMANDS_FILE_NAME);
+        }
+
         var ret = get_argument_or_none(Environment.CurrentDirectory);
         if (ret == null)
         {
             print.Error($"Unable to locate {Utils.COMPILE_COMMANDS_FILE_NAME}");
         }
         return ret;
-    }
-
-    private string? get_argument_or_none(string cwd)
-    {
-        if (compileCommands != null)
-        {
-            return compileCommands;
-        }
-
-        var r = Utils.FindBuildRootOrNull(cwd);
-        if (r == null) { return null; }
-        return Path.Join(r, Utils.COMPILE_COMMANDS_FILE_NAME);
     }
 }
 

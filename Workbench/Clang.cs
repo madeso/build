@@ -475,7 +475,7 @@ internal static class F
         var total_classes = new ColCounter<string>();
         Dictionary<string, List<string>> warnings_per_file = new();
 
-        var data = MapAllFilesInRootOnFirstDir(root, headers ? Workbench.FileUtil.SOURCE_FILES.Concat(Workbench.FileUtil.HEADER_FILES).ToArray() : Workbench.FileUtil.SOURCE_FILES);
+        var data = MapAllFilesInRootOnFirstDir(root, headers ? FileUtil.HEADER_AND_SOURCE_FILES : FileUtil.SOURCE_FILES);
         var stats = new FileStatistics();
 
         foreach (var (project, source_files) in data)
@@ -583,7 +583,7 @@ internal static class F
             return -1;
         }
 
-        var data = MapAllFilesInRootOnFirstDir(root, Workbench.FileUtil.SOURCE_FILES.Concat(Workbench.FileUtil.HEADER_FILES).ToArray());
+        var data = MapAllFilesInRootOnFirstDir(root, Workbench.FileUtil.HEADER_AND_SOURCE_FILES);
 
         foreach (var (project, source_files) in data)
         {

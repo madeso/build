@@ -1,4 +1,6 @@
-﻿namespace Workbench;
+﻿using static Workbench.CheckIncludes.RegexOrErr;
+
+namespace Workbench;
 
 public class ColCounter<T>
     where T : notnull
@@ -12,7 +14,12 @@ public class ColCounter<T>
             data.Add(key, count);
             return;
         }
-        data[key] = value + count;
+        Set(key, value + count);
+    }
+
+    private void Set(T key, int value)
+    {
+        data[key] = value;
     }
 
     public void AddOne(T key)
@@ -41,6 +48,21 @@ public class ColCounter<T>
         }
     }
 
+    internal void Max(ColCounter<T> rhs)
+    {
+        foreach (var (key, rhsValue) in rhs.data)
+        {
+            if (data.TryGetValue(key, out var selfValue))
+            {
+                Set(key, Math.Max(selfValue, rhsValue));
+            }
+            else
+            {
+                Set(key, rhsValue);
+            }
+        }
+    }
+
     public IEnumerable<T> Keys
     {
         get
@@ -48,4 +70,13 @@ public class ColCounter<T>
             return data.Keys;
         }
     }
+
+    public IEnumerable<KeyValuePair<T, int>> Items
+    {
+        get
+        {
+            return data;
+        }
+    }
+
 }
