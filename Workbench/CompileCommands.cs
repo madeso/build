@@ -118,7 +118,7 @@ internal class CommonArguments : CommandSettings
     [Description("the path to compile_commands.json")]
     [CommandOption("--compile-commands")]
     [DefaultValue(null)]
-    private string? compileCommands { get; set; }
+    public string? compileCommands { get; set; }
 
     public string? GetPathToCompileCommandsOrNull(Printer print)
     {
