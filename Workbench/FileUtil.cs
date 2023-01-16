@@ -8,7 +8,7 @@ internal static class FileUtil
 
     public static readonly string[] PITCHFORK_FOLDERS = new string[] { "apps", "libs", "src", "include" };
 
-public static bool IsTranslationUnitExtension(string ext)
+    public static bool IsTranslationUnitExtension(string ext)
     {
         return ext switch
         {
@@ -65,6 +65,32 @@ public static bool IsTranslationUnitExtension(string ext)
                 }
             }
         }
+    }
+
+    private static IEnumerable<string> list_files_in_dir(string dir)
+    {
+        return FileUtil.ListFilesRecursivly(dir, FileUtil.HEADER_AND_SOURCE_FILES)
+            .Where(x => new FileInfo(x).Name.StartsWith("pch.") == false);
+    }
+
+    public static IEnumerable<string> list_all_files(string root)
+    {
+        IEnumerable<string> Files(string relativeDir)
+        {
+            var dir = new DirectoryInfo(Path.Join(root, relativeDir)).FullName;
+            if (Directory.Exists(dir) == false)
+            {
+                yield break;
+            }
+            foreach (var f in FileUtil.list_files_in_dir(dir))
+            {
+                yield return f;
+            }
+        }
+
+        return FileUtil.PITCHFORK_FOLDERS
+            .Select(Files)
+            .Aggregate((a, b) => a.Concat(b));
     }
 
     public static string GetFirstFolder(string root, string file)

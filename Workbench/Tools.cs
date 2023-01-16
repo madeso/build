@@ -12,11 +12,6 @@ namespace Workbench.Tools;
 
 internal static class F
 {
-    private static IEnumerable<string> list_files_in_folder(string path, params string[] extensions) {
-        return FileUtil.ListFilesRecursivly(path, extensions);
-    }
-
-
     private static IEnumerable<string> get_include_directories(string path, Dictionary<string, CompileCommands.CompileCommand> cc) {
         var c = cc[path];
         foreach(var relative_include in c.GetRelativeIncludes()) {
@@ -25,7 +20,7 @@ internal static class F
     }
 
 
-    private static IEnumerable<string> list_includes(string path ){
+    private static IEnumerable<string> FindIncludeFiles(string path ){
         var lines = File.ReadAllLines(path);
         foreach(var line in lines) {
             var l = line.Trim();
@@ -84,15 +79,7 @@ internal static class F
         return r;
     }
 
-    /*
-    private static void get_grouped(items)
-    {
-        keyfun = lambda item: get_group(item[1]);
-        return itertools.groupby(sorted(items, key=keyfun), key=keyfun);
-    }
-    */
-
-
+    // todo(Gustav): merge with global Graphviz
     class Graphvizer {
         Dictionary<string, string> nodes = new(); // id -> name
         ColCounter<string> links = new(); // link with counts
@@ -152,7 +139,7 @@ internal static class F
             return;
         }
 
-        foreach(var include in list_includes(real_file)) {
+        foreach(var include in FindIncludeFiles(real_file)) {
             var resolved = resolve_include_via_include_directories_or_none(include, include_directories);
             if(resolved != null) {
                 gv.link(real_file, name, resolved, root);
@@ -173,7 +160,7 @@ internal static class F
             return;
         }
 
-        foreach(var include in list_includes(real_file)) {
+        foreach(var include in FindIncludeFiles(real_file)) {
             var resolved = resolve_include_via_include_directories_or_none(include, include_directories);
             if(resolved != null)
             {
@@ -205,7 +192,7 @@ internal static class F
     private static IEnumerable<string> all_translation_units(IEnumerable<string> files) {
         foreach(var patt in files)
         {
-            foreach(var file in list_files_in_folder(patt, ".cc"))
+            foreach(var file in FileUtil.ListFilesRecursivly(patt, FileUtil.SOURCE_FILES))
             {
                 yield return new FileInfo(file).FullName;
             }
@@ -286,7 +273,7 @@ internal static class F
 
         foreach(var patt in argfiles)
         {
-            foreach(var file in list_files_in_folder(patt, FileUtil.HEADER_FILES))
+            foreach(var file in FileUtil.ListFilesRecursivly(patt, FileUtil.HEADER_FILES))
             {
                 files += 1;
                 if(contains_pragma_once(file) == false)
@@ -327,7 +314,7 @@ internal static class F
         var foundFiles = 0;
 
         foreach(var patt in argsFiles) {
-            foreach (var file in list_files_in_folder(patt, FileUtil.HEADER_AND_SOURCE_FILES))
+            foreach (var file in FileUtil.ListFilesRecursivly(patt, FileUtil.HEADER_AND_SOURCE_FILES))
             {
                 foundFiles += 1;
 
@@ -587,7 +574,7 @@ internal static class F
         var count = 0;
         foreach(var patt in args_files)
         {
-            foreach(var file in list_files_in_folder(patt, FileUtil.HEADER_AND_SOURCE_FILES))
+            foreach(var file in FileUtil.ListFilesRecursivly(patt, FileUtil.HEADER_AND_SOURCE_FILES))
             {
                 var resolved = new FileInfo(file).FullName;
                 if(paths.Contains(resolved) == false)
@@ -612,7 +599,7 @@ internal static class F
 
         foreach(var patt in args_files)
         {
-            foreach(var file in list_files_in_folder(patt, FileUtil.HEADER_AND_SOURCE_FILES))
+            foreach(var file in FileUtil.ListFilesRecursivly(patt, FileUtil.HEADER_AND_SOURCE_FILES))
             {
                 fileCount += 1;
 
@@ -653,7 +640,7 @@ internal static class F
 
         foreach(var patt in args_files)
         {
-            foreach (var file in list_files_in_folder(patt, FileUtil.HEADER_AND_SOURCE_FILES))
+            foreach (var file in FileUtil.ListFilesRecursivly(patt, FileUtil.HEADER_AND_SOURCE_FILES))
             {
                 files += 1;
                 if(file.Contains('-'))
