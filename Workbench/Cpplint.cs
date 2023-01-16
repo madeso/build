@@ -4,7 +4,8 @@ public static class Cpplint
 {
     static IEnumerable<string> list_files_in_dir(string dir)
     {
-        return FileUtil.ListFilesRecursivly(dir, new[] { ".cc", ".h" }).Where(x => new FileInfo(x).Name.StartsWith("pch.") == false);
+        return FileUtil.ListFilesRecursivly(dir, FileUtil.HEADER_AND_SOURCE_FILES)
+            .Where(x => new FileInfo(x).Name.StartsWith("pch.") == false);
     }
 
 

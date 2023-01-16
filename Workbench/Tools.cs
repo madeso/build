@@ -12,11 +12,6 @@ namespace Workbench.Tools;
 
 internal static class F
 {
-
-    // HEADER_FILES = [".h", ".hpp", ".hxx"]
-    // SOURCE_FILES = [".cc", ".cpp", ".cxx", ".inl"]
-
-
     private static IEnumerable<string> list_files_in_folder(string path, params string[] extensions) {
         return FileUtil.ListFilesRecursivly(path, extensions);
     }
@@ -291,7 +286,7 @@ internal static class F
 
         foreach(var patt in argfiles)
         {
-            foreach(var file in list_files_in_folder(patt, ".h"))
+            foreach(var file in list_files_in_folder(patt, FileUtil.HEADER_FILES))
             {
                 files += 1;
                 if(contains_pragma_once(file) == false)
