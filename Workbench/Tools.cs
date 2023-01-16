@@ -288,26 +288,6 @@ internal static class F
         return 0;
     }
 
-
-    private static string float_to_block_str(float f)
-    {
-        var block_width_char = new[] { "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█" };
-        var size = block_width_char.Length;
-        var count = Math.Max((int)(f * size), 1);
-        string r = "";
-        while(count > 0)
-        {
-            var bi = count >= block_width_char.Length
-                ? block_width_char.Length-1
-                : count
-                ;
-            r += block_width_char[bi];
-            count -= size;
-        }
-        return r;
-    }
-
-
     public static int handle_list_indents(Printer print, string[] argsFiles, int each, bool argsShow, bool argsHist, bool discardEmpty)
     {
         var stats = new Dictionary<int, List<string>>();
@@ -341,33 +321,46 @@ internal static class F
             }
         }
 
-        var all_sorted = stats.OrderBy(x => x.Key).ToImmutableArray();
+        var all_sorted = stats.OrderBy(x => x.Key)
+            .Select(x => (
+                each <= 1 ? $"{x.Key}" : $"{x.Key}-{x.Key + each - 1}",
+                x.Key,
+                x.Value
+            ))
+            .ToImmutableArray();
         print.Info($"Found {foundFiles} files.");
         
         var total_sum = argsHist
             ? all_sorted.Select(x => x.Value.Count).Max()
             : 0
             ;
-        
-        foreach(var (count,files) in all_sorted) {
-            var c = files.Count;
-            var count_str = each <= 1
-                ? $"{count}"
-                : $"{count}-{count+each-1}"
-                ;
-            if(argsHist)
+
+        if (argsHist)
+        {
+            var chart = new BarChart()
+                .Width(60)
+                .Label("[green bold underline]Number of files / indentation[/]")
+                .CenterLabel();
+            foreach(var (label, start, files) in all_sorted)
             {
-                var hist_width = 50;
-                var chars = float_to_block_str((c * hist_width)/total_sum);
-                print.Info($"{count_str:<6}: {chars}");
+                chart.AddItem(label, files.Count, Color.Green);
             }
-            else if(argsShow && c < 3)
+            AnsiConsole.Write(chart);
+        }
+        else
+        {
+            foreach (var (count_str, start, files) in all_sorted)
             {
-                print.Info($"{count_str}: {files}");
-            }
-            else
-            {
-                print.Info($"{count_str}: {c}");
+                var c = files.Count;
+                    ;
+                if (argsShow)
+                {
+                    print.Info($"{count_str}: {files}");
+                }
+                else
+                {
+                    print.Info($"{count_str}: {c}");
+                }
             }
         }
 
