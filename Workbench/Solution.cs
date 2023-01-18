@@ -1,7 +1,10 @@
 ﻿using Spectre.Console;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
+using System.Xml;
 using Workbench.CMake;
+using static Workbench.Solution;
 
 namespace Workbench;
 
@@ -16,13 +19,13 @@ public class Solution
 
     public enum ProjectType
     {
-        Interface, Executable, Static, Shared
+        Unknown, Interface, Executable, Static, Shared
     }
 
     public class Project
     {
         public Solution Solution { get; }
-        public ProjectType Type { get; }
+        public ProjectType Type { get; set; }
         public string Name { get; }
         public Guid Guid { get; }
 
@@ -173,6 +176,7 @@ public class Solution
 internal class SolutionParser
 {
     record Dependency(Solution.Project From, string To);
+    record LoadProject(Solution.Project Project, string File);
 
     public static Solution ParseCmake(IEnumerable<CMake.Trace> lines)
     {
@@ -266,4 +270,170 @@ internal class SolutionParser
 
         return solution;
     }
+
+
+
+    public static Solution ParseVisualStudio(Printer printer, string solution_path)
+    {
+        var solution = new Solution();
+        // var name = Path.GetFileNameWithoutExtension(solution_path);
+
+        Dictionary<string, Solution.Project> projects = new();
+        List<Dependency> dependencies = new();
+        List<LoadProject> loads = new();
+
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // load solution
+
+        {
+            var lines = File.ReadLines(solution_path);
+            Project? current_project = null;
+            Project? dependency_project = null;
+            var solutionDir = new FileInfo(solution_path).Directory?.FullName!;
+            foreach (var line in lines)
+            {
+                if (line.StartsWith("Project"))
+                {
+                    var equal_index = line.IndexOf('=');
+                    var data = line.Substring(equal_index + 1).Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    var name = data[0].Trim().Trim('\"').Trim();
+                    var relative_path = data[1].Trim().Trim('\"').Trim();
+                    var project_guid = data[2].Trim().Trim('\"').Trim();
+                    // todo(Gustav): reuse guid?
+                    current_project = solution.AddProject(Solution.ProjectType.Unknown, name);
+                    loads.Add(new(current_project, Path.Join(solutionDir, relative_path)));
+                    projects[project_guid.ToLowerInvariant()] = current_project;
+                }
+                else if (line == "EndProject")
+                {
+                    current_project = null;
+                    dependency_project = null;
+                }
+                else if (line.Trim() == "ProjectSection(ProjectDependencies) = postProject")
+                {
+                    dependency_project = current_project;
+                }
+                else if (dependency_project != null && line.Trim().StartsWith("{"))
+                {
+                    var project_guid = line.Split('=')[0].Trim();
+                    dependencies.Add(new (dependency_project, project_guid));
+                }
+            }
+        }
+
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // load additional project data from file
+        static string DetermineRealFilename(string pa)
+        {
+            var p = pa;
+            if (File.Exists(p))
+            {
+                return p;
+            }
+            p = pa + ".vcxproj";
+            if (File.Exists(p))
+            {
+                return p;
+            }
+            p = pa + ".csproj";
+            if (File.Exists(p))
+            {
+                return p;
+            }
+            return "";
+        }
+        
+        foreach (var (project, projectRelativePath) in loads)
+        {
+            var pathToProjectFile = DetermineRealFilename(projectRelativePath);
+            if (pathToProjectFile == "")
+            {
+                continue;
+            }
+            if (File.Exists(pathToProjectFile) == false)
+            {
+                printer.Info($"Unable to open project file: {pathToProjectFile}");
+                continue;
+            }
+            var document = new XmlDocument();
+            document.Load(pathToProjectFile);
+            var root_element = document.DocumentElement;
+            if (root_element == null) { printer.Error($"Failed to load {projectRelativePath}"); continue; }
+            var namespace_match = Regex.Match("\\{.*\\}", root_element.Name);
+            var xmlNamespace = namespace_match.Success ? namespace_match.Groups[0].Value : "";
+            HashSet<string> configurations = new();
+            foreach (var n in root_element.FindAll($"{xmlNamespace}VisualStudioProject/{xmlNamespace}Configurations/{xmlNamespace}Configuration[@ConfigurationType]"))
+            {
+                if (n.Attributes == null) { continue; }
+                var configuration_type = n.Attributes["ConfigurationType"];
+                if (configuration_type != null)
+                {
+                    configurations.Add(configuration_type.Value);
+                }
+            }
+
+            if (configurations.Count != 0)
+            {
+                var suggested_type = configurations.FirstOrDefault() ?? "";
+                if (suggested_type == "2")
+                {
+                    project.Type = ProjectType.Shared;
+                }
+                else if (suggested_type == "4")
+                {
+                    project.Type = ProjectType.Static;
+                }
+                else if (suggested_type == "1")
+                {
+                    project.Type = ProjectType.Executable;
+                }
+            }
+            foreach (var n in root_element.FindAll($"./{xmlNamespace}PropertyGroup/{xmlNamespace}OutputType"))
+            {
+                var inner_text = n.InnerText.Trim().ToLowerInvariant();
+                if (inner_text == "winexe")
+                {
+                    project.Type = ProjectType.Executable;
+                }
+                else if (inner_text == "exe")
+                {
+                    project.Type = ProjectType.Executable;
+                }
+                else if (inner_text == "library")
+                {
+                    project.Type = ProjectType.Shared;
+                }
+                else
+                {
+                    printer.Info($"Unknown build type in {pathToProjectFile}: {inner_text}");
+                }
+            }
+            foreach (var n in root_element.FindAll($"./{xmlNamespace}ItemGroup/{xmlNamespace}ProjectReference/{xmlNamespace}Project"))
+            {
+                var inner_text = n.InnerText.Trim();
+                dependencies.Add(new(project, inner_text));
+            }
+        }
+
+
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // complete loading
+        foreach (var (from, dependency) in dependencies)
+        {
+            var projectGuid = dependency.ToLowerInvariant();
+            if (projects.TryGetValue(projectGuid, out var project))
+            {
+                solution.AddDependency(from, project);
+            }
+            else
+            {
+                // todo(Gustav) look into theese warnings...!
+                // printer.Info("Missing reference ", s)
+                // pass
+            }
+        }
+
+        return solution;
+    }
+
 }
