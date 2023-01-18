@@ -4,19 +4,18 @@ namespace Workbench;
 
 internal static class XmlExtensions
 {
-    public static IEnumerable<XmlElement> FindAll(this XmlNode root, string xpath)
+    public static IEnumerable<XmlElement> ElementsNamed(this XmlNode root, string childName)
     {
-        var nodes = root.SelectNodes(xpath);
-        if (nodes != null)
+        foreach (XmlNode node in root.ChildNodes)
         {
-            foreach ( var n in nodes )
-            {
-                var e = n as XmlElement;
-                if(e != null)
-                {
-                    yield return e;
-                }
-            }
+            if (node is not XmlElement el) continue;
+            if (el.Name != childName) continue;
+            yield return el;
         }
+    }
+
+    public static IEnumerable<XmlElement> ElementsNamed(this IEnumerable<XmlNode> nodes, string childName)
+    {
+        return nodes.SelectMany(x => ElementsNamed(x, childName));
     }
 }

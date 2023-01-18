@@ -279,7 +279,6 @@ internal class SolutionParser
     public static Solution ParseVisualStudio(Printer printer, string solution_path)
     {
         var solution = new Solution();
-        // var name = Path.GetFileNameWithoutExtension(solution_path);
 
         Dictionary<string, Solution.Project> projects = new();
         List<Dependency> dependencies = new();
@@ -367,7 +366,7 @@ internal class SolutionParser
             var namespace_match = Regex.Match("\\{.*\\}", root_element.Name);
             var xmlNamespace = namespace_match.Success ? namespace_match.Groups[0].Value : "";
             HashSet<string> configurations = new();
-            foreach (var n in root_element.FindAll($"{xmlNamespace}VisualStudioProject/{xmlNamespace}Configurations/{xmlNamespace}Configuration[@ConfigurationType]"))
+            foreach (var n in root_element.ElementsNamed("VisualStudioProject").ElementsNamed("Configurations").ElementsNamed("Configuration"))
             {
                 if (n.Attributes == null) { continue; }
                 var configuration_type = n.Attributes["ConfigurationType"];
@@ -393,7 +392,8 @@ internal class SolutionParser
                     project.Type = ProjectType.Executable;
                 }
             }
-            foreach (var n in root_element.FindAll($"./{xmlNamespace}PropertyGroup/{xmlNamespace}OutputType"))
+
+            foreach (var n in root_element.ElementsNamed("PropertyGroup").ElementsNamed("OutputType"))
             {
                 var inner_text = n.InnerText.Trim().ToLowerInvariant();
                 if (inner_text == "winexe")
@@ -413,7 +413,29 @@ internal class SolutionParser
                     printer.Info($"Unknown build type in {pathToProjectFile}: {inner_text}");
                 }
             }
-            foreach (var n in root_element.FindAll($"./{xmlNamespace}ItemGroup/{xmlNamespace}ProjectReference/{xmlNamespace}Project"))
+
+            var configurationTypes = root_element.ElementsNamed("PropertyGroup").ElementsNamed("ConfigurationType").ToImmutableHashSet();
+            foreach(var n in configurationTypes)
+            {
+                var inner_text = n.InnerText.Trim().ToLowerInvariant();
+                if (inner_text == "utility")
+                {
+                }
+                else if (inner_text == "staticlibrary")
+                {
+                    project.Type = ProjectType.Static;
+                }
+                else if (inner_text == "application")
+                {
+                    project.Type = ProjectType.Executable;
+                }
+                else
+                {
+                    printer.Info($"Unknown build type in {pathToProjectFile}: {inner_text}");
+                }
+            }
+
+            foreach (var n in root_element.ElementsNamed("ItemGroup").ElementsNamed("ProjectReference").ElementsNamed("Project"))
             {
                 var inner_text = n.InnerText.Trim();
                 dependencies.Add(new(project, inner_text));
