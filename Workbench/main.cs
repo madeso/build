@@ -54,6 +54,7 @@ internal class Program
             Commands.HeroCommands.Main.Configure(config, "hero");
             Commands.CppLintCommands.Main.Configure(config, "cpplint");
             Commands.ToolsCommands.Main.Configure(config, "tools");
+            Commands.SlnDepsCommands.Main.Configure(config, "slndeps");
         });
         return app.Run(args);
     }

@@ -88,7 +88,7 @@ internal sealed class DotCommand : Command<DotCommand.Arg>
 
             if (settings.RemoveInterface)
             {
-                var interaces = solution.JustProjects.Where(p => p.Type == Solution.ProjectType.Interface).Select(p => p.Name).ToArray();
+                var interaces = solution.Projects.Where(p => p.Type == Solution.ProjectType.Interface).Select(p => p.Name).ToArray();
                 AnsiConsole.MarkupLineInterpolated($"Removing [red]{interaces.Length}[/] interfaces.");
                 solution.RemoveProjects(interaces);
             }

@@ -5,13 +5,13 @@ namespace Workbench;
 
 public class Solution
 {
-    public List<Project> JustProjects { get; set; }
-    public Dictionary<string, Project> Projects { get; private set; }
+    public List<Project> Projects { get; set; }
+    public Dictionary<string, Project> AliasToProject { get; private set; }
 
-    public Solution(Dictionary<string, Project> allProjects, List<Project> projects)
+    public Solution(Dictionary<string, Project> aliasToProjects, List<Project> projects)
     {
-        JustProjects = projects;
-        Projects = allProjects;
+        Projects = projects;
+        AliasToProject = aliasToProjects;
     }
 
     public enum ProjectType
@@ -21,16 +21,16 @@ public class Solution
 
     public class Project
     {
+        public ProjectType Type { get; }
+        public string Name { get; }
+        public List<Project> Dependencies { get; set; } = new();
+        public List<string> NamedDependencies { get; set; } = new();
+
         public Project(ProjectType type, string name)
         {
             Type = type;
             Name = name;
         }
-
-        public ProjectType Type { get; }
-        public string Name { get; }
-        public List<Project> Dependencies { get; set; } = new();
-        public List<string> NamedDependencies { get; set; } = new();
 
         internal void Resolve(Dictionary<string, Project> map)
         {
@@ -83,7 +83,7 @@ public class Solution
         a -> c
         simplify will remove the last dependency (a->c) to 'simplify' the graph
         */
-        foreach (var project in JustProjects)
+        foreach (var project in Projects)
         {
             var se = ChildrenNames(project, false).ToHashSet();
             List<string> dependencies = new();
@@ -106,7 +106,7 @@ public class Solution
 
         var ni = namesToIgnore.Select(x => x.ToLower().Trim()).ToHashSet();
 
-        var projects = JustProjects.ToArray();
+        var projects = Projects.ToArray();
 
         if (removeEmpty)
         {
@@ -148,20 +148,20 @@ public class Solution
         var set = names.ToHashSet();
 
         // remove links
-        foreach (var p in JustProjects)
+        foreach (var p in Projects)
         {
             p.NamedDependencies = p.NamedDependencies.Where(n => set.Contains(n) == false).ToList();
         }
 
         // remove projects
-        JustProjects = JustProjects.Where(p => set.Contains(p.Name) == false).ToList();
+        Projects = Projects.Where(p => set.Contains(p.Name) == false).ToList();
 
         // remove links
         // a name can be 2 keys (alias)
-        var keysToRemove = Projects.Where(p => set.Contains(p.Value.Name)).Select(p => p.Key).ToArray();
+        var keysToRemove = AliasToProject.Where(p => set.Contains(p.Value.Name)).Select(p => p.Key).ToArray();
         foreach (var key in keysToRemove)
         {
-            Projects.Remove(key);
+            AliasToProject.Remove(key);
         }
 
         PostLoad();
@@ -180,9 +180,9 @@ public class Solution
 
     public void PostLoad()
     {
-        foreach (var p in JustProjects)
+        foreach (var p in Projects)
         {
-            p.Resolve(Projects);
+            p.Resolve(AliasToProject);
         }
     }
 
@@ -194,11 +194,11 @@ public class Solution
             {
                 return true;
             }
-            if (Projects.ContainsKey(current_name) == false)
+            if (AliasToProject.ContainsKey(current_name) == false)
             {
                 return false;
             }
-            if (has_dependency(Projects[current_name], dependency_name, true))
+            if (has_dependency(AliasToProject[current_name], dependency_name, true))
             {
                 return true;
             }
