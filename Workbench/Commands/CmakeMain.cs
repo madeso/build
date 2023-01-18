@@ -1,5 +1,6 @@
 ﻿using Spectre.Console;
 using Spectre.Console.Cli;
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Workbench.CMake;
@@ -72,7 +73,7 @@ internal sealed class DotCommand : Command<DotCommand.Arg>
 
         [Description("Project names to ignore")]
         [CommandOption("--ignores")]
-        public string[]? NamesToIgnore { get; set; }
+        public string[] NamesToIgnore { get; set; } = Array.Empty<string>(); 
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
@@ -81,24 +82,29 @@ internal sealed class DotCommand : Command<DotCommand.Arg>
 
         try
         {
-            var ignores = settings.NamesToIgnore ?? Array.Empty<string>();
-            AnsiConsole.MarkupLineInterpolated($"Ignoring [red]{ignores.Length}[/] projects.");
+            var ignores = settings.NamesToIgnore.ToImmutableHashSet();
+            AnsiConsole.MarkupLineInterpolated($"Ignoring [red]{ignores.Count}[/] projects.");
             var lines = Trace.TraceDirectory(settings.File);
-            var solution = Solution.Parse(lines);
+            var solution = SolutionParser.ParseCmake(lines);
 
             if (settings.RemoveInterface)
             {
-                var interaces = solution.Projects.Where(p => p.Type == Solution.ProjectType.Interface).Select(p => p.Name).ToArray();
-                AnsiConsole.MarkupLineInterpolated($"Removing [red]{interaces.Length}[/] interfaces.");
-                solution.RemoveProjects(interaces);
+                var removed = solution.RemoveProjects(p => p.Type == Solution.ProjectType.Interface);
+                AnsiConsole.MarkupLineInterpolated($"Removing [red]{removed}[/] interfaces.");
             }
+
+            solution.RemoveProjects(p => ignores.Contains(p.Name));
+            if(settings.RemoveEmpty)
+            {
+                solution.RemoveProjects(p => p.Uses.Any() == false && p.IsUsedBy.Any() == false);
+            }
+
+            var gv = solution.MakeGraphviz(settings.Reverse);
 
             if (settings.Simplify)
             {
-                solution.Simplify();
+                gv.Simplify();
             }
-
-            var gv = solution.MakeGraphviz(settings.Reverse, settings.RemoveEmpty, ignores);
 
             var output = gv.Lines.ToArray();
 

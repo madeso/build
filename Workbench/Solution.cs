@@ -1,18 +1,18 @@
 ﻿using Spectre.Console;
+using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 using Workbench.CMake;
 
 namespace Workbench;
 
 public class Solution
 {
-    public List<Project> Projects { get; set; }
-    public Dictionary<string, Project> AliasToProject { get; private set; }
+    private readonly Dictionary<Guid, Project> projects = new();
+    private readonly Dictionary<Guid, List<Guid>> uses = new();
+    private readonly Dictionary<Guid, List<Guid>> isUsedBy = new();
 
-    public Solution(Dictionary<string, Project> aliasToProjects, List<Project> projects)
-    {
-        Projects = projects;
-        AliasToProject = aliasToProjects;
-    }
+    private List<Guid> Uses(Project p) => this.uses[p.Guid]; // app uses lib
+    private List<Guid> IsUsedBy(Project p) => this.isUsedBy[p.Guid]; // lib is used by app
 
     public enum ProjectType
     {
@@ -21,46 +21,31 @@ public class Solution
 
     public class Project
     {
+        public Solution Solution { get; }
         public ProjectType Type { get; }
         public string Name { get; }
-        public List<Project> Dependencies { get; set; } = new();
-        public List<string> NamedDependencies { get; set; } = new();
+        public Guid Guid { get; }
 
-        public Project(ProjectType type, string name)
+        public Project(Solution solution, ProjectType type, string name, Guid guid)
         {
+            Solution = solution;
             Type = type;
             Name = name;
-        }
-
-        internal void Resolve(Dictionary<string, Project> map)
-        {
-            Dependencies = NamedDependencies.Where(name => map.ContainsKey(name)).Select(name => map[name]).ToList();
+            Guid = guid;
         }
 
         public override string ToString()
         {
             return $"{Name} {Type}";
         }
-    }
 
-    public static Solution Parse(IEnumerable<CMake.Trace> lines)
-    {
-        CmakeSolutionParser parser = new();
-        foreach (var line in lines)
-        {
-            switch (line.Cmd.ToLower())
-            {
-                case "add_executable": parser.AddExecutable(line); break;
-                case "add_library": parser.AddLibrary(line); break;
-                case "target_link_libraries": parser.LinkLibrary(line); break;
-            }
-        }
-        return parser.CreateSolution();
+        public IEnumerable<Project> Uses => Solution.Uses(this).Select(dep => Solution.projects[dep]);
+        public IEnumerable<Project> IsUsedBy => Solution.IsUsedBy(this).Select(dep => Solution.projects[dep]);
     }
 
     private static IEnumerable<string> ChildrenNames(Project proj, bool add)
     {
-        foreach (var p in proj.Dependencies)
+        foreach (var p in proj.Uses)
         {
             if (add)
             {
@@ -74,59 +59,27 @@ public class Solution
         }
     }
 
-    public void Simplify()
-    {
-        /*
-        given the dependencies like:
-        a -> b
-        b -> c
-        a -> c
-        simplify will remove the last dependency (a->c) to 'simplify' the graph
-        */
-        foreach (var project in Projects)
-        {
-            var se = ChildrenNames(project, false).ToHashSet();
-            List<string> dependencies = new();
-            foreach (var dependency in project.Dependencies)
-            {
-                //if(has_dependency(project, dependency_name, false) == false)
-                if (se.Contains(dependency.Name) == false)
-                {
-                    dependencies.Add(dependency.Name);
-                }
-            }
-            project.NamedDependencies = dependencies;
-        }
-        PostLoad();
-    }
-
-    internal Graphviz MakeGraphviz(bool reverse, bool removeEmpty, IEnumerable<string> namesToIgnore)
+    public Graphviz MakeGraphviz(bool reverse)
     {
         Graphviz gv = new();
 
-        var ni = namesToIgnore.Select(x => x.ToLower().Trim()).ToHashSet();
-
-        var projects = Projects.ToArray();
-
-        if (removeEmpty)
-        {
-            var names = projects.SelectMany(p => p.Dependencies).Select(p => p.Name).ToHashSet();
-            projects = projects.Where(p => p.Dependencies.Count > 0 || names.Contains(p.Name)).ToArray();
-        }
-
         Dictionary<string, Graphviz.Node> nodes = new();
-        foreach (var p in projects)
+        foreach (var p in this.projects.Values)
         {
-            if (ni.Contains(p.Name.ToLower().Trim())) continue;
-            nodes.Add(p.Name, gv.AddNode(p.Name, GetGraphvizType(p)));
+            var nodeShape = p.Type switch
+            {
+                ProjectType.Executable => "folder",
+                ProjectType.Static => "component",
+                ProjectType.Shared => "ellipse",
+                _ => "plaintext",
+            };
+            nodes.Add(p.Name, gv.AddNode(p.Name, nodeShape));
         }
 
-        foreach (var p in projects)
+        foreach (var p in this.projects.Values)
         {
-            if (ni.Contains(p.Name.ToLower().Trim())) continue;
-            foreach (var to in p.Dependencies)
+            foreach (var to in p.Uses)
             {
-                if (ni.Contains(to.Name.ToLower().Trim())) continue;
                 var nfrom = nodes[p.Name];
                 var nto = nodes[to.Name];
                 if (reverse == false)
@@ -143,51 +96,33 @@ public class Solution
         return gv;
     }
 
-    internal void RemoveProjects(string[] names)
+    public int RemoveProjects(Func<Project, bool> predicate)
     {
-        var set = names.ToHashSet();
-
-        // remove links
-        foreach (var p in Projects)
+        var guids = this.projects.Values.Where(predicate).Select(p => p.Guid).ToImmutableArray();
+        
+        foreach(var g in guids)
         {
-            p.NamedDependencies = p.NamedDependencies.Where(n => set.Contains(n) == false).ToList();
+            this.projects.Remove(g);
+            this.uses.Remove(g);
+            this.isUsedBy.Remove(g);
         }
 
-        // remove projects
-        Projects = Projects.Where(p => set.Contains(p.Name) == false).ToList();
-
-        // remove links
-        // a name can be 2 keys (alias)
-        var keysToRemove = AliasToProject.Where(p => set.Contains(p.Value.Name)).Select(p => p.Key).ToArray();
-        foreach (var key in keysToRemove)
-        {
-            AliasToProject.Remove(key);
-        }
-
-        PostLoad();
+        return guids.Length;
     }
 
-    private string GetGraphvizType(Project p)
+    private void PostLoad()
     {
-        return p.Type switch
-        {
-            ProjectType.Executable => "folder",
-            ProjectType.Static => "component",
-            ProjectType.Shared => "ellipse",
-            _ => "plaintext",
-        };
-    }
-
-    public void PostLoad()
-    {
+#if false
         foreach (var p in Projects)
         {
             p.Resolve(AliasToProject);
         }
+#endif
     }
 
     private bool has_dependency(Project project, string dependency_name, bool self_reference)
     {
+#if false
         foreach (var current_name in project.NamedDependencies)
         {
             if (self_reference && current_name == dependency_name)
@@ -205,77 +140,130 @@ public class Solution
         }
         return false;
     }
+#else
+        return false;
+#endif
+    }
+
+    public Project AddProject(ProjectType type, string name)
+    {
+        var project = new Project(this, type, name, new Guid());
+        this.projects.Add(project.Guid, project);
+        return project;
+    }
+
+    internal void AddDependency(Project exe, Project lib)
+    {
+        static void Link(Project from, Dictionary<Guid, List<Guid>> store, Project to)
+        {
+            if(store.TryGetValue(from.Guid, out var list))
+            {
+                list.Add(to.Guid);
+            }
+            else
+            {
+                store.Add(from.Guid, new() { to.Guid });
+            }
+        }
+        Link(exe, uses, lib);
+        Link(lib, isUsedBy, exe);
+    }
 }
 
-internal class CmakeSolutionParser
+internal class SolutionParser
 {
-    private readonly Dictionary<string, Solution.Project> allProjects = new();
-    private readonly List<Solution.Project> projects = new();
+    record Dependency(Solution.Project From, string To);
 
-    internal void AddExecutable(Trace line)
+    public static Solution ParseCmake(IEnumerable<CMake.Trace> lines)
     {
-        var app = line.Args[0];
-        AnsiConsole.MarkupLineInterpolated($"Adding executable {app}");
-        var p = new Solution.Project(Solution.ProjectType.Executable, app);
-        allProjects.Add(app, p);
-        projects.Add(p);
-    }
+        Solution solution = new();
 
-    internal void AddLibrary(Trace line)
-    {
-        var lib = line.Args[0];
-        AnsiConsole.MarkupLineInterpolated($"Adding lib {lib}");
-        if (allProjects.ContainsKey(lib))
+        // maps name or alias to a project
+        Dictionary<string, Solution.Project> nameOrAliasMapping = new();
+
+        List<Dependency> dependencies = new();
+
+        void AddExecutable(Trace line)
         {
-            // todo(Gustav): add warning
-            return;
+            var app = line.Args[0];
+            var p = solution.AddProject(Solution.ProjectType.Executable, app);
+            nameOrAliasMapping.Add(app, p);
         }
 
-        if (line.Args.Contains("ALIAS"))
+        void AddLibrary(Trace line)
         {
-            var name = line.Args[2];
-            allProjects.Add(lib, allProjects[name]);
-            return;
+            var lib = line.Args[0];
+            AnsiConsole.MarkupLineInterpolated($"Adding lib {lib}");
+            if (nameOrAliasMapping.ContainsKey(lib))
+            {
+                // todo(Gustav): add warning
+                return;
+            }
+
+            if (line.Args.Contains("ALIAS"))
+            {
+                var name = line.Args[2];
+                nameOrAliasMapping.Add(lib, nameOrAliasMapping[name]);
+                return;
+            }
+
+            var libType = Solution.ProjectType.Static;
+
+            if (line.Args.Contains("SHARED"))
+            {
+                libType = Solution.ProjectType.Shared;
+            }
+
+            if (line.Args.Contains("INTERFACE"))
+            {
+                libType = Solution.ProjectType.Interface;
+            }
+
+            var p = solution.AddProject(libType, lib);
+            nameOrAliasMapping.Add(lib, p);
         }
 
-        var libType = Solution.ProjectType.Static;
-
-        if (line.Args.Contains("SHARED"))
+        void LinkLibrary(Trace line)
         {
-            libType = Solution.ProjectType.Shared;
+            var targetName = line.Args[0];
+
+            if (nameOrAliasMapping.TryGetValue(targetName, out var target) == false)
+            {
+                // todo(Gustav): add warning
+                return;
+            }
+
+            foreach (var c in line.Args.Skip(1))
+            {
+                if (c is "PUBLIC" or "INTERFACE" or "PRIVATE") { continue; }
+                dependencies.Add(new(target, c));
+            }
         }
 
-        if (line.Args.Contains("INTERFACE"))
+        // load targets, aliases and list of dependencies
+        foreach (var line in lines)
         {
-            libType = Solution.ProjectType.Interface;
+            switch (line.Cmd.ToLower())
+            {
+                case "add_executable": AddExecutable(line); break;
+                case "add_library": AddLibrary(line); break;
+                case "target_link_libraries": LinkLibrary(line); break;
+            }
         }
 
-        var p = new Solution.Project(libType, lib);
-        allProjects.Add(lib, p);
-        projects.Add(p);
-    }
-
-    internal void LinkLibrary(Trace line)
-    {
-        var targetName = line.Args[0];
-
-        if (allProjects.ContainsKey(targetName) == false)
+        // link dependencies to targets
+        foreach(var (project, dependencyName) in dependencies)
         {
-            // todo(Gustav): add warning
-            return;
+            if(nameOrAliasMapping.TryGetValue(dependencyName, out var dependency))
+            {
+                solution.AddDependency(project, dependency);
+            }
+            else
+            {
+                // todo(Gustav): print error
+            }
         }
-        var target = allProjects[targetName];
-        foreach (var c in line.Args.Skip(1))
-        {
-            if (c is "PUBLIC" or "INTERFACE" or "PRIVATE") { continue; }
-            target.NamedDependencies.Add(c);
-        }
-    }
 
-    internal Solution CreateSolution()
-    {
-        var s = new Solution(allProjects, projects);
-        s.PostLoad();
-        return s;
+        return solution;
     }
 }
