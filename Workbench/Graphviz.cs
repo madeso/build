@@ -126,8 +126,8 @@ public class Graphviz
     {
         get
         {
-            yield return "digraph G\n";
-            yield return "{\n";
+            yield return "digraph G";
+            yield return "{";
 
             foreach (var group in nodes.GroupBy(x => x.cluster))
             {
@@ -136,30 +136,30 @@ public class Graphviz
                 var indent = string.Empty;
                 if (cluster != null)
                 {
-                    yield return $"    subgraph cluster_{ConvertIntoSafeId(cluster, "cluster")} {{\n";
+                    yield return $"    subgraph cluster_{ConvertIntoSafeId(cluster, "cluster")} {{";
                     indent = "    ";
                 }
 
                 foreach (var n in nodes)
                 {
-                    yield return $"    {indent}{n.id} [label=\"{Escape(n.display)}\" shape={n.shape}];\n";
+                    yield return $"    {indent}{n.id} [label=\"{Escape(n.display)}\" shape={n.shape}];";
                 }
 
                 if (cluster != null)
                 {
-                    yield return "    }\n";
+                    yield return "    }";
                 }
             }
 
-            yield return "\n";
+            yield return "";
             foreach (var e in edges)
             {
                 var from = e.from;
                 var to = e.to;
-                yield return $"    {from.id} -> {to.id};\n";
+                yield return $"    {from.id} -> {to.id};";
             }
 
-            yield return "}\n";
+            yield return "}";
         }
     }
 
