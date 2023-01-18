@@ -17,6 +17,8 @@ public class Solution
     private List<Guid> Uses(Project p) => this.uses[p.Guid]; // app uses lib
     private List<Guid> IsUsedBy(Project p) => this.isUsedBy[p.Guid]; // lib is used by app
 
+    public IEnumerable<Project> Projects => projects.Values;
+
     public enum ProjectType
     {
         Unknown, Interface, Executable, Static, Shared
@@ -101,27 +103,28 @@ public class Solution
 
     public int RemoveProjects(Func<Project, bool> predicate)
     {
-        var guids = this.projects.Values.Where(predicate).Select(p => p.Guid).ToImmutableArray();
+        var guids = this.projects.Values.Where(predicate).Select(p => p.Guid).ToImmutableHashSet();
         
         foreach(var g in guids)
         {
             this.projects.Remove(g);
             this.uses.Remove(g);
             this.isUsedBy.Remove(g);
+
+            foreach(var u in uses.Values)
+            {
+                u.RemoveAll(guids.Contains);
+            }
+
+            foreach (var u in isUsedBy.Values)
+            {
+                u.RemoveAll(guids.Contains);
+            }
         }
 
-        return guids.Length;
+        return guids.Count;
     }
 
-    private void PostLoad()
-    {
-#if false
-        foreach (var p in Projects)
-        {
-            p.Resolve(AliasToProject);
-        }
-#endif
-    }
 
     private bool has_dependency(Project project, string dependency_name, bool self_reference)
     {
@@ -150,7 +153,7 @@ public class Solution
 
     public Project AddProject(ProjectType type, string name)
     {
-        var project = new Project(this, type, name, new Guid());
+        var project = new Project(this, type, name, Guid.NewGuid());
         this.projects.Add(project.Guid, project);
         return project;
     }
@@ -286,16 +289,22 @@ internal class SolutionParser
         // load solution
 
         {
-            var lines = File.ReadLines(solution_path);
+            var lines = File.ReadLines(solution_path).ToArray();
             Project? current_project = null;
-            Project? dependency_project = null;
+            string project_line = string.Empty;
             var solutionDir = new FileInfo(solution_path).Directory?.FullName!;
             foreach (var line in lines)
             {
                 if (line.StartsWith("Project"))
                 {
-                    var equal_index = line.IndexOf('=');
-                    var data = line.Substring(equal_index + 1).Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    // this might be a "folder" or a actual project
+                    project_line = line;
+                }
+                else if (line.Trim() == "ProjectSection(ProjectDependencies) = postProject")
+                {
+                    // it is a project
+                    var equal_index = project_line.IndexOf('=');
+                    var data = project_line.Substring(equal_index + 1).Split(',', StringSplitOptions.RemoveEmptyEntries);
                     var name = data[0].Trim().Trim('\"').Trim();
                     var relative_path = data[1].Trim().Trim('\"').Trim();
                     var project_guid = data[2].Trim().Trim('\"').Trim();
@@ -304,19 +313,15 @@ internal class SolutionParser
                     loads.Add(new(current_project, Path.Join(solutionDir, relative_path)));
                     projects[project_guid.ToLowerInvariant()] = current_project;
                 }
+                else if (current_project != null && line.Trim().StartsWith("{"))
+                {
+                    var project_guid = line.Split('=')[0].Trim();
+                    dependencies.Add(new(current_project, project_guid));
+                }
                 else if (line == "EndProject")
                 {
                     current_project = null;
-                    dependency_project = null;
-                }
-                else if (line.Trim() == "ProjectSection(ProjectDependencies) = postProject")
-                {
-                    dependency_project = current_project;
-                }
-                else if (dependency_project != null && line.Trim().StartsWith("{"))
-                {
-                    var project_guid = line.Split('=')[0].Trim();
-                    dependencies.Add(new (dependency_project, project_guid));
+                    project_line = string.Empty;
                 }
             }
         }
