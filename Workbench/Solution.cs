@@ -11,11 +11,13 @@ namespace Workbench;
 public class Solution
 {
     private readonly Dictionary<Guid, Project> projects = new();
+
+    // list always contains atleast one item (unless it has been removed), missing entry means 0 items
     private readonly Dictionary<Guid, List<Guid>> uses = new();
     private readonly Dictionary<Guid, List<Guid>> isUsedBy = new();
 
-    private List<Guid> Uses(Project p) => this.uses[p.Guid]; // app uses lib
-    private List<Guid> IsUsedBy(Project p) => this.isUsedBy[p.Guid]; // lib is used by app
+    private List<Guid> Uses(Project p) => uses.TryGetValue(p.Guid, out var ret) ? ret : new(); // app uses lib
+    private List<Guid> IsUsedBy(Project p) => this.isUsedBy.TryGetValue(p.Guid, out var ret) ? ret : new(); // lib is used by app
 
     public IEnumerable<Project> Projects => projects.Values;
 
@@ -41,27 +43,11 @@ public class Solution
 
         public override string ToString()
         {
-            return $"{Name} {Type}";
+            return $"{Name} {Type} {Guid}";
         }
 
         public IEnumerable<Project> Uses => Solution.Uses(this).Select(dep => Solution.projects[dep]);
         public IEnumerable<Project> IsUsedBy => Solution.IsUsedBy(this).Select(dep => Solution.projects[dep]);
-    }
-
-    private static IEnumerable<string> ChildrenNames(Project proj, bool add)
-    {
-        foreach (var p in proj.Uses)
-        {
-            if (add)
-            {
-                yield return p.Name;
-            }
-
-            foreach (var n in ChildrenNames(p, true))
-            {
-                yield return n;
-            }
-        }
     }
 
     public Graphviz MakeGraphviz(bool reverse)
@@ -123,32 +109,6 @@ public class Solution
         }
 
         return guids.Count;
-    }
-
-
-    private bool has_dependency(Project project, string dependency_name, bool self_reference)
-    {
-#if false
-        foreach (var current_name in project.NamedDependencies)
-        {
-            if (self_reference && current_name == dependency_name)
-            {
-                return true;
-            }
-            if (AliasToProject.ContainsKey(current_name) == false)
-            {
-                return false;
-            }
-            if (has_dependency(AliasToProject[current_name], dependency_name, true))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-#else
-        return false;
-#endif
     }
 
     public Project AddProject(ProjectType type, string name)

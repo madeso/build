@@ -173,7 +173,7 @@ static class F
 
         var solution = SolutionParser.ParseVisualStudio(printer, path_to_solution_file);
 
-        solution.RemoveProjects(p => exclude.ShouldExclude(p.Name));
+        var removed = solution.RemoveProjects(p => exclude.ShouldExclude(p.Name));
 
         var gv = solution.MakeGraphviz(reverse_arrows);
 
