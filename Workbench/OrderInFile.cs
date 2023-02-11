@@ -10,17 +10,21 @@ internal static class OrderInFile
     {
         var parsed = Doxygen.Doxygen.ParseIndex(file);
 
-        bool ok = true;
+        int checks = 0;
+        int fails = 0;
 
         foreach(var k in parsed.compounds.Where(x => x.kind == Doxygen.Index.CompoundKind.Struct || x.kind == Doxygen.Index.CompoundKind.Class))
         {
-            if(false == CheckClass(printer, k))
+            checks += 1;
+            if (false == CheckClass(printer, k))
             {
-                ok = false;
+                fails += 1;
             }
         }
 
-        if(ok) { return 0; }
+        AnsiConsole.MarkupLineInterpolated($"[blue]{checks-fails} / {checks}[/] classes were accepted");
+
+        if(checks > 0 && fails==0) { return 0; }
         else { return -1; }
     }
 
