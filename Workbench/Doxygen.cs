@@ -5,12 +5,14 @@ namespace Workbench.Doxygen
 {
     internal static class Doxygen
     {
-        public static Index.DoxygenType ParseIndex(string path)
+        public static Index.DoxygenType ParseIndex(string dir)
         {
+            var path = Path.Join(dir, "index.xml");
             XmlDocument doc = new();
             doc.Load(path);
             var root = doc.ElementsNamed("doxygenindex").First();
-            return Index.DoxygenType.Parse(root);
+            var parsed = new Index.DoxygenType(new Compound.CompoundLoader(dir), root);
+            return parsed;
         }
     }
 }
@@ -34,47 +36,37 @@ namespace Workbench.Doxygen.Index
 
     class DoxygenType
     {
-        public ImmutableArray<CompoundType> compounds { get; }
+        public CompoundType[] compounds { get; }
 
-        public DoxygenType(ImmutableArray<CompoundType> compounds)
+        public DoxygenType(Compound.CompoundLoader dir, XmlElement el)
         {
-            this.compounds = compounds;
-        }
-
-        public static DoxygenType Parse(XmlElement el)
-        {
-            var compunds = el.ElementsNamed("compound").Select(CompoundType.Parse).ToImmutableArray();
-            return new DoxygenType(compunds);
+            compounds = el.ElementsNamed("compound").Select(x => new CompoundType(dir, x)).ToArray();
         }
     }
 
     class CompoundType
     {
         public string name { get; }
-        public ImmutableArray<MemberType> members { get; }
+        public MemberType[] members { get; }
         public string refid { get; }
         public CompoundKind kind { get; }
+
+        public Compound.DoxygenType Compund { get; }
 
         public override string ToString()
         {
             return $"{kind} {name} ({refid})";
         }
 
-        public CompoundType(string name, ImmutableArray<MemberType> members, string refid, CompoundKind kind)
+        public CompoundType(Compound.CompoundLoader dir, XmlElement el)
         {
-            this.name = name;
-            this.members = members;
-            this.refid = refid;
-            this.kind = kind;
-        }
+            name = el.GetTextOfSubElement("name");
+            refid = el.GetAttributeString("refid");
 
-        public static CompoundType Parse(XmlElement el)
-        {
-            var name = el.GetTextOfSubElement("name");
-            var refid = el.GetAttributeString("refid");
-            var kind = el.GetAttributeString("kind");
-            var members = el.ElementsNamed("member").Select(MemberType.Parse).ToImmutableArray();
-            return new CompoundType(name, members, refid, ParseKind(kind));
+            Compund = dir.Load(refid);
+
+            kind = ParseKind(el.GetAttributeString("kind"));
+            members = el.ElementsNamed("member").Select(x => new MemberType(x)).ToArray();
         }
 
         private static CompoundKind ParseKind(string v)
@@ -112,19 +104,11 @@ namespace Workbench.Doxygen.Index
             return $"{kind} {name} ({refid})";
         }
 
-        public MemberType(string name, string refid, MemberKind kind)
+        public MemberType(XmlElement el)
         {
-            this.name = name;
-            this.refid = refid;
-            this.kind = kind;
-        }
-
-        public static MemberType Parse(XmlElement el)
-        {
-            var name = el.GetTextOfSubElement("name");
-            var refid = el.GetAttributeString("refid");
-            var kind = el.GetAttributeString("kind");
-            return new MemberType(name, refid, ParseKind(kind));
+            name = el.GetTextOfSubElement("name");
+            refid = el.GetAttributeString("refid");
+            kind = ParseKind(el.GetAttributeString("kind"));
         }
 
         private static MemberKind ParseKind(string v)
@@ -149,4 +133,8 @@ namespace Workbench.Doxygen.Index
         }
     }
 
+}
+
+namespace Workbench.Doxygen.Compund
+{
 }
