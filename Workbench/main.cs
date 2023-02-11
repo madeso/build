@@ -1,4 +1,4 @@
-﻿using Spectre.Console.Cli;
+using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 
@@ -55,6 +55,7 @@ internal class Program
             Commands.CppLintCommands.Main.Configure(config, "cpplint");
             Commands.ToolsCommands.Main.Configure(config, "tools");
             Commands.SlnDepsCommands.Main.Configure(config, "slndeps");
+            Commands.OrderInFileCommands.Main.Configure(config, "order-in-file");
         });
         return app.Run(args);
     }
