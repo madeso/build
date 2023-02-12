@@ -100,6 +100,7 @@ internal static class OrderInFile
     private static NamedOrder constructors = new NamedOrder("Constructors", 0);
     private static NamedOrder creators = new NamedOrder("Creators", 5);
     private static NamedOrder manipulator = new NamedOrder("Manipulators", 10);
+    private static NamedOrder calculators = new NamedOrder("Calculators", 15);
     private static NamedOrder accessor = new NamedOrder("Acessors", 20);
     private static NamedOrder operators = new NamedOrder("Operators", 30);
     private static NamedOrder utils = new NamedOrder("Utils", 35);
@@ -128,7 +129,14 @@ internal static class OrderInFile
             }
             else if(m.Const == DoxBool.Yes || m.Constexpr == DoxBool.Yes)
             {
-                return accessor;
+                if( m.Param.Length > 0)
+                {
+                    return calculators;
+                }
+                else
+                {
+                    return accessor;
+                }
             }
             else if (m.Type?.Nodes.Length == 0)
             {
