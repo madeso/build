@@ -34,6 +34,7 @@ internal static class OrderInFile
         var members = k.Compund.Compound.Sectiondef.SelectMany(x => x.memberdef).ToArray();
 
         NamedOrder? lastClass = null;
+        Doxygen.Compound.memberdefType? lastMember = null;
 
         foreach (var member in members.OrderBy(x => x.Location.line))
         {
@@ -42,9 +43,9 @@ internal static class OrderInFile
             {
                 if (lastClass.Order > newClass.Order)
                 {
-                    printer.Error($"Members for {k.name} are orderd badly, can't go from {lastClass.Name} to {newClass.Name}!");
+                    printer.Error($"Members for {k.name} are orderd badly, can't go from {lastClass.Name} ({MemberToString(lastMember!)}) to {newClass.Name} ({MemberToString(member)})!");
 
-                    AnsiConsole.MarkupLineInterpolated($"Something [green]better[/] could be:");
+                    AnsiConsole.WriteLine("Something better could be:");
                     AnsiConsole.WriteLine("");
 
                     // print better order
@@ -54,7 +55,7 @@ internal static class OrderInFile
                         AnsiConsole.MarkupLineInterpolated($"// [blue]{c.Name}[/]");
                         foreach(var it in items)
                         {
-                            AnsiConsole.MarkupLineInterpolated($"  [green]{it.Name}[/]");
+                            AnsiConsole.MarkupLineInterpolated($"  [green]{MemberToString(it)}[/]");
                         }
                         AnsiConsole.WriteLine("");
                     }
@@ -65,9 +66,15 @@ internal static class OrderInFile
                 }
             }
             lastClass = newClass;
+            lastMember = member;
         }
 
         return true;
+
+        static string MemberToString(memberdefType it)
+        {
+            return it.Name;
+        }
     }
 
     private record NamedOrder(string Name, int Order);
