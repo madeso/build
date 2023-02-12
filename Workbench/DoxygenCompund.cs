@@ -620,7 +620,7 @@ class linkedTextType
     public linkedTextType(XmlElement el)
     {
         Nodes = el.MapChildren<Node>(
-            x=> new Text(x),
+            x=> new Text(x.Trim()),
             x => x.Name switch { "ref" => new Ref(x), _ => throw new Exception("invalid type")}
             ).ToArray();
     }
@@ -629,7 +629,7 @@ class linkedTextType
 
     public override string ToString()
     {
-        return string.Join(" ", Nodes.Select(x => x.ToString()));
+        return string.Join("", Nodes.Select(x => x.ToString()));
     }
 
     public interface Node
