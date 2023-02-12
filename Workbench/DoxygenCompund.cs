@@ -627,6 +627,11 @@ class linkedTextType
 
     public Node[] Nodes { get; }
 
+    public override string ToString()
+    {
+        return string.Join(" ", Nodes.Select(x => x.ToString()));
+    }
+
     public interface Node
     {
     }
@@ -639,6 +644,11 @@ class linkedTextType
         {
             Value = value;
         }
+
+        public override string ToString()
+        {
+            return Value;
+        }
     }
 
     public class Ref : Node
@@ -648,6 +658,11 @@ class linkedTextType
         public Ref(XmlElement value)
         {
             Value = new refTextType(value);
+        }
+
+        public override string ToString()
+        {
+            return Value.Extension;
         }
     }
   }

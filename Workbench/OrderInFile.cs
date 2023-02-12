@@ -83,7 +83,11 @@ internal static class OrderInFile
 
         static string MemberToString(memberdefType it)
         {
-            return it.Name;
+            if(it.Kind == DoxMemberKind.Function)
+            {
+                return $"{it.Type} {it.Name}{it.Argsstring}";
+            }
+            return $"{it.Type} {it.Name}";
         }
     }
 
