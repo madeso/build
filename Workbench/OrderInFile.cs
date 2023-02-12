@@ -51,7 +51,7 @@ internal static class OrderInFile
                 if (lastClass.Order > newClass.Order)
                 {
                     printer.Error(LocationToString(member.Location, root), $"Members for {k.name} are orderd badly, can't go from {lastClass.Name} ({MemberToString(lastMember!)}) to {newClass.Name} ({MemberToString(member)})!");
-                    AnsiConsole.WriteLine($"{LocationToString(lastMember.Location, root)}): From here");
+                    AnsiConsole.WriteLine($"{LocationToString(lastMember.Location, root)}: From here");
 
                     AnsiConsole.WriteLine("Something better could be:");
                     AnsiConsole.WriteLine("");
