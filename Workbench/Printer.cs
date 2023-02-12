@@ -52,6 +52,14 @@ public class Printer
         AnsiConsole.MarkupLineInterpolated($"[red]ERROR: {text}[/]");
     }
 
+    internal void Error(string file, string error)
+    {
+        var text = $"{file}: {error}";
+        error_count += 1;
+        errors.Add(text);
+        AnsiConsole.MarkupLineInterpolated($"[red]{file}: ERROR: {error}[/]");
+    }
+
     public void Warning(string text)
     {
         AnsiConsole.MarkupLineInterpolated($"WARNING: {text}");

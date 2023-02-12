@@ -8,7 +8,7 @@ namespace Workbench;
 
 internal static class OrderInFile
 {
-    public static int Run(Printer printer, string file)
+    public static int Run(Printer printer, string file, string root)
     {
         var parsed = Doxygen.Doxygen.ParseIndex(file);
 
@@ -18,7 +18,7 @@ internal static class OrderInFile
         foreach(var k in parsed.compounds.Where(x => x.kind == Doxygen.Index.CompoundKind.Struct || x.kind == Doxygen.Index.CompoundKind.Class))
         {
             checks += 1;
-            if (false == CheckClass(printer, k))
+            if (false == CheckClass(printer, k, root))
             {
                 fails += 1;
             }
@@ -30,7 +30,7 @@ internal static class OrderInFile
         else { return -1; }
     }
 
-    private static bool CheckClass(Printer printer, CompoundType k)
+    private static bool CheckClass(Printer printer, CompoundType k, string root)
     {
         // k.name
         var members = k.Compund.Compound.Sectiondef.SelectMany(x => x.memberdef).ToArray();
@@ -50,7 +50,8 @@ internal static class OrderInFile
 
                 if (lastClass.Order > newClass.Order)
                 {
-                    printer.Error($"Members for {k.name} are orderd badly, can't go from {lastClass.Name} ({MemberToString(lastMember!)}) to {newClass.Name} ({MemberToString(member)})!");
+                    printer.Error(LocationToString(member.Location, root), $"Members for {k.name} are orderd badly, can't go from {lastClass.Name} ({MemberToString(lastMember!)}) to {newClass.Name} ({MemberToString(member)})!");
+                    AnsiConsole.WriteLine($"{LocationToString(lastMember.Location, root)}): From here");
 
                     AnsiConsole.WriteLine("Something better could be:");
                     AnsiConsole.WriteLine("");
@@ -88,6 +89,13 @@ internal static class OrderInFile
                 return $"{it.Type} {it.Name}{it.Argsstring}";
             }
             return $"{it.Type} {it.Name}";
+        }
+
+        static string LocationToString(locationType loc, string root)
+        {
+            var abs = new FileInfo(Path.Join(root, loc.file)).FullName;
+            var print = File.Exists(abs) ? abs : loc.file;
+            return $"{print}({loc.line})";
         }
     }
 

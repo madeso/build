@@ -18,7 +18,7 @@ internal sealed class OrderInFileCommand : Command<OrderInFileCommand.Settings>
     {
         var file = settings.SearchPath ?? Directory.GetCurrentDirectory();
 
-        return CommonExecute.WithPrinter(printer => OrderInFile.Run(printer, file));
+        return CommonExecute.WithPrinter(printer => OrderInFile.Run(printer, file, Environment.CurrentDirectory));
     }
 }
 
