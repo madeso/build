@@ -1,6 +1,8 @@
 using Spectre.Console;
+using Workbench.CompileCommands;
 using Workbench.Doxygen.Compound;
 using Workbench.Doxygen.Index;
+using static Workbench.Doxygen.Compound.linkedTextType;
 
 namespace Workbench;
 
@@ -38,9 +40,14 @@ internal static class OrderInFile
 
         foreach (var member in members.OrderBy(x => x.Location.line))
         {
-            var newClass = Classify(member);
+            var newClass = Classify(k, member);
             if (lastClass != null)
             {
+                if(member.Location.file != lastMember!.Location.file)
+                {
+                    throw new Exception("invalid data");
+                }
+
                 if (lastClass.Order > newClass.Order)
                 {
                     printer.Error($"Members for {k.name} are orderd badly, can't go from {lastClass.Name} ({MemberToString(lastMember!)}) to {newClass.Name} ({MemberToString(member)})!");
@@ -49,7 +56,10 @@ internal static class OrderInFile
                     AnsiConsole.WriteLine("");
 
                     // print better order
-                    var sorted = members.GroupBy(Classify, (group, items) => (group, items.ToArray()));
+                    var sorted = members
+                        .GroupBy(x => Classify(k, x), (group, items) => (group, items.ToArray()))
+                        .OrderBy(x => x.group.Order)
+                        ;
                     foreach(var (c, items) in sorted)
                     {
                         AnsiConsole.MarkupLineInterpolated($"// [blue]{c.Name}[/]");
@@ -79,18 +89,19 @@ internal static class OrderInFile
 
     private record NamedOrder(string Name, int Order);
 
-    private static NamedOrder typedefs = new NamedOrder("Typedefs", -4);
-    private static NamedOrder friends = new NamedOrder("Friends", -3);
-    private static NamedOrder enums = new NamedOrder("Enums", -2);
-    private static NamedOrder publicvars = new NamedOrder("Public Variables", -1);
-    private static NamedOrder creator = new NamedOrder("Creators", 0);
-    private static NamedOrder manipulator = new NamedOrder("Manipulators", 1);
-    private static NamedOrder accessor = new NamedOrder("Acessors", 2);
-    private static NamedOrder operators = new NamedOrder("Operators", 3);
-
+    private static NamedOrder typedefs = new NamedOrder("Typedefs", -40);
+    private static NamedOrder friends = new NamedOrder("Friends", -30);
+    private static NamedOrder enums = new NamedOrder("Enums", -20);
+    private static NamedOrder publicvars = new NamedOrder("Public Variables", -10);
+    private static NamedOrder constructors = new NamedOrder("Constructors", 0);
+    private static NamedOrder creators = new NamedOrder("Creators", 5);
+    private static NamedOrder manipulator = new NamedOrder("Manipulators", 10);
+    private static NamedOrder accessor = new NamedOrder("Acessors", 20);
+    private static NamedOrder operators = new NamedOrder("Operators", 30);
+    private static NamedOrder utils = new NamedOrder("Utils", 35);
     private static NamedOrder PrivateVars = new NamedOrder("Private vars", 100);
 
-    private static NamedOrder Classify(memberdefType m)
+    private static NamedOrder Classify(CompoundType k, memberdefType m)
     {
         if (m.Name.StartsWith("operator"))
         {
@@ -99,14 +110,26 @@ internal static class OrderInFile
 
         if (m.Kind == DoxMemberKind.Function)
         {
-            if(m.Const == DoxBool.Yes || m.Constexpr == DoxBool.Yes)
+            if(m.Static == DoxBool.Yes)
+            {
+                // undecorated return AND that is a ref AND that references the current class
+                if (m.Type?.Nodes.Length == 1 && m.Type?.Nodes[0] is Ref ret && ret.Value.refid == k.refid)
+                {
+                    return creators;
+                }
+                else
+                {
+                    return utils;
+                }
+            }
+            else if(m.Const == DoxBool.Yes || m.Constexpr == DoxBool.Yes)
             {
                 return accessor;
             }
-            else if (m.Type.Nodes.Length == 0)
+            else if (m.Type?.Nodes.Length == 0)
             {
                 // constructor
-                return creator;
+                return constructors;
             }
             else
             {
