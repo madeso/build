@@ -57,7 +57,27 @@ public class Printer
         var text = $"{file}: {error}";
         error_count += 1;
         errors.Add(text);
-        AnsiConsole.MarkupLineInterpolated($"[red]{file}: ERROR: {error}[/]");
+        var message = $"{file}: ERROR: {error}";
+        if(IsConnectedToConsole())
+        {
+            AnsiConsole.MarkupLineInterpolated($"[red]{message}[/]");
+        }
+        else
+        {
+            Console.WriteLine(message);
+        }
+
+        static bool IsConnectedToConsole()
+        {
+            try
+            {
+                return System.Console.WindowWidth > 0;
+            }
+            catch(IOException)
+            {
+                return false;
+            }
+        }
     }
 
     public void Warning(string text)
