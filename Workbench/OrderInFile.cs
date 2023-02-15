@@ -141,7 +141,7 @@ internal static class OrderInFile
 
         if (m.Kind == DoxMemberKind.Function)
         {
-            if(m.Static == DoxBool.Yes)
+            if (m.Static == DoxBool.Yes)
             {
                 // undecorated return AND that is a ref AND that references the current class
                 if (m.Type?.Nodes.Any(node => node is Ref ret && ret.Value.refid == k.refid) ?? false)
@@ -153,9 +153,14 @@ internal static class OrderInFile
                     return utils;
                 }
             }
-            else if(m.Const == DoxBool.Yes || m.Constexpr == DoxBool.Yes)
+            else if (IsConstructor(m))
             {
-                if( m.Param.Length > 0)
+                // constructor
+                return constructors;
+            }
+            else if (m.Const == DoxBool.Yes || m.Constexpr == DoxBool.Yes)
+            {
+                if (m.Param.Length > 0)
                 {
                     return calculators;
                 }
@@ -164,18 +169,13 @@ internal static class OrderInFile
                     return accessor;
                 }
             }
-            else if (m.Type?.Nodes.Length == 0)
-            {
-                // constructor
-                return constructors;
-            }
             else
             {
                 return manipulator;
             }
         }
 
-        if(m.Kind == DoxMemberKind.Variable)
+        if (m.Kind == DoxMemberKind.Variable)
         {
             return vars;
         }
@@ -196,5 +196,29 @@ internal static class OrderInFile
         }
 
         return new NamedOrder("everything", 0);
+
+        static bool IsConstructor(memberdefType m)
+        {
+            var ret = m.Type?.Nodes;
+            if (ret == null) { return true; }
+
+            // exclude "constexpr" return values
+            var rets = ret.Where(node => !(node is linkedTextType.Text text && IsKeyword(text))).ToArray();
+            var retCount = rets.Count();
+
+            // Console.WriteLine($"ret detection: {m.Name} -- {retCount}: {ret}");
+            return retCount == 0;
+
+            static bool IsKeyword(linkedTextType.Text text)
+            {
+                return text.Value.Trim() switch
+                {
+                    "constexpr" => true,
+                    "const" => true,
+                    "&" => true,
+                    _ => false,
+                };
+            }
+        }
     }
 }
