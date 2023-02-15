@@ -5,37 +5,37 @@ using System.Diagnostics.CodeAnalysis;
 namespace Workbench.Commands.OrderInFileCommands;
 
 
-internal sealed class OrderInFileCommand : Command<OrderInFileCommand.Settings>
+internal sealed class OrderInFileCommand : Command<OrderInFileCommand.Arg>
 {
-    public sealed class Settings : CommandSettings
+    public sealed class Arg : CommandSettings
     {
-        [Description("Doxygen index.xml")]
+        [Description("Doxygen xml folder")]
         [CommandArgument(0, "[searchPath]")]
-        public string SearchPath { get; init; } = string.Empty;
+        public string DoxygenXml { get; init; } = string.Empty;
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Settings settings)
+    public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return CommonExecute.WithPrinter(printer => OrderInFile.Run(printer, settings.SearchPath, Environment.CurrentDirectory));
+        return CommonExecute.WithPrinter(printer => OrderInFile.Run(printer, arg.DoxygenXml, Environment.CurrentDirectory));
     }
 }
 
-internal sealed class ClassifyClass : Command<ClassifyClass.Settings>
+internal sealed class ClassifyClass : Command<ClassifyClass.Arg>
 {
-    public sealed class Settings : CommandSettings
+    public sealed class Arg : CommandSettings
     {
-        [Description("Doxygen index.xml")]
-        [CommandArgument(0, "[searchPath]")]
-        public string SearchPath { get; init; } = string.Empty;
+        [Description("Doxygen xml folder")]
+        [CommandArgument(0, "[doxygen]")]
+        public string DoxygenXml { get; init; } = string.Empty;
 
         [Description("The class/struct name to classify")]
         [CommandArgument(0, "[className]")]
         public string ClassName { get; init; } = string.Empty;
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Settings settings)
+    public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return CommonExecute.WithPrinter(printer => OrderInFile.ClassifyClass(printer, settings.SearchPath, settings.ClassName, Environment.CurrentDirectory));
+        return CommonExecute.WithPrinter(printer => OrderInFile.ClassifyClass(printer, arg.DoxygenXml, arg.ClassName, Environment.CurrentDirectory));
     }
 }
 
