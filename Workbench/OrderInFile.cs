@@ -126,7 +126,7 @@ internal static class OrderInFile
             if(m.Static == DoxBool.Yes)
             {
                 // undecorated return AND that is a ref AND that references the current class
-                if (m.Type?.Nodes.Length == 1 && m.Type?.Nodes[0] is Ref ret && ret.Value.refid == k.refid)
+                if (m.Type?.Nodes.Any(node => node is Ref ret && ret.Value.refid == k.refid) ?? false)
                 {
                     return creators;
                 }
