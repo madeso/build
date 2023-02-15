@@ -178,7 +178,7 @@ internal static class OrderInFile
             return operators;
         }
 
-        if(m.Virt == DoxVirtualKind.Virtual)
+        if(m.Virt == DoxVirtualKind.Virtual && IsConstructorOrDestructor(m) == false)
         {
             return virtuals;
         }
@@ -202,7 +202,7 @@ internal static class OrderInFile
                     return utils;
                 }
             }
-            else if (IsConstructor(m))
+            else if (IsConstructorOrDestructor(m))
             {
                 // constructor
                 return constructors;
@@ -246,7 +246,7 @@ internal static class OrderInFile
 
         return new NamedOrder("everything", 0);
 
-        static bool IsConstructor(memberdefType m)
+        static bool IsConstructorOrDestructor(memberdefType m)
         {
             var ret = m.Type?.Nodes;
             if (ret == null) { return true; }
