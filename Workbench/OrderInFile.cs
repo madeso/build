@@ -99,22 +99,40 @@ internal static class OrderInFile
         }
     }
 
-    private record NamedOrder(string Name, int Order);
+    private record NamedOrder(string Name, int Order)
+    {
+        internal NamedOrder Specify(string visibility, int orderChange)
+        {
+            return new NamedOrder($"{visibility} {Name}", Order + orderChange);
+        }
+    }
 
-    private static NamedOrder typedefs = new NamedOrder("Typedefs", -40);
-    private static NamedOrder friends = new NamedOrder("Friends", -30);
-    private static NamedOrder enums = new NamedOrder("Enums", -20);
-    private static NamedOrder publicvars = new NamedOrder("Public Variables", -10);
-    private static NamedOrder constructors = new NamedOrder("Constructors", 0);
-    private static NamedOrder creators = new NamedOrder("Creators", 5);
-    private static NamedOrder manipulator = new NamedOrder("Manipulators", 10);
-    private static NamedOrder calculators = new NamedOrder("Calculators", 15);
-    private static NamedOrder accessor = new NamedOrder("Acessors", 20);
-    private static NamedOrder operators = new NamedOrder("Operators", 30);
-    private static NamedOrder utils = new NamedOrder("Utils", 35);
-    private static NamedOrder PrivateVars = new NamedOrder("Private vars", 100);
+    private static NamedOrder typedefs = new NamedOrder("typedefs", -40);
+    private static NamedOrder friends = new NamedOrder("friends", -30);
+    private static NamedOrder enums = new NamedOrder("enums", -20);
+    private static NamedOrder vars = new NamedOrder("variables", -10);
+    private static NamedOrder constructors = new NamedOrder("constructors", 0);
+    private static NamedOrder creators = new NamedOrder("creators", 5);
+    private static NamedOrder manipulator = new NamedOrder("manipulators", 10);
+    private static NamedOrder calculators = new NamedOrder("calculators", 15);
+    private static NamedOrder accessor = new NamedOrder("acessors", 20);
+    private static NamedOrder operators = new NamedOrder("operators", 30);
+    private static NamedOrder utils = new NamedOrder("utils", 35);
 
     private static NamedOrder Classify(CompoundType k, memberdefType m)
+    {
+        var r = SubClassify(k, m);
+        return m.Prot switch
+        {
+            DoxProtectionKind.Public => r.Specify("Public", 0),
+            DoxProtectionKind.Protected => r.Specify("Protected", 1000),
+            DoxProtectionKind.Private => r.Specify("Private", 2000),
+            DoxProtectionKind.Package => r.Specify("Package", 3000),
+            _ => throw new NotImplementedException(),
+        };
+    }
+
+    private static NamedOrder SubClassify(CompoundType k, memberdefType m)
     {
         if (m.Name.StartsWith("operator"))
         {
@@ -159,8 +177,7 @@ internal static class OrderInFile
 
         if(m.Kind == DoxMemberKind.Variable)
         {
-            if(m.Prot == DoxProtectionKind.Public) { return publicvars; }
-            else { return PrivateVars; }
+            return vars;
         }
 
         if(m.Kind == DoxMemberKind.Typedef)
