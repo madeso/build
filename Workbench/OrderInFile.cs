@@ -118,6 +118,8 @@ internal static class OrderInFile
     private static NamedOrder accessor = new NamedOrder("acessors", 20);
     private static NamedOrder operators = new NamedOrder("operators", 30);
     private static NamedOrder utils = new NamedOrder("utils", 35);
+    private static NamedOrder virtuals = new NamedOrder("virtual", 40);
+    private static NamedOrder pureVirtuals = new NamedOrder("pure virtual", 45);
 
     private static NamedOrder Classify(CompoundType k, memberdefType m)
     {
@@ -137,6 +139,16 @@ internal static class OrderInFile
         if (m.Name.StartsWith("operator"))
         {
             return operators;
+        }
+
+        if(m.Virt == DoxVirtualKind.Virtual)
+        {
+            return virtuals;
+        }
+
+        if (m.Virt == DoxVirtualKind.PureVirtual)
+        {
+            return pureVirtuals;
         }
 
         if (m.Kind == DoxMemberKind.Function)
