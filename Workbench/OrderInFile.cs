@@ -8,6 +8,33 @@ namespace Workbench;
 
 internal static class OrderInFile
 {
+    internal static int ClassifyClass(Printer printer, string file, string className, string root)
+    {
+        var parsed = Doxygen.Doxygen.ParseIndex(file);
+
+        int total = 0;
+        int matches = 0;
+
+        foreach (var k in AllClasses(parsed))
+        {
+            total += 1;
+            if(k.name.Contains(className))
+            {
+                AnsiConsole.MarkupLineInterpolated($"[blue]{k.name}[/]");
+                matches += 1;
+
+                foreach(var member in AllMethodsInClass(k))
+                {
+                    AnsiConsole.MarkupLineInterpolated($"{MemberToString(member)} - {Classify(k, member).Name}");
+                }
+            }
+        }
+
+        AnsiConsole.MarkupLineInterpolated($"[blue]{matches} / {total}[/] classes were matched");
+
+        return 0;
+    }
+
     public static int Run(Printer printer, string file, string root)
     {
         var parsed = Doxygen.Doxygen.ParseIndex(file);
@@ -15,7 +42,7 @@ internal static class OrderInFile
         int checks = 0;
         int fails = 0;
 
-        foreach(var k in parsed.compounds.Where(x => x.kind == Doxygen.Index.CompoundKind.Struct || x.kind == Doxygen.Index.CompoundKind.Class))
+        foreach (var k in AllClasses(parsed))
         {
             checks += 1;
             if (false == CheckClass(printer, k, root))
@@ -24,26 +51,31 @@ internal static class OrderInFile
             }
         }
 
-        AnsiConsole.MarkupLineInterpolated($"[blue]{checks-fails} / {checks}[/] classes were accepted");
+        AnsiConsole.MarkupLineInterpolated($"[blue]{checks - fails} / {checks}[/] classes were accepted");
 
-        if(checks > 0 && fails==0) { return 0; }
+        if (checks > 0 && fails == 0) { return 0; }
         else { return -1; }
+    }
+
+    private static IEnumerable<CompoundType> AllClasses(Doxygen.Index.DoxygenType parsed)
+    {
+        return parsed.compounds.Where(x => x.kind == Doxygen.Index.CompoundKind.Struct || x.kind == Doxygen.Index.CompoundKind.Class);
     }
 
     private static bool CheckClass(Printer printer, CompoundType k, string root)
     {
         // k.name
-        var members = k.Compund.Compound.Sectiondef.SelectMany(x => x.memberdef).ToArray();
+        var members = AllMethodsInClass(k).ToArray();
 
         NamedOrder? lastClass = null;
-        Doxygen.Compound.memberdefType? lastMember = null;
+        memberdefType? lastMember = null;
 
         foreach (var member in members.OrderBy(x => x.Location.line))
         {
             var newClass = Classify(k, member);
             if (lastClass != null)
             {
-                if(member.Location.file != lastMember!.Location.file)
+                if (member.Location.file != lastMember!.Location.file)
                 {
                     throw new Exception("invalid data");
                 }
@@ -61,10 +93,10 @@ internal static class OrderInFile
                         .GroupBy(x => Classify(k, x), (group, items) => (group, items.ToArray()))
                         .OrderBy(x => x.group.Order)
                         ;
-                    foreach(var (c, items) in sorted)
+                    foreach (var (c, items) in sorted)
                     {
                         AnsiConsole.MarkupLineInterpolated($"// [blue]{c.Name}[/]");
-                        foreach(var it in items)
+                        foreach (var it in items)
                         {
                             AnsiConsole.MarkupLineInterpolated($"  [green]{MemberToString(it)}[/]");
                         }
@@ -82,21 +114,26 @@ internal static class OrderInFile
 
         return true;
 
-        static string MemberToString(memberdefType it)
-        {
-            if(it.Kind == DoxMemberKind.Function)
-            {
-                return $"{it.Type} {it.Name}{it.Argsstring}";
-            }
-            return $"{it.Type} {it.Name}";
-        }
-
         static string LocationToString(locationType loc, string root)
         {
             var abs = new FileInfo(Path.Join(root, loc.file)).FullName;
             var print = File.Exists(abs) ? abs : loc.file;
             return $"{print}({loc.line})";
         }
+    }
+
+    private static string MemberToString(memberdefType it)
+    {
+        if (it.Kind == DoxMemberKind.Function)
+        {
+            return $"{it.Type} {it.Name}{it.Argsstring}";
+        }
+        return $"{it.Type} {it.Name}";
+    }
+
+    private static IEnumerable<memberdefType> AllMethodsInClass(CompoundType k)
+    {
+        return k.Compund.Compound.Sectiondef.SelectMany(x => x.memberdef);
     }
 
     private record NamedOrder(string Name, int Order)
