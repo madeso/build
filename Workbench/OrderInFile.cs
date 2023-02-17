@@ -149,6 +149,7 @@ internal static class OrderInFile
     private static NamedOrder enums = new NamedOrder("enums", -20);
     private static NamedOrder vars = new NamedOrder("variables", -10);
     private static NamedOrder constructors = new NamedOrder("constructors", 0);
+    private static NamedOrder deleted = new NamedOrder("deleted", 2);
     private static NamedOrder creators = new NamedOrder("creators", 5);
     private static NamedOrder manipulator = new NamedOrder("manipulators", 10);
     private static NamedOrder calculators = new NamedOrder("calculators", 15);
@@ -173,6 +174,11 @@ internal static class OrderInFile
 
     private static NamedOrder SubClassify(CompoundType k, memberdefType m)
     {
+        if(m.Argsstring?.EndsWith("=delete") ?? false)
+        {
+            return deleted;
+        }
+
         if (m.Name.StartsWith("operator"))
         {
             return operators;
