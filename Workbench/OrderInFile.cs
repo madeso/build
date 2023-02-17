@@ -156,6 +156,7 @@ internal static class OrderInFile
     private static NamedOrder accessor = new NamedOrder("acessors", 20);
     private static NamedOrder operators = new NamedOrder("operators", 30);
     private static NamedOrder utils = new NamedOrder("utils", 35);
+    private static NamedOrder overrides = new NamedOrder("override", 37);
     private static NamedOrder virtuals = new NamedOrder("virtual", 40);
     private static NamedOrder pureVirtuals = new NamedOrder("pure virtual", 45);
 
@@ -184,14 +185,22 @@ internal static class OrderInFile
             return operators;
         }
 
-        if(m.Virt == DoxVirtualKind.Virtual && IsConstructorOrDestructor(m) == false)
+        if(m.Virt != null && m.Virt != DoxVirtualKind.NonVirtual)
         {
-            return virtuals;
-        }
+            if(m.Argsstring?.EndsWith("override") ?? false)
+            {
+                return overrides;
+            }
 
-        if (m.Virt == DoxVirtualKind.PureVirtual)
-        {
-            return pureVirtuals;
+            if (m.Virt == DoxVirtualKind.Virtual && IsConstructorOrDestructor(m) == false)
+            {
+                return virtuals;
+            }
+
+            if (m.Virt == DoxVirtualKind.PureVirtual)
+            {
+                return pureVirtuals;
+            }
         }
 
         if (m.Kind == DoxMemberKind.Function)
