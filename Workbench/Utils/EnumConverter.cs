@@ -5,7 +5,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Workbench;
+namespace Workbench.Utils;
 
 internal class EnumConverter<T>
     where T : struct

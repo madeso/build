@@ -1,7 +1,8 @@
-namespace Workbench;
+namespace Workbench.Utils;
 
 using System.ComponentModel;
 using System.Diagnostics;
+using Workbench;
 
 internal record ProcessExit(string CommandLine, int ExitCode);
 

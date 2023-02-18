@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Xml;
+using Workbench.Utils;
 
 namespace Workbench.Doxygen
 {

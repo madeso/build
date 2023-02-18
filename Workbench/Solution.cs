@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Xml;
 using Workbench.CMake;
+using Workbench.Utils;
 using static Workbench.Solution;
 
 namespace Workbench;

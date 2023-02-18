@@ -1,4 +1,4 @@
-namespace Workbench;
+namespace Workbench.Utils;
 
 // access registry on windows, returns None on non-windows
 

@@ -1,5 +1,6 @@
 ﻿using Spectre.Console;
 using System.Collections.Immutable;
+using Workbench.Utils;
 
 namespace Workbench.Indent;
 

@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Workbench.Indent;
+using Workbench.Utils;
 
 namespace Workbench.Commands.IndentCommands;
 

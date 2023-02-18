@@ -1,4 +1,4 @@
-namespace Workbench;
+namespace Workbench.Utils;
 
 public static class StringExtensions
 {

@@ -1,3 +1,5 @@
+using Workbench.Utils;
+
 namespace Workbench;
 
 public static class Cpplint

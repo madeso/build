@@ -1,4 +1,4 @@
-﻿namespace Workbench;
+﻿namespace Workbench.Utils;
 
 internal static class FileUtil
 {
@@ -69,7 +69,7 @@ internal static class FileUtil
 
     private static IEnumerable<string> list_files_in_dir(string dir)
     {
-        return FileUtil.ListFilesRecursivly(dir, FileUtil.HEADER_AND_SOURCE_FILES)
+        return ListFilesRecursivly(dir, HEADER_AND_SOURCE_FILES)
             .Where(x => new FileInfo(x).Name.StartsWith("pch.") == false);
     }
 
@@ -82,13 +82,13 @@ internal static class FileUtil
             {
                 yield break;
             }
-            foreach (var f in FileUtil.list_files_in_dir(dir))
+            foreach (var f in list_files_in_dir(dir))
             {
                 yield return f;
             }
         }
 
-        return FileUtil.PITCHFORK_FOLDERS
+        return PITCHFORK_FOLDERS
             .Select(Files)
             .Aggregate((a, b) => a.Concat(b));
     }
@@ -185,10 +185,10 @@ internal static class FileUtil
     internal static string RealPath(string rel)
     {
         var dir = new DirectoryInfo(rel);
-        if(dir.Exists) { return dir.FullName; }
+        if (dir.Exists) { return dir.FullName; }
 
         var file = new FileInfo(rel);
-        if(file.Exists) { return file.FullName;}
+        if (file.Exists) { return file.FullName; }
 
         return rel;
     }

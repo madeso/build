@@ -1,6 +1,6 @@
-﻿using System.Reflection;
+using System.Reflection;
 
-namespace Workbench;
+namespace Workbench.Utils;
 
 public static class Reflect
 {
@@ -10,7 +10,7 @@ public static class Reflect
     {
         Type containerType = typeof(Container);
         Type memberType = typeof(Member);
-        FieldInfo[] infos = containerType.GetFields(BindingFlags.Public | System.Reflection.BindingFlags.Static);
+        FieldInfo[] infos = containerType.GetFields(BindingFlags.Public | BindingFlags.Static);
         foreach (FieldInfo member in infos)
         {
             if (member.FieldType == memberType)

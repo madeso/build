@@ -1,6 +1,6 @@
 ﻿using static Workbench.CheckIncludes.RegexOrErr;
 
-namespace Workbench;
+namespace Workbench.Utils;
 
 public class ColCounter<T>
     where T : notnull

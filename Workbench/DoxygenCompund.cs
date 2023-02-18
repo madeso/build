@@ -1,4 +1,5 @@
 using System.Xml;
+using Workbench.Utils;
 
 namespace Workbench.Doxygen.Compound;
 

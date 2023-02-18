@@ -3,6 +3,7 @@ using System.Net.NetworkInformation;
 using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Workbench.Utils;
 
 namespace Workbench.CMake;
 

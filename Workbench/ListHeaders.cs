@@ -7,6 +7,7 @@ using Spectre.Console;
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using Workbench.Utils;
 
 namespace Workbench.ListHeaders;
 

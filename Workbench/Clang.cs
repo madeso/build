@@ -1,5 +1,6 @@
 using Spectre.Console;
 using System.Text.RegularExpressions;
+using Workbench.Utils;
 
 namespace Workbench.Clang;
 
@@ -424,7 +425,7 @@ internal static class F
             return -1;
         }
 
-        var files = FileUtil.ListFilesRecursivly(root, Workbench.FileUtil.SOURCE_FILES);
+        var files = FileUtil.ListFilesRecursivly(root, FileUtil.SOURCE_FILES);
 
         if (args_sort)
         {
@@ -583,7 +584,7 @@ internal static class F
             return -1;
         }
 
-        var data = MapAllFilesInRootOnFirstDir(root, Workbench.FileUtil.HEADER_AND_SOURCE_FILES);
+        var data = MapAllFilesInRootOnFirstDir(root, FileUtil.HEADER_AND_SOURCE_FILES);
 
         foreach (var (project, source_files) in data)
         {

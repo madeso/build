@@ -3,6 +3,7 @@ namespace Workbench;
 using Spectre.Console;
 using System;
 using System.Net.Http.Headers;
+using Workbench.Utils;
 
 public class Printer
 {

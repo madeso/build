@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace Workbench;
+namespace Workbench.Utils;
 
 public class StringListCombiner
 {

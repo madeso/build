@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using Workbench.Utils;
 
 namespace Workbench.Hero.Parser;
 
