@@ -183,7 +183,15 @@ internal static class OrderInFile
 
         if (m.Argsstring?.EndsWith("=default") ?? false)
         {
-            return defaults;
+            if(IsConstructorOrDestructor(m) && m.Param.Length == 0)
+            {
+                // empty constructors and destrctors are not-default even when they are defaulted
+                return constructors;
+            }
+            else
+            {
+                return defaults;
+            }
         }
 
         if (m.Name.StartsWith("operator"))
