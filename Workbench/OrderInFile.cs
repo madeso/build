@@ -149,6 +149,7 @@ internal static class OrderInFile
     private static NamedOrder enums = new NamedOrder("enums", -20);
     private static NamedOrder vars = new NamedOrder("variables", -10);
     private static NamedOrder constructors = new NamedOrder("constructors", 0);
+    private static NamedOrder defaults = new NamedOrder("defaults", 1);
     private static NamedOrder deleted = new NamedOrder("deleted", 2);
     private static NamedOrder creators = new NamedOrder("creators", 5);
     private static NamedOrder manipulator = new NamedOrder("manipulators", 10);
@@ -178,6 +179,11 @@ internal static class OrderInFile
         if(m.Argsstring?.EndsWith("=delete") ?? false)
         {
             return deleted;
+        }
+
+        if (m.Argsstring?.EndsWith("=default") ?? false)
+        {
+            return defaults;
         }
 
         if (m.Name.StartsWith("operator"))
