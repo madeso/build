@@ -40,20 +40,29 @@ internal static class OrderInFile
         var parsed = Doxygen.Doxygen.ParseIndex(file);
 
         int checks = 0;
-        int fails = 0;
+        List<CheckError> fails = new();
 
         foreach (var k in AllClasses(parsed))
         {
             checks += 1;
-            if (false == CheckClass(printer, k, root))
+            var err = CheckClass(printer, k, root);
+            if (err != null)
             {
-                fails += 1;
+                fails.Add(err);
             }
         }
 
-        AnsiConsole.MarkupLineInterpolated($"[blue]{checks - fails} / {checks}[/] classes were accepted");
+        foreach(var f in fails
+            .OrderBy(x => x.Class.Compund.Compound.Location!.file)
+            .ThenBy(x => x.Class.Compund.Compound.Location!.line)
+            )
+        {
+            PrintError(printer, f.Class, f.PrimaryFile, f.SecondaryFile, f.ErrorMessage);
+        }
 
-        if (checks > 0 && fails == 0) { return 0; }
+        AnsiConsole.MarkupLineInterpolated($"[blue]{checks - fails.Count} / {checks}[/] classes were accepted");
+
+        if (checks > 0 && fails.Count == 0) { return 0; }
         else { return -1; }
     }
 
@@ -62,7 +71,9 @@ internal static class OrderInFile
         return parsed.compounds.Where(x => x.kind == Doxygen.Index.CompoundKind.Struct || x.kind == Doxygen.Index.CompoundKind.Class);
     }
 
-    private static bool CheckClass(Printer printer, CompoundType k, string root)
+    record CheckError(CompoundType Class, string PrimaryFile, string SecondaryFile, string ErrorMessage);
+
+    private static CheckError? CheckClass(Printer printer, CompoundType k, string root)
     {
         // k.name
         var members = AllMethodsInClass(k).ToArray();
@@ -82,43 +93,55 @@ internal static class OrderInFile
 
                 if (lastClass.Order > newClass.Order)
                 {
-                    printer.Error(LocationToString(member.Location, root), $"Members for {k.name} are orderd badly, can't go from {lastClass.Name} ({MemberToString(lastMember!)}) to {newClass.Name} ({MemberToString(member)})!");
-                    AnsiConsole.WriteLine($"{LocationToString(lastMember.Location, root)}: From here");
-
-                    AnsiConsole.WriteLine("Something better could be:");
-                    AnsiConsole.WriteLine("");
-
-                    // print better order
-                    var sorted = members
-                        .GroupBy(x => Classify(k, x), (group, items) => (group, items.ToArray()))
-                        .OrderBy(x => x.group.Order)
-                        ;
-                    foreach (var (c, items) in sorted)
-                    {
-                        AnsiConsole.MarkupLineInterpolated($"// [blue]{c.Name}[/]");
-                        foreach (var it in items)
-                        {
-                            AnsiConsole.MarkupLineInterpolated($"  [green]{MemberToString(it)}[/]");
-                        }
-                        AnsiConsole.WriteLine("");
-                    }
-                    AnsiConsole.WriteLine("");
-                    AnsiConsole.WriteLine("");
-
-                    return false;
+                    string primaryFile = LocationToString(member.Location, root);
+                    string secondaryFile = LocationToString(lastMember.Location, root);
+                    string errorMessage = $"Members for {k.name} are orderd badly, can't go from {lastClass.Name} ({MemberToString(lastMember!)}) to {newClass.Name} ({MemberToString(member)})!";
+                    return new CheckError(k, primaryFile, secondaryFile, errorMessage);
                 }
             }
             lastClass = newClass;
             lastMember = member;
         }
 
-        return true;
+        return null;
 
         static string LocationToString(locationType loc, string root)
         {
             var abs = new FileInfo(Path.Join(root, loc.file)).FullName;
             var print = File.Exists(abs) ? abs : loc.file;
             return $"{print}({loc.line})";
+        }
+    }
+
+    private static void PrintError(Printer printer, CompoundType k, string primaryFile, string secondaryFile, string errorMessage)
+    {
+        var members = AllMethodsInClass(k).ToArray();
+        printer.Error(primaryFile, errorMessage);
+        AnsiConsole.WriteLine($"{secondaryFile}: From here");
+
+        AnsiConsole.WriteLine("Something better could be:");
+        AnsiConsole.WriteLine("");
+
+        // print better order
+        PrintSuggestedOrder(k, members);
+        AnsiConsole.WriteLine("");
+        AnsiConsole.WriteLine("");
+    }
+
+    private static void PrintSuggestedOrder(CompoundType k, memberdefType[] members)
+    {
+        var sorted = members
+            .GroupBy(x => Classify(k, x), (group, items) => (group, items.ToArray()))
+            .OrderBy(x => x.group.Order)
+            ;
+        foreach (var (c, items) in sorted)
+        {
+            AnsiConsole.MarkupLineInterpolated($"// [blue]{c.Name}[/]");
+            foreach (var it in items)
+            {
+                AnsiConsole.MarkupLineInterpolated($"  [green]{MemberToString(it)}[/]");
+            }
+            AnsiConsole.WriteLine("");
         }
     }
 
