@@ -1,4 +1,4 @@
-﻿using Workbench.CMake;
+using Workbench.CMake;
 
 namespace Workbench;
 
@@ -21,7 +21,7 @@ internal static class Status
         var root = Environment.CurrentDirectory;
         printer.Info($"Root: {root}");
 
-        var project_build_folder = CompileCommands.Utils.FindBuildRootOrNull(root);
+        var project_build_folder = CompileCommands.F.FindBuildRootOrNull(root);
         if (project_build_folder == null)
         {
             printer.Error("Unable to find build folder");

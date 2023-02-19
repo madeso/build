@@ -385,7 +385,7 @@ internal static class F
         if(compile_commands_arg == null) {
             return -1;
         }
-        var compile_commands = CompileCommands.Utils.LoadCompileCommandsOrNull(print, compile_commands_arg);
+        var compile_commands = CompileCommands.F.LoadCompileCommandsOrNull(print, compile_commands_arg);
         if(compile_commands == null)
         {
             return -1;
@@ -451,7 +451,7 @@ internal static class F
             return -1;
         }
 
-        var compile_commands = CompileCommands.Utils.LoadCompileCommandsOrNull(print, compile_commands_arg);
+        var compile_commands = CompileCommands.F.LoadCompileCommandsOrNull(print, compile_commands_arg);
         if(compile_commands == null) { return -1; }
 
         var limit = complete_limit_arg(args_limit);

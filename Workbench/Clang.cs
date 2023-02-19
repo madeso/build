@@ -418,7 +418,7 @@ internal static class F
     {
         var root = Environment.CurrentDirectory;
 
-        var project_build_folder = CompileCommands.Utils.FindBuildRootOrNull(root);
+        var project_build_folder = CompileCommands.F.FindBuildRootOrNull(root);
         if (project_build_folder is null)
         {
             print.Error("unable to find build folder");
@@ -455,7 +455,7 @@ internal static class F
     internal static int HandleRunClangTidyCommand(Printer printer, string tidy_path, bool force, bool headers, bool short_args, bool args_nop, string[] args_filter, string[] args_only, bool args_fix)
     {
         var root = Environment.CurrentDirectory;
-        var project_build_folder = CompileCommands.Utils.FindBuildRootOrNull(root);
+        var project_build_folder = CompileCommands.F.FindBuildRootOrNull(root);
         if (project_build_folder is null)
         {
             printer.Error("unable to find build folder");
@@ -577,7 +577,7 @@ internal static class F
     {
         var root = Environment.CurrentDirectory;
 
-        var project_build_folder = CompileCommands.Utils.FindBuildRootOrNull(root);
+        var project_build_folder = CompileCommands.F.FindBuildRootOrNull(root);
         if (project_build_folder is null)
         {
             printer.Error("unable to find build folder");

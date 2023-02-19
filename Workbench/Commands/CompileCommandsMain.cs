@@ -1,4 +1,4 @@
-﻿using Spectre.Console.Cli;
+using Spectre.Console.Cli;
 using System.Diagnostics.CodeAnalysis;
 using Workbench.CompileCommands;
 
@@ -20,7 +20,7 @@ internal sealed class FilesCommand : Command<FilesCommand.Arg>
                     var path = settings.GetPathToCompileCommandsOrNull(print);
                     if (path == null) { return -1; }
 
-                    var commands = Utils.LoadCompileCommandsOrNull(print, path);
+                    var commands = F.LoadCompileCommandsOrNull(print, path);
                     if (commands == null) { return -1; }
 
                     print.Info($"{commands}");
@@ -46,7 +46,7 @@ internal sealed class IncludesCommand : Command<IncludesCommand.Arg>
                     var path = settings.GetPathToCompileCommandsOrNull(print);
                     if (path == null) { return -1; }
 
-                    var commands = Utils.LoadCompileCommandsOrNull(print, path);
+                    var commands = F.LoadCompileCommandsOrNull(print, path);
                     if (commands == null) { return -1; }
 
                     foreach (var (file, command) in commands)
@@ -79,7 +79,7 @@ internal sealed class DefinesCommand : Command<DefinesCommand.Arg>
                     var path = settings.GetPathToCompileCommandsOrNull(print);
                     if (path == null) { return -1; }
 
-                    var commands = Utils.LoadCompileCommandsOrNull(print, path);
+                    var commands = F.LoadCompileCommandsOrNull(print, path);
                     if (commands == null) { return -1; }
 
                     foreach (var (file, command) in commands)

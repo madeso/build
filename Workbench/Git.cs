@@ -1,4 +1,6 @@
-﻿namespace Workbench;
+using Workbench.Utils;
+
+namespace Workbench;
 
 
 public static class Git

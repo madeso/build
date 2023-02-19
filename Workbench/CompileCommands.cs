@@ -61,7 +61,7 @@ internal class CompileCommandJson
     public string command = "";
 }
 
-internal static class Utils
+internal static class F
 {
     internal static Dictionary<string, CompileCommand>? LoadCompileCommandsOrNull(Printer printer, string path)
     {
@@ -129,15 +129,15 @@ internal class CommonArguments : CommandSettings
                 return compileCommands;
             }
 
-            var r = Utils.FindBuildRootOrNull(cwd);
+            var r = F.FindBuildRootOrNull(cwd);
             if (r == null) { return null; }
-            return Path.Join(r, Utils.COMPILE_COMMANDS_FILE_NAME);
+            return Path.Join(r, F.COMPILE_COMMANDS_FILE_NAME);
         }
 
         var ret = get_argument_or_none(Environment.CurrentDirectory);
         if (ret == null)
         {
-            print.Error($"Unable to locate {Utils.COMPILE_COMMANDS_FILE_NAME}");
+            print.Error($"Unable to locate {F.COMPILE_COMMANDS_FILE_NAME}");
         }
         return ret;
     }

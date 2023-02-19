@@ -2,6 +2,7 @@ using Spectre.Console;
 using System.Collections.Immutable;
 using System.Text.RegularExpressions;
 using System.Xml;
+using Workbench.Utils;
 
 namespace Workbench.SlnDeps;
 

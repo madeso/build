@@ -720,7 +720,7 @@ internal static class F
         // var ccpath = args.GetPathToCompileCommandsOrNull(print);
         if (ccpath == null) { return -1; }
 
-        var commands = CompileCommands.Utils.LoadCompileCommandsOrNull(print, ccpath);
+        var commands = CompileCommands.F.LoadCompileCommandsOrNull(print, ccpath);
         if (commands == null) { return -1; }
 
         var walker = new FileWalker(commands);
