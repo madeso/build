@@ -15,7 +15,7 @@ internal static class OrderInFile
         int total = 0;
         int matches = 0;
 
-        foreach (var k in AllClasses(parsed))
+        foreach (var k in DoxygenUtils.AllClasses(parsed))
         {
             total += 1;
             if(k.name.Contains(className))
@@ -42,7 +42,7 @@ internal static class OrderInFile
         int checks = 0;
         List<CheckError> fails = new();
 
-        foreach (var k in AllClasses(parsed))
+        foreach (var k in DoxygenUtils.AllClasses(parsed))
         {
             checks += 1;
             var err = CheckClass(printer, k, root);
@@ -64,11 +64,6 @@ internal static class OrderInFile
 
         if (checks > 0 && fails.Count == 0) { return 0; }
         else { return -1; }
-    }
-
-    private static IEnumerable<CompoundType> AllClasses(Doxygen.Index.DoxygenType parsed)
-    {
-        return parsed.compounds.Where(x => x.kind == Doxygen.Index.CompoundKind.Struct || x.kind == Doxygen.Index.CompoundKind.Class);
     }
 
     record CheckError(CompoundType Class, string PrimaryFile, string SecondaryFile, string ErrorMessage);
@@ -107,8 +102,7 @@ internal static class OrderInFile
 
         static string LocationToString(locationType loc, string root)
         {
-            var abs = new FileInfo(Path.Join(root, loc.file)).FullName;
-            var print = File.Exists(abs) ? abs : loc.file;
+            string print = DoxygenUtils.DoxygenFileToPath(loc, root);
             return $"{print}({loc.line})";
         }
     }
