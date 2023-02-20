@@ -54,7 +54,7 @@ internal static class OrderInFile
 
         foreach(var f in fails
             .OrderBy(x => x.Class.Compund.Compound.Location!.file)
-            .ThenBy(x => x.Class.Compund.Compound.Location!.line)
+            .ThenByDescending(x => x.Class.Compund.Compound.Location!.line)
             )
         {
             PrintError(printer, f.Class, f.PrimaryFile, f.SecondaryFile, f.ErrorMessage);
