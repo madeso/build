@@ -21,4 +21,34 @@ internal class DoxygenUtils
         var print = File.Exists(abs) ? abs : loc.file;
         return print;
     }
+
+    public static string LocationToString(locationType loc, string root)
+    {
+        string print = DoxygenUtils.DoxygenFileToPath(loc, root);
+        return $"{print}({loc.line})";
+    }
+
+    public static bool IsConstructorOrDestructor(memberdefType m)
+    {
+        var ret = m.Type?.Nodes;
+        if (ret == null) { return true; }
+
+        // exclude "constexpr" return values
+        var rets = ret.Where(node => !(node is linkedTextType.Text text && IsKeyword(text))).ToArray();
+        var retCount = rets.Count();
+
+        // Console.WriteLine($"ret detection: {m.Name} -- {retCount}: {ret}");
+        return retCount == 0;
+
+        static bool IsKeyword(linkedTextType.Text text)
+        {
+            return text.Value.Trim() switch
+            {
+                "constexpr" => true,
+                "const" => true,
+                "&" => true,
+                _ => false,
+            };
+        }
+    }
 }

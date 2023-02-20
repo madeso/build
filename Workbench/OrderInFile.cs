@@ -88,8 +88,8 @@ internal static class OrderInFile
 
                 if (lastClass.Order > newClass.Order)
                 {
-                    string primaryFile = LocationToString(member.Location, root);
-                    string secondaryFile = LocationToString(lastMember.Location, root);
+                    string primaryFile = DoxygenUtils.LocationToString(member.Location, root);
+                    string secondaryFile = DoxygenUtils.LocationToString(lastMember.Location, root);
                     string errorMessage = $"Members for {k.name} are orderd badly, can't go from {lastClass.Name} ({MemberToString(lastMember!)}) to {newClass.Name} ({MemberToString(member)})!";
                     return new CheckError(k, primaryFile, secondaryFile, errorMessage);
                 }
@@ -99,12 +99,6 @@ internal static class OrderInFile
         }
 
         return null;
-
-        static string LocationToString(locationType loc, string root)
-        {
-            string print = DoxygenUtils.DoxygenFileToPath(loc, root);
-            return $"{print}({loc.line})";
-        }
     }
 
     private static void PrintError(Printer printer, CompoundType k, string primaryFile, string secondaryFile, string errorMessage)
@@ -200,7 +194,7 @@ internal static class OrderInFile
 
         if (m.Argsstring?.EndsWith("=default") ?? false)
         {
-            if(IsConstructorOrDestructor(m) && m.Param.Length == 0)
+            if(DoxygenUtils.IsConstructorOrDestructor(m) && m.Param.Length == 0)
             {
                 // empty constructors and destrctors are not-default even when they are defaulted
                 return constructors;
@@ -223,7 +217,7 @@ internal static class OrderInFile
                 return overrides;
             }
 
-            if (m.Virt == DoxVirtualKind.Virtual && IsConstructorOrDestructor(m) == false)
+            if (m.Virt == DoxVirtualKind.Virtual && DoxygenUtils.IsConstructorOrDestructor(m) == false)
             {
                 return virtuals;
             }
@@ -248,7 +242,7 @@ internal static class OrderInFile
                     return utils;
                 }
             }
-            else if (IsConstructorOrDestructor(m))
+            else if (DoxygenUtils.IsConstructorOrDestructor(m))
             {
                 // constructor
                 return constructors;
@@ -292,28 +286,6 @@ internal static class OrderInFile
 
         return new NamedOrder("everything", 0);
 
-        static bool IsConstructorOrDestructor(memberdefType m)
-        {
-            var ret = m.Type?.Nodes;
-            if (ret == null) { return true; }
-
-            // exclude "constexpr" return values
-            var rets = ret.Where(node => !(node is linkedTextType.Text text && IsKeyword(text))).ToArray();
-            var retCount = rets.Count();
-
-            // Console.WriteLine($"ret detection: {m.Name} -- {retCount}: {ret}");
-            return retCount == 0;
-
-            static bool IsKeyword(linkedTextType.Text text)
-            {
-                return text.Value.Trim() switch
-                {
-                    "constexpr" => true,
-                    "const" => true,
-                    "&" => true,
-                    _ => false,
-                };
-            }
-        }
+        
     }
 }
