@@ -62,12 +62,12 @@ internal class CheckNames
         this.printer = printer;
     }
 
-    internal void CheckName(string name, Doxygen.Compound.locationType loc, string root, Regex CamelCase, HashSet<string> validNames, string source)
+    internal bool CheckName(string name, Doxygen.Compound.locationType loc, string root, Regex CamelCase, HashSet<string> validNames, string source)
     {
-        if (name.StartsWith('@')) { return; }
+        if (name.StartsWith('@')) { return true; }
 
         namesChecked += 1;
-        if(validNames.Contains(name)) { return; }
+        if(validNames.Contains(name)) { return true; }
 
         if (CamelCase.IsMatch(name) == false)
         {
@@ -75,6 +75,11 @@ internal class CheckNames
             var file = DoxygenUtils.LocationToString(loc, root);
 
             printer.Error(file, $"{name} is a invalid name for {source}");
+            return false;
+        }
+        else
+        {
+            return true;
         }
     }
 
@@ -111,7 +116,7 @@ internal class CheckNames
         CheckSectionDefs(k, root);
     }
 
-    private void CheckFile(CompoundType k, string root)
+    private void CheckFile(CompoundType k, string root )
     {
         // check namespaces?
         // foreach (var n in k.Compund.Compound.Innernamespace)
@@ -165,12 +170,21 @@ internal class CheckNames
                 case Doxygen.Compound.DoxMemberKind.Enum:
                     CheckEnum(root, mem);
                     break;
+                case Doxygen.Compound.DoxMemberKind.Variable:
+                    CheckName(mem.Name, mem.Location, root, CaseMatch.LowerSnakeCase, NoValidNames, "member variables");
+                    break;
                 case Doxygen.Compound.DoxMemberKind.Function:
                     CheckFunction(root, mem);
                     if (DoxygenUtils.IsConstructorOrDestructor(mem) == false)
                     {
                         CheckName(mem.Name, mem.Location, root, CaseMatch.LowerSnakeCase, ValidMethodNames, "method");
                     }
+                    break;
+                case DoxMemberKind.Friend:
+                    // nop
+                    break;
+                default:
+                    int i = 42;
                     break;
             }
         }
@@ -227,15 +241,24 @@ internal class CheckNames
             {
                 if (n is linkedTextType.Text text)
                 {
-                    var cmds = text.Value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    var val = text.Value;
+                    // if (val == "typename..." || val == "typename") { continue; }
+                    var cmds = val.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (cmds.Length == 2 && cmds[0] == "typename")
                     {
-                        // T is valid name for template argument
-                        if (cmds[1] == "T") { continue; }
-                        CheckName(cmds[1], location, root, CaseMatch.CamelCase, ValidTypesNames, "template param");
+                        CheckTemplateParamName(root, location, cmds[1]);
                     }
                 }
             }
         }
+    }
+
+    private void CheckTemplateParamName(string root, locationType location, string templateName)
+    {
+        // the name is a single char and it's uppercase it's valid
+        if (templateName.Length == 1 && templateName[0] == templateName.ToUpper()[0]) { return; }
+
+        // otherwise it must follow the "template name"
+        CheckName(templateName, location, root, CaseMatch.TemplateName, ValidTypesNames, "template param");
     }
 }
