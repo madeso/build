@@ -62,14 +62,14 @@ internal class CheckNames
         this.printer = printer;
     }
 
-    internal bool CheckName(string name, Doxygen.Compound.locationType loc, string root, Regex CamelCase, HashSet<string> validNames, string source)
+    internal bool CheckName(string name, Doxygen.Compound.locationType loc, string root, Func<string, bool> CamelCase, HashSet<string> validNames, string source)
     {
         if (name.StartsWith('@')) { return true; }
 
         namesChecked += 1;
         if(validNames.Contains(name)) { return true; }
 
-        if (CamelCase.IsMatch(name) == false)
+        if (CamelCase(name) == false)
         {
             errorsDetected += 1;
             var file = DoxygenUtils.LocationToString(loc, root);
@@ -136,10 +136,10 @@ internal class CheckNames
                         CheckName(m.Name, m.Location, root, CaseMatch.LowerSnakeCase, NoValidNames, "variable");
                         break;
                     case DoxMemberKind.Define:
-                        CheckName(m.Name, m.Location, root, CaseMatch.UpperSnakeCase, NoValidNames, "variable");
+                        CheckName(m.Name, m.Location, root, CaseMatch.UpperSnakeCase, NoValidNames, "define");
                         break;
                     case DoxMemberKind.Typedef:
-                        CheckName(m.Name, m.Location, root, CaseMatch.CamelCase, NoValidNames, "variable");
+                        CheckName(m.Name, m.Location, root, CaseMatch.CamelCase, NoValidNames, "typedef");
                         break;
                     case DoxMemberKind.Enum:
                         CheckEnum(root, m);
