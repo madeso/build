@@ -88,9 +88,66 @@ internal class CheckNames
             runner.CheckClass(root, k);
         }
 
+        // var dict = parsed.compounds.ToDictionary(x=>x.refid);
+
+        foreach(var k in parsed.compounds.Where(x => x.kind == CompoundKind.File))
+        {
+            runner.CheckFile(k, root);
+        }
+
+        foreach (var k in parsed.compounds.Where(x => x.kind == CompoundKind.Namespace))
+        {
+            runner.CheckNamespace(k, root);
+        }
+
         AnsiConsole.MarkupLineInterpolated($"Detected [red]{runner.errorsDetected}[/] in [blue]{runner.namesChecked}[/] names");
 
         return runner.errorsDetected > 0 ? -1 : 0;
+    }
+
+    private void CheckNamespace(CompoundType k, string root)
+    {
+        CheckName(RemoveNamespace(k.name), k.Compund.Compound.Location!, root, CaseMatch.LowerSnakeCase, NoValidNames, "namespace");
+        CheckSectionDefs(k, root);
+    }
+
+    private void CheckFile(CompoundType k, string root)
+    {
+        // check namespaces?
+        // foreach (var n in k.Compund.Compound.Innernamespace)
+
+        CheckSectionDefs(k, root);
+    }
+
+    private void CheckSectionDefs(CompoundType k, string root)
+    {
+        foreach (var d in k.Compund.Compound.Sectiondef)
+        {
+            foreach (var m in d.memberdef)
+            {
+                switch (m.Kind)
+                {
+                    case DoxMemberKind.Variable:
+                        CheckName(m.Name, m.Location, root, CaseMatch.LowerSnakeCase, NoValidNames, "variable");
+                        break;
+                    case DoxMemberKind.Define:
+                        CheckName(m.Name, m.Location, root, CaseMatch.UpperSnakeCase, NoValidNames, "variable");
+                        break;
+                    case DoxMemberKind.Typedef:
+                        CheckName(m.Name, m.Location, root, CaseMatch.CamelCase, NoValidNames, "variable");
+                        break;
+                    case DoxMemberKind.Enum:
+                        CheckEnum(root, m);
+                        break;
+                    case DoxMemberKind.Function:
+                        CheckFunction(root, m);
+                        break;
+                    default:
+                        int i = 42;
+                        break;
+                }
+            }
+        }
     }
 
     private void CheckClass(string root, CompoundType k)
@@ -110,7 +167,7 @@ internal class CheckNames
                     break;
                 case Doxygen.Compound.DoxMemberKind.Function:
                     CheckFunction(root, mem);
-                    if(DoxygenUtils.IsConstructorOrDestructor(mem) == false)
+                    if (DoxygenUtils.IsConstructorOrDestructor(mem) == false)
                     {
                         CheckName(mem.Name, mem.Location, root, CaseMatch.LowerSnakeCase, ValidMethodNames, "method");
                     }
@@ -120,9 +177,19 @@ internal class CheckNames
 
         // todo(Gustav): check template parameter on current klass
 
-        var name = k.name.Split("::", StringSplitOptions.RemoveEmptyEntries).Last();
-        name = name.Split('<', StringSplitOptions.RemoveEmptyEntries)[0];
+        string name = RemoveNamespace(k.name);
+        name = RemoveTemplateArguments(name);
         CheckName(name, k.Compund.Compound.Location!, root, CaseMatch.CamelCase, ValidTypesNames, "class/struct");
+    }
+
+    private static string RemoveTemplateArguments(string name)
+    {
+        return name.Split('<', StringSplitOptions.RemoveEmptyEntries)[0].Trim();
+    }
+
+    private static string RemoveNamespace(string name)
+    {
+        return name.Split("::", StringSplitOptions.RemoveEmptyEntries).Last().Trim();
     }
 
     private void CheckFunction(string root, memberdefType mem)
