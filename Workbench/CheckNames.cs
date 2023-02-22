@@ -168,7 +168,12 @@ internal class CheckNames
 
     private void CheckClass(string root, CompoundType k)
     {
-        foreach (var mem in k.Compund.Compound.Sectiondef.SelectMany(x => x.memberdef))
+        var c = k.Compund.Compound;
+        if(c.Templateparamlist != null)
+        {
+            CheckTemplateArguments(root, c.Location!, c.Templateparamlist.param);
+        }
+        foreach (var mem in c.Sectiondef.SelectMany(x => x.memberdef))
         {
             switch (mem.Kind)
             {
@@ -189,7 +194,7 @@ internal class CheckNames
                     if (DoxygenUtils.IsConstructorOrDestructor(mem) == false &&
                         DoxygenUtils.IsFunctionOverride(mem) == false)
                     {
-                        CheckName(mem.Name, mem.Location, root, CaseMatch.LowerSnakeCase, name => ValidMethodNames(name, k.Compund.Compound.Language == DoxLanguage.Cpp), "method");
+                        CheckName(mem.Name, mem.Location, root, CaseMatch.LowerSnakeCase, name => ValidMethodNames(name, c.Language == DoxLanguage.Cpp), "method");
                     }
                     break;
                 case DoxMemberKind.Friend:
@@ -205,7 +210,7 @@ internal class CheckNames
 
         string name = RemoveNamespace(k.name);
         name = RemoveTemplateArguments(name);
-        CheckName(name, k.Compund.Compound.Location!, root, CaseMatch.CamelCase, ValidTypeNames, "class/struct");
+        CheckName(name, c.Location!, root, CaseMatch.CamelCase, ValidTypeNames, "class/struct");
     }
 
     private static string RemoveTemplateArguments(string name)
