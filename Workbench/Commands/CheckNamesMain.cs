@@ -6,7 +6,7 @@ using Workbench.Config;
 namespace Workbench.Commands.CheckNamesCommands;
 
 
-internal sealed class OrderInFileCommand : Command<OrderInFileCommand.Arg>
+internal sealed class CheckCommand : Command<CheckCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -33,6 +33,14 @@ public static class Main
 {
     public static void Configure(IConfigurator config, string name)
     {
-        config.AddCommand<OrderInFileCommand>(name).WithDescription("Check the names of classes");
+        config.AddBranch(name, cmake =>
+        {
+            cmake.SetDescription("Check the names of classes, functions and other things");
+
+            // cmake.AddCommand<InitCommand>("init").WithDescription("Create a check names command");
+            
+            cmake.AddCommand<CheckCommand>("check").WithDescription("Run the check");
+        });
+        
     }
 }
