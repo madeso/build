@@ -212,7 +212,7 @@ internal static class OrderInFile
 
         if(m.Virt != null && m.Virt != DoxVirtualKind.NonVirtual)
         {
-            if(m.Argsstring?.EndsWith("override") ?? false)
+            if (DoxygenUtils.IsFunctionOverride(m))
             {
                 return overrides;
             }

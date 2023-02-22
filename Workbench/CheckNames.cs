@@ -178,7 +178,8 @@ internal class CheckNames
                     break;
                 case Doxygen.Compound.DoxMemberKind.Function:
                     CheckFunction(root, mem);
-                    if (DoxygenUtils.IsConstructorOrDestructor(mem) == false)
+                    if (DoxygenUtils.IsConstructorOrDestructor(mem) == false &&
+                        DoxygenUtils.IsFunctionOverride(mem) == false)
                     {
                         CheckName(mem.Name, mem.Location, root, CaseMatch.LowerSnakeCase, name => ValidMethodNames(name, k.Compund.Compound.Language == DoxLanguage.Cpp), "method");
                     }

@@ -51,4 +51,9 @@ internal class DoxygenUtils
             };
         }
     }
+
+    internal static bool IsFunctionOverride(memberdefType m)
+    {
+        return m.Argsstring?.EndsWith("override") ?? false;
+    }
 }
