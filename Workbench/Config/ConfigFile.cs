@@ -1,10 +1,9 @@
-﻿namespace Workbench.Config;
+namespace Workbench.Config;
 
 internal static class ConfigFile
 {
-    public static TData? LoadOrNull<TFile, TData>(Printer print, string file, Func<TFile, TData> enrich)
-        where TData : struct
-        where TFile: class
+    public static TFile? LoadOrNull<TFile>(Printer print, string file)
+        where TFile : class
     {
         if (File.Exists(file) == false)
         {
@@ -13,6 +12,20 @@ internal static class ConfigFile
         }
         var content = File.ReadAllText(file);
         var loaded = JsonUtil.Parse<TFile>(print, file, content);
+        if (loaded == null)
+        {
+            print.Error($"Unable to parse file: {file}");
+            return null;
+        }
+
+        return loaded;
+    }
+
+    public static TData? LoadOrNull<TFile, TData>(Printer print, string file, Func<TFile, TData> enrich)
+        where TData : struct
+        where TFile: class
+    {
+        var loaded = LoadOrNull<TFile>(print, file);
         if (loaded == null)
         {
             return null;

@@ -1,14 +1,22 @@
 using Spectre.Console;
-using System.Text.RegularExpressions;
+using Workbench.Config;
 using Workbench.Doxygen.Compound;
 using Workbench.Doxygen.Index;
 
 namespace Workbench;
 
+
 internal class CheckNames
 {
+    CheckNamesFile file;
+
+    private bool ValidTypeNames(string name)
+    {
+        return file.Types.Contains(name);
+    }
+
     // todo(Gustav): read from file?
-    private static readonly HashSet<string> ValidTypesNames = new()
+    private static readonly HashSet<string> AcceptedTypesNames = new()
     {
         "angle",
         "mat2f",
@@ -28,7 +36,12 @@ internal class CheckNames
         "vec3f",
         "vec4f",
     };
-    private static readonly HashSet<string> ValidMethodNames = new()
+    
+    private bool ValidMethodNames(string name)
+    {
+        return file.Functions.Contains(name);
+    }
+    private static readonly HashSet<string> AcceptedMethodNames = new()
     {
         "operator+",
         "operator-",
@@ -50,26 +63,28 @@ internal class CheckNames
         "operator!=",
 
     };
-    private static readonly HashSet<string> NoValidNames = new();
+
+    private static bool NoValidNames(string name) => false;
 
 
     int namesChecked = 0;
     int errorsDetected = 0;
     private Printer printer;
 
-    public CheckNames(Printer printer)
+    public CheckNames(Printer printer, CheckNamesFile file)
     {
         this.printer = printer;
+        this.file = file;
     }
 
-    internal bool CheckName(string name, Doxygen.Compound.locationType loc, string root, Func<string, bool> CamelCase, HashSet<string> validNames, string source)
+    internal bool CheckName(string name, locationType loc, string root, Func<string, bool> checkCase, Func<string, bool> validName, string source)
     {
         if (name.StartsWith('@')) { return true; }
 
         namesChecked += 1;
-        if(validNames.Contains(name)) { return true; }
+        if(validName(name)) { return true; }
 
-        if (CamelCase(name) == false)
+        if (checkCase(name) == false)
         {
             errorsDetected += 1;
             var file = DoxygenUtils.LocationToString(loc, root);
@@ -83,11 +98,11 @@ internal class CheckNames
         }
     }
 
-    internal static int Run(Printer printer, string doxygenXml, string root)
+    internal static int Run(Printer printer, string doxygenXml, string root, CheckNamesFile file)
     {
         var parsed = Doxygen.Doxygen.ParseIndex(doxygenXml);
 
-        CheckNames runner = new(printer);
+        CheckNames runner = new(printer, file);
         foreach (var k in DoxygenUtils.AllClasses(parsed))
         {
             runner.CheckClass(root, k);
@@ -193,7 +208,7 @@ internal class CheckNames
 
         string name = RemoveNamespace(k.name);
         name = RemoveTemplateArguments(name);
-        CheckName(name, k.Compund.Compound.Location!, root, CaseMatch.CamelCase, ValidTypesNames, "class/struct");
+        CheckName(name, k.Compund.Compound.Location!, root, CaseMatch.CamelCase, ValidTypeNames, "class/struct");
     }
 
     private static string RemoveTemplateArguments(string name)
@@ -259,6 +274,6 @@ internal class CheckNames
         if (templateName.Length == 1 && templateName[0] == templateName.ToUpper()[0]) { return; }
 
         // otherwise it must follow the "template name"
-        CheckName(templateName, location, root, CaseMatch.TemplateName, ValidTypesNames, "template param");
+        CheckName(templateName, location, root, CaseMatch.TemplateName, ValidTypeNames, "template param");
     }
 }
