@@ -19,6 +19,7 @@ internal class CheckNames
     {
         if (isCpp)
         {
+            if(name.StartsWith("operator ")) { return true; }
             if (AcceptedCppNames.Contains(name)) { return true; }
         }
         return file.AcceptedFunctions.Contains(name);
@@ -29,7 +30,12 @@ internal class CheckNames
         "operator-",
         "operator*",
         "operator/",
+        
         "operator<",
+        "operator>",
+        "operator<=",
+        "operator>=",
+
         "operator<<",
         "operator++",
         "operator->",
@@ -149,6 +155,8 @@ internal class CheckNames
                         break;
                     case DoxMemberKind.Function:
                         CheckFunction(root, m);
+                        CheckName(m.Name, m.Location, root, CaseMatch.LowerSnakeCase,
+                            name => ValidMethodNames(name, k.Compund.Compound.Language == DoxLanguage.Cpp), "function");
                         break;
                     default:
                         int i = 42;
