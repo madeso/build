@@ -4,11 +4,11 @@ namespace Workbench.Config;
 
 internal class CheckNamesFile
 {
-    [JsonPropertyName("types")]
-    public HashSet<string> Types { get; set; } = new();
+    [JsonPropertyName("accepted_types")]
+    public HashSet<string> AcceptedTypes { get; set; } = new();
 
-    [JsonPropertyName("functions")]
-    public HashSet<string> Functions { get; set; } = new();
+    [JsonPropertyName("accepted_functions")]
+    public HashSet<string> AcceptedFunctions { get; set; } = new();
 
     public static string GetBuildDataPath()
     {

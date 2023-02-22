@@ -12,36 +12,14 @@ internal class CheckNames
 
     private bool ValidTypeNames(string name)
     {
-        return file.Types.Contains(name);
+        return file.AcceptedTypes.Contains(name);
     }
-
-    // todo(Gustav): read from file?
-    private static readonly HashSet<string> AcceptedTypesNames = new()
-    {
-        "angle",
-        "mat2f",
-        "mat3f",
-        "mat4f",
-        "quatf",
-        "rgb",
-        "rgba",
-        "rgbai",
-        "rgbi",
-        "size2f",
-        "size2i",
-        "unit2f",
-        "unit3f",
-        "vec2f",
-        "vec2i",
-        "vec3f",
-        "vec4f",
-    };
     
     private bool ValidMethodNames(string name)
     {
-        return file.Functions.Contains(name);
+        return file.AcceptedFunctions.Contains(name);
     }
-    private static readonly HashSet<string> AcceptedMethodNames = new()
+    private static readonly HashSet<string> AcceptedCppNames = new()
     {
         "operator+",
         "operator-",
@@ -98,8 +76,14 @@ internal class CheckNames
         }
     }
 
-    internal static int Run(Printer printer, string doxygenXml, string root, CheckNamesFile file)
+    internal static int Run(Printer printer, string doxygenXml, string root)
     {
+        var file = CheckNamesFile.LoadFromDirectoryOrNull(printer);
+        if (file == null)
+        {
+            return -1;
+        }
+
         var parsed = Doxygen.Doxygen.ParseIndex(doxygenXml);
 
         CheckNames runner = new(printer, file);
@@ -275,5 +259,14 @@ internal class CheckNames
 
         // otherwise it must follow the "template name"
         CheckName(templateName, location, root, CaseMatch.TemplateName, ValidTypeNames, "template param");
+    }
+
+    internal static int HandleInit(Printer print, bool overwrite)
+    {
+        var data = new CheckNamesFile();
+        data.AcceptedFunctions.Add("some function or method name");
+        data.AcceptedTypes.Add("some struct or class name");
+
+        return ConfigFile.WriteInit(print, overwrite, CheckNamesFile.GetBuildDataPath(), data);
     }
 }
