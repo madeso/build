@@ -19,7 +19,7 @@ internal class CheckNames
     {
         if (isCpp)
         {
-            if(name.StartsWith("operator ")) { return true; }
+            if(name.StartsWith("operator\"")) { return true; }
             if (AcceptedCppNames.Contains(name)) { return true; }
         }
         return file.AcceptedFunctions.Contains(name);
