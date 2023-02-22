@@ -15,8 +15,12 @@ internal class CheckNames
         return file.AcceptedTypes.Contains(name);
     }
     
-    private bool ValidMethodNames(string name)
+    private bool ValidMethodNames(string name, bool isCpp)
     {
+        if (isCpp)
+        {
+            if (AcceptedCppNames.Contains(name)) { return true; }
+        }
         return file.AcceptedFunctions.Contains(name);
     }
     private static readonly HashSet<string> AcceptedCppNames = new()
@@ -176,7 +180,7 @@ internal class CheckNames
                     CheckFunction(root, mem);
                     if (DoxygenUtils.IsConstructorOrDestructor(mem) == false)
                     {
-                        CheckName(mem.Name, mem.Location, root, CaseMatch.LowerSnakeCase, ValidMethodNames, "method");
+                        CheckName(mem.Name, mem.Location, root, CaseMatch.LowerSnakeCase, name => ValidMethodNames(name, k.Compund.Compound.Language == DoxLanguage.Cpp), "method");
                     }
                     break;
                 case DoxMemberKind.Friend:
