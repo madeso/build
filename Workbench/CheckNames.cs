@@ -254,11 +254,12 @@ internal class CheckNames
     {
         foreach (var t in pp)
         {
-            foreach (var n in t.type!.Nodes)
+            var val = t.type!.ToString();
+            // foreach (var n in t.type!.Nodes)
             {
-                if (n is linkedTextType.Text text)
+                //if (n is linkedTextType.Text text)
                 {
-                    var val = text.Value;
+                    //var val = text.Value;
                     // if (val == "typename..." || val == "typename") { continue; }
                     var cmds = val.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (cmds.Length == 2 && cmds[0] == "typename")
