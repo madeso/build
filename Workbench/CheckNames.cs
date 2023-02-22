@@ -148,7 +148,7 @@ internal class CheckNames
                         CheckName(m.Name, m.Location, root, CaseMatch.UpperSnakeCase, NoValidNames, "define");
                         break;
                     case DoxMemberKind.Typedef:
-                        CheckName(m.Name, m.Location, root, CaseMatch.CamelCase, NoValidNames, "typedef");
+                        CheckName(m.Name, m.Location, root, CaseMatch.CamelCase, ValidTypeNames, "typedef");
                         break;
                     case DoxMemberKind.Enum:
                         CheckEnum(root, m);
