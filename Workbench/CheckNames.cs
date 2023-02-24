@@ -151,7 +151,7 @@ internal class CheckNames
                         break;
                     case DoxMemberKind.Function:
                         CheckFunction(root, m);
-                        CheckName(m.Name, m.Location, root, CaseMatch.LowerSnakeCase,
+                        CheckName(RemoveTemplateArguments(m.Name), m.Location, root, CaseMatch.LowerSnakeCase,
                             name => ValidMethodNames(name, k.Compund.Compound.Language == DoxLanguage.Cpp), "function");
                         break;
                     default:
