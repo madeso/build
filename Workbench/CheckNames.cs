@@ -74,12 +74,16 @@ internal class CheckNames
 
         if (checkCase(name) == false)
         {
-            if(loc.file == "[generated]") { return; }
-            errorsDetected += 1;
-            var file = DoxygenUtils.LocationToString(loc, root);
-
-            printer.Error(file, $"{name} is a invalid name for {source}");
+            ReportError(loc, root, $"{name} is a invalid name for {source}");
         }
+    }
+
+    private void ReportError(locationType loc, string root, string error)
+    {
+        if (loc.file == "[generated]") { return; }
+
+        errorsDetected += 1;
+        printer.Error(DoxygenUtils.LocationToString(loc, root), error);
     }
 
     internal static int Run(Printer printer, string doxygenXml, string root)
@@ -274,6 +278,11 @@ internal class CheckNames
 
         // otherwise it must follow the "template name"
         CheckName(templateName, location, root, CaseMatch.TemplateName, ValidTypeNames, "template param");
+
+        if(templateName.EndsWith("Function") || templateName.EndsWith("Fun"))
+        {
+            ReportError(location, root, $"End template arguments representing functions with Func instead of Function or Fun for {templateName}");
+        }
     }
 
     internal static int HandleInit(Printer print, bool overwrite)
