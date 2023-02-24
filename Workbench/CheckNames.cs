@@ -65,24 +65,20 @@ internal class CheckNames
         this.file = file;
     }
 
-    internal bool CheckName(string name, locationType loc, string root, Func<string, bool> checkCase, Func<string, bool> validName, string source)
+    internal void CheckName(string name, locationType loc, string root, Func<string, bool> checkCase, Func<string, bool> validName, string source)
     {
-        if (name.StartsWith('@')) { return true; }
+        if (name.StartsWith('@')) { return; }
 
         namesChecked += 1;
-        if(validName(name)) { return true; }
+        if(validName(name)) { return; }
 
         if (checkCase(name) == false)
         {
+            if(loc.file == "[generated]") { return; }
             errorsDetected += 1;
             var file = DoxygenUtils.LocationToString(loc, root);
 
             printer.Error(file, $"{name} is a invalid name for {source}");
-            return false;
-        }
-        else
-        {
-            return true;
         }
     }
 
