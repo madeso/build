@@ -159,8 +159,7 @@ internal class CheckNames
                             name => ValidMethodNames(name, k.Compund.Compound.Language == DoxLanguage.Cpp), "function");
                         break;
                     default:
-                        int i = 42;
-                        break;
+                        throw new Exception("Unhandled type");
                 }
             }
         }
@@ -201,8 +200,7 @@ internal class CheckNames
                     // nop
                     break;
                 default:
-                    int i = 42;
-                    break;
+                    throw new Exception("unhandled type");
             }
         }
 
