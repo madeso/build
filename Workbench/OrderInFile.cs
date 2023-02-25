@@ -230,6 +230,11 @@ internal static class OrderInFile
 
         if (m.Kind == DoxMemberKind.Function)
         {
+            if (DoxygenUtils.IsFunctionOverride(m))
+            {
+                return overrides;
+            }
+
             if (m.Static == DoxBool.Yes)
             {
                 // undecorated return AND that is a ref AND that references the current class
