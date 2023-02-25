@@ -81,7 +81,7 @@ internal static class F
 {
     private static string GetPathToStore(string build_folder)
     {
-        return Path.Join(build_folder, "clang-tidy-store.json");
+        return Path.Join(build_folder, FileNames.ClangTidyStore);
     }
 
     private static Store? LoadStore(Printer print, string buildFolder)

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,6 +17,6 @@ internal class BuildFile
 
     public static string GetBuildDataPath()
     {
-        return Path.Join(Environment.CurrentDirectory, "project.wb.json");
+        return Path.Join(Environment.CurrentDirectory, FileNames.BuildData);
     }
 }

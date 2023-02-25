@@ -28,7 +28,7 @@ public struct BuildData
     // get the path to the settings file
     public string GetPathToSettingsFile()
     {
-        return Path.Join(BuildDirectory, "settings.json");
+        return Path.Join(BuildDirectory, FileNames.BuildSettings);
     }
 
     public static BuildData? LoadOrNull(Printer print)

@@ -9,6 +9,6 @@ internal class CheckIncludesFile
 
     public static string GetBuildDataPath()
     {
-        return Path.Join(Environment.CurrentDirectory, "includes.wb.json");
+        return Path.Join(Environment.CurrentDirectory, FileNames.Includes);
     }
 }

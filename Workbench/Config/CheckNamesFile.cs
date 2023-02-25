@@ -12,7 +12,7 @@ internal class CheckNamesFile
 
     public static string GetBuildDataPath()
     {
-        return Path.Join(Environment.CurrentDirectory, "names.wb.json");
+        return Path.Join(Environment.CurrentDirectory, FileNames.CheckNames);
     }
 
     public static CheckNamesFile? LoadFromDirectoryOrNull(Printer print)

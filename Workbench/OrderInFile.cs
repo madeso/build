@@ -60,7 +60,10 @@ internal static class OrderInFile
             PrintError(printer, f.Class, f.PrimaryFile, f.SecondaryFile, f.ErrorMessage);
         }
 
+        var numberOfFiles = fails.DistinctBy(x => x.Class.Compund.Compound.Location!.file).Count();
+
         AnsiConsole.MarkupLineInterpolated($"[blue]{checks - fails.Count} / {checks}[/] classes were accepted");
+        AnsiConsole.MarkupLineInterpolated($"Found [red]{fails.Count}[/] badly ordered classes in [red]{numberOfFiles}[/] files");
 
         if (checks > 0 && fails.Count == 0) { return 0; }
         else { return -1; }
