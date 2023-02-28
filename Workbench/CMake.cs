@@ -335,7 +335,7 @@ public class Trace
             }
         }
 
-        var ret = new ProcessBuilder(cmakeExecutable, "--trace-format=json-v1", "-S", Environment.CurrentDirectory, "-B", dir)
+        var ret = new ProcessBuilder(cmakeExecutable, "--trace-expand", "--trace-format=json-v1", "-S", Environment.CurrentDirectory, "-B", dir)
             .InDirectory(dir)
             .RunWithCallback(on_line, err => error.Add(err))
             .ExitCode
