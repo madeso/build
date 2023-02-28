@@ -1,4 +1,4 @@
-﻿using Spectre.Console;
+using Spectre.Console;
 using Spectre.Console.Cli;
 using System.Collections.Immutable;
 using System.ComponentModel;
@@ -19,22 +19,32 @@ internal sealed class TraceCommand : Command<TraceCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        AnsiConsole.MarkupLineInterpolated($"Loading [green]{settings.File}[/].");
+        return CommonExecute.WithPrinter(printer => {
+            var cmake = CmakeTools.FindInstallationOrNull(printer);
 
-        try
-        {
-            var lines = Trace.TraceDirectory(settings.File);
-            foreach (var li in lines)
+            if (cmake == null)
             {
-                AnsiConsole.MarkupLineInterpolated($"Running [green]{li.Cmd}[/].");
+                printer.Error("Faield to find cmake");
+                return -1;
             }
-        }
-        catch (TraceError x)
-        {
-            AnsiConsole.MarkupLineInterpolated($"Error: [red]{x.Message}[/]");
-        }
 
-        return 0;
+            AnsiConsole.MarkupLineInterpolated($"Loading [green]{settings.File}[/].");
+
+            try
+            {
+                var lines = Trace.TraceDirectory(cmake, settings.File);
+                foreach (var li in lines)
+                {
+                    AnsiConsole.MarkupLineInterpolated($"Running [green]{li.Cmd}[/].");
+                }
+            }
+            catch (TraceError x)
+            {
+                AnsiConsole.MarkupLineInterpolated($"Error: [red]{x.Message}[/]");
+            }
+
+            return 0;
+        });
     }
 }
 
@@ -78,55 +88,65 @@ internal sealed class DotCommand : Command<DotCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        AnsiConsole.MarkupLineInterpolated($"Loading [green]{settings.File}[/].");
+        return CommonExecute.WithPrinter(printer => {
+            var cmake = CmakeTools.FindInstallationOrNull(printer);
 
-        try
-        {
-            var ignores = settings.NamesToIgnore.ToImmutableHashSet();
-            AnsiConsole.MarkupLineInterpolated($"Ignoring [red]{ignores.Count}[/] projects.");
-            var lines = Trace.TraceDirectory(settings.File);
-            var solution = SolutionParser.ParseCmake(lines);
-
-            if (settings.RemoveInterface)
+            if(cmake == null)
             {
-                var removed = solution.RemoveProjects(p => p.Type == Solution.ProjectType.Interface);
-                AnsiConsole.MarkupLineInterpolated($"Removing [red]{removed}[/] interfaces.");
+                printer.Error("Faield to find cmake");
+                return -1;
             }
 
-            solution.RemoveProjects(p => ignores.Contains(p.Name));
-            if(settings.RemoveEmpty)
+            AnsiConsole.MarkupLineInterpolated($"Loading [green]{settings.File}[/].");
+
+            try
             {
-                solution.RemoveProjects(p => p.Uses.Any() == false && p.IsUsedBy.Any() == false);
-            }
+                var ignores = settings.NamesToIgnore.ToImmutableHashSet();
+                AnsiConsole.MarkupLineInterpolated($"Ignoring [red]{ignores.Count}[/] projects.");
+                var lines = Trace.TraceDirectory(cmake, settings.File);
+                var solution = SolutionParser.ParseCmake(lines);
 
-            var gv = solution.MakeGraphviz(settings.Reverse);
-
-            if (settings.Simplify)
-            {
-                gv.Simplify();
-            }
-
-            var output = gv.Lines.ToArray();
-
-            if (settings.Output.ToLower() == "stdout")
-            {
-                foreach (var l in output)
+                if (settings.RemoveInterface)
                 {
-                    AnsiConsole.WriteLine(l);
+                    var removed = solution.RemoveProjects(p => p.Type == Solution.ProjectType.Interface);
+                    AnsiConsole.MarkupLineInterpolated($"Removing [red]{removed}[/] interfaces.");
+                }
+
+                solution.RemoveProjects(p => ignores.Contains(p.Name));
+                if(settings.RemoveEmpty)
+                {
+                    solution.RemoveProjects(p => p.Uses.Any() == false && p.IsUsedBy.Any() == false);
+                }
+
+                var gv = solution.MakeGraphviz(settings.Reverse);
+
+                if (settings.Simplify)
+                {
+                    gv.Simplify();
+                }
+
+                var output = gv.Lines.ToArray();
+
+                if (settings.Output.ToLower() == "stdout")
+                {
+                    foreach (var l in output)
+                    {
+                        AnsiConsole.WriteLine(l);
+                    }
+                }
+                else
+                {
+                    AnsiConsole.MarkupLineInterpolated($"Writing {output.Length} lines of dot to {settings.Output}");
+                    File.WriteAllLines(settings.Output, output);
                 }
             }
-            else
+            catch (TraceError x)
             {
-                AnsiConsole.MarkupLineInterpolated($"Writing {output.Length} lines of dot to {settings.Output}");
-                File.WriteAllLines(settings.Output, output);
+                AnsiConsole.MarkupLineInterpolated($"Error: [red]{x.Message}[/]");
             }
-        }
-        catch (TraceError x)
-        {
-            AnsiConsole.MarkupLineInterpolated($"Error: [red]{x.Message}[/]");
-        }
 
-        return 0;
+            return 0;
+        });
     }
 }
 

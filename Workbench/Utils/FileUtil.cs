@@ -1,4 +1,4 @@
-﻿namespace Workbench.Utils;
+namespace Workbench.Utils;
 
 internal static class FileUtil
 {
@@ -7,6 +7,20 @@ internal static class FileUtil
     public static readonly string[] HEADER_AND_SOURCE_FILES = SOURCE_FILES.Concat(HEADER_FILES).ToArray();
 
     public static readonly string[] PITCHFORK_FOLDERS = new string[] { "apps", "libs", "src", "include" };
+
+    public static IEnumerable<string> PitchforkBuildFolders(string root)
+    {
+        var build = new DirectoryInfo(Path.Join(root, "build"));
+        if(build.Exists)
+        {
+            yield return build.FullName;
+
+            foreach(var d in build.GetDirectories())
+            {
+                yield return d.FullName;
+            }
+        }
+    }
 
     public static bool IsTranslationUnitExtension(string ext)
     {

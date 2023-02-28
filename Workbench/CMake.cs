@@ -1,15 +1,19 @@
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Net.NetworkInformation;
 using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Workbench.Utils;
+using static Workbench.Commands.IndentCommands.IndentationCommand;
 
 namespace Workbench.CMake;
 
 internal static class CmakeTools
 {
-    private static Found FindnRegistry(Printer printer)
+    private const string CmakeCacheFile = "CMakeCache.txt";
+
+    private static Found FindInstallationInRegistry(Printer printer)
     {
         var registry_source = "registry";
 
@@ -27,7 +31,7 @@ internal static class CmakeTools
     }
 
 
-    private static Found FindInPath(Printer printer)
+    private static Found FindInstallationInPath(Printer printer)
     {
         var path_source = "path";
         var path = Which.Find("cmake");
@@ -45,16 +49,64 @@ internal static class CmakeTools
     }
 
 
-    public static IEnumerable<Found> ListAll(Printer printer)
+    public static IEnumerable<Found> ListAllInstallations(Printer printer)
     {
-        yield return FindnRegistry(printer);
-        yield return FindInPath(printer);
+        yield return FindInstallationInRegistry(printer);
+        yield return FindInstallationInPath(printer);
     }
 
 
-    public static string? FindOrNull(Printer printer)
+    public static string? FindInstallationOrNull(Printer printer)
     {
-        return Found.GetFirstValueOrNull(ListAll(printer));
+        return Found.GetFirstValueOrNull(ListAllInstallations(printer));
+    }
+
+
+    public static Found FindBuildInCurrentDirectory()
+    {
+        var source = "current dir";
+
+        var build_root = new DirectoryInfo(Environment.CurrentDirectory).FullName;
+        if (new FileInfo(Path.Join(build_root, CmakeCacheFile)).Exists == false)
+        {
+            return new Found(null, source);
+        }
+
+        return new Found(build_root, source);
+    }
+
+    public static Found FindBuildFromCompileCommands(CompileCommands.CommonArguments settings, Printer printer)
+    {
+        var found = settings.GetPathToCompileCommandsOrNull(printer);
+        return new Found(found, "compile commands");
+    }
+
+    public static Found FindSingleBuildWithCache()
+    {
+        var cwd = Environment.CurrentDirectory;
+        var roots = FileUtil.PitchforkBuildFolders(cwd)
+            .Where(root => new FileInfo(Path.Join(root, CmakeCacheFile)).Exists)
+            .ToImmutableArray();
+
+        return roots.Length switch
+        {
+            0 => new Found(null, "no builds found from cache"),
+            1 => new Found(roots[0], "build root with cache"),
+            _ => new Found(null, "too many builds found from cache"),
+        };
+    }
+
+    public static IEnumerable<Found> ListAllBuilds(CompileCommands.CommonArguments settings, Printer printer)
+    {
+        yield return FindBuildInCurrentDirectory();
+        yield return FindBuildFromCompileCommands(settings, printer);
+        yield return FindSingleBuildWithCache();
+    }
+
+
+    public static string? FindBuildOrNone(CompileCommands.CommonArguments settings, Printer printer)
+    {
+        return Found.GetFirstValueOrNull(ListAllBuilds(settings, printer));
     }
 }
 
@@ -147,7 +199,7 @@ public class CMake
     // run cmake configure step
     public void Configure(Printer printer, bool nop = false)
     {
-        var cmake = CmakeTools.FindOrNull(printer);
+        var cmake = CmakeTools.FindInstallationOrNull(printer);
         if (cmake == null)
         {
             printer.Error("CMake executable not found");
@@ -194,7 +246,7 @@ public class CMake
     // run cmake build step
     private void RunBuildCommand(Printer printer, bool install)
     {
-        var cmake = CmakeTools.FindOrNull(printer);
+        var cmake = CmakeTools.FindInstallationOrNull(printer);
         if (cmake == null)
         {
             printer.Error("CMake executable not found");
@@ -253,7 +305,7 @@ public class Trace
     [JsonPropertyName("args")]
     public string[] Args { set; get; } = Array.Empty<string>();
 
-    public static IEnumerable<Trace> TraceDirectory(string dir)
+    public static IEnumerable<Trace> TraceDirectory(string cmakeExecutable, string dir)
     {
         List<Trace> lines = new();
         List<string> error = new();
@@ -283,9 +335,9 @@ public class Trace
             }
         }
 
-        var ret = new ProcessBuilder("cmake", "--trace-format=json-v1")
+        var ret = new ProcessBuilder(cmakeExecutable, "--trace-format=json-v1", "-S", Environment.CurrentDirectory, "-B", dir)
             .InDirectory(dir)
-            .RunWithCallback(on_line)
+            .RunWithCallback(on_line, err => error.Add(err))
             .ExitCode
             ;
 

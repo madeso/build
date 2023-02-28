@@ -16,7 +16,7 @@ internal static class Status
 
     internal static void HandleStatus(Printer printer, CompileCommands.CommonArguments cc)
     {
-        print_found_list(printer, "cmake", CmakeTools.ListAll(printer).ToList());
+        print_found_list(printer, "cmake", CmakeTools.ListAllInstallations(printer).ToList());
 
         var root = Environment.CurrentDirectory;
         printer.Info($"Root: {root}");

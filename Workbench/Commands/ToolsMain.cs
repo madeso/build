@@ -1,7 +1,9 @@
-﻿using Spectre.Console.Cli;
+using Spectre.Console.Cli;
 using System;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using Workbench.CMake;
 using Workbench.Tools;
 using static Workbench.CheckIncludes.CheckAction;
 
@@ -211,7 +213,16 @@ internal sealed class MissingInCmakeCommand : Command<MissingInCmakeCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return CommonExecute.WithPrinter(print =>
-            F.handle_missing_in_cmake(print, settings.Files, settings.GetPathToCompileCommandsOrNull(print)));
+        {
+            var cmake = CmakeTools.FindInstallationOrNull(print);
+            if (cmake == null)
+            {
+                print.Error("Failed to find cmake");
+                return -1;
+            }
+
+            return F.handle_missing_in_cmake(print, settings.Files, CMake.CmakeTools.FindBuildOrNone(settings, print), cmake);
+        });
     }
 }
 
@@ -231,7 +242,16 @@ internal sealed class ListNoProjectFoldersCommand : Command<ListNoProjectFolders
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return CommonExecute.WithPrinter(print =>
-            F.handle_list_no_project_folder(print, settings.Files, settings.GetPathToCompileCommandsOrNull(print)));
+        {
+            var cmake = CmakeTools.FindInstallationOrNull(print);
+            if (cmake == null)
+            {
+                print.Error("Failed to find cmake");
+                return -1;
+            }
+
+            return F.handle_list_no_project_folder(print, settings.Files, settings.GetPathToCompileCommandsOrNull(print), cmake);
+        });
     }
 }
 

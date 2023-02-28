@@ -61,7 +61,7 @@ internal class ProcessExitWithOutput
 
 public class ProcessBuilder
 {
-    internal ProcessExit RunWithCallback(Action<string> onLine)
+    internal ProcessExit RunWithCallback(Action<string> onLine, Action<string> onError)
     {
         // Prepare the process to run
         ProcessStartInfo start = new()
@@ -91,8 +91,8 @@ public class ProcessBuilder
         }
         catch (Win32Exception err)
         {
-            onLine($"Failed to run {ToString()}");
-            onLine(err.Message);
+            onError($"Failed to run {ToString()}");
+            onError(err.Message);
             return new(ToString(), -42);
         }
     }
@@ -101,7 +101,7 @@ public class ProcessBuilder
     {
         var output = new List<string>();
 
-        var ret = RunWithCallback(line => output.Add(line));
+        var ret = RunWithCallback(line => output.Add(line), line => output.Add(line));
 
         return new(ret, output.ToArray());
     }
@@ -198,6 +198,6 @@ public class ProcessBuilder
 
     internal void RunAndPrintOutput(Printer printer)
     {
-        printer.PrintStatus(RunWithCallback(printer.Info));
+        printer.PrintStatus(RunWithCallback(printer.Info, printer.Error));
     }
 }

@@ -96,11 +96,8 @@ internal static class F
     /// find the build folder containing the compile_commands file or None
     public static string? FindBuildRootOrNull(string root)
     {
-        var common_roots = new string[] { "build", "build/debug-clang" };
-
-        foreach (var relative_build in common_roots)
+        foreach (var build in Utils.FileUtil.PitchforkBuildFolders(root))
         {
-            var build = Path.Join(root, relative_build);
             var compile_commands_json = Path.Join(build, COMPILE_COMMANDS_FILE_NAME);
             if (Path.Exists(compile_commands_json))
             {

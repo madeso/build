@@ -475,7 +475,7 @@ internal static class F
         return 0;
     }
 
-    public static int handle_list_no_project_folder(Printer print, string[] args_files, string? compile_commands_arg){
+    public static int handle_list_no_project_folder(Printer print, string[] args_files, string? compile_commands_arg, string cmake){
         if (compile_commands_arg == null) { return -1; }
 
         var bases = args_files.Select(x => FileUtil.RealPath(x)).ToImmutableArray();
@@ -488,7 +488,7 @@ internal static class F
         var files = new Dictionary<string, string>();
         var project_folders = new ColCounter<string>();
 
-        foreach(var cmd in CMake.Trace.TraceDirectory(build_root))
+        foreach(var cmd in CMake.Trace.TraceDirectory(cmake, build_root))
         {
             if(bases.Select(b => file_is_in_folder(cmd.File, b)).Any())
             {
@@ -542,18 +542,14 @@ internal static class F
     }
 
 
-    public static int handle_missing_in_cmake(Printer print, string[] args_files, string? compile_commands_arg)
+    public static int handle_missing_in_cmake(Printer print, string[] args_files, string? build_root, string cmake)
     {
-        if (compile_commands_arg == null) { return -1; }
-
         var bases = args_files.Select(x => FileUtil.RealPath(x)).ToImmutableArray();
-
-        var build_root = new FileInfo(compile_commands_arg).Directory?.FullName;
-        if (build_root == null) { return -1; }
+        if( build_root == null) { return -1; }
 
         var paths = new HashSet<string>();
 
-        foreach (var cmd in CMake.Trace.TraceDirectory(build_root))
+        foreach (var cmd in CMake.Trace.TraceDirectory(cmake, build_root))
         {
             if (bases.Select(b => file_is_in_folder(cmd.File, b)).Any())
             {
