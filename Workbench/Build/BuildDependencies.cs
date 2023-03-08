@@ -1,6 +1,11 @@
+using System;
 using System.ComponentModel;
+using System.IO;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Workbench.Utils;
+using static Workbench.Commands.IndentCommands.IndentationCommand;
+using static Workbench.Doxygen.Compound.linkedTextType;
 
 namespace Workbench;
 
@@ -21,7 +26,10 @@ public enum DependencyName
     Assimp,
 
     [EnumString("assimp_static")]
-    AssimpStatic
+    AssimpStatic,
+
+    [EnumString("wxWidgets")]
+    WxWidgets,
 
     // earlier dependencies were wxWidgets and to a lesser extent: boost and libxml
     // if we need them we should probably replace this whole setup with a package manager
@@ -52,6 +60,7 @@ public static class Dependencies
             DependencyName.Python => new DependencyPython(),
             DependencyName.Assimp => new DependencyAssimp(data, false),
             DependencyName.AssimpStatic => new DependencyAssimp(data, true),
+            DependencyName.WxWidgets=> new DependencyWxWidgets(data),
             _ => throw new Exception($"invalid name: {name}"),
         };
     }
@@ -257,3 +266,238 @@ internal class DependencyAssimp : Dependency
     }
 }
 
+
+
+
+internal static class BuildUtils
+{
+    private static IEnumerable<string> list_projects_in_solution(string path)
+    {
+        var directory_name = new DirectoryInfo(path).Name;
+        var project_line = new Regex("""Project\("[^"]+"\) = "[^"]+", "([^"]+)" """.TrimEnd()); // possible to end a rawy string literal with a quote?
+        // with open(path) as sln
+        {
+            foreach (var line in File.ReadAllLines(path))
+            {
+                // Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "richtext", "wx_richtext.vcxproj", "{7FB0902D-8579-5DCE-B883-DAF66A885005}"
+                var project_match = project_line.Match(line);
+                if (project_match.Success)
+                {
+                    yield return Path.Join(directory_name, project_match.Groups[1].Value);
+                }
+            }
+        }
+    }
+
+
+
+
+    internal static void change_all_projects_to_static(Printer printer, string sln)
+    {
+        var projects = list_projects_in_solution(sln);
+        foreach (var proj in projects)
+        {
+            change_to_static_link(printer, proj);
+        }
+    }
+
+
+    private static void add_definition_to_solution(string sln, string definition)
+    {
+        var projects = list_projects_in_solution(sln);
+        foreach (var proj in projects)
+        {
+            add_definition_to_project(proj, definition);
+        }
+    }
+
+
+    private static void make_single_project_64(Printer print, string project_path, TextReplacer rep)
+    {
+        if (!Path.Exists(project_path))
+        {
+            print.Error("missing " + project_path);
+            return;
+        }
+
+        var lines = new List<string>();
+        foreach (var line in File.ReadLines(project_path))
+        {
+            var new_line = rep.Replace(line.TrimEnd());
+            lines.Add(new_line);
+        }
+
+        File.WriteAllLines(project_path, lines.ToArray());
+    }
+
+
+    private static void make_projects_64(Printer print, string sln)
+    {
+        var projects = list_projects_in_solution(sln);
+        var rep = new TextReplacer();
+        rep.Add("Win32", "x64");
+        rep.Add("<DebugInformationFormat>EditAndContinue</DebugInformationFormat>", "<DebugInformationFormat>ProgramDatabase</DebugInformationFormat>");
+        rep.Add("<TargetMachine>MachineX86</TargetMachine>", "<TargetMachine>MachineX64</TargetMachine>");
+        // protobuf specific hack since cmake looks in x64 folder
+        rep.Add(@"<OutDir>Release\</OutDir>", @"<OutDir>x64\Release\</OutDir>");
+        rep.Add(@"<OutDir>Debug\</OutDir>", @"<OutDir>x64\Debug\</OutDir>");
+        foreach (var project in projects)
+        {
+            make_single_project_64(print, project, rep);
+        }
+    }
+
+
+    private static void make_solution_64(string solution_path)
+    {
+        var rep = new TextReplacer();
+        rep.Add("Win32", "x64");
+
+        var lines = new List<string>();
+
+        //with open(solution_path) as slnlines
+        {
+            foreach (var line in File.ReadLines(solution_path))
+            {
+                var new_line = rep.Replace(line.TrimEnd());
+                lines.Add(new_line);
+            }
+        }
+
+        File.WriteAllLines(solution_path, lines.ToArray());
+    }
+
+
+    private static void convert_sln_to_64(Printer print, string sln)
+    {
+        make_solution_64(sln);
+        make_projects_64(print, sln);
+    }
+
+    private static void add_definition_to_project(string path, string define)
+    {
+        // <PreprocessorDefinitions>WIN32;_LIB;_CRT_SECURE_NO_DEPRECATE=1;_CRT_NON_CONFORMING_SWPRINTFS=1;_SCL_SECURE_NO_WARNINGS=1;__WXMSW__;NDEBUG;_UNICODE;WXBUILDING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+        var preproc = new Regex(@"([ ]*<PreprocessorDefinitions>)([^<]*</PreprocessorDefinitions>)");
+        var lines = new List<string>();
+
+        foreach (var line in File.ReadAllLines(path))
+        {
+            var preproc_match = preproc.Match(line);
+            if (preproc_match.Success)
+            {
+                var before = preproc_match.Groups[1].Value;
+                var after = preproc_match.Groups[2].Value;
+                lines.Add($"{before}{define};{after}");
+            }
+            else
+            {
+                lines.Add(line.TrimEnd());
+            }
+        }
+
+        File.WriteAllLines(path, lines.ToArray());
+    }
+
+    // change from:
+    // <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary> to <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    // <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary> to <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    private static void change_to_static_link(Printer print, string path)
+    {
+        var mtdebug = new Regex(@"([ ]*)<RuntimeLibrary>MultiThreadedDebugDLL");
+        var mtrelease = new Regex(@"([ ]*)<RuntimeLibrary>MultiThreadedDLL");
+        var lines = new List<string>();
+
+        foreach (var line in File.ReadAllLines(path))
+        {
+            var mdebug = mtdebug.Match(line);
+            var mrelease = mtrelease.Match(line);
+            if (mdebug.Success)
+            {
+                print.Info($"in {path} changed to static debug");
+                var spaces = mdebug.Groups[1].Value;
+                lines.Add($"{spaces}<RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>");
+            }
+            else if (mrelease.Success)
+            {
+                print.Info($"in {path} changed to static release");
+                var spaces = mrelease.Groups[1].Value;
+                lines.Add($"{spaces}<RuntimeLibrary>MultiThreaded</RuntimeLibrary>");
+            }
+            else
+            {
+                lines.Add(line.TrimEnd());
+            }
+        }
+
+        File.WriteAllLines(path, lines.ToArray());
+    }
+}
+
+
+
+internal class DependencyWxWidgets : Dependency
+{
+    private readonly string dependencyFolder; // wx_root
+    private readonly string wx_zip;
+    private readonly string wx_url;
+    private readonly string wx_sln;
+
+    public DependencyWxWidgets(BuildData data)
+    {
+        dependencyFolder = Path.Join(data.DependencyDirectory, "wxWidgets");
+
+        wx_url = "https://github.com/wxWidgets/wxWidgets/releases/download/v3.1.4/wxWidgets-3.1.4.zip";
+        wx_zip = Path.Join(data.DependencyDirectory, "wx.zip");
+        wx_sln = Path.Join(dependencyFolder, "build", "msw", "wx_vc16.sln");
+    }
+
+    public string GetName()
+    {
+        return "wxWidgets";
+    }
+
+    public void AddCmakeArguments(CMake.CMake cmake)
+    {
+        cmake.AddArgument("wxWidgets_ROOT_DIR", dependencyFolder);
+    }
+
+    public void Install(BuildEnviroment env, Printer print, BuildData data)
+    {
+        var root = dependencyFolder;
+
+        print.Header("Installing dependency wxWidgets");
+        var zipFile = wx_zip;
+        if (false == Directory.Exists(root))
+        {
+            Core.VerifyDirectoryExists(print, root);
+
+            print.Info("downloading wx...");
+            Core.DownloadFileIfMissing(print, wx_url, zipFile);
+
+            print.Info("extracting wx");
+            Core.ExtractZip(print, wx_zip, root);
+
+            print.Info("changing wx to static");
+            BuildUtils.change_all_projects_to_static(print, wx_sln);
+
+            print.Info("building wxwidgets");
+            print.Info("-----------------------------------");
+
+            new ProcessBuilder(
+                "msbuild",
+                "/p:Configuration=Release",
+                $"/p:Platform={env.CreateMsBuildPlatform()}",
+                wx_sln
+            ).RunAndPrintOutput(print);
+        }
+        else
+        {
+            print.Info("xWidgets build exist, not building again...");
+        }
+    }
+
+    public IEnumerable<string> GetStatus()
+    {
+        yield return $"Root: {dependencyFolder}";
+    }
+}

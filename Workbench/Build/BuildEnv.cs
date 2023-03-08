@@ -1,5 +1,6 @@
 using Spectre.Console.Cli;
 using System.ComponentModel;
+using System.Reflection.Metadata.Ecma335;
 using System.Text.Json.Serialization;
 using Workbench.Utils;
 
@@ -56,6 +57,13 @@ public class BuildEnviroment
         if (compiler == null) { throw new ArgumentNullException(nameof(compiler)); }
         if (platform == null) { throw new ArgumentNullException(nameof(platform)); }
         return BuildUitls.CreateCmakeGenerator(compiler.Value, platform.Value);
+    }
+
+    internal string CreateMsBuildPlatform()
+    {
+        if (compiler == null) { throw new ArgumentNullException(nameof(compiler)); }
+        if (platform == null) { throw new ArgumentNullException(nameof(platform)); }
+        return BuildUitls.CreateMsBuildPlatform(compiler.Value, platform.Value);
     }
 
     // validate the build environment
@@ -191,6 +199,16 @@ public static class BuildUitls
                 new CMake.Generator("Visual Studio 16 2019", GetCmakeArchitctureArgument(platform)),
             Compiler.VisualStudio2022 =>
                 new CMake.Generator("Visual Studio 17 2022", GetCmakeArchitctureArgument(platform)),
+            _ => throw new Exception("Invalid compiler"),
+        };
+    }
+
+    internal static string CreateMsBuildPlatform(Compiler compiler, Platform platform)
+    {
+        return platform switch
+        {
+            Platform.Win32 => "Win32",
+            Platform.X64 => "\x64",
             _ => throw new Exception("Invalid compiler"),
         };
     }
