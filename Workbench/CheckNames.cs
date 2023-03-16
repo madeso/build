@@ -155,14 +155,19 @@ internal class CheckNames
                         break;
                     case DoxMemberKind.Function:
                         CheckFunction(root, m);
-                        CheckName(RemoveTemplateArguments(m.Name), m.Location, root, CaseMatch.LowerSnakeCase,
-                            name => ValidMethodNames(name, k.Compund.Compound.Language == DoxLanguage.Cpp), "function");
+                        PleaseCheckFunctionName(root, k.Compund.Compound, m, "function");
                         break;
                     default:
                         throw new Exception("Unhandled type");
                 }
             }
         }
+    }
+
+    private void PleaseCheckFunctionName(string root, compounddefType c, memberdefType mem, string source)
+    {
+        CheckName(mem.Name, mem.Location, root, CaseMatch.LowerSnakeCase,
+                    name => ValidMethodNames(name, c.Language == DoxLanguage.Cpp), source);
     }
 
     private void CheckClass(string root, CompoundType k)
@@ -193,7 +198,7 @@ internal class CheckNames
                     if (DoxygenUtils.IsConstructorOrDestructor(mem) == false &&
                         DoxygenUtils.IsFunctionOverride(mem) == false)
                     {
-                        CheckName(mem.Name, mem.Location, root, CaseMatch.LowerSnakeCase, name => ValidMethodNames(name, c.Language == DoxLanguage.Cpp), "method");
+                        PleaseCheckFunctionName(root, c, mem, "method");
                     }
                     break;
                 case DoxMemberKind.Friend:
@@ -210,6 +215,8 @@ internal class CheckNames
         name = RemoveTemplateArguments(name);
         CheckName(name, c.Location!, root, CaseMatch.CamelCase, ValidTypeNames, "class/struct");
     }
+
+    
 
     private static string RemoveTemplateArguments(string name)
     {
