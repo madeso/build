@@ -114,7 +114,12 @@ internal class CheckNames
             runner.CheckNamespace(k, root);
         }
 
-        AnsiConsole.MarkupLineInterpolated($"Detected [red]{runner.errorsDetected}[/] in [blue]{runner.namesChecked}[/] names");
+        foreach (var c in runner.counts.OrderByDescending(x => x.Value))
+        {
+            AnsiConsole.MarkupLineInterpolated($"Detected [red]{c.Value}[/] [blue]{c.Key}[/] function names");
+        }
+
+        AnsiConsole.MarkupLineInterpolated($"Found [red]{runner.errorsDetected}[/] issues in [blue]{runner.namesChecked}[/] names");
 
         return runner.errorsDetected > 0 ? -1 : 0;
     }
@@ -155,7 +160,7 @@ internal class CheckNames
                         break;
                     case DoxMemberKind.Function:
                         CheckFunction(root, m);
-                        PleaseCheckFunctionName(root, k.Compund.Compound, m, "function");
+                        CheckFunctionName(root, k.Compund.Compound, m, isFunction: true);
                         break;
                     default:
                         throw new Exception("Unhandled type");
@@ -164,10 +169,65 @@ internal class CheckNames
         }
     }
 
-    private void PleaseCheckFunctionName(string root, compounddefType c, memberdefType mem, string source)
+    Dictionary<string, int> counts = new ();
+    void AddCount(string name)
     {
-        CheckName(mem.Name, mem.Location, root, CaseMatch.LowerSnakeCase,
+        if (counts.TryGetValue(name, out int value) == false)
+        {
+            value = 0;
+        }
+        value += 1;
+        counts[name] = value;
+    }
+
+    private void CheckFunctionName(string root, compounddefType c, memberdefType mem, bool isFunction)
+    {
+        var source = isFunction ? "function" : "method";
+        var memName = RemoveTemplateArguments(mem.Name);
+        var entries = memName.Split('_', StringSplitOptions.TrimEntries);
+        var firstName = entries[0].ToLower();
+
+        var report = true;
+        switch(firstName)
+        {
+            case "as":
+            case "convert":
+            case "into":
+            case "retrieve":
+            case "fetch":
+            case "gather":
+                ReportError("get or to");
+                break;
+
+            case "to":
+            case "get":
+                break;
+
+            case "new":
+            case "make":
+                ReportError("create");
+                break;
+
+            case "create":
+                break;
+
+            default:
+                report = false;
+                break;
+        }
+
+        if(report)
+        {
+            AddCount(firstName);
+        }
+
+        CheckName(memName, mem.Location, root, CaseMatch.LowerSnakeCase,
                     name => ValidMethodNames(name, c.Language == DoxLanguage.Cpp), source);
+
+        void ReportError(string what)
+        {
+            this.ReportError(mem.Location, root, $"Prefer to start with {what}, not {firstName} for {memName}");
+        }
     }
 
     private void CheckClass(string root, CompoundType k)
@@ -198,7 +258,7 @@ internal class CheckNames
                     if (DoxygenUtils.IsConstructorOrDestructor(mem) == false &&
                         DoxygenUtils.IsFunctionOverride(mem) == false)
                     {
-                        PleaseCheckFunctionName(root, c, mem, "method");
+                        CheckFunctionName(root, c, mem, isFunction: false);
                     }
                     break;
                 case DoxMemberKind.Friend:
