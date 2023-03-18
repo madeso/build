@@ -1,7 +1,10 @@
 using Spectre.Console;
+using System.Text;
+using System.Xml.Linq;
 using Workbench.Config;
 using Workbench.Doxygen.Compound;
 using Workbench.Doxygen.Index;
+using Workbench.Utils;
 
 namespace Workbench;
 
@@ -15,7 +18,7 @@ internal class CheckNames
         return file.AcceptedTypes.Contains(name);
     }
     
-    private bool ValidMethodNames(string name, bool isCpp)
+    private bool IsValidMethodName(string name, bool isCpp)
     {
         if (isCpp)
         {
@@ -57,7 +60,7 @@ internal class CheckNames
 
     int namesChecked = 0;
     int errorsDetected = 0;
-    private Printer printer;
+    private readonly Printer printer;
 
     public CheckNames(Printer printer, CheckNamesFile file)
     {
@@ -114,14 +117,26 @@ internal class CheckNames
             runner.CheckNamespace(k, root);
         }
 
-        foreach (var c in runner.counts.OrderByDescending(x => x.Value))
-        {
-            AnsiConsole.MarkupLineInterpolated($"Detected [red]{c.Value}[/] [blue]{c.Key}[/] function names");
-        }
+        runner.WriteFunctionMatchLog();
 
         AnsiConsole.MarkupLineInterpolated($"Found [red]{runner.errorsDetected}[/] issues in [blue]{runner.namesChecked}[/] names");
 
         return runner.errorsDetected > 0 ? -1 : 0;
+    }
+
+    private void WriteFunctionMatchLog()
+    {
+        var unknowns = counts.Where(c => file.KnownFunctionVerbs.Contains(c.Key) == false);
+        foreach (var c in unknowns.OrderByDescending(x => x.Value))
+        {
+            AnsiConsole.MarkupLineInterpolated($"Detected [red]{c.Value}[/] unknown verbs [blue]{c.Key}[/] in function names");
+        }
+
+        var unmatched = file.KnownFunctionVerbs.Where(x => counts.ContainsKey(x) == false);
+        foreach (var c in unmatched)
+        {
+            AnsiConsole.MarkupLineInterpolated($"Detected unmatched verbs [blue]{c}[/] in file");
+        }
     }
 
     private void CheckNamespace(CompoundType k, string root)
@@ -184,50 +199,46 @@ internal class CheckNames
     {
         var source = isFunction ? "function" : "method";
         var memName = RemoveTemplateArguments(mem.Name);
-        var entries = memName.Split('_', StringSplitOptions.TrimEntries);
-        var firstName = entries[0].ToLower();
 
-        var report = true;
-        switch(firstName)
+        if (IsValidMethodName(memName, c.Language == DoxLanguage.Cpp))
         {
-            case "as":
-            case "convert":
-            case "into":
-            case "retrieve":
-            case "fetch":
-            case "gather":
-                ReportError("get or to");
-                break;
-
-            case "to":
-            case "get":
-                break;
-
-            case "new":
-            case "make":
-                ReportError("create");
-                break;
-
-            case "create":
-                break;
-
-            default:
-                report = false;
-                break;
+            return;
         }
 
-        if(report)
+        var entries = memName.Split('_', StringSplitOptions.TrimEntries)
+            .SkipWhile(file.KnownFunctionPrefixes.Contains)
+            .ToArray()
+            ;
+        var firstName = entries[0].ToLower()
+            // for a name get360 the verb should be just get
+            .TrimEnd("0123456789".ToCharArray());
+
+        if(entries.Length > 1)
         {
-            AddCount(firstName);
+            bool add = true;
+
+            if(file.KnownFunctionVerbs.Contains(firstName) == false)
+            {
+                if(file.BadFunctionVerbs.TryGetValue(firstName, out var suggestedReplacements))
+                {
+                    var message = StringListCombiner.EnglishOr().combine(suggestedReplacements);
+                    var are = suggestedReplacements.Length ==1 ? "is" : "are";
+                    this.ReportError(mem.Location, root, $"{firstName} is not a recomended verb for {memName}: suggestions {are}: {message}");
+                }
+                else
+                {
+                    this.ReportError(mem.Location, root, $"{firstName} is not a known verb for {memName}");
+                }
+            }
+
+            if(add)
+            {
+                AddCount(firstName);
+            }
         }
 
         CheckName(memName, mem.Location, root, CaseMatch.LowerSnakeCase,
-                    name => ValidMethodNames(name, c.Language == DoxLanguage.Cpp), source);
-
-        void ReportError(string what)
-        {
-            this.ReportError(mem.Location, root, $"Prefer to start with {what}, not {firstName} for {memName}");
-        }
+                    _ => true, source);
     }
 
     private void CheckClass(string root, CompoundType k)
