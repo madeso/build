@@ -10,17 +10,7 @@ public static class Git
         Unknown, Modified
     }
 
-    public class GitStatusEntry
-    {
-        public GitStatusEntry(GitStatus status, string path)
-        {
-            Status = status;
-            Path = path;
-        }
-
-        public GitStatus Status { get; }
-        public string Path { get; }
-    }
+    public record GitStatusEntry(GitStatus Status, string Path);
 
     public static IEnumerable<GitStatusEntry> Status(string folder)
     {
@@ -35,6 +25,8 @@ public static class Git
 
             var line = item.Trim().Split(' ', 2, StringSplitOptions.TrimEntries);
             var type = line[0];
+
+            static string ToPath(string v) => v.Trim().Replace("\"", "").Replace('/', '\\');
             var path = Path.Join(folder, ToPath(line[1]));
             switch (type)
             {
@@ -43,10 +35,5 @@ public static class Git
                 default: throw new Exception($"Unhandled type <{type}> for line <{item}>");
             }
         }
-    }
-
-    private static ReadOnlySpan<char> ToPath(string v)
-    {
-        return v.Trim().Replace("\"", "").Replace('/', '\\');
     }
 }
