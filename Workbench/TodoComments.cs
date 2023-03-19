@@ -4,37 +4,11 @@ using Workbench.Utils;
 
 namespace Workbench;
 
+internal record TodoInFile(FileInfo File, int Line, string Todo);
+
 internal partial class TodoComments
 {
-    internal static int PrintAll(Printer print, DirectoryInfo root)
-    {
-        var cc = new ColCounter<string>();
-        
-        foreach(var todo in ListAllTodos(root))
-        {
-            var fileAndLine = Printer.ToFileString(todo.File.FullName, todo.Line);
-            AnsiConsole.MarkupLineInterpolated($"[blue]{fileAndLine}[/]: {todo.Todo}");
-            cc.AddOne(todo.File.FullName);
-        }
-
-        {
-            var count = cc.TotalCount();
-            var files = cc.Keys.Count();
-            AnsiConsole.MarkupLineInterpolated($"Found [blue]{count}[/] todos in {files} files");
-        }
-
-        AnsiConsole.WriteLine("Top 5 files");
-        foreach(var (file, count) in cc.MostCommon().Take(5))
-        {
-            AnsiConsole.MarkupLineInterpolated($"[blue]{file}[/] with {count} todos");
-        }
-
-        return 0;
-    }
-
-    record TodoInFile(FileInfo File, int Line, string Todo);
-
-    private static IEnumerable<TodoInFile> ListAllTodos(DirectoryInfo root)
+    internal static IEnumerable<TodoInFile> ListAllTodos(DirectoryInfo root)
     {
         var extra_extensions = new string[] { ".jsonc" };
         var extensions = FileUtil.HEADER_AND_SOURCE_FILES.Concat(extra_extensions).ToArray();
