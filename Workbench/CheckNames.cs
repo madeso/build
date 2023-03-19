@@ -68,7 +68,7 @@ internal class CheckNames
         this.file = file;
     }
 
-    internal void CheckName(string name, locationType loc, string root, Func<string, bool> checkCase, Func<string, bool> validName, string source)
+    internal void CheckName(string name, locationType loc, Func<string, bool> checkCase, Func<string, bool> validName, string source)
     {
         if (name.StartsWith('@')) { return; }
 
@@ -77,16 +77,30 @@ internal class CheckNames
 
         if (checkCase(name) == false)
         {
-            ReportError(loc, root, $"{name} is a invalid name for {source}");
+            ReportError(loc, $"{name} is a invalid name for {source}");
         }
     }
 
-    private void ReportError(locationType loc, string root, string error)
+    readonly List<Fail> fails = new();
+    record Fail(locationType Location, string ErrorMessage);
+
+    private void ReportError(locationType loc, string error)
     {
         if (loc.file == "[generated]") { return; }
 
         errorsDetected += 1;
-        printer.Error(DoxygenUtils.LocationToString(loc, root), error);
+        fails.Add(new(loc, error));
+    }
+
+    private void PrintErrors(string root)
+    {
+        foreach (var f in fails
+            .OrderBy(x => x.Location.file)
+            .ThenByDescending(x => x.Location!.line)
+            )
+        {
+            printer.Error(DoxygenUtils.LocationToString(f.Location, root), f.ErrorMessage);
+        }
     }
 
     internal static int Run(Printer printer, string doxygenXml, string root)
@@ -102,21 +116,20 @@ internal class CheckNames
         CheckNames runner = new(printer, file);
         foreach (var k in DoxygenUtils.AllClasses(parsed))
         {
-            runner.CheckClass(root, k);
+            runner.CheckClass(k);
         }
-
-        // var dict = parsed.compounds.ToDictionary(x=>x.refid);
 
         foreach(var k in parsed.compounds.Where(x => x.kind == CompoundKind.File))
         {
-            runner.CheckFile(k, root);
+            runner.CheckFile(k);
         }
 
         foreach (var k in parsed.compounds.Where(x => x.kind == CompoundKind.Namespace))
         {
-            runner.CheckNamespace(k, root);
+            runner.CheckNamespace(k);
         }
 
+        runner.PrintErrors(root);
         runner.WriteFunctionMatchLog();
 
         AnsiConsole.MarkupLineInterpolated($"Found [red]{runner.errorsDetected}[/] issues in [blue]{runner.namesChecked}[/] names");
@@ -139,21 +152,21 @@ internal class CheckNames
         }
     }
 
-    private void CheckNamespace(CompoundType k, string root)
+    private void CheckNamespace(CompoundType k)
     {
-        CheckName(RemoveNamespace(k.name), k.Compund.Compound.Location!, root, CaseMatch.LowerSnakeCase, NoValidNames, "namespace");
-        CheckSectionDefs(k, root);
+        CheckName(RemoveNamespace(k.name), k.Compund.Compound.Location!, CaseMatch.LowerSnakeCase, NoValidNames, "namespace");
+        CheckSectionDefs(k);
     }
 
-    private void CheckFile(CompoundType k, string root )
+    private void CheckFile(CompoundType k)
     {
         // check namespaces?
         // foreach (var n in k.Compund.Compound.Innernamespace)
 
-        CheckSectionDefs(k, root);
+        CheckSectionDefs(k);
     }
 
-    private void CheckSectionDefs(CompoundType k, string root)
+    private void CheckSectionDefs(CompoundType k)
     {
         foreach (var d in k.Compund.Compound.Sectiondef)
         {
@@ -162,20 +175,20 @@ internal class CheckNames
                 switch (m.Kind)
                 {
                     case DoxMemberKind.Variable:
-                        CheckName(m.Name, m.Location, root, CaseMatch.LowerSnakeCase, NoValidNames, "variable");
+                        CheckName(m.Name, m.Location, CaseMatch.LowerSnakeCase, NoValidNames, "variable");
                         break;
                     case DoxMemberKind.Define:
-                        CheckName(m.Name, m.Location, root, CaseMatch.UpperSnakeCase, NoValidNames, "define");
+                        CheckName(m.Name, m.Location, CaseMatch.UpperSnakeCase, NoValidNames, "define");
                         break;
                     case DoxMemberKind.Typedef:
-                        CheckName(m.Name, m.Location, root, CaseMatch.CamelCase, ValidTypeNames, "typedef");
+                        CheckName(m.Name, m.Location, CaseMatch.CamelCase, ValidTypeNames, "typedef");
                         break;
                     case DoxMemberKind.Enum:
-                        CheckEnum(root, m);
+                        CheckEnum(m);
                         break;
                     case DoxMemberKind.Function:
-                        CheckFunction(root, m);
-                        CheckFunctionName(root, k.Compund.Compound, m, isFunction: true);
+                        CheckFunction(m);
+                        CheckFunctionName(k.Compund.Compound, m, isFunction: true);
                         break;
                     default:
                         throw new Exception("Unhandled type");
@@ -195,7 +208,7 @@ internal class CheckNames
         counts[name] = value;
     }
 
-    private void CheckFunctionName(string root, compounddefType c, memberdefType mem, bool isFunction)
+    private void CheckFunctionName(compounddefType c, memberdefType mem, bool isFunction)
     {
         var source = isFunction ? "function" : "method";
         var memName = RemoveTemplateArguments(mem.Name);
@@ -223,11 +236,11 @@ internal class CheckNames
                 {
                     var message = StringListCombiner.EnglishOr().combine(suggestedReplacements);
                     var are = suggestedReplacements.Length ==1 ? "is" : "are";
-                    this.ReportError(mem.Location, root, $"{firstName} is not a recomended verb for {memName}: suggestions {are}: {message}");
+                    this.ReportError(mem.Location, $"{firstName} is not a recomended verb for {memName}: suggestions {are}: {message}");
                 }
                 else
                 {
-                    this.ReportError(mem.Location, root, $"{firstName} is not a known verb for {memName}");
+                    this.ReportError(mem.Location, $"{firstName} is not a known verb for {memName}");
                 }
             }
 
@@ -237,39 +250,39 @@ internal class CheckNames
             }
         }
 
-        CheckName(memName, mem.Location, root, CaseMatch.LowerSnakeCase,
-                    _ => true, source);
+        CheckName(memName, mem.Location, CaseMatch.LowerSnakeCase, _ => true,
+                    source);
     }
 
-    private void CheckClass(string root, CompoundType k)
+    private void CheckClass(CompoundType k)
     {
         var c = k.Compund.Compound;
         if(c.Templateparamlist != null)
         {
-            CheckTemplateArguments(root, c.Location!, c.Templateparamlist.param);
+            CheckTemplateArguments(c.Location!, c.Templateparamlist.param);
         }
         foreach (var mem in c.Sectiondef.SelectMany(x => x.memberdef))
         {
             switch (mem.Kind)
             {
                 case Doxygen.Compound.DoxMemberKind.Define:
-                    CheckDefine(root, mem);
+                    CheckDefine(mem);
                     break;
                 case Doxygen.Compound.DoxMemberKind.Typedef:
-                    CheckTypedef(root, mem);
+                    CheckTypedef(mem);
                     break;
                 case Doxygen.Compound.DoxMemberKind.Enum:
-                    CheckEnum(root, mem);
+                    CheckEnum(mem);
                     break;
                 case Doxygen.Compound.DoxMemberKind.Variable:
-                    CheckName(mem.Name, mem.Location, root, CaseMatch.LowerSnakeCase, NoValidNames, "member variables");
+                    CheckName(mem.Name, mem.Location, CaseMatch.LowerSnakeCase, NoValidNames, "member variables");
                     break;
                 case Doxygen.Compound.DoxMemberKind.Function:
-                    CheckFunction(root, mem);
+                    CheckFunction(mem);
                     if (DoxygenUtils.IsConstructorOrDestructor(mem) == false &&
                         DoxygenUtils.IsFunctionOverride(mem) == false)
                     {
-                        CheckFunctionName(root, c, mem, isFunction: false);
+                        CheckFunctionName(c, mem, isFunction: false);
                     }
                     break;
                 case DoxMemberKind.Friend:
@@ -284,7 +297,7 @@ internal class CheckNames
 
         string name = RemoveNamespace(k.name);
         name = RemoveTemplateArguments(name);
-        CheckName(name, c.Location!, root, CaseMatch.CamelCase, ValidTypeNames, "class/struct");
+        CheckName(name, c.Location!, CaseMatch.CamelCase, ValidTypeNames, "class/struct");
     }
 
     
@@ -299,34 +312,34 @@ internal class CheckNames
         return name.Split("::", StringSplitOptions.RemoveEmptyEntries).Last().Trim();
     }
 
-    private void CheckFunction(string root, memberdefType mem)
+    private void CheckFunction(memberdefType mem)
     {
         if (mem.Templateparamlist != null)
         {
-            CheckTemplateArguments(root, mem.Location, mem.Templateparamlist.param);
+            CheckTemplateArguments(mem.Location, mem.Templateparamlist.param);
         }
     }
 
-    private void CheckEnum(string root, memberdefType mem)
+    private void CheckEnum(memberdefType mem)
     {
-        CheckName(mem.Name, mem.Location, root, CaseMatch.CamelCase, NoValidNames, "enum");
+        CheckName(mem.Name, mem.Location, CaseMatch.CamelCase, NoValidNames, "enum");
         foreach(var e in mem.Enumvalue)
         {
-            CheckName(e.name, mem.Location, root, CaseMatch.LowerSnakeCase, NoValidNames, "enum value");
+            CheckName(e.name, mem.Location, CaseMatch.LowerSnakeCase, NoValidNames, "enum value");
         }
     }
 
-    private void CheckTypedef(string root, memberdefType mem)
+    private void CheckTypedef(memberdefType mem)
     {
-        CheckName(mem.Name, mem.Location, root, CaseMatch.CamelCase, NoValidNames, "typedef");
+        CheckName(mem.Name, mem.Location, CaseMatch.CamelCase, NoValidNames, "typedef");
     }
 
-    private void CheckDefine(string root, memberdefType mem)
+    private void CheckDefine(memberdefType mem)
     {
-        CheckName(mem.Name, mem.Location, root, CaseMatch.CamelCase, NoValidNames, "define");
+        CheckName(mem.Name, mem.Location, CaseMatch.CamelCase, NoValidNames, "define");
     }
 
-    private void CheckTemplateArguments(string root, locationType location, paramType[] pp)
+    private void CheckTemplateArguments(locationType location, paramType[] pp)
     {
         foreach (var t in pp)
         {
@@ -340,24 +353,24 @@ internal class CheckNames
                     var cmds = val.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (cmds.Length == 2 && cmds[0] == "typename")
                     {
-                        CheckTemplateParamName(root, location, cmds[1]);
+                        CheckTemplateParamName(location, cmds[1]);
                     }
                 }
             }
         }
     }
 
-    private void CheckTemplateParamName(string root, locationType location, string templateName)
+    private void CheckTemplateParamName(locationType location, string templateName)
     {
         // the name is a single char and it's uppercase it's valid
         if (templateName.Length == 1 && templateName[0] == templateName.ToUpper()[0]) { return; }
 
         // otherwise it must follow the "template name"
-        CheckName(templateName, location, root, CaseMatch.TemplateName, ValidTypeNames, "template param");
+        CheckName(templateName, location, CaseMatch.TemplateName, ValidTypeNames, "template param");
 
         if(templateName.EndsWith("Function") || templateName.EndsWith("Fun"))
         {
-            ReportError(location, root, $"End template arguments representing functions with Func instead of Function or Fun for {templateName}");
+            ReportError(location, $"End template arguments representing functions with Func instead of Function or Fun for {templateName}");
         }
     }
 
