@@ -1,9 +1,28 @@
-﻿using Spectre.Console;
+using Spectre.Console;
 using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Workbench.Commands.GitCommands;
+
+internal sealed class BlameCommand : Command<BlameCommand.Arg>
+{
+    public sealed class Arg : CommandSettings
+    {
+        [Description("Git file to blame")]
+        [CommandArgument(0, "<git file>")]
+        public string File { get; set; } = "";
+    }
+
+    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    {
+        foreach(var line in Git.Blame(new FileInfo(settings.File)))
+        {
+            AnsiConsole.MarkupLineInterpolated($"{line.Author.Name} {line.Author.Time} {line.FinalLineNumber}: {line.Line}");
+        }
+        return 0;
+    }
+}
 
 internal sealed class Status : Command<Status.Arg>
 {
@@ -103,6 +122,7 @@ internal class Main
         config.AddBranch(name, git =>
         {
             git.AddCommand<Status>("status");
+            git.AddCommand<BlameCommand>("blame");
             git.AddCommand<RemoveUnknown>("remove-unknown");
         });
     }
