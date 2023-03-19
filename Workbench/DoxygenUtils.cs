@@ -24,8 +24,8 @@ internal class DoxygenUtils
 
     public static string LocationToString(locationType loc, string root)
     {
-        string print = DoxygenUtils.DoxygenFileToPath(loc, root);
-        return $"{print}({loc.line})";
+        string fileName = DoxygenUtils.DoxygenFileToPath(loc, root);
+        return Printer.ToFileString(fileName, loc.line ?? -1);
     }
 
     public static bool IsConstructorOrDestructor(memberdefType m)

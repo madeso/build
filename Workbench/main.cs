@@ -57,6 +57,7 @@ internal class Program
             Commands.SlnDepsCommands.Main.Configure(config, "slndeps");
             Commands.OrderInFileCommands.Main.Configure(config, "order-in-file");
             Commands.CheckNamesCommands.Main.Configure(config, "check-names");
+            Commands.TodoCommands.Main.Configure(config, "todo");
         });
         return app.Run(args);
     }

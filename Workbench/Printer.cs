@@ -145,5 +145,10 @@ public class Printer
             Error(message);
         }
     }
+
+    internal static string ToFileString(string fileName, int line)
+    {
+        return $"{fileName}({line})";
+    }
 }
 

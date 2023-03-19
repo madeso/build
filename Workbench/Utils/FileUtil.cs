@@ -62,6 +62,11 @@ internal static class FileUtil
         return extensions.Contains(ext);
     }
 
+    public static IEnumerable<string> ListFilesRecursivly(DirectoryInfo path, string[] extensions)
+    {
+        return ListFilesRecursivly(path.FullName, extensions);
+    }
+
     public static IEnumerable<string> ListFilesRecursivly(string path, string[] extensions)
     {
         if (File.Exists(path))

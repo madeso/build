@@ -197,7 +197,7 @@ internal class CheckNames
         }
     }
 
-    Dictionary<string, int> counts = new ();
+    readonly Dictionary<string, int> counts = new ();
     void AddCount(string name)
     {
         if (counts.TryGetValue(name, out int value) == false)
