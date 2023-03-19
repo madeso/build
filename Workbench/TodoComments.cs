@@ -12,7 +12,11 @@ internal partial class TodoComments
     {
         var extra_extensions = new string[] { ".jsonc" };
         var extensions = FileUtil.HEADER_AND_SOURCE_FILES.Concat(extra_extensions).ToArray();
-        var files = FileUtil.ListFilesRecursivly(root, extensions);
+
+        var buildFolder = root.GetDir("build");
+        var xxfiles = FileUtil.ListFilesRecursivly(root, extensions);
+
+        var files = xxfiles.Where(x => buildFolder.HasFile(x) == false);
 
         return
             files.SelectMany(file =>
