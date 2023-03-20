@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using Workbench.CMake;
 using Workbench.Utils;
 using static Workbench.Commands.IndentCommands.IndentationCommand;
 using static Workbench.Doxygen.Compound.linkedTextType;
@@ -135,7 +136,7 @@ internal class DependencySdl2 : Dependency
             project.AddArgument("SDL_STATIC", "ON");
             project.AddArgument("SDL_SHARED", "OFF");
             project.Configure(print);
-            project.Build(print);
+            project.Build(print, CMake.Config.Releaase);
         }
         else
         {
@@ -249,10 +250,10 @@ internal class DependencyAssimp : Dependency
             Core.VerifyDirectoryExists(print, install);
 
             project.Configure(print);
-            project.Build(print);
+            project.Build(print, CMake.Config.Releaase);
 
             print.Info("Installing assimp");
-            project.Install(print);
+            project.Install(print, CMake.Config.Releaase);
         }
         else
         {
@@ -462,14 +463,18 @@ internal class DependencyWxWidgets : Dependency
         cmake.AddArgument("WX_ROOT_DIR", root_folder.Replace('\\', '/'));
         cmake.AddArgument("wxWidgets_ROOT_DIR", root_folder);
         cmake.AddArgument("wxWidgets_CONFIGURATION", "mswu");
-        cmake.AddArgument("wxWidgets_USE_REL_AND_DBG", "OFF"); // don't require debug
 
-        // todo(Gustav): switch this when building 32 bit
+        cmake.AddArgument("wxWidgets_USE_REL_AND_DBG", "ON"); // require both debug and release
+
         // perhaps replae \ with /
-        var p = Path.Join(build_folder, "lib", "vc_x64_lib").Replace('\\', '/');
+        string p = GetLibraryFolder();
+        p = p.Replace('\\', '/');
         if (p.EndsWith('/') == false) { p += '/'; }
         cmake.AddArgument("wxWidgets_LIB_DIR", p);
     }
+
+    // todo(Gustav): switch this when building 32 bit
+    private string GetLibraryFolder() => Path.Join(build_folder, "lib", "vc_x64_lib");
 
     public void Install(BuildEnviroment env, Printer print, BuildData data)
     {
@@ -503,18 +508,37 @@ internal class DependencyWxWidgets : Dependency
             print.Info("wxWidgets is unzipped, not unzipping again");
         }
 
-        if (false == File.Exists(Path.Join(build, "wxWidgets.sln")))
+        bool buildDbg = false == File.Exists(Path.Join(GetLibraryFolder(), "wxzlibd.lib"));
+        bool buildRel = false == File.Exists(Path.Join(GetLibraryFolder(), "wxzlib.lib"));
+        
+        if (buildDbg || buildRel)
         {
-            var project = new CMake.CMake(build, root, generator);
-            project.AddArgument("LIBC", "ON");
-            project.AddArgument("wxBUILD_SHARED", "OFF");
-            project.Configure(print);
-            project.Build(print);
+            CMake.CMake project = ConfigProject(print, root, build, generator);
+            if(buildDbg)
+            {
+                print.Info("building debug wxWidgets");
+                project.Build(print, CMake.Config.Debug);
+            }
+
+            if(buildRel)
+            {
+                print.Info("building release wxWidgets");
+                project.Build(print, CMake.Config.Releaase);
+            }
         }
         else
         {
             print.Info("wxWidgets build exist, not building again...");
         }
+    }
+
+    private static CMake.CMake ConfigProject(Printer print, string root, string build, Generator generator)
+    {
+        var project = new CMake.CMake(build, root, generator);
+        project.AddArgument("LIBC", "ON");
+        project.AddArgument("wxBUILD_SHARED", "OFF");
+        project.Configure(print);
+        return project;
     }
 
     public IEnumerable<string> GetStatus()

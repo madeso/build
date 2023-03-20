@@ -156,6 +156,16 @@ public class Generator
     public string? Arch { get; }
 }
 
+public enum Config
+{
+    Debug, Releaase
+}
+
+public enum Install
+{
+    No, Yes
+}
+
 // utility to call cmake commands on a project
 public class CMake
 {
@@ -244,7 +254,7 @@ public class CMake
     }
 
     // run cmake build step
-    private void RunBuildCommand(Printer printer, bool install)
+    private void RunBuildCommand(Printer printer, Install install, Config config)
     {
         var cmake = CmakeTools.FindInstallationOrNull(printer);
         if (cmake == null)
@@ -257,13 +267,18 @@ public class CMake
         command.AddArgument("--build");
         command.AddArgument(".");
 
-        if (install)
+        if (install == Workbench.CMake.Install.Yes)
         {
             command.AddArgument("--target");
             command.AddArgument("install");
         }
         command.AddArgument("--config");
-        command.AddArgument("Release");
+        command.AddArgument(config switch
+        {
+            Config.Debug => "Debug",
+            Config.Releaase => "Release",
+            _ => throw new NotImplementedException(),
+        });
 
         Core.VerifyDirectoryExists(printer, buildFolder);
         command.WorkingDirectory = buildFolder;
@@ -279,15 +294,15 @@ public class CMake
     }
 
     // build cmake project
-    public void Build(Printer printer)
+    public void Build(Printer printer, Config config)
     {
-        RunBuildCommand(printer, false);
+        RunBuildCommand(printer, Workbench.CMake.Install.No, config);
     }
 
     // install cmake project
-    public void Install(Printer printer)
+    public void Install(Printer printer, Config config)
     {
-        RunBuildCommand(printer, true);
+        RunBuildCommand(printer, Workbench.CMake.Install.Yes, config);
     }
 }
 

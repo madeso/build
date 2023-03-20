@@ -28,7 +28,7 @@ internal static class F
     internal static int HandleBuild(Printer printer, BuildEnviroment build, BuildData data)
     {
         SaveBuildData(printer, build, data);
-        GenerateCmakeProject(build, data).Build(printer);
+        GenerateCmakeProject(build, data).Build(printer, CMake.Config.Releaase);
         return 0;
     }
 
