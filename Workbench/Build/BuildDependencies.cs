@@ -60,7 +60,7 @@ public static class Dependencies
             DependencyName.Python => new DependencyPython(),
             DependencyName.Assimp => new DependencyAssimp(data, false),
             DependencyName.AssimpStatic => new DependencyAssimp(data, true),
-            DependencyName.WxWidgets=> new DependencyWxWidgets(data),
+            DependencyName.WxWidgets=> new DependencyWxWidgets(data, "https://github.com/wxWidgets/wxWidgets/releases/download/v3.2.2.1/wxWidgets-3.2.2.1.zip", "wxWidgets-3-2-2-1"),
             _ => throw new Exception($"invalid name: {name}"),
         };
     }
@@ -149,6 +149,7 @@ internal class DependencySdl2 : Dependency
         yield return $"Build: {build_folder}";
     }
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -437,18 +438,17 @@ internal static class BuildUtils
 
 internal class DependencyWxWidgets : Dependency
 {
-    private readonly string dependencyFolder; // wx_root
-    private readonly string wx_zip;
-    private readonly string wx_url;
-    private readonly string wx_sln;
+    private readonly string root_folder;
+    private readonly string build_folder;
+    private readonly string url;
+    private readonly string folderName;
 
-    public DependencyWxWidgets(BuildData data)
+    public DependencyWxWidgets(BuildData data, string zipFile, string folderName)
     {
-        dependencyFolder = Path.Join(data.DependencyDirectory, "wxWidgets");
-
-        wx_url = "https://github.com/wxWidgets/wxWidgets/releases/download/v3.1.4/wxWidgets-3.1.4.zip";
-        wx_zip = Path.Join(data.DependencyDirectory, "wx.zip");
-        wx_sln = Path.Join(dependencyFolder, "build", "msw", "wx_vc16.sln");
+        root_folder = Path.Combine(data.DependencyDirectory, folderName);
+        build_folder = Path.Combine(root_folder, "cmake-build");
+        url = zipFile;
+        this.folderName = folderName;
     }
 
     public string GetName()
@@ -458,46 +458,68 @@ internal class DependencyWxWidgets : Dependency
 
     public void AddCmakeArguments(CMake.CMake cmake)
     {
-        cmake.AddArgument("wxWidgets_ROOT_DIR", dependencyFolder);
+        // if theese differs it clears the lib dir... but also one is required to use / on windows... wtf!
+        cmake.AddArgument("WX_ROOT_DIR", root_folder.Replace('\\', '/'));
+        cmake.AddArgument("wxWidgets_ROOT_DIR", root_folder);
+        cmake.AddArgument("wxWidgets_CONFIGURATION", "mswu");
+        cmake.AddArgument("wxWidgets_USE_REL_AND_DBG", "OFF"); // don't require debug
+
+        // todo(Gustav): switch this when building 32 bit
+        // perhaps replae \ with /
+        var p = Path.Join(build_folder, "lib", "vc_x64_lib").Replace('\\', '/');
+        if (p.EndsWith('/') == false) { p += '/'; }
+        cmake.AddArgument("wxWidgets_LIB_DIR", p);
     }
 
     public void Install(BuildEnviroment env, Printer print, BuildData data)
     {
-        var root = dependencyFolder;
+        var deps = data.DependencyDirectory;
+        var root = root_folder;
+        var build = build_folder;
+        var generator = env.CreateCmakeGenerator();
 
-        print.Header("Installing dependency wxWidgets");
-        var zipFile = wx_zip;
-        if (false == Directory.Exists(root))
+        print.Header("Installing dependency wxwidgets");
+
+        var zip_file = Path.Join(deps, $"{folderName}.zip");
+
+        if (false == File.Exists(zip_file))
         {
             Core.VerifyDirectoryExists(print, root);
-
-            print.Info("downloading wx...");
-            Core.DownloadFileIfMissing(print, wx_url, zipFile);
-
-            print.Info("extracting wx");
-            Core.ExtractZip(print, wx_zip, root);
-
-            print.Info("changing wx to static");
-            BuildUtils.change_all_projects_to_static(print, wx_sln);
-
-            print.Info("building wxwidgets");
-            print.Info("-----------------------------------");
-
-            new ProcessBuilder(
-                "msbuild",
-                "/p:Configuration=Release",
-                $"/p:Platform={env.CreateMsBuildPlatform()}",
-                wx_sln
-            ).RunAndPrintOutput(print);
+            Core.VerifyDirectoryExists(print, deps);
+            print.Info("downloading wxwidgets");
+            Core.DownloadFileIfMissing(print, url, zip_file);
         }
         else
         {
-            print.Info("xWidgets build exist, not building again...");
+            print.Info("wxWidgets zip file exist, not downloading again...");
+        }
+
+        if (false == File.Exists(Path.Join(root, "CMakeLists.txt")))
+        {
+            Core.ExtractZip(print, zip_file, root);
+        }
+        else
+        {
+            print.Info("wxWidgets is unzipped, not unzipping again");
+        }
+
+        if (false == File.Exists(Path.Join(build, "wxWidgets.sln")))
+        {
+            var project = new CMake.CMake(build, root, generator);
+            project.AddArgument("LIBC", "ON");
+            project.AddArgument("wxBUILD_SHARED", "OFF");
+            project.Configure(print);
+            project.Build(print);
+        }
+        else
+        {
+            print.Info("wxWidgets build exist, not building again...");
         }
     }
 
     public IEnumerable<string> GetStatus()
     {
-        yield return $"Root: {dependencyFolder}";
+        yield return $"Root: {root_folder}";
+        yield return $"Build: {build_folder}";
     }
 }
