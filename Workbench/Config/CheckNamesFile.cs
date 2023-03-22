@@ -19,6 +19,9 @@ internal class CheckNamesFile
     [JsonPropertyName("bad_function_verbs")]
     public Dictionary<string, string[]> BadFunctionVerbs { get; set; } = new();
 
+    [JsonPropertyName("ignored_files")]
+    public HashSet<string> IgnoredFiles { get; set; } = new();
+
     public static string GetBuildDataPath()
     {
         return Path.Join(Environment.CurrentDirectory, FileNames.CheckNames);

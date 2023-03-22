@@ -1,4 +1,5 @@
 using Spectre.Console;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Xml.Linq;
 using Workbench.Config;
@@ -66,19 +67,25 @@ internal class CheckNames
     {
         this.printer = printer;
         this.file = file;
+
+        string cwd = Environment.CurrentDirectory;
     }
 
-    internal void CheckName(string name, locationType loc, Func<string, bool> checkCase, Func<string, bool> validName, string source)
+    internal bool CheckName(string name, locationType loc, Func<string, bool> checkCase, Func<string, bool> validName, string source)
     {
-        if (name.StartsWith('@')) { return; }
+        // doxygen hack
+        if (name.StartsWith('@')) { return true; }
 
         namesChecked += 1;
-        if(validName(name)) { return; }
+        if(validName(name)) { return true; }
 
         if (checkCase(name) == false)
         {
             ReportError(loc, $"{name} is a invalid name for {source}");
+            return false;
         }
+
+        return true;
     }
 
     readonly List<Fail> fails = new();
@@ -218,6 +225,16 @@ internal class CheckNames
             return;
         }
 
+        if (false == CheckName(memName, mem.Location, CaseMatch.LowerSnakeCase, _ => true, source))
+        {
+            return;
+        }
+
+        if (file.IgnoredFiles.Contains(mem.Location.file))
+        {
+            return;
+        }
+
         var entries = memName.Split('_', StringSplitOptions.TrimEntries)
             .SkipWhile(file.KnownFunctionPrefixes.Contains)
             .ToArray()
@@ -232,7 +249,7 @@ internal class CheckNames
 
             if(file.KnownFunctionVerbs.Contains(firstName) == false)
             {
-                if(file.BadFunctionVerbs.TryGetValue(firstName, out var suggestedReplacements))
+                if (file.BadFunctionVerbs.TryGetValue(firstName, out var suggestedReplacements))
                 {
                     var message = StringListCombiner.EnglishOr().combine(suggestedReplacements);
                     var are = suggestedReplacements.Length ==1 ? "is" : "are";
@@ -249,9 +266,6 @@ internal class CheckNames
                 AddCount(firstName);
             }
         }
-
-        CheckName(memName, mem.Location, CaseMatch.LowerSnakeCase, _ => true,
-                    source);
     }
 
     private void CheckClass(CompoundType k)
