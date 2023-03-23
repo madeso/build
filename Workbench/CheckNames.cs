@@ -218,12 +218,13 @@ internal class CheckNames
     private void CheckFunctionName(compounddefType c, memberdefType mem, bool isFunction)
     {
         var source = isFunction ? "function" : "method";
-        var memName = RemoveTemplateArguments(mem.Name);
-
-        if (IsValidMethodName(memName, c.Language == DoxLanguage.Cpp))
+        
+        if (IsValidMethodName(mem.Name, c.Language == DoxLanguage.Cpp))
         {
             return;
         }
+
+        var memName = RemoveTemplateArguments(mem.Name);
 
         if (false == CheckName(memName, mem.Location, CaseMatch.LowerSnakeCase, _ => true, source))
         {
@@ -243,7 +244,7 @@ internal class CheckNames
             // for a name get360 the verb should be just get
             .TrimEnd("0123456789".ToCharArray());
 
-        if(entries.Length > 1)
+        if(entries.Length > 0)
         {
             bool add = true;
 
