@@ -21,7 +21,7 @@ public enum Compiler
     [EnumString("vs2019", "windows-2019")]
     VisualStudio2019,
 
-    [EnumString("vs2022")]
+    [EnumString("vs2022", "windows-2022")]
     VisualStudio2022,
 }
 
