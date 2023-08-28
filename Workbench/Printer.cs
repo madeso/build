@@ -113,7 +113,7 @@ public class Printer
             var paths = new DirectoryInfo(root);
             foreach (var file_path in paths.EnumerateDirectories())
             {
-                AnsiConsole.MarkupLine("{}{}/", start, file_path.Name);
+                AnsiConsole.MarkupLineInterpolated($"{start}{file_path.Name}/");
                 PrinteRecursive(file_path.FullName, $"{start}{ident}");
             }
 
