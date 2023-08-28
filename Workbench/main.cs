@@ -4,27 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Workbench;
 
-internal sealed class DummyCommand : Command<DummyCommand.Arg>
-{
-    public sealed class Arg : CommandSettings
-    {
-        [Description("Number")]
-        [CommandOption("--number")]
-        public int Number { get; set; } = 42;
-    }
-
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
-    {
-        return CommonExecute.WithPrinter(print =>
-        {
-            print.PrintContentsOfFile($"Number is {settings.Number}");
-            return 0;
-        });
-    }
-}
-
-
-
 internal class Program
 {
     private static int Main(string[] args)
@@ -36,8 +15,6 @@ internal class Program
             config.PropagateExceptions();
             config.ValidateExamples();
 #endif
-
-            config.AddCommand<DummyCommand>("dummy").WithDescription("Just a dummy");
 
             Commands.MinorCommands.ConfigureLs(config, "ls");
             Commands.MinorCommands.ConfigureCat(config, "cat");
