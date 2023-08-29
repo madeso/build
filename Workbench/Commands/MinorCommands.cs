@@ -1,6 +1,9 @@
-﻿using Spectre.Console.Cli;
+using Spectre.Console.Cli;
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using Workbench.ListHeaders;
+using Workbench.Utils;
 
 namespace Workbench.Commands;
 
@@ -11,9 +14,49 @@ internal static class MinorCommands
         config.AddCommand<CatCommand>(v).WithDescription("Print the contents of a single file");
     }
 
+    internal static void ConfigureCatDir(IConfigurator config, string v)
+    {
+        config.AddCommand<CatDirCommand>(v).WithDescription("Print the contents of a single directory");
+    }
+
     internal static void ConfigureLs(IConfigurator config, string v)
     {
         config.AddCommand<LsCommand>(v).WithDescription("Print the tree of a directory");
+    }
+}
+
+internal sealed class CatDirCommand : Command<CatDirCommand.Arg>
+{
+    public sealed class Arg : CommandSettings
+    {
+        [Description("Directory to print")]
+        [CommandArgument(0, "<input dir>")]
+        public string Dir { get; set; } = "";
+
+        [Description("Display all sources instead of just headers")]
+        [CommandOption("--all")]
+        [DefaultValue(false)]
+        public bool AllSources { get; set; }
+    }
+
+    public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
+    {
+        return CommonExecute.WithPrinter(print =>
+        {
+            var dir = new DirectoryInfo(arg.Dir);
+            foreach (var file in FileUtil.IterateFiles(dir, false, true)
+                .Where(file => FileUtil.FileHasAnyExtension(file.FullName, arg.AllSources ? FileUtil.HEADER_AND_SOURCE_FILES : FileUtil.HEADER_FILES))
+            )
+            {
+                print.Info($"File: {file.FullName}");
+                foreach (var line in File.ReadAllLines(file.FullName))
+                {
+                    if (string.IsNullOrWhiteSpace(line)) { continue; }
+                    print.Info($"    {line}");
+                }
+            }
+            return 0;
+        });
     }
 }
 

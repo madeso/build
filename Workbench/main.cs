@@ -18,6 +18,7 @@ internal class Program
 
             Commands.MinorCommands.ConfigureLs(config, "ls");
             Commands.MinorCommands.ConfigureCat(config, "cat");
+            Commands.MinorCommands.ConfigureCatDir(config, "cat-dir");
 
             Commands.StatusCommands.Main.ConfigureStatus(config, "status");
             Commands.BuildCommands.Main.Configure(config, "build");
