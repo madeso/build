@@ -36,7 +36,7 @@ public enum DependencyName
     // if we need them we should probably replace this whole setup with a package manager
 }
 
-public interface Dependency
+public interface BuildDependency
 {
     string GetName();
 
@@ -50,9 +50,9 @@ public interface Dependency
     public IEnumerable<string> GetStatus();
 }
 
-public static class Dependencies
+public static class BuildDependencies
 {
-    public static Dependency CreateDependency(DependencyName name, BuildData data)
+    public static BuildDependency CreateDependency(DependencyName name, BuildData data)
     {
         return name switch
         {
@@ -67,7 +67,7 @@ public static class Dependencies
     }
 }
 
-internal class DependencySdl2 : Dependency
+internal class DependencySdl2 : BuildDependency
 {
     private readonly string root_folder;
     private readonly string build_folder;
@@ -154,7 +154,7 @@ internal class DependencySdl2 : Dependency
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-internal class DependencyPython : Dependency
+internal class DependencyPython : BuildDependency
 {
     private readonly string? pathToPythonExe;
 
@@ -194,7 +194,7 @@ internal class DependencyPython : Dependency
 }
 
 
-internal class DependencyAssimp : Dependency
+internal class DependencyAssimp : BuildDependency
 {
     private readonly string dependencyFolder;
     private readonly string installFolder;
@@ -437,7 +437,7 @@ internal static class BuildUtils
 
 
 
-internal class DependencyWxWidgets : Dependency
+internal class DependencyWxWidgets : BuildDependency
 {
     private readonly string root_folder;
     private readonly string build_folder;

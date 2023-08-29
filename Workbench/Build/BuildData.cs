@@ -8,7 +8,7 @@ using Workbench.Config;
 public struct BuildData
 {
     public string Name { get; }
-    public List<Dependency> Dependencies { get; }
+    public List<BuildDependency> Dependencies { get; }
     public string RootDirectory { get; }
     public string BuildDirectory { get; }
     public string ProjectDirectory { get; }
@@ -39,7 +39,7 @@ public struct BuildData
                 var bd = new BuildData(loaded.Name, Environment.CurrentDirectory, print);
                 foreach (var dependency_name in loaded.Dependencies)
                 {
-                    bd.Dependencies.Add(Workbench.Dependencies.CreateDependency(dependency_name, bd));
+                    bd.Dependencies.Add(Workbench.BuildDependencies.CreateDependency(dependency_name, bd));
                 }
                 return bd;
             }

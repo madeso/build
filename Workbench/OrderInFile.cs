@@ -23,9 +23,9 @@ internal static class OrderInFile
                 AnsiConsole.MarkupLineInterpolated($"[blue]{k.name}[/]");
                 matches += 1;
 
-                foreach(var member in AllMethodsInClass(k))
+                foreach(var member in DoxygenUtils.AllMethodsInClass(k))
                 {
-                    AnsiConsole.MarkupLineInterpolated($"{MemberToString(member)} - {Classify(k, member).Name}");
+                    AnsiConsole.MarkupLineInterpolated($"{DoxygenUtils.MemberToString(member)} - {Classify(k, member).Name}");
                 }
             }
         }
@@ -74,7 +74,7 @@ internal static class OrderInFile
     private static CheckError? CheckClass(Printer printer, CompoundType k, string root)
     {
         // k.name
-        var members = AllMethodsInClass(k).ToArray();
+        var members = DoxygenUtils.AllMethodsInClass(k).ToArray();
 
         NamedOrder? lastClass = null;
         memberdefType? lastMember = null;
@@ -93,7 +93,7 @@ internal static class OrderInFile
                 {
                     string primaryFile = DoxygenUtils.LocationToString(member.Location, root);
                     string secondaryFile = DoxygenUtils.LocationToString(lastMember.Location, root);
-                    string errorMessage = $"Members for {k.name} are orderd badly, can't go from {lastClass.Name} ({MemberToString(lastMember!)}) to {newClass.Name} ({MemberToString(member)})!";
+                    string errorMessage = $"Members for {k.name} are orderd badly, can't go from {lastClass.Name} ({DoxygenUtils.MemberToString(lastMember!)}) to {newClass.Name} ({DoxygenUtils.MemberToString(member)})!";
                     return new CheckError(k, primaryFile, secondaryFile, errorMessage);
                 }
             }
@@ -106,7 +106,7 @@ internal static class OrderInFile
 
     private static void PrintError(Printer printer, CompoundType k, string primaryFile, string secondaryFile, string errorMessage)
     {
-        var members = AllMethodsInClass(k).ToArray();
+        var members = DoxygenUtils.AllMethodsInClass(k).ToArray();
         printer.Error(primaryFile, errorMessage);
         AnsiConsole.WriteLine($"{secondaryFile}: From here");
 
@@ -130,24 +130,10 @@ internal static class OrderInFile
             AnsiConsole.MarkupLineInterpolated($"// [blue]{c.Name}[/]");
             foreach (var it in items)
             {
-                AnsiConsole.MarkupLineInterpolated($"  [green]{MemberToString(it)}[/]");
+                AnsiConsole.MarkupLineInterpolated($"  [green]{DoxygenUtils.MemberToString(it)}[/]");
             }
             AnsiConsole.WriteLine("");
         }
-    }
-
-    private static string MemberToString(memberdefType it)
-    {
-        if (it.Kind == DoxMemberKind.Function)
-        {
-            return $"{it.Type} {it.Name}{it.Argsstring}";
-        }
-        return $"{it.Type} {it.Name}";
-    }
-
-    private static IEnumerable<memberdefType> AllMethodsInClass(CompoundType k)
-    {
-        return k.Compund.Compound.Sectiondef.SelectMany(x => x.memberdef);
     }
 
     private record NamedOrder(string Name, int Order)

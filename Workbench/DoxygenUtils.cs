@@ -8,7 +8,7 @@ using Workbench.Doxygen.Index;
 
 namespace Workbench;
 
-internal class DoxygenUtils
+internal static class DoxygenUtils
 {
     public static IEnumerable<CompoundType> AllClasses(Doxygen.Index.DoxygenType parsed)
     {
@@ -55,5 +55,19 @@ internal class DoxygenUtils
     internal static bool IsFunctionOverride(memberdefType m)
     {
         return m.Argsstring?.EndsWith("override") ?? false;
+    }
+
+    internal static IEnumerable<memberdefType> AllMethodsInClass(CompoundType k)
+    {
+        return k.Compund.Compound.Sectiondef.SelectMany(x => x.memberdef);
+    }
+
+    internal static string MemberToString(memberdefType it)
+    {
+        if (it.Kind == DoxMemberKind.Function)
+        {
+            return $"{it.Type} {it.Name}{it.Argsstring}";
+        }
+        return $"{it.Type} {it.Name}";
     }
 }

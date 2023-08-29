@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 
 namespace Workbench;
 
@@ -8,7 +8,7 @@ public class Graphviz
     public class Node
     {
         public readonly string id;
-        public readonly string display;
+        public string display;
         public readonly string shape;
         public string? cluster;
 
@@ -76,7 +76,7 @@ public class Graphviz
 
     private static string ConvertIntoSafeId(string a, string defaultName)
     {
-        var suggestedId = a.ToLower().Trim().Replace(" ", "");
+        var suggestedId = a.ToLower().Trim().Replace(" ", "").Replace("::", "_");
 
         string cleanedId = string.Empty;
         bool first = true;
@@ -96,6 +96,8 @@ public class Graphviz
         {
             return defaultName;
         }
+
+        if(cleanedId == "node") { return "_" + cleanedId; }
 
         return cleanedId;
     }

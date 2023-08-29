@@ -36,6 +36,7 @@ internal class Program
             Commands.OrderInFileCommands.Main.Configure(config, "order-in-file");
             Commands.CheckNamesCommands.Main.Configure(config, "check-names");
             Commands.TodoCommands.Main.Configure(config, "todo");
+            Commands.DependenciesCommands.Main.Configure(config, "deps");
         });
         return app.Run(args);
     }
