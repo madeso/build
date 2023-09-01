@@ -1,74 +1,121 @@
 using Spectre.Console;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using static Workbench.Doxygen.Compound.linkedTextType;
+using Workbench.Doxygen.Compound;
 
 namespace Workbench;
 
 public class Dependencies
 {
-    internal static void Run(Printer printer, string doxygenXml, string namespaceFilter)
+    internal static void Run(Printer printer, string doxygenXml, string namespaceName, string outputFile, ImmutableHashSet<string> ignoredClasses)
     {
-        var parsed = Doxygen.Doxygen.ParseIndex(doxygenXml);
+        printer.Info("Parsing doxygen XML...");
+        var dox = Doxygen.Doxygen.ParseIndex(doxygenXml);
+        var rootNamespace = DoxygenUtils.FindNamespace(dox, namespaceName);
+
+        if (rootNamespace == null)
+        {
+            printer.Error($"Unknown namespace {namespaceName}");
+            return;
+        }
+
+        printer.Info("Working...");
+        var namespaces = DoxygenUtils.IterateNamespaces(dox, rootNamespace).ToImmutableArray();
 
         var g = new Graphviz();
         var classes = new Dictionary<string, Graphviz.Node>();
 
-        Graphviz.Node GetClassNode(string id, string name)
+        printer.Info("Adding classes...");
+        foreach (var k in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
         {
-            if(classes!.TryGetValue(id, out var ret))
+            if(ignoredClasses.Contains(k.name))
             {
-                return ret;
+                continue;
             }
-            var node = g!.AddNode(name, "box");
-            classes!.Add(id, node);
-            return node;
+
+            var node = g.AddNode(k.name, "box");
+            classes!.Add(k.refid, node);
         }
 
-        // loop though all classes first to get a sane name for all classes
-        foreach (var k in DoxygenUtils.AllClasses(parsed))
+        printer.Info("Adding typedefs...");
+        foreach (var k in namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Typedef)))
         {
-            if(k.name.StartsWith(namespaceFilter) == false) continue;
-            GetClassNode(k.refid, k.name);
-        }
-
-        foreach (var k in DoxygenUtils.AllClasses(parsed))
-        {
-            var klass = GetClassNode(k.refid, k.name);
-            if (k.name.StartsWith(namespaceFilter) == false) continue;
+            var node = g.AddNode(k.Name, "none");
+            classes!.Add(k.Id, node);
 
             var existingRefs = new HashSet<string>();
+            AddTypeLink(g, classes, () => node, existingRefs, k.Type);
+        }
+
+        printer.Info("Adding members for class...");
+        foreach (var k in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
+        {
+            if(false == classes.TryGetValue(k.refid, out var klass))
+            {
+                continue;
+            }
+
+            var existingRefs = new HashSet<string>();
+
+            // add inheritence
+            foreach(var r in k.Compund.Compound.Basecompoundref)
+            {
+                if(r.refid == null) continue;
+                AddReference(r.refid, g, classes, () => klass, existingRefs);
+            }
 
             foreach (var functionMember in DoxygenUtils.AllMethodsInClass(k))
             {
                 // assume all arguments are passed by ref
+                // and just ignore them
 
-                // reference return value
-                var nodes = functionMember?.Type?.Nodes;
-                if(nodes == null) continue;
-                foreach (var node in nodes)
-                {
-                    var re = node as Ref;
-                    if(re == null) continue;
-
-                    var id = re.Value.refid;
-                    if (existingRefs.Contains(id)) continue;
-                    existingRefs.Add(id);
-
-                    var linkedKlass = GetClassNode(re.Value.refid, re.Value.Extension);
-
-                    g.AddEdge(klass, linkedKlass);
-                }
+                AddTypeLink(g, classes, () => klass, existingRefs, functionMember?.Type);
             }
         }
 
-        // write graphviz
-        foreach(var line in g.Lines)
+        printer.Info("Adding functions...");
+        foreach (var f in namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Func)))
         {
-            printer.Info(line);
+            var existingRefs = new HashSet<string>();
+            AddTypeLink(g, classes, () => g.AddNode($"{f.Name}{f.Argsstring}", "circle"), existingRefs, f.Type);
         }
+
+        g.WriteFile(outputFile);
+    }
+
+    private static void AddTypeLink(Graphviz g, Dictionary<string, Graphviz.Node> validTypes,
+        Func<Graphviz.Node> parentFunc, HashSet<string> existingRefs, linkedTextType? type)
+    {
+        if(type == null) { return; }
+
+        Graphviz.Node? parent = null;
+        foreach (var node in type.Nodes)
+        {
+            var re = node as linkedTextType.Ref;
+            if (re == null) continue;
+
+            AddReference(re.Value.refid, g, validTypes, () =>
+            {
+                if(parent != null) return parent;
+                parent = parentFunc();
+                return parent;
+                }, existingRefs);
+        }
+    }
+
+    private static void AddReference(string id, Graphviz g, Dictionary<string, Graphviz.Node> validTypes,
+        Func<Graphviz.Node> parentFunc, HashSet<string> existingRefs)
+    {
+        if (existingRefs.Contains(id)) return;
+        existingRefs.Add(id);
+
+        if (false == validTypes.TryGetValue(id, out var linkedKlass)) return;
+
+        g.AddEdge(parentFunc(), linkedKlass);
     }
 }

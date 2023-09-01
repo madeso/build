@@ -38,10 +38,13 @@ namespace Workbench.Doxygen.Index
     class DoxygenType
     {
         public CompoundType[] compounds { get; }
+        public ImmutableDictionary<string, CompoundType> refidLookup { get; }
 
         public DoxygenType(Compound.CompoundLoader dir, XmlElement el)
         {
             compounds = el.ElementsNamed("compound").Select(x => new CompoundType(dir, x)).ToArray();
+
+            this.refidLookup = compounds.ToImmutableDictionary(c => c.refid);
         }
     }
 

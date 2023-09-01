@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -69,5 +70,43 @@ internal static class DoxygenUtils
             return $"{it.Type} {it.Name}{it.Argsstring}";
         }
         return $"{it.Type} {it.Name}";
+    }
+
+    internal static IEnumerable<Doxygen.Compound.memberdefType> AllMembersInNamespace(Doxygen.Compound.compounddefType ns, params DoxSectionKind[] kind)
+    {
+        var kinds = kind.ToImmutableHashSet();
+        return ns.Sectiondef
+                        .Where(s => kinds.Contains(s.kind))
+                        .SelectMany(s => s.memberdef);
+    }
+
+    internal static IEnumerable<CompoundType> IterateClassesInNamespace(Doxygen.Index.DoxygenType dox, Doxygen.Compound.compounddefType ns)
+    {
+        foreach (var kr in ns.Innerclass)
+        {
+            yield return dox.refidLookup[kr.refid];
+        }
+    }
+
+    internal static IEnumerable<Doxygen.Compound.compounddefType> IterateNamespaces(Doxygen.Index.DoxygenType dox, CompoundType rootNamespace)
+    {
+        var queue = new Queue<string>();
+        queue.Enqueue(rootNamespace.refid);
+
+        while (queue.Count > 0)
+        {
+            var ns = dox.refidLookup[queue.Dequeue()];
+            foreach (var r in ns.Compund.Compound.Innernamespace) queue.Enqueue(r.refid);
+
+            yield return ns.Compund.Compound;
+        }
+    }
+
+    internal static CompoundType? FindNamespace(Doxygen.Index.DoxygenType dox, string namespaceName)
+    {
+        return dox.compounds
+            .Where(c => c.kind == Doxygen.Index.CompoundKind.Namespace)
+            .Where(c => c.name == namespaceName)
+            .FirstOrDefault();
     }
 }
