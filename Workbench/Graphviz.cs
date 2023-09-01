@@ -1,7 +1,71 @@
 using System.Collections.Immutable;
+using System.ComponentModel;
+using System.Drawing;
 
 namespace Workbench;
 
+public enum Shape
+{
+    box,
+    polygon,
+    ellipse,
+    oval,
+    circle,
+    point,
+    egg,
+    triangle,
+    plaintext,
+    plain,
+    diamond,
+    trapezium,
+    parallelogram,
+    house,
+    pentagon,
+    hexagon,
+    septagon,
+    octagon,
+    doublecircle,
+    doubleoctagon,
+    tripleoctagon,
+    invtriangle,
+    invtrapezium,
+    invhouse,
+    Mdiamond,
+    Msquare,
+    Mcircle,
+    rect,
+    rectangle,
+    square,
+    star,
+    none,
+    underline,
+    cylinder,
+    note,
+    tab,
+    folder,
+    box3d,
+    component,
+    promoter,
+    cds,
+    terminator,
+    utr,
+    primersite,
+    restrictionsite,
+    fivepoverhang,
+    threepoverhang,
+    noverhang,
+    assembly,
+    signature,
+    insulator,
+    ribosite,
+    rnastab,
+    proteasesite,
+    proteinstab,
+    rpromoter,
+    rarrow,
+    larrow,
+    lpromoter
+}
 
 public class Graphviz
 {
@@ -9,10 +73,10 @@ public class Graphviz
     {
         public readonly string id;
         public string display;
-        public readonly string shape;
+        public readonly Shape shape;
         public string? cluster;
 
-        public Node(string id, string display, string shape, string? cluster)
+        public Node(string id, string display, Shape shape, string? cluster)
         {
             this.id = id;
             this.display = display;
@@ -47,7 +111,7 @@ public class Graphviz
     private readonly Dictionary<string, Node> id_to_node = new();
     private readonly List<Edge> edges = new();
 
-    public Node AddNodeWithId(string display, string shape, string id)
+    public Node AddNodeWithId(string display, Shape shape, string id)
     {
         var newNode = new Node(id, display, shape, cluster: null);
         id_to_node.Add(id, newNode);
@@ -68,7 +132,7 @@ public class Graphviz
         return id;
     }
 
-    public Node AddNode(string display, string shape)
+    public Node AddNode(string display, Shape shape)
     {
         var id = GetUniqueId(display);
         return AddNodeWithId(display, shape, id);
@@ -144,7 +208,7 @@ public class Graphviz
 
                 foreach (var n in nodes)
                 {
-                    yield return $"    {indent}{n.id} [label=\"{Escape(n.display)}\" shape={n.shape}];";
+                    yield return $"    {indent}{n.id} [label=\"{Escape(n.display)}\" shape={ShapeToString(n.shape)}];";
                 }
 
                 if (cluster != null)
@@ -163,6 +227,73 @@ public class Graphviz
 
             yield return "}";
         }
+    }
+
+    private object ShapeToString(Shape shape)
+    {
+        return shape switch
+        {
+            Shape.box => "box",
+            Shape.polygon => "polygon",
+            Shape.ellipse => "ellipse",
+            Shape.oval => "oval",
+            Shape.circle => "circle",
+            Shape.point => "point",
+            Shape.egg => "egg",
+            Shape.triangle => "triangle",
+            Shape.plaintext => "plaintext",
+            Shape.plain => "plain",
+            Shape.diamond => "diamond",
+            Shape.trapezium => "trapezium",
+            Shape.parallelogram => "parallelogram",
+            Shape.house => "house",
+            Shape.pentagon => "pentagon",
+            Shape.hexagon => "hexagon",
+            Shape.septagon => "septagon",
+            Shape.octagon => "octagon",
+            Shape.doublecircle => "doublecircle",
+            Shape.doubleoctagon => "doubleoctagon",
+            Shape.tripleoctagon => "tripleoctagon",
+            Shape.invtriangle => "invtriangle",
+            Shape.invtrapezium => "invtrapezium",
+            Shape.invhouse => "invhouse",
+            Shape.Mdiamond => "Mdiamond",
+            Shape.Msquare => "Msquare",
+            Shape.Mcircle => "Mcircle",
+            Shape.rect => "rect",
+            Shape.rectangle => "rectangle",
+            Shape.square => "square",
+            Shape.star => "star",
+            Shape.none => "none",
+            Shape.underline => "underline",
+            Shape.cylinder => "cylinder",
+            Shape.note => "note",
+            Shape.tab => "tab",
+            Shape.folder => "folder",
+            Shape.box3d => "box3d",
+            Shape.component => "component",
+            Shape.promoter => "promoter",
+            Shape.cds => "cds",
+            Shape.terminator => "terminator",
+            Shape.utr => "utr",
+            Shape.primersite => "primersite",
+            Shape.restrictionsite => "restrictionsite",
+            Shape.fivepoverhang => "fivepoverhang",
+            Shape.threepoverhang => "threepoverhang",
+            Shape.noverhang => "noverhang",
+            Shape.assembly => "assembly",
+            Shape.signature => "signature",
+            Shape.insulator => "insulator",
+            Shape.ribosite => "ribosite",
+            Shape.rnastab => "rnastab",
+            Shape.proteasesite => "proteasesite",
+            Shape.proteinstab => "proteinstab",
+            Shape.rpromoter => "rpromoter",
+            Shape.rarrow => "rarrow",
+            Shape.larrow => "larrow",
+            Shape.lpromoter => "lpromoter",
+            _ => throw new NotImplementedException(),
+        };
     }
 
     private string Escape(string display)

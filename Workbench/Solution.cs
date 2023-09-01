@@ -1,4 +1,4 @@
-﻿using Spectre.Console;
+using Spectre.Console;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
@@ -60,10 +60,10 @@ public class Solution
         {
             var nodeShape = p.Type switch
             {
-                ProjectType.Executable => "folder",
-                ProjectType.Static => "component",
-                ProjectType.Shared => "ellipse",
-                _ => "plaintext",
+                ProjectType.Executable => Shape.folder,
+                ProjectType.Static => Shape.component,
+                ProjectType.Shared => Shape.ellipse,
+                _ => Shape.plaintext,
             };
             nodes.Add(p.Name, gv.AddNode(p.Name, nodeShape));
         }

@@ -38,14 +38,14 @@ public class Dependencies
                 continue;
             }
 
-            var node = g.AddNode(k.name, "box");
+            var node = g.AddNode(k.name, Shape.box);
             classes!.Add(k.refid, node);
         }
 
         printer.Info("Adding typedefs...");
         foreach (var k in namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Typedef)))
         {
-            var node = g.AddNode(k.Name, "none");
+            var node = g.AddNode(k.Name, Shape.none);
             classes!.Add(k.Id, node);
 
             var existingRefs = new HashSet<string>();
@@ -82,7 +82,7 @@ public class Dependencies
         foreach (var f in namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Func)))
         {
             var existingRefs = new HashSet<string>();
-            AddTypeLink(g, classes, () => g.AddNode($"{f.Name}{f.Argsstring}", "circle"), existingRefs, f.Type);
+            AddTypeLink(g, classes, () => g.AddNode($"{f.Name}{f.Argsstring}", Shape.circle), existingRefs, f.Type);
         }
 
         g.WriteFile(outputFile);

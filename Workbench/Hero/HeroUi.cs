@@ -1,4 +1,4 @@
-﻿using Workbench.Utils;
+using Workbench.Utils;
 
 namespace Workbench.Hero;
 
@@ -86,7 +86,7 @@ internal static class Ui
             }
             var display_name = Html.get_filename(root.InputRoot, file);
             var node_id = Html.safe_inspect_filename_without_html(file);
-            var addedNode = gv.AddNodeWithId(display_name, "box", node_id);
+            var addedNode = gv.AddNodeWithId(display_name, Shape.box, node_id);
             if (cluster)
             {
                 var parent = new FileInfo(file).Directory?.FullName;
