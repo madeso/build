@@ -107,4 +107,39 @@ public static class Git
             }
         }
     }
+
+    public record LogLine
+        (
+            string Hash,
+            string ParentHash,
+            string AuthorName,
+            string AuthorEmail,
+            DateTime AuthorDate,
+            string CommiterName,
+            string CommiterEmail,
+            DateTime CommiterDate,
+            string Subject
+        );
+
+    public static IEnumerable<LogLine> Log(string folder)
+    {
+        const char SEP = ';';
+        var logFormat = string.Join(SEP, "%h", "%p", "%an", "%ae", "%aI", "%cn", "%ce", "%cI", "%s");
+        var sepCount = logFormat.Count(c => c == SEP);
+        var output = new ProcessBuilder("git", "log", $"--format=format:{logFormat}")
+                .InDirectory(folder)
+                .RunAndGetOutput()
+                .RequireSuccess()
+            ;
+        foreach (var line in output)
+        {
+            if (string.IsNullOrWhiteSpace(line)) continue;
+            var options = line.Split(SEP, sepCount+1, StringSplitOptions.TrimEntries);
+
+            yield return new LogLine(options[0], options[1],
+                options[2], options[3], DateTime.Parse(options[4]),
+                options[5], options[6], DateTime.Parse(options[7]),
+                options[8]);
+        }
+    }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using System.ComponentModel;
@@ -24,7 +25,7 @@ internal sealed class BlameCommand : Command<BlameCommand.Arg>
     }
 }
 
-internal sealed class Status : Command<Status.Arg>
+internal sealed class StatusCommand : Command<StatusCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -63,7 +64,7 @@ internal sealed class Status : Command<Status.Arg>
     }
 }
 
-internal sealed class RemoveUnknown : Command<RemoveUnknown.Arg>
+internal sealed class RemoveUnknownCommand : Command<RemoveUnknownCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -115,15 +116,76 @@ internal sealed class RemoveUnknown : Command<RemoveUnknown.Arg>
     }
 }
 
+internal sealed class AuthorsCommand : Command<AuthorsCommand.Arg>
+{
+    public sealed class Arg : CommandSettings
+    {
+    }
+
+    class State
+    {
+        public State(string email, DateTime date)
+        {
+            Email = email;
+            Start = date;
+            End = date;
+        }
+
+        public DateTime End { get; private set; }
+
+        public DateTime Start { get; private set; }
+
+        public string Email { get; private set; }
+
+        public void Expand(DateTime d)
+        {
+            if (d < Start)
+            {
+                Start = d;
+            }
+
+            if (d > End)
+            {
+                End = d;
+            }
+        }
+    }
+
+    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    {
+        var authors = new Dictionary<string, State>();
+        foreach (var e in Git.Log(Environment.CurrentDirectory))
+        {
+            var email = e.AuthorEmail;
+            var date = e.AuthorDate;
+
+            if (false == authors.TryGetValue(email, out var s))
+            {
+                s = new State(email, date);
+                authors.Add(email, s);
+            }
+
+            s.Expand(date);
+        }
+        foreach (var entry in authors.Values.OrderBy(e=>e.Start))
+        {
+            var total = entry.End.Subtract(entry.Start);
+            AnsiConsole.MarkupLineInterpolated($"[blue]{entry.Email}[/]: {entry.Start} - {entry.End}: [red]{total}[/]");
+        }
+        return 0;
+    }
+}
+
 internal class Main
 {
     internal static void Configure(IConfigurator config, string name)
     {
         config.AddBranch(name, git =>
         {
-            git.AddCommand<Status>("status");
+            git.AddCommand<StatusCommand>("status");
             git.AddCommand<BlameCommand>("blame");
-            git.AddCommand<RemoveUnknown>("remove-unknown");
+            git.AddCommand<RemoveUnknownCommand>("remove-unknown");
+            git.AddCommand<AuthorsCommand>("authors");
         });
     }
 }
