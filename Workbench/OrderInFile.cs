@@ -23,7 +23,7 @@ internal static class OrderInFile
                 AnsiConsole.MarkupLineInterpolated($"[blue]{k.name}[/]");
                 matches += 1;
 
-                foreach(var member in DoxygenUtils.AllMethodsInClass(k))
+                foreach(var member in DoxygenUtils.AllMembersForAClass(k))
                 {
                     AnsiConsole.MarkupLineInterpolated($"{DoxygenUtils.MemberToString(member)} - {Classify(k, member).Name}");
                 }
@@ -74,7 +74,7 @@ internal static class OrderInFile
     private static CheckError? CheckClass(Printer printer, CompoundType k, string root)
     {
         // k.name
-        var members = DoxygenUtils.AllMethodsInClass(k).ToArray();
+        var members = DoxygenUtils.AllMembersForAClass(k).ToArray();
 
         NamedOrder? lastClass = null;
         memberdefType? lastMember = null;
@@ -106,7 +106,7 @@ internal static class OrderInFile
 
     private static void PrintError(Printer printer, CompoundType k, string primaryFile, string secondaryFile, string errorMessage)
     {
-        var members = DoxygenUtils.AllMethodsInClass(k).ToArray();
+        var members = DoxygenUtils.AllMembersForAClass(k).ToArray();
         printer.Error(primaryFile, errorMessage);
         AnsiConsole.WriteLine($"{secondaryFile}: From here");
 

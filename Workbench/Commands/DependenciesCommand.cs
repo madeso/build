@@ -25,13 +25,22 @@ internal sealed class ListGraphvizCommand : Command<ListGraphvizCommand.Arg>
         [Description("Ignored classes")]
         [CommandOption("-x")]
         public string[] IgnoredClasses { get; init; } = Array.Empty<string>();
+
+        [Description("Don't consider functions/methods when making connections")]
+        [CommandOption("--no-functions")]
+        public bool? NoIncludeFunctions { get; init; }
+
+        [Description("Don't consider function arguments when making connections")]
+        [CommandOption("--no-args")]
+        public bool? NoAddArguments { get; init; }
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         return CommonExecute.WithPrinter(printer =>
             {
-                Dependencies.WriteToGraphviz(printer, arg.DoxygenXml, arg.NamespaceFilter, arg.OutputFile, arg.IgnoredClasses.ToImmutableHashSet());
+                Dependencies.WriteToGraphviz(printer, arg.DoxygenXml, arg.NamespaceFilter, arg.OutputFile,
+                    arg.IgnoredClasses.ToImmutableHashSet(), !(arg.NoIncludeFunctions ?? false), !(arg.NoAddArguments ?? false));
                 return 0;
             }
         );

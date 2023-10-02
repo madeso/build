@@ -12,10 +12,11 @@ namespace Workbench;
 
 public class Dependencies
 {
-    internal static void WriteToGraphviz(Printer printer, string doxygenXml, string namespaceName, string outputFile, ImmutableHashSet<string> ignoredClasses)
+    internal static void WriteToGraphviz(Printer printer, string doxygenXml, string namespaceName, string outputFile, ImmutableHashSet<string> ignoredClasses, bool includeFunctions, bool addArguments)
     {
         const string NO_NAMESPACE = "|";
-        bool addArguments = true;
+
+        printer.Info($"include funcs {includeFunctions}, add args {addArguments}");
 
         printer.Info("Parsing doxygen XML...");
         var dox = Doxygen.Doxygen.ParseIndex(doxygenXml);
@@ -65,9 +66,9 @@ public class Dependencies
         }
 
         printer.Info("Adding members for class...");
-        foreach (var k in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
+        foreach (var klass in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
         {
-            if(false == classes.TryGetValue(k.refid, out var klass))
+            if(false == classes.TryGetValue(klass.refid, out var graphvizKlass))
             {
                 continue;
             }
@@ -75,44 +76,57 @@ public class Dependencies
             var existingRefs = new HashSet<string>();
 
             // add inheritence
-            foreach(var r in k.Compund.Compound.Basecompoundref)
+            foreach(var r in klass.Compund.Compound.Basecompoundref)
             {
                 if(r.refid == null) continue;
-                AddReference(r.refid, g, classes, () => klass, existingRefs);
+                AddReference(r.refid, g, classes, () => graphvizKlass, existingRefs);
             }
 
-            foreach (var func in DoxygenUtils.AllMethodsInClass(k))
+            
+            foreach (var member in DoxygenUtils.AllMembersForAClass(klass))
             {
-                if (addArguments) foreach (var p in func.Param)
+                if(includeFunctions == false && member.Kind == DoxMemberKind.Function)
                 {
-                    AddTypeLink(g, classes, () => klass, existingRefs, p.type);
+                    continue;
                 }
 
-                AddTypeLink(g, classes, () => klass, existingRefs, func?.Type);
+                if (addArguments)
+                {
+                    foreach (var p in member.Param)
+                    {
+                        AddTypeLink(g, classes, () => graphvizKlass, existingRefs, p.type);
+                    }
+                }
+
+                // return value for a function or the type of the member
+                AddTypeLink(g, classes, () => graphvizKlass, existingRefs, member?.Type);
             }
         }
 
-        printer.Info("Adding functions...");
-        foreach (var func in namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Func)))
+        if(includeFunctions)
         {
-            var existingRefs = new HashSet<string>();
-
-            Graphviz.Node? funcNode = null;
-            Graphviz.Node getFuncNode()
+            printer.Info("Adding functions...");
+            foreach (var func in namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Func)))
             {
-                if(funcNode == null)
+                var existingRefs = new HashSet<string>();
+
+                Graphviz.Node? funcNode = null;
+                Graphviz.Node getFuncNode()
                 {
-                    funcNode = g.AddNode($"{func.Name}{func.Argsstring}", Shape.ellipse);
+                    if(funcNode == null)
+                    {
+                        funcNode = g.AddNode($"{func.Name}{func.Argsstring}", Shape.ellipse);
+                    }
+                    return funcNode;
                 }
-                return funcNode;
-            }
 
-            if(addArguments) foreach (var p in func.Param)
-            {
-                AddTypeLink(g, classes, getFuncNode, existingRefs, p.type);
-            }
+                if(addArguments) foreach (var p in func.Param)
+                {
+                    AddTypeLink(g, classes, getFuncNode, existingRefs, p.type);
+                }
 
-            AddTypeLink(g, classes, getFuncNode, existingRefs, func.Type);
+                AddTypeLink(g, classes, getFuncNode, existingRefs, func.Type);
+            }
         }
 
         g.SmartWriteFile(outputFile);

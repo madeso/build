@@ -62,7 +62,7 @@ internal static class DoxygenUtils
         return m.Argsstring?.EndsWith("override") ?? false;
     }
 
-    internal static IEnumerable<memberdefType> AllMethodsInClass(CompoundType k)
+    internal static IEnumerable<memberdefType> AllMembersForAClass(CompoundType k)
     {
         return k.Compund.Compound.Sectiondef.SelectMany(x => x.memberdef);
     }
