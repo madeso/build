@@ -204,16 +204,40 @@ public class Graphviz
     {
         var svg = WriteSvg();
 
+        yield return "<!DOCTYPE html>";
         yield return "<html>";
         yield return "<head>";
         yield return $"<title>{ Path.GetFileNameWithoutExtension(file) }</title>";
+
+        yield return "<script src=\"https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js\"></script>";
+
         yield return "</head>";
 
         yield return "<body>";
-        foreach(var l in svg)
+
+
+        yield return "<div id=\"container\">";
+        foreach (var l in svg)
         {
             yield return $"  {l}";
         }
+        yield return "</div>";
+
+        yield return "";
+        yield return "";
+
+        yield return "<script>";
+        yield return "window.onload = function() {";
+        yield return "    // Expose to window namespase for testing purposes";
+        yield return "    window.zoomTiger = svgPanZoom('#container svg', {";
+        yield return "    zoomEnabled: true,";
+        yield return "  controlIconsEnabled: true,";
+        yield return "  fit: true,";
+        yield return "  center: true,";
+        yield return "});";
+        yield return "};";
+        yield return "</script>";
+
         yield return "</body>";
 
         yield return "</html>";
