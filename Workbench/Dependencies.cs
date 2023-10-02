@@ -12,20 +12,27 @@ namespace Workbench;
 
 public class Dependencies
 {
-    internal static void Run(Printer printer, string doxygenXml, string namespaceName, string outputFile, ImmutableHashSet<string> ignoredClasses)
+    internal static void WriteToGraphviz(Printer printer, string doxygenXml, string namespaceName, string outputFile, ImmutableHashSet<string> ignoredClasses)
     {
+        const string NO_NAMESPACE = "|";
+        bool addArguments = true;
+
         printer.Info("Parsing doxygen XML...");
         var dox = Doxygen.Doxygen.ParseIndex(doxygenXml);
-        var rootNamespace = DoxygenUtils.FindNamespace(dox, namespaceName);
+        var rootNamespace = namespaceName == NO_NAMESPACE ? null : DoxygenUtils.FindNamespace(dox, namespaceName);
 
-        if (rootNamespace == null)
+        if (namespaceName != NO_NAMESPACE && rootNamespace == null)
         {
             printer.Error($"Unknown namespace {namespaceName}");
             return;
         }
 
         printer.Info("Working...");
-        var namespaces = DoxygenUtils.IterateNamespaces(dox, rootNamespace).ToImmutableArray();
+        var namespaces = (
+                rootNamespace == null
+                ? DoxygenUtils.AllNamespaces(dox)
+                : DoxygenUtils.IterateNamespaces(dox, rootNamespace)
+            ).ToImmutableArray();
 
         var g = new Graphviz();
         var classes = new Dictionary<string, Graphviz.Node>();
@@ -38,14 +45,19 @@ public class Dependencies
                 continue;
             }
 
-            var node = g.AddNode(k.name, Shape.box);
+            var node = g.AddNode(k.name, Shape.box3d);
             classes!.Add(k.refid, node);
         }
 
         printer.Info("Adding typedefs...");
         foreach (var k in namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Typedef)))
         {
-            var node = g.AddNode(k.Name, Shape.none);
+            if (ignoredClasses.Contains(k.Name))
+            {
+                continue;
+            }
+
+            var node = g.AddNode(k.Name, Shape.box);
             classes!.Add(k.Id, node);
 
             var existingRefs = new HashSet<string>();
@@ -69,23 +81,72 @@ public class Dependencies
                 AddReference(r.refid, g, classes, () => klass, existingRefs);
             }
 
-            foreach (var functionMember in DoxygenUtils.AllMethodsInClass(k))
+            foreach (var func in DoxygenUtils.AllMethodsInClass(k))
             {
-                // assume all arguments are passed by ref
-                // and just ignore them
+                if (addArguments) foreach (var p in func.Param)
+                {
+                    AddTypeLink(g, classes, () => klass, existingRefs, p.type);
+                }
 
-                AddTypeLink(g, classes, () => klass, existingRefs, functionMember?.Type);
+                AddTypeLink(g, classes, () => klass, existingRefs, func?.Type);
             }
         }
 
         printer.Info("Adding functions...");
-        foreach (var f in namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Func)))
+        foreach (var func in namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Func)))
         {
             var existingRefs = new HashSet<string>();
-            AddTypeLink(g, classes, () => g.AddNode($"{f.Name}{f.Argsstring}", Shape.circle), existingRefs, f.Type);
+
+            Graphviz.Node? funcNode = null;
+            Graphviz.Node getFuncNode()
+            {
+                if(funcNode == null)
+                {
+                    funcNode = g.AddNode($"{func.Name}{func.Argsstring}", Shape.ellipse);
+                }
+                return funcNode;
+            }
+
+            if(addArguments) foreach (var p in func.Param)
+            {
+                AddTypeLink(g, classes, getFuncNode, existingRefs, p.type);
+            }
+
+            AddTypeLink(g, classes, getFuncNode, existingRefs, func.Type);
         }
 
-        g.WriteFile(outputFile);
+        g.SmartWriteFile(outputFile);
+    }
+
+    internal static void PrintLists(Printer printer, string doxygenXml, string namespaceName)
+    {
+        printer.Info("Parsing doxygen XML...");
+        var dox = Doxygen.Doxygen.ParseIndex(doxygenXml);
+        var rootNamespace = DoxygenUtils.FindNamespace(dox, namespaceName);
+
+        if (rootNamespace == null)
+        {
+            printer.Error($"Unknown namespace {namespaceName}");
+            return;
+        }
+
+        printer.Info("Working...");
+        var namespaces = DoxygenUtils.IterateNamespaces(dox, rootNamespace).ToImmutableArray();
+
+        foreach (var k in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
+        {
+            AnsiConsole.MarkupLineInterpolated($"Class {k.name}");
+        }
+
+        foreach (var k in namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Typedef)))
+        {
+            AnsiConsole.MarkupLineInterpolated($"Typedef {k.Name}");
+        }
+
+        foreach (var func in namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Func)))
+        {
+            AnsiConsole.MarkupLineInterpolated($"Func {func.Name}{func.Argsstring}");
+        }
     }
 
     private static void AddTypeLink(Graphviz g, Dictionary<string, Graphviz.Node> validTypes,

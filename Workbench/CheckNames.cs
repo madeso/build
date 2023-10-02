@@ -71,7 +71,7 @@ internal class CheckNames
         string cwd = Environment.CurrentDirectory;
     }
 
-    internal bool CheckName(string name, locationType loc, Func<string, bool> checkCase, Func<string, bool> validName, string source)
+    internal bool CheckName(string name, locationType? loc, Func<string, bool> checkCase, Func<string, bool> validName, string source)
     {
         // doxygen hack
         if (name.StartsWith('@')) { return true; }
@@ -91,9 +91,9 @@ internal class CheckNames
     readonly List<Fail> fails = new();
     record Fail(locationType Location, string ErrorMessage);
 
-    private void ReportError(locationType loc, string error)
+    private void ReportError(locationType? loc, string error)
     {
-        if (loc.file == "[generated]") { return; }
+        if (loc == null || loc.file == "[generated]") { return; }
 
         errorsDetected += 1;
         fails.Add(new(loc, error));
@@ -231,7 +231,7 @@ internal class CheckNames
             return;
         }
 
-        if (file.IgnoredFiles.Contains(mem.Location.file))
+        if (mem.Location != null && file.IgnoredFiles.Contains(mem.Location.file))
         {
             return;
         }
@@ -329,7 +329,7 @@ internal class CheckNames
 
     private void CheckFunction(memberdefType mem)
     {
-        if (mem.Templateparamlist != null)
+        if (mem.Templateparamlist != null && mem.Location != null)
         {
             CheckTemplateArguments(mem.Location, mem.Templateparamlist.param);
         }

@@ -319,7 +319,7 @@ class DoxygenType
 
         //
 
-        Location = el.GetFirstElementType("location", x => new locationType(x));
+        Location = el.GetFirstElementTypeOrNull("location", x => new locationType(x));
 
         Templateparamlist = el.GetFirstElementTypeOrNull("templateparamlist", x => new templateparamlistType(x));
         Type = el.GetFirstElementTypeOrNull("type", x => new linkedTextType(x));
@@ -398,7 +398,7 @@ class DoxygenType
 
     //
 
-    public locationType Location {get;}
+    public locationType? Location {get;}
 
     public templateparamlistType? Templateparamlist {get;}
     public linkedTextType? Type {get;}
@@ -738,11 +738,11 @@ class childnodeType
   {
     public listingType(XmlElement el)
     {
-        throw new NotImplementedException();
+        // throw new NotImplementedException();
     }
 
     // elements
-    codelineType[] codeline;
+    // codelineType[] codeline;
 
     // attributes
     public string? filename {get;}
@@ -756,7 +756,7 @@ class childnodeType
     }
 
     // elements
-    highlightType[] highlight;
+    // highlightType[] highlight;
 
     // attributes
     public int lineno {get;}

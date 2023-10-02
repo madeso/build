@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Drawing;
+using System.Reflection;
+using Workbench.Utils;
 
 namespace Workbench;
 
@@ -186,6 +188,54 @@ public class Graphviz
     public void WriteFile(string path)
     {
         File.WriteAllLines(path, Lines);
+    }
+
+    public string[] WriteSvg()
+    {
+        var cmdline = new ProcessBuilder(
+            "dot",
+            "-Tsvg"
+        );
+        var output = cmdline.RunAndGetOutput(Lines).RequireSuccess();
+        return output;
+    }
+
+    public IEnumerable<string> WriteHtml(string file)
+    {
+        var svg = WriteSvg();
+
+        yield return "<html>";
+        yield return "<head>";
+        yield return $"<title>{ Path.GetFileNameWithoutExtension(file) }</title>";
+        yield return "</head>";
+
+        yield return "<body>";
+        foreach(var l in svg)
+        {
+            yield return $"  {l}";
+        }
+        yield return "</body>";
+
+        yield return "</html>";
+    }
+
+    public void SmartWriteFile(string path)
+    {
+        switch(Path.GetExtension(path))
+        {
+            case "":
+            case ".gv":
+            case ".graphviz":
+            case ".dot":
+                WriteFile(path);
+                break;
+            case ".svg":
+                File.WriteAllLines(path, WriteSvg());
+                break;
+            case ".html":
+                File.WriteAllLines(path, WriteHtml(path));
+                break;
+        }
     }
 
     public IEnumerable<string> Lines

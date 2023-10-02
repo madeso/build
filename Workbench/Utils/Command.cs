@@ -1,5 +1,6 @@
 namespace Workbench.Utils;
 
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using Workbench;
@@ -61,7 +62,7 @@ internal class ProcessExitWithOutput
 
 public class ProcessBuilder
 {
-    internal ProcessExit RunWithCallback(Action<string> onLine, Action<string> onError)
+    internal ProcessExit RunWithCallback(IEnumerable<string>? input, Action<string> onLine, Action<string> onError)
     {
         // Prepare the process to run
         ProcessStartInfo start = new()
@@ -76,13 +77,30 @@ public class ProcessBuilder
             RedirectStandardError = true,
         };
 
+        if(input != null)
+        {
+            start.RedirectStandardInput = true;
+        }
+
         var proc = new Process { StartInfo = start };
+
         proc.OutputDataReceived += (sender, e) => { if (e.Data != null) { onLine(e.Data); } };
         proc.ErrorDataReceived += (sender, e) => { if (e.Data != null) { onLine(e.Data); } };
 
         try
         {
             proc.Start();
+
+            if (input != null)
+            {
+                foreach(var line in input)
+                {
+                    proc.StandardInput.WriteLine(line);
+                }
+                proc.StandardInput.Close();
+            }
+
+            
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
             proc.WaitForExit();
@@ -101,7 +119,16 @@ public class ProcessBuilder
     {
         var output = new List<string>();
 
-        var ret = RunWithCallback(line => output.Add(line), line => output.Add(line));
+        var ret = RunWithCallback(null, line => output.Add(line), line => output.Add(line));
+
+        return new(ret, output.ToArray());
+    }
+
+    internal ProcessExitWithOutput RunAndGetOutput(IEnumerable<string> lines)
+    {
+        var output = new List<string>();
+
+        var ret = RunWithCallback(lines, line => output.Add(line), line => output.Add(line));
 
         return new(ret, output.ToArray());
     }
@@ -198,6 +225,6 @@ public class ProcessBuilder
 
     internal void RunAndPrintOutput(Printer printer)
     {
-        printer.PrintStatus(RunWithCallback(printer.Info, printer.Error));
+        printer.PrintStatus(RunWithCallback(null, printer.Info, printer.Error));
     }
 }

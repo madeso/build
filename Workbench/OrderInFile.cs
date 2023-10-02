@@ -79,12 +79,12 @@ internal static class OrderInFile
         NamedOrder? lastClass = null;
         memberdefType? lastMember = null;
 
-        foreach (var member in members.OrderBy(x => x.Location.line))
+        foreach (var member in members.OrderBy(x => x.Location?.line ?? -1))
         {
             var newClass = Classify(k, member);
             if (lastClass != null)
             {
-                if (member.Location.file != lastMember!.Location.file)
+                if (member.Location?.file != lastMember!.Location?.file)
                 {
                     throw new Exception("invalid data");
                 }

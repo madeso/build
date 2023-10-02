@@ -23,8 +23,12 @@ internal static class DoxygenUtils
         return print;
     }
 
-    public static string LocationToString(locationType loc, string root)
+    public static string LocationToString(locationType? loc, string root)
     {
+        if(loc == null)
+        {
+            return "<missing location>";
+        }
         string fileName = DoxygenUtils.DoxygenFileToPath(loc, root);
         return Printer.ToFileString(fileName, loc.line ?? -1);
     }
@@ -100,6 +104,13 @@ internal static class DoxygenUtils
 
             yield return ns.Compund.Compound;
         }
+    }
+
+    internal static IEnumerable<Doxygen.Compound.compounddefType> AllNamespaces(Doxygen.Index.DoxygenType dox)
+    {
+        return dox.compounds
+            .Where(c => c.kind == Doxygen.Index.CompoundKind.Namespace)
+            .Select(ns => ns.Compund.Compound);
     }
 
     internal static CompoundType? FindNamespace(Doxygen.Index.DoxygenType dox, string namespaceName)

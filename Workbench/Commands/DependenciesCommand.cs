@@ -6,7 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace Workbench.Commands.DependenciesCommands;
 
 
-internal sealed class ListCommand : Command<ListCommand.Arg>
+internal sealed class ListGraphvizCommand : Command<ListGraphvizCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -31,9 +31,34 @@ internal sealed class ListCommand : Command<ListCommand.Arg>
     {
         return CommonExecute.WithPrinter(printer =>
             {
-                Dependencies.Run(printer, arg.DoxygenXml, arg.NamespaceFilter, arg.OutputFile, arg.IgnoredClasses.ToImmutableHashSet());
+                Dependencies.WriteToGraphviz(printer, arg.DoxygenXml, arg.NamespaceFilter, arg.OutputFile, arg.IgnoredClasses.ToImmutableHashSet());
                 return 0;
             }
+        );
+    }
+}
+
+
+internal sealed class PrintCommand : Command<PrintCommand.Arg>
+{
+    public sealed class Arg : CommandSettings
+    {
+        [Description("Doxygen xml folder")]
+        [CommandArgument(0, "[doxygen xml]")]
+        public string DoxygenXml { get; init; } = string.Empty;
+
+        [Description("Namespace filter")]
+        [CommandArgument(1, "[namespace]")]
+        public string NamespaceFilter { get; init; } = string.Empty;
+    }
+
+    public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
+    {
+        return CommonExecute.WithPrinter(printer =>
+        {
+            Dependencies.PrintLists(printer, arg.DoxygenXml, arg.NamespaceFilter);
+            return 0;
+        }
         );
     }
 }
@@ -46,7 +71,8 @@ public static class Main
         {
             root.SetDescription("Dependency commands");
 
-            root.AddCommand<ListCommand>("list").WithDescription("List dependencies");
+            root.AddCommand<ListGraphvizCommand>("list").WithDescription("Write dependencies to graphviz");
+            root.AddCommand<PrintCommand>("print").WithDescription("Print all classes and functions in a namespace");
         });
     }
 }
