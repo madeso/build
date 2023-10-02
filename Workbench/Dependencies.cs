@@ -12,7 +12,7 @@ namespace Workbench;
 
 public class Dependencies
 {
-    internal static void WriteToGraphviz(Printer printer, string doxygenXml, string namespaceName, string outputFile, ImmutableHashSet<string> ignoredClasses, bool includeFunctions, bool addArguments)
+    internal static void WriteToGraphviz(Printer printer, string doxygenXml, string namespaceName, string outputFile, ImmutableHashSet<string> ignoredClasses, bool includeFunctions, bool addArguments, bool addMembers)
     {
         const string NO_NAMESPACE = "|";
 
@@ -82,7 +82,8 @@ public class Dependencies
                 AddReference(r.refid, g, classes, () => graphvizKlass, existingRefs);
             }
 
-            
+            if(!addMembers) { continue; }
+
             foreach (var member in DoxygenUtils.AllMembersForAClass(klass))
             {
                 if(includeFunctions == false && member.Kind == DoxMemberKind.Function)

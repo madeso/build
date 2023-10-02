@@ -33,6 +33,10 @@ internal sealed class ListGraphvizCommand : Command<ListGraphvizCommand.Arg>
         [Description("Don't consider function arguments when making connections")]
         [CommandOption("--no-args")]
         public bool? NoAddArguments { get; init; }
+
+        [Description("Don't consider any members when making connections")]
+        [CommandOption("--no-members")]
+        public bool? NoAddMembers { get; init; }
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
@@ -40,7 +44,11 @@ internal sealed class ListGraphvizCommand : Command<ListGraphvizCommand.Arg>
         return CommonExecute.WithPrinter(printer =>
             {
                 Dependencies.WriteToGraphviz(printer, arg.DoxygenXml, arg.NamespaceFilter, arg.OutputFile,
-                    arg.IgnoredClasses.ToImmutableHashSet(), !(arg.NoIncludeFunctions ?? false), !(arg.NoAddArguments ?? false));
+                    arg.IgnoredClasses.ToImmutableHashSet(),
+                    !(arg.NoIncludeFunctions ?? false),
+                    !(arg.NoAddArguments ?? false),
+                    !(arg.NoAddMembers ?? false)
+                    );
                 return 0;
             }
         );
