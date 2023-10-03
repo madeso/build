@@ -797,14 +797,20 @@ class childnodeType
   {
     public referenceType(XmlElement el)
     {
-        throw new NotImplementedException();
+        refid = el.GetAttributeString("refid");
+        compoundref = el.GetAttributeStringOrNull("compoundref");
+        startline = el.GetAttributeIntOrNull("startline");
+        endline = el.GetAttributeIntOrNull("endline");
+        name = el.InnerText;
     }
 
     // attributes
     public string refid {get;}
     public string? compoundref {get;}
-    public int startline {get;}
-    public int endline {get;}
+    public int? startline {get;}
+    public int? endline {get;}
+    
+    public string name { get;}
   }
 
   class locationType

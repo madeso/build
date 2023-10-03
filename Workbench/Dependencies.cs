@@ -6,16 +6,17 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Workbench.Doxygen.Compound;
 
 namespace Workbench;
 
 public class Dependencies
 {
+    const string NO_NAMESPACE = "|";
+
     internal static void WriteToGraphviz(Printer printer, string doxygenXml, string namespaceName, string outputFile, ImmutableHashSet<string> ignoredClasses, bool includeFunctions, bool addArguments, bool addMembers, bool clusterNamespce)
     {
-        const string NO_NAMESPACE = "|";
-
         printer.Info("Parsing doxygen XML...");
         var dox = Doxygen.Doxygen.ParseIndex(doxygenXml);
         var rootNamespace = namespaceName == NO_NAMESPACE ? null : DoxygenUtils.FindNamespace(dox, namespaceName);
@@ -183,10 +184,10 @@ public class Dependencies
             if (re == null) continue;
 
             AddReference(re.Value.refid, g, validTypes, () =>
-            {
-                if(parent != null) return parent;
-                parent = parentFunc();
-                return parent;
+                {
+                    if(parent != null) return parent;
+                    parent = parentFunc();
+                    return parent;
                 }, existingRefs);
         }
     }
@@ -200,5 +201,54 @@ public class Dependencies
         if (false == validTypes.TryGetValue(id, out var linkedKlass)) return;
 
         g.AddEdge(parentFunc(), linkedKlass);
+    }
+
+    internal static void WriteCallgraphToGraphviz(Printer printer, string doxygenXml, string namespaceFilter, string outputFile)
+    {
+        printer.Info("Parsing doxygen XML...");
+        var dox = Doxygen.Doxygen.ParseIndex(doxygenXml);
+        
+        printer.Info("Collecting functions...");
+        var namespaces = DoxygenUtils.AllNamespaces(dox).ToImmutableArray();
+
+        var memberFunctions = namespaces
+            .SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns))
+            .SelectMany(klass => DoxygenUtils.AllMembersForAClass(klass))
+            .Where(mem => mem.Kind == DoxMemberKind.Function)
+            ;
+        var freeFunctions =
+            namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Func));
+
+        var allFunctions = memberFunctions.Concat(freeFunctions).ToImmutableArray();
+
+
+        printer.Info("Adding functions...");
+        var g = new Graphviz();
+        var functions = new Dictionary<string, Graphviz.Node>();
+        foreach (var func in allFunctions)
+        {
+            functions.Add(func.Id, g.AddNodeWithId($"{func.Name}{func.Argsstring}", Shape.ellipse, func.Id));
+        }
+        
+        printer.Info("Adding links...");
+        foreach (var fun in allFunctions)
+        {
+            if(false == functions.TryGetValue(fun.Id, out var src))
+            {
+                continue;
+            }
+
+            foreach(var r in fun.References)
+            {
+                if (false == functions.TryGetValue(r.refid, out var dst))
+                {
+                    continue;
+                }
+                g.AddEdge(src, dst);
+            }
+        }
+
+        printer.Info("Wrtitng graph...");
+        g.SmartWriteFile(outputFile);
     }
 }
