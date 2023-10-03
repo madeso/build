@@ -32,8 +32,8 @@ public static class Cpplint
         var ret = new ProcessBuilder("cpplint", path).RunAndGetOutput();
         if(ret.ExitCode != 0)
         {
-            print_err(printer, path, string.Join("\n", ret.Output));
-            return new LintError(path, ret.Output);
+            print_err(printer, path, string.Join("\n", ret.Output.Select(x=>x.Line)));
+            return new LintError(path, ret.Output.Select(x => x.Line).ToArray());
         }
         else
         {

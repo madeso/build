@@ -290,7 +290,7 @@ internal static class F
 
         var end = new DateTime();
         var took = end - start;
-        var ret = new TidyOutput(output.Output, took);
+        var ret = new TidyOutput(output.Output.Select(x => x.Line).ToArray(), took);
         return ret;
     }
 

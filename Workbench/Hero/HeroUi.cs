@@ -92,7 +92,7 @@ internal static class Ui
                 var parent = new FileInfo(file).Directory?.FullName;
                 if (parent != null)
                 {
-                    addedNode.cluster = Path.GetRelativePath(root.InputRoot, parent);
+                    addedNode.cluster = gv.FindOrCreate(Path.GetRelativePath(root.InputRoot, parent));
                 }
             }
         }

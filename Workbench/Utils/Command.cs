@@ -7,24 +7,26 @@ using Workbench;
 
 internal record ProcessExit(string CommandLine, int ExitCode);
 
+internal record OutputLine(string Line, bool IsError);
+
 internal class ProcessExitWithOutput
 {
     public string CommandLine { get; private init; }
     public int ExitCode { get; private init; }
-    public string[] Output { get; private init; }
+    public OutputLine[] Output { get; private init; }
 
-    public ProcessExitWithOutput(ProcessExit pe, string[] output)
+    public ProcessExitWithOutput(ProcessExit pe, OutputLine[] output)
     {
         CommandLine = pe.CommandLine;
         ExitCode = pe.ExitCode;
         Output = output;
     }
 
-    public string[] RequireSuccess()
+    public OutputLine[] RequireSuccess()
     {
         if (ExitCode != 0)
         {
-            var outputString = string.Join('\n', Output);
+            var outputString = string.Join('\n', Output.Select(x => x.Line));
             throw new Exception($"{CommandLine} has exit code {ExitCode}:\n{outputString}");
         }
 
@@ -35,7 +37,14 @@ internal class ProcessExitWithOutput
     {
         foreach (var line in Output)
         {
-            print.Info(line);
+            if(line.IsError)
+            {
+                print.Error(line.Line);
+            }
+            else
+            {
+                print.Info(line.Line);
+            }
         }
 
         return this;
@@ -62,7 +71,7 @@ internal class ProcessExitWithOutput
 
 public class ProcessBuilder
 {
-    internal ProcessExit RunWithCallback(IEnumerable<string>? input, Action<string> onLine, Action<string> onError)
+    internal ProcessExit RunWithCallback(IEnumerable<string>? input, Action<string> onStdout, Action<string> onStdErr, Action<string, Exception> onFail)
     {
         // Prepare the process to run
         ProcessStartInfo start = new()
@@ -84,8 +93,8 @@ public class ProcessBuilder
 
         var proc = new Process { StartInfo = start };
 
-        proc.OutputDataReceived += (sender, e) => { if (e.Data != null) { onLine(e.Data); } };
-        proc.ErrorDataReceived += (sender, e) => { if (e.Data != null) { onLine(e.Data); } };
+        proc.OutputDataReceived += (sender, e) => { if (e.Data != null) { onStdout(e.Data); } };
+        proc.ErrorDataReceived += (sender, e) => { if (e.Data != null) { onStdErr(e.Data); } };
 
         try
         {
@@ -109,26 +118,37 @@ public class ProcessBuilder
         }
         catch (Win32Exception err)
         {
-            onError($"Failed to run {ToString()}");
-            onError(err.Message);
+            onFail($"Failed to run {ToString()}", err);
             return new(ToString(), -42);
         }
     }
 
     internal ProcessExitWithOutput RunAndGetOutput()
     {
-        var output = new List<string>();
+        var output = new List<OutputLine>();
 
-        var ret = RunWithCallback(null, line => output.Add(line), line => output.Add(line));
+        var ret = RunWithCallback(null,
+            line => output.Add(new OutputLine(line, false)),
+            line => output.Add(new OutputLine(line, true)),
+            (line, ex) => {
+                output.Add(new OutputLine(line, true));
+                output.Add(new OutputLine(ex.Message, true));
+            });
 
         return new(ret, output.ToArray());
     }
 
     internal ProcessExitWithOutput RunAndGetOutput(IEnumerable<string> lines)
     {
-        var output = new List<string>();
+        var output = new List<OutputLine>();
 
-        var ret = RunWithCallback(lines, line => output.Add(line), line => output.Add(line));
+        var ret = RunWithCallback(lines,
+            line => output.Add(new OutputLine(line, false)),
+            line => output.Add(new OutputLine(line, true)),
+            (line, ex) => {
+                output.Add(new OutputLine(line, true));
+                output.Add(new OutputLine(ex.Message, true));
+            });
 
         return new(ret, output.ToArray());
     }
@@ -225,6 +245,11 @@ public class ProcessBuilder
 
     internal void RunAndPrintOutput(Printer printer)
     {
-        printer.PrintStatus(RunWithCallback(null, printer.Info, printer.Error));
+        printer.PrintStatus(RunWithCallback(null, printer.Info, err => printer.Error(err),
+            (mess, ex) => {
+                    printer.Error(mess);
+                    printer.Error(ex.Message);
+                }
+            ));
     }
 }

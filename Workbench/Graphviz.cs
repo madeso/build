@@ -71,14 +71,26 @@ public enum Shape
 
 public class Graphviz
 {
+    public class Cluster
+    {
+        public Cluster(string id, string label)
+        {
+            Id = id;
+            Label = label;
+        }
+
+        public string Id { get; }
+        public string Label { get; set; }
+    }
+
     public class Node
     {
         public readonly string id;
         public string display;
         public readonly Shape shape;
-        public string? cluster;
+        public Cluster? cluster;
 
-        public Node(string id, string display, Shape shape, string? cluster)
+        public Node(string id, string display, Shape shape, Cluster? cluster)
         {
             this.id = id;
             this.display = display;
@@ -112,6 +124,25 @@ public class Graphviz
     private readonly List<Node> nodes = new();
     private readonly Dictionary<string, Node> id_to_node = new();
     private readonly List<Edge> edges = new();
+
+    private readonly Dictionary<string, Cluster> clusters = new();
+
+    public Cluster FindOrCreate(string id, string display)
+    {
+        var c = clusters.GetValueOrDefault(id);
+        if(c != null)
+        {
+            return c;
+        }
+        c = new Cluster(id, display);
+        clusters.Add(id, c);
+        return c;
+    }
+
+    public Cluster FindOrCreate(string display)
+    {
+        return FindOrCreate(ConvertIntoSafeId(display, "cluster"), display);
+    }
 
     public Node AddNodeWithId(string display, Shape shape, string id)
     {
@@ -196,8 +227,22 @@ public class Graphviz
             "dot",
             "-Tsvg"
         );
-        var output = cmdline.RunAndGetOutput(Lines).RequireSuccess();
-        return output;
+        var output = cmdline.RunAndGetOutput(Lines);
+
+        if(output.ExitCode != 0)
+        {
+            Console.WriteLine($"Non zero return from calling dot: {output.ExitCode}");
+            foreach(var err in output.Output.Where(x => x.IsError))
+            {
+                Console.WriteLine(err.Line);
+            }
+        }
+        
+        var ret = output.Output
+            .Where(x => x.IsError == false)
+            .Select(x => x.Line).ToArray();
+
+        return ret;
     }
 
     public IEnumerable<string> WriteHtml(string file)
@@ -276,7 +321,7 @@ public class Graphviz
                 var indent = string.Empty;
                 if (cluster != null)
                 {
-                    yield return $"    subgraph cluster_{ConvertIntoSafeId(cluster, "cluster")} {{";
+                    yield return $"    subgraph cluster_{cluster.Id} {{";
                     indent = "    ";
                 }
 

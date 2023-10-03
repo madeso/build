@@ -12,11 +12,9 @@ namespace Workbench;
 
 public class Dependencies
 {
-    internal static void WriteToGraphviz(Printer printer, string doxygenXml, string namespaceName, string outputFile, ImmutableHashSet<string> ignoredClasses, bool includeFunctions, bool addArguments, bool addMembers)
+    internal static void WriteToGraphviz(Printer printer, string doxygenXml, string namespaceName, string outputFile, ImmutableHashSet<string> ignoredClasses, bool includeFunctions, bool addArguments, bool addMembers, bool clusterNamespce)
     {
         const string NO_NAMESPACE = "|";
-
-        printer.Info($"include funcs {includeFunctions}, add args {addArguments}");
 
         printer.Info("Parsing doxygen XML...");
         var dox = Doxygen.Doxygen.ParseIndex(doxygenXml);
@@ -39,15 +37,24 @@ public class Dependencies
         var classes = new Dictionary<string, Graphviz.Node>();
 
         printer.Info("Adding classes...");
-        foreach (var k in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
+        foreach (var ns in namespaces)
         {
-            if(ignoredClasses.Contains(k.name))
+            foreach(var k in DoxygenUtils.IterateClassesInNamespace(dox, ns))
             {
-                continue;
-            }
+                if(ignoredClasses.Contains(k.name))
+                {
+                    continue;
+                }
 
-            var node = g.AddNode(k.name, Shape.box3d);
-            classes!.Add(k.refid, node);
+                var name = clusterNamespce
+                    ? k.name.Split(":", StringSplitOptions.RemoveEmptyEntries).Last()
+                    : k.name;
+
+                var node = g.AddNodeWithId(name, Shape.box3d, k.refid);
+                classes!.Add(k.refid, node);
+
+                node.cluster = g.FindOrCreate(ns.Compoundname);
+            }
         }
 
         printer.Info("Adding typedefs...");

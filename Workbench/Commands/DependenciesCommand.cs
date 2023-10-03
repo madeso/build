@@ -37,6 +37,10 @@ internal sealed class ListGraphvizCommand : Command<ListGraphvizCommand.Arg>
         [Description("Don't consider any members when making connections")]
         [CommandOption("--no-members")]
         public bool? NoAddMembers { get; init; }
+
+        [Description("Cluster on namespace")]
+        [CommandOption("--cluster-namespace")]
+        public bool? ClusterNamespace { get; init; }
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
@@ -47,7 +51,8 @@ internal sealed class ListGraphvizCommand : Command<ListGraphvizCommand.Arg>
                     arg.IgnoredClasses.ToImmutableHashSet(),
                     !(arg.NoIncludeFunctions ?? false),
                     !(arg.NoAddArguments ?? false),
-                    !(arg.NoAddMembers ?? false)
+                    !(arg.NoAddMembers ?? false),
+                    (arg.ClusterNamespace ?? false)
                     );
                 return 0;
             }

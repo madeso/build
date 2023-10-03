@@ -22,7 +22,7 @@ public static class Git
             .RunAndGetOutput()
             .RequireSuccess()
             ;
-        foreach (var item in output)
+        foreach (var item in output.Select(x => x.Line))
         {
             if (string.IsNullOrWhiteSpace(item)) { continue; }
 
@@ -82,7 +82,7 @@ public static class Git
             return new Author(name, mail, time);
         }
 
-        foreach (var line in output)
+        foreach (var line in output.Select(x => x.Line))
         {
             if(line[0] == '\t')
             {
@@ -131,7 +131,7 @@ public static class Git
                 .RunAndGetOutput()
                 .RequireSuccess()
             ;
-        foreach (var line in output)
+        foreach (var line in output.Select(x => x.Line))
         {
             if (string.IsNullOrWhiteSpace(line)) continue;
             var options = line.Split(SEP, sepCount+1, StringSplitOptions.TrimEntries);

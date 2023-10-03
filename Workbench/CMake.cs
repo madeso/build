@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Net.NetworkInformation;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -350,16 +351,19 @@ public class Trace
             }
         }
 
+        var stderr = new List<string>();
         var ret = new ProcessBuilder(cmakeExecutable, "--trace-expand", "--trace-format=json-v1", "-S", Environment.CurrentDirectory, "-B", dir)
             .InDirectory(dir)
-            .RunWithCallback(null, on_line, err => error.Add(err))
+            .RunWithCallback(null, on_line, err => { on_line(err); stderr.Add(err); }, (err, ex) => { error.Add(err); error.Add(ex.Message);})
             .ExitCode
             ;
 
         if (ret != 0)
         {
-            var mess = string.Join('\n', error);
-            throw new TraceError($"{error.Count} -> {mess}");
+            var stderrmess = string.Join(Environment.NewLine, stderr).Trim();
+            var space = string.IsNullOrEmpty(stderrmess) ? string.Empty : ": ";
+            var mess = string.Join(Environment.NewLine, error);
+            throw new TraceError($"{stderrmess}{space}{error.Count} -> {mess}");
         }
 
         return lines;
