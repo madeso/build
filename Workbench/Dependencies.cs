@@ -205,6 +205,8 @@ public class Dependencies
 
     internal static void WriteCallgraphToGraphviz(Printer printer, string doxygenXml, string namespaceFilter, string outputFile)
     {
+        bool clusterClasses = true;
+
         printer.Info("Parsing doxygen XML...");
         var dox = Doxygen.Doxygen.ParseIndex(doxygenXml);
         
@@ -228,6 +230,24 @@ public class Dependencies
         foreach (var func in allFunctions)
         {
             functions.Add(func.Id, g.AddNodeWithId($"{func.Name}{func.Argsstring}", FuncToShape(func), func.Id));
+        }
+
+        if(clusterClasses)
+        {
+            foreach(var klass in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
+            {
+                var cluster = g.FindOrCreate(klass.refid, klass.name);
+                foreach(var fun in DoxygenUtils.AllMembersForAClass(klass)
+                    .Where(mem => mem.Kind == DoxMemberKind.Function))
+                {
+                    if (false == functions.TryGetValue(fun.Id, out var funNode))
+                    {
+                        continue;
+                    }
+
+                    funNode.cluster = cluster;
+                }
+            }
         }
         
         printer.Info("Adding links...");
