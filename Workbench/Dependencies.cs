@@ -54,7 +54,7 @@ public class Dependencies
                 var node = g.AddNodeWithId(name, Shape.box3d, k.refid);
                 classes!.Add(k.refid, node);
 
-                node.cluster = g.FindOrCreate(ns.Compoundname);
+                node.cluster = g.FindOrCreateCluster(ns.Compoundname);
             }
         }
 
@@ -236,7 +236,7 @@ public class Dependencies
         {
             foreach(var klass in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
             {
-                var cluster = g.FindOrCreate(klass.refid, klass.name);
+                var cluster = g.FindOrCreateCluster(klass.refid, klass.name);
                 foreach(var fun in DoxygenUtils.AllMembersForAClass(klass)
                     .Where(mem => mem.Kind == DoxMemberKind.Function))
                 {

@@ -127,7 +127,7 @@ public class Graphviz
 
     private readonly Dictionary<string, Cluster> clusters = new();
 
-    public Cluster FindOrCreate(string id, string display)
+    public Cluster FindOrCreateCluster(string id, string display)
     {
         var c = clusters.GetValueOrDefault(id);
         if(c != null)
@@ -139,9 +139,9 @@ public class Graphviz
         return c;
     }
 
-    public Cluster FindOrCreate(string display)
+    public Cluster FindOrCreateCluster(string display)
     {
-        return FindOrCreate(ConvertIntoSafeId(display, "cluster"), display);
+        return FindOrCreateCluster(ConvertIntoSafeId(display, "cluster"), display);
     }
 
     public Node AddNodeWithId(string display, Shape shape, string id)
