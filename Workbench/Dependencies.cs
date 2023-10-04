@@ -239,10 +239,13 @@ public class Dependencies
                 .Select(fun => new Method(klass, fun))
             )
             // add properties too
-            .Where(mem => mem.Function.Kind == DoxMemberKind.Function)
+            .Where(mem => mem.Function.Kind == DoxMemberKind.Function
+                        || mem.Function.Kind == DoxMemberKind.Property)
             ;
         var freeFunctions =
             namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Func))
+            .Where(fun => fun.Kind == DoxMemberKind.Function
+                        || fun.Kind == DoxMemberKind.Property)
             .Select(fun => new Method(null, fun));
 
         var allFunctions = memberFunctions.Concat(freeFunctions).ToImmutableArray();
