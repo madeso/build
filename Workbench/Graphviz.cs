@@ -323,6 +323,7 @@ public class Graphviz
                 {
                     yield return $"    subgraph cluster_{cluster.Id} {{";
                     indent = "    ";
+                    yield return $"    {indent}label = \"{Escape(cluster.Label)}\";";
                 }
 
                 foreach (var n in nodes)
