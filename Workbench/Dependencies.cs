@@ -2,13 +2,16 @@ using Spectre.Console;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Workbench.Doxygen.Compound;
 using Workbench.Doxygen.Index;
+using Workbench.Utils;
 
 namespace Workbench;
 
@@ -204,9 +207,25 @@ public class Dependencies
         g.AddEdge(parentFunc(), linkedKlass);
     }
 
-    private record Method(CompoundType? Klass, memberdefType Function);
-    internal static void WriteCallgraphToGraphviz(Printer printer, string doxygenXml, string namespaceFilter, string outputFile, bool clusterClasses)
+    [TypeConverter(typeof(EnumTypeConverter<ClusterCallgraphOn>))]
+    [JsonConverter(typeof(EnumJsonConverter<ClusterCallgraphOn>))]
+    public enum ClusterCallgraphOn
     {
+        [EnumString("none")]
+        None,
+
+        [EnumString("class")]
+        Class,
+
+        [EnumString("namespace")]
+        Namespace
+    }
+
+    private record Method(CompoundType? Klass, memberdefType Function);
+    internal static void WriteCallgraphToGraphviz(Printer printer, string doxygenXml, string namespaceFilter, string outputFile, ClusterCallgraphOn clusterOn)
+    {
+        // todo(Gustav): option to remove namespace prefixes
+
         printer.Info("Parsing doxygen XML...");
         var dox = Doxygen.Doxygen.ParseIndex(doxygenXml);
         
@@ -219,6 +238,7 @@ public class Dependencies
             .SelectMany(klass => DoxygenUtils.AllMembersForAClass(klass)
                 .Select(fun => new Method(klass, fun))
             )
+            // add properties too
             .Where(mem => mem.Function.Kind == DoxMemberKind.Function)
             ;
         var freeFunctions =
@@ -234,29 +254,47 @@ public class Dependencies
         foreach (var func in allFunctions)
         {
             var baseName = $"{func.Function.Name}{func.Function.Argsstring}";
-            if(clusterClasses == false && func.Klass != null)
+            if(clusterOn != ClusterCallgraphOn.Class && func.Klass != null)
             {
                 baseName = $"{func.Klass.name}.{baseName}";
             }
             functions.Add(func.Function.Id, g.AddNodeWithId(baseName, FuncToShape(func), func.Function.Id));
         }
 
-        if(clusterClasses)
+        switch(clusterOn)
         {
-            foreach(var klass in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
-            {
-                var cluster = g.FindOrCreateCluster(klass.refid, klass.name);
-                foreach(var fun in DoxygenUtils.AllMembersForAClass(klass)
-                    .Where(mem => mem.Kind == DoxMemberKind.Function))
+            case ClusterCallgraphOn.Class:
+                foreach(var klass in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
                 {
-                    if (false == functions.TryGetValue(fun.Id, out var funNode))
+                    var cluster = g.FindOrCreateCluster(klass.refid, klass.name);
+                    foreach(var fun in DoxygenUtils.AllMembersForAClass(klass)
+                        .Where(mem => mem.Kind == DoxMemberKind.Function))
+                    {
+                        if (false == functions.TryGetValue(fun.Id, out var funNode))
+                        {
+                            continue;
+                        }
+
+                        funNode.cluster = cluster;
+                    }
+                }
+                break;
+            case ClusterCallgraphOn.Namespace:
+                foreach(var fun in allFunctions)
+                {
+                    if (false == functions.TryGetValue(fun.Function.Id, out var funNode))
                     {
                         continue;
                     }
 
-                    funNode.cluster = cluster;
+                    // find namespace of function
+                    //fun.Function.
+                    // if there is a class, use the namespace of the class instead
+                    //fun.Klass
+
+                    // set the cluster of the function to the namespace cluster
                 }
-            }
+                break;
         }
         
         printer.Info("Adding links...");
