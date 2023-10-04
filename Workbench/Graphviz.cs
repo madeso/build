@@ -251,15 +251,21 @@ public class Graphviz
 
         yield return "<!DOCTYPE html>";
         yield return "<html>";
+
         yield return "<head>";
+        yield return "<style>";
+        yield return "html, body, .container, svg {";
+        yield return "  width: 100%;";
+        yield return "  height: 100%;";
+        yield return "  margin: 0;";
+        yield return "  padding: 0;";
+        yield return "}";
+        yield return "</style>";
         yield return $"<title>{ Path.GetFileNameWithoutExtension(file) }</title>";
-
         yield return "<script src=\"https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js\"></script>";
-
         yield return "</head>";
 
         yield return "<body>";
-
 
         yield return "<div id=\"container\">";
         foreach (var l in svg)
@@ -275,11 +281,15 @@ public class Graphviz
         yield return "window.onload = function() {";
         yield return "    // Expose to window namespase for testing purposes";
         yield return "    window.zoomTiger = svgPanZoom('#container svg', {";
-        yield return "    zoomEnabled: true,";
-        yield return "  controlIconsEnabled: true,";
-        yield return "  fit: true,";
-        yield return "  center: true,";
-        yield return "});";
+        yield return "        zoomEnabled: true";
+        yield return "      , controlIconsEnabled: true";
+        yield return "      , fit: true";
+        yield return "      , zoomScaleSensitivity: 0.2";
+        yield return "      , minZoom: 0.001";
+        yield return "      , maxZoom: 10000";
+        yield return "      , fit: true";
+        yield return "      , center: true";
+        yield return "    });";
         yield return "};";
         yield return "</script>";
 
@@ -324,6 +334,7 @@ public class Graphviz
                     yield return $"    subgraph cluster_{cluster.Id} {{";
                     indent = "    ";
                     yield return $"    {indent}label = \"{Escape(cluster.Label)}\";";
+                    yield return $"    {indent}color=blue;";
                 }
 
                 foreach (var n in nodes)
@@ -491,5 +502,52 @@ public class Graphviz
                 }
             }
         }
+    }
+
+    internal static void TestCluster(string outputFile)
+    {
+        var g = new Graphviz();
+
+        var cluster0 = g.FindOrCreateCluster("process #1");
+        var cluster1 = g.FindOrCreateCluster("process #2");
+
+        var a0 = g.AddNode("a0", Shape.egg);
+        var a1 = g.AddNode("a1", Shape.egg);
+        var a2 = g.AddNode("a2", Shape.egg);
+        var a3 = g.AddNode("a3", Shape.egg);
+        var b0 = g.AddNode("b0", Shape.egg);
+        var b1 = g.AddNode("b1", Shape.egg);
+        var b2 = g.AddNode("b2", Shape.egg);
+        var b3 = g.AddNode("b3", Shape.egg);
+
+        a0.cluster = cluster0;
+        a1.cluster = cluster0;
+        a2.cluster = cluster0;
+        a3.cluster = cluster0;
+        b0.cluster = cluster1;
+        b1.cluster = cluster1;
+        b2.cluster = cluster1;
+        b3.cluster = cluster1;
+
+        g.AddEdge(a0, a1);
+        g.AddEdge(a1, a2);
+        g.AddEdge(a2, a3);
+
+        g.AddEdge(b0, b1);
+        g.AddEdge(b1, b2);
+        g.AddEdge(b2, b3);
+
+        var start = g.AddNode("start", Shape.diamond);
+        var end = g.AddNode("end", Shape.square);
+
+        g.AddEdge(start, a0);
+	    g.AddEdge(start, b0);
+	    g.AddEdge(a1, b3);
+	    g.AddEdge(b2, a3);
+	    g.AddEdge(a3, a0);
+	    g.AddEdge(a3, end);
+	    g.AddEdge(b3, end);
+
+        g.SmartWriteFile(outputFile);
     }
 }
