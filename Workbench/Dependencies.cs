@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Workbench.Doxygen.Compound;
+using Workbench.Doxygen.Index;
 
 namespace Workbench;
 
@@ -203,23 +204,26 @@ public class Dependencies
         g.AddEdge(parentFunc(), linkedKlass);
     }
 
-    internal static void WriteCallgraphToGraphviz(Printer printer, string doxygenXml, string namespaceFilter, string outputFile)
+    private record Method(CompoundType? Klass, memberdefType Function);
+    internal static void WriteCallgraphToGraphviz(Printer printer, string doxygenXml, string namespaceFilter, string outputFile, bool clusterClasses)
     {
-        bool clusterClasses = true;
-
         printer.Info("Parsing doxygen XML...");
         var dox = Doxygen.Doxygen.ParseIndex(doxygenXml);
         
         printer.Info("Collecting functions...");
         var namespaces = DoxygenUtils.AllNamespaces(dox).ToImmutableArray();
 
+        
         var memberFunctions = namespaces
             .SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns))
-            .SelectMany(klass => DoxygenUtils.AllMembersForAClass(klass))
-            .Where(mem => mem.Kind == DoxMemberKind.Function)
+            .SelectMany(klass => DoxygenUtils.AllMembersForAClass(klass)
+                .Select(fun => new Method(klass, fun))
+            )
+            .Where(mem => mem.Function.Kind == DoxMemberKind.Function)
             ;
         var freeFunctions =
-            namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Func));
+            namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Func))
+            .Select(fun => new Method(null, fun));
 
         var allFunctions = memberFunctions.Concat(freeFunctions).ToImmutableArray();
 
@@ -229,7 +233,12 @@ public class Dependencies
         var functions = new Dictionary<string, Graphviz.Node>();
         foreach (var func in allFunctions)
         {
-            functions.Add(func.Id, g.AddNodeWithId($"{func.Name}{func.Argsstring}", FuncToShape(func), func.Id));
+            var baseName = $"{func.Function.Name}{func.Function.Argsstring}";
+            if(clusterClasses == false && func.Klass != null)
+            {
+                baseName = $"{func.Klass.name}.{baseName}";
+            }
+            functions.Add(func.Function.Id, g.AddNodeWithId(baseName, FuncToShape(func), func.Function.Id));
         }
 
         if(clusterClasses)
@@ -253,12 +262,12 @@ public class Dependencies
         printer.Info("Adding links...");
         foreach (var fun in allFunctions)
         {
-            if(false == functions.TryGetValue(fun.Id, out var src))
+            if(false == functions.TryGetValue(fun.Function.Id, out var src))
             {
                 continue;
             }
 
-            foreach(var r in fun.References)
+            foreach(var r in fun.Function.References)
             {
                 if (false == functions.TryGetValue(r.refid, out var dst))
                 {
@@ -271,7 +280,7 @@ public class Dependencies
         printer.Info("Wrtitng graph...");
         g.SmartWriteFile(outputFile);
 
-        static Shape FuncToShape(memberdefType func) => func.Prot switch
+        static Shape FuncToShape(Method func) => func.Function.Prot switch
         {
             DoxProtectionKind.Public => Shape.ellipse,
             DoxProtectionKind.Protected => Shape.diamond,

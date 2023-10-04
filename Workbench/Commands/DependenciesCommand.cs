@@ -76,13 +76,18 @@ internal sealed class ListCallgraph : Command<ListCallgraph.Arg>
         [Description("Output file")]
         [CommandArgument(2, "[output]")]
         public string OutputFile { get; init; } = string.Empty;
+
+        [Description("Cluster on class")]
+        [CommandOption("--cluster-class")]
+        public bool? ClusterClass { get; init; }
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         return CommonExecute.WithPrinter(printer =>
             {
-                Dependencies.WriteCallgraphToGraphviz(printer, arg.DoxygenXml, arg.NamespaceFilter, arg.OutputFile);
+                Dependencies.WriteCallgraphToGraphviz(printer, arg.DoxygenXml, arg.NamespaceFilter, arg.OutputFile,
+                    arg.ClusterClass ?? false);
                 return 0;
             }
         );
