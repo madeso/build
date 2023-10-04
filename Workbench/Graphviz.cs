@@ -247,20 +247,25 @@ public class Graphviz
 
     public IEnumerable<string> WriteHtml(string file)
     {
+        const bool USE_MAX_WIDTH = false;
         var svg = WriteSvg();
 
         yield return "<!DOCTYPE html>";
         yield return "<html>";
 
         yield return "<head>";
-        yield return "<style>";
-        yield return "html, body, .container, svg {";
-        yield return "  width: 100%;";
-        yield return "  height: 100%;";
-        yield return "  margin: 0;";
-        yield return "  padding: 0;";
-        yield return "}";
-        yield return "</style>";
+
+        if(USE_MAX_WIDTH)
+        { 
+            yield return "<style>";
+            yield return "html, body, .container, svg {";
+            yield return "  width: 100%;";
+            yield return "  height: 100%;";
+            yield return "  margin: 0;";
+            yield return "  padding: 0;";
+            yield return "}";
+            yield return "</style>";
+        }
         yield return $"<title>{ Path.GetFileNameWithoutExtension(file) }</title>";
         yield return "<script src=\"https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js\"></script>";
         yield return "</head>";
