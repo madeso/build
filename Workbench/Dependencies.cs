@@ -227,7 +227,7 @@ public class Dependencies
         var functions = new Dictionary<string, Graphviz.Node>();
         foreach (var func in allFunctions)
         {
-            functions.Add(func.Id, g.AddNodeWithId($"{func.Name}{func.Argsstring}", Shape.ellipse, func.Id));
+            functions.Add(func.Id, g.AddNodeWithId($"{func.Name}{func.Argsstring}", FuncToShape(func), func.Id));
         }
         
         printer.Info("Adding links...");
@@ -250,5 +250,14 @@ public class Dependencies
 
         printer.Info("Wrtitng graph...");
         g.SmartWriteFile(outputFile);
+
+        static Shape FuncToShape(memberdefType func) => func.Prot switch
+        {
+            DoxProtectionKind.Public => Shape.ellipse,
+            DoxProtectionKind.Protected => Shape.diamond,
+            DoxProtectionKind.Private => Shape.box,
+            DoxProtectionKind.Package => Shape.egg, // // internal, kinda like public so should roughly match
+            _ => throw new NotImplementedException(),
+        };
     }
 }
