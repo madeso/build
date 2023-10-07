@@ -245,9 +245,8 @@ public class Graphviz
         return ret;
     }
 
-    public IEnumerable<string> WriteHtml(string file)
+    public IEnumerable<string> WriteHtml(string file, bool useMaxWidth = false)
     {
-        const bool USE_MAX_WIDTH = false;
         var svg = WriteSvg();
 
         yield return "<!DOCTYPE html>";
@@ -255,7 +254,7 @@ public class Graphviz
 
         yield return "<head>";
 
-        if(USE_MAX_WIDTH)
+        if(useMaxWidth)
         { 
             yield return "<style>";
             yield return "html, body, .container, svg {";

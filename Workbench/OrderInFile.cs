@@ -18,9 +18,9 @@ internal static class OrderInFile
         foreach (var k in DoxygenUtils.AllClasses(parsed))
         {
             total += 1;
-            if(k.name.Contains(className))
+            if(k.CompoundName.Contains(className))
             {
-                AnsiConsole.MarkupLineInterpolated($"[blue]{k.name}[/]");
+                AnsiConsole.MarkupLineInterpolated($"[blue]{k.CompoundName}[/]");
                 matches += 1;
 
                 foreach(var member in DoxygenUtils.AllMembersForAClass(k))
@@ -53,14 +53,14 @@ internal static class OrderInFile
         }
 
         foreach(var f in fails
-            .OrderBy(x => x.Class.Compund.Compound.Location!.file)
-            .ThenByDescending(x => x.Class.Compund.Compound.Location!.line)
+            .OrderBy(x => x.Class.Location!.file)
+            .ThenByDescending(x => x.Class.Location!.line)
             )
         {
             PrintError(printer, f.Class, f.PrimaryFile, f.SecondaryFile, f.ErrorMessage);
         }
 
-        var numberOfFiles = fails.DistinctBy(x => x.Class.Compund.Compound.Location!.file).Count();
+        var numberOfFiles = fails.DistinctBy(x => x.Class.Location!.file).Count();
 
         AnsiConsole.MarkupLineInterpolated($"[blue]{checks - fails.Count} / {checks}[/] classes were accepted");
         AnsiConsole.MarkupLineInterpolated($"Found [red]{fails.Count}[/] badly ordered classes in [red]{numberOfFiles}[/] files");
@@ -69,9 +69,9 @@ internal static class OrderInFile
         else { return -1; }
     }
 
-    record CheckError(CompoundType Class, string PrimaryFile, string SecondaryFile, string ErrorMessage);
+    record CheckError(CompoundDef Class, string PrimaryFile, string SecondaryFile, string ErrorMessage);
 
-    private static CheckError? CheckClass(Printer printer, CompoundType k, string root)
+    private static CheckError? CheckClass(Printer printer, CompoundDef k, string root)
     {
         // k.name
         var members = DoxygenUtils.AllMembersForAClass(k).ToArray();
@@ -93,7 +93,7 @@ internal static class OrderInFile
                 {
                     string primaryFile = DoxygenUtils.LocationToString(member.Location, root);
                     string secondaryFile = DoxygenUtils.LocationToString(lastMember.Location, root);
-                    string errorMessage = $"Members for {k.name} are orderd badly, can't go from {lastClass.Name} ({DoxygenUtils.MemberToString(lastMember!)}) to {newClass.Name} ({DoxygenUtils.MemberToString(member)})!";
+                    string errorMessage = $"Members for {k.CompoundName} are orderd badly, can't go from {lastClass.Name} ({DoxygenUtils.MemberToString(lastMember!)}) to {newClass.Name} ({DoxygenUtils.MemberToString(member)})!";
                     return new CheckError(k, primaryFile, secondaryFile, errorMessage);
                 }
             }
@@ -104,7 +104,7 @@ internal static class OrderInFile
         return null;
     }
 
-    private static void PrintError(Printer printer, CompoundType k, string primaryFile, string secondaryFile, string errorMessage)
+    private static void PrintError(Printer printer, CompoundDef k, string primaryFile, string secondaryFile, string errorMessage)
     {
         var members = DoxygenUtils.AllMembersForAClass(k).ToArray();
         printer.Error(primaryFile, errorMessage);
@@ -119,7 +119,7 @@ internal static class OrderInFile
         AnsiConsole.WriteLine("");
     }
 
-    private static void PrintSuggestedOrder(CompoundType k, memberdefType[] members)
+    private static void PrintSuggestedOrder(CompoundDef k, memberdefType[] members)
     {
         var sorted = members
             .GroupBy(x => Classify(k, x), (group, items) => (group, items.ToArray()))
@@ -161,7 +161,7 @@ internal static class OrderInFile
     private static NamedOrder virtuals = new NamedOrder("virtual", 40);
     private static NamedOrder pureVirtuals = new NamedOrder("pure virtual", 45);
 
-    private static NamedOrder Classify(CompoundType k, memberdefType m)
+    private static NamedOrder Classify(CompoundDef k, memberdefType m)
     {
         var r = SubClassify(k, m);
         return m.Prot switch
@@ -174,7 +174,7 @@ internal static class OrderInFile
         };
     }
 
-    private static NamedOrder SubClassify(CompoundType k, memberdefType m)
+    private static NamedOrder SubClassify(CompoundDef k, memberdefType m)
     {
         if(m.Argsstring?.EndsWith("=delete") ?? false)
         {
@@ -227,7 +227,7 @@ internal static class OrderInFile
             if (m.Static == DoxBool.Yes)
             {
                 // undecorated return AND that is a ref AND that references the current class
-                if (m.Type?.Nodes.Any(node => node is Ref ret && ret.Value.refid == k.refid) ?? false)
+                if (m.Type?.Nodes.Any(node => node is Ref ret && ret.Value.refid == k.Id) ?? false)
                 {
                     return creators;
                 }

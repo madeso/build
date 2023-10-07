@@ -11,9 +11,14 @@ namespace Workbench;
 
 internal static class DoxygenUtils
 {
-    public static IEnumerable<CompoundType> AllClasses(Doxygen.Index.DoxygenType parsed)
+    public static IEnumerable<CompoundDef> AllClasses(DoxygenType parsed)
     {
-        return parsed.compounds.Where(x => x.kind == Doxygen.Index.CompoundKind.Struct || x.kind == Doxygen.Index.CompoundKind.Class);
+        return parsed.compounds
+            .Where(x => x.kind == Doxygen.Index.CompoundKind.Struct
+            || x.kind == Doxygen.Index.CompoundKind.Class
+            || x.kind == Doxygen.Index.CompoundKind.Interface
+            )
+            .Select(x => x.DoxygenFile.FirstCompound);
     }
 
     internal static string DoxygenFileToPath(locationType loc, string root)
@@ -62,9 +67,10 @@ internal static class DoxygenUtils
         return m.Argsstring?.EndsWith("override") ?? false;
     }
 
-    internal static IEnumerable<memberdefType> AllMembersForAClass(CompoundType k)
+    internal static IEnumerable<memberdefType> AllMembersForAClass(CompoundDef k)
     {
-        return k.Compund.Compound.Sectiondef.SelectMany(x => x.memberdef);
+        return k.SectionDefs
+            .SelectMany(x => x.memberdef);
     }
 
     internal static string MemberToString(memberdefType it)
@@ -76,48 +82,59 @@ internal static class DoxygenUtils
         return $"{it.Type} {it.Name}";
     }
 
-    internal static IEnumerable<Doxygen.Compound.memberdefType> AllMembersInNamespace(Doxygen.Compound.compounddefType ns, params DoxSectionKind[] kind)
+    internal static IEnumerable<memberdefType> AllMembersInNamespace(CompoundDef ns, params DoxSectionKind[] kind)
     {
         var kinds = kind.ToImmutableHashSet();
-        return ns.Sectiondef
+        return ns.SectionDefs
                         .Where(s => kinds.Contains(s.kind))
                         .SelectMany(s => s.memberdef);
     }
 
-    internal static IEnumerable<CompoundType> IterateClassesInNamespace(Doxygen.Index.DoxygenType dox, Doxygen.Compound.compounddefType ns)
+    internal static IEnumerable<CompoundDef> IterateClassesInNamespace(DoxygenType dox, CompoundDef ns)
     {
-        foreach (var kr in ns.Innerclass)
+        foreach (var kr in ns.InnerClasses)
         {
-            yield return dox.refidLookup[kr.refid];
+            yield return dox.refidLookup[kr.refid].DoxygenFile.FirstCompound;
         }
     }
 
-    internal static IEnumerable<Doxygen.Compound.compounddefType> IterateNamespaces(Doxygen.Index.DoxygenType dox, CompoundType rootNamespace)
+    internal static IEnumerable<CompoundDef> IterateNamespacesInNamespace(DoxygenType dox, CompoundDef ns)
+    {
+        foreach (var kr in ns.InnerNamespaces)
+        {
+            yield return dox.refidLookup[kr.refid].DoxygenFile.FirstCompound;
+        }
+    }
+
+    internal static IEnumerable<CompoundDef> IterateAllNamespaces(DoxygenType dox, CompoundDef rootNamespace)
     {
         var queue = new Queue<string>();
-        queue.Enqueue(rootNamespace.refid);
+        queue.Enqueue(rootNamespace.Id);
 
         while (queue.Count > 0)
         {
             var ns = dox.refidLookup[queue.Dequeue()];
-            foreach (var r in ns.Compund.Compound.Innernamespace) queue.Enqueue(r.refid);
+            foreach (var r in ns.DoxygenFile.FirstCompound.InnerNamespaces) queue.Enqueue(r.refid);
 
-            yield return ns.Compund.Compound;
+            yield return ns.DoxygenFile.FirstCompound;
         }
     }
 
-    internal static IEnumerable<Doxygen.Compound.compounddefType> AllNamespaces(Doxygen.Index.DoxygenType dox)
+    internal static IEnumerable<CompoundDef> AllNamespaces(DoxygenType dox)
     {
         return dox.compounds
-            .Where(c => c.kind == Doxygen.Index.CompoundKind.Namespace)
-            .Select(ns => ns.Compund.Compound);
+            .Where(c => c.kind == CompoundKind.Namespace)
+            .Select(ns => ns.DoxygenFile.FirstCompound);
     }
 
-    internal static CompoundType? FindNamespace(Doxygen.Index.DoxygenType dox, string namespaceName)
+    internal static CompoundDef? FindNamespace(DoxygenType dox, string namespaceName)
     {
         return dox.compounds
-            .Where(c => c.kind == Doxygen.Index.CompoundKind.Namespace)
-            .Where(c => c.name == namespaceName)
-            .FirstOrDefault();
+            .Where(c => c.kind == CompoundKind.Namespace)
+            .Where(c => c.Name == namespaceName)
+            .FirstOrDefault()
+            ?.DoxygenFile
+            ?.FirstCompound
+            ;
     }
 }

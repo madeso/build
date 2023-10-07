@@ -15,11 +15,11 @@ class CompoundLoader
         this.dir = dir;
     }
 
-    Dictionary<string, DoxygenType> cache = new();
+    Dictionary<string, ParsedDoxygenFile> cache = new();
 
-    public DoxygenType Load(string id)
+    public ParsedDoxygenFile Load(string id)
     {
-        if(cache.TryGetValue(id, out var type))
+        if (cache.TryGetValue(id, out var type))
         {
             return type;
         }
@@ -28,7 +28,7 @@ class CompoundLoader
         XmlDocument doc = new();
         doc.Load(path);
         var root = doc.ElementsNamed("doxygen").First();
-        var parsed = new DoxygenType(root);
+        var parsed = new ParsedDoxygenFile(root);
 
         cache.Add(id, parsed);
         return parsed;
@@ -36,20 +36,24 @@ class CompoundLoader
 }
 
 
-class DoxygenType
+class ParsedDoxygenFile
 {
-    public DoxygenType(XmlElement el)
+    public ParsedDoxygenFile(XmlElement el)
     {
-        ListOfDefinitions = el.ElementsNamed("compounddef").Select(x => new compounddefType(x)).ToArray();
+        ListOfDefinitions = el.ElementsNamed("compounddef").Select(x => new CompoundDef(x)).ToArray();
+        if(ListOfDefinitions.Length != 1)
+        {
+            throw new Exception("Invalid structure");
+        }
     }
 
-    public compounddefType[] ListOfDefinitions {get;}
+    public CompoundDef[] ListOfDefinitions { get; }
 
-    public compounddefType Compound
+    public CompoundDef FirstCompound
     {
         get
         {
-            if(ListOfDefinitions.Length != 1)
+            if (ListOfDefinitions.Length != 1)
             {
                 throw new Exception("Invalid compund");
             }
@@ -58,39 +62,39 @@ class DoxygenType
     }
 }
 
-  class compounddefType
-  {
-    public compounddefType(XmlElement el)
+class CompoundDef
+{
+    public CompoundDef(XmlElement el)
     {
-        Compoundname = el.GetTextOfSubElement("compoundname");
+        CompoundName = el.GetTextOfSubElement("compoundname");
         Title = el.GetTextOfSubElementOrNull("title");
-        
-        Incdepgraph = el.GetFirstElementTypeOrNull("incdepgraph", x=>new graphType(x));
-        Invincdepgraph = el.GetFirstElementTypeOrNull("invincdepgraph", x=>new graphType(x));
-        Templateparamlist = el.GetFirstElementTypeOrNull("templateparamlist", x=>new templateparamlistType(x));
-        // Tableofcontents = el.GetFirstElementTypeOrNull("tableofcontents", x=>new tableofcontentsType(x));
-        Requiresclause = el.GetFirstElementTypeOrNull("requiresclause", x=>new linkedTextType(x));
-        Initializer = el.GetFirstElementTypeOrNull("initializer", x=>new linkedTextType(x));
-        Briefdescription = el.GetFirstElementTypeOrNull("briefdescription", x=>new descriptionType(x));
-        Detaileddescription = el.GetFirstElementTypeOrNull("detaileddescription", x=>new descriptionType(x));
-        Inheritancegraph = el.GetFirstElementTypeOrNull("inheritancegraph", x=>new graphType(x));
-        Collaborationgraph = el.GetFirstElementTypeOrNull("collaborationgraph", x=>new graphType(x));
-        Programlisting = el.GetFirstElementTypeOrNull("programlisting", x=>new listingType(x));
-        Location = el.GetFirstElementTypeOrNull("location", x=>new locationType(x));
-        Listofallmembers = el.GetFirstElementTypeOrNull("listofallmembers", x=>new listofallmembersType(x));
 
-        Basecompoundref = el.ElementsNamed("basecompoundref").Select(x => new compoundRefType(x)).ToArray();
-        Derivedcompoundref = el.ElementsNamed("derivedcompoundref").Select(x => new compoundRefType(x)).ToArray();
+        Incdepgraph = el.GetFirstElementTypeOrNull("incdepgraph", x => new graphType(x));
+        Invincdepgraph = el.GetFirstElementTypeOrNull("invincdepgraph", x => new graphType(x));
+        Templateparamlist = el.GetFirstElementTypeOrNull("templateparamlist", x => new templateparamlistType(x));
+        // Tableofcontents = el.GetFirstElementTypeOrNull("tableofcontents", x=>new tableofcontentsType(x));
+        Requiresclause = el.GetFirstElementTypeOrNull("requiresclause", x => new linkedTextType(x));
+        Initializer = el.GetFirstElementTypeOrNull("initializer", x => new linkedTextType(x));
+        Briefdescription = el.GetFirstElementTypeOrNull("briefdescription", x => new descriptionType(x));
+        Detaileddescription = el.GetFirstElementTypeOrNull("detaileddescription", x => new descriptionType(x));
+        Inheritancegraph = el.GetFirstElementTypeOrNull("inheritancegraph", x => new graphType(x));
+        Collaborationgraph = el.GetFirstElementTypeOrNull("collaborationgraph", x => new graphType(x));
+        Programlisting = el.GetFirstElementTypeOrNull("programlisting", x => new listingType(x));
+        Location = el.GetFirstElementTypeOrNull("location", x => new locationType(x));
+        Listofallmembers = el.GetFirstElementTypeOrNull("listofallmembers", x => new listofallmembersType(x));
+
+        BaseCompoundRefs = el.ElementsNamed("basecompoundref").Select(x => new compoundRefType(x)).ToArray();
+        DerivedCompoundRefs = el.ElementsNamed("derivedcompoundref").Select(x => new compoundRefType(x)).ToArray();
         Includes = el.ElementsNamed("includes").Select(x => new incType(x)).ToArray();
-        Includedby = el.ElementsNamed("includedby").Select(x => new incType(x)).ToArray();
-        Innerdir = el.ElementsNamed("innerdir").Select(x => new refType(x)).ToArray();
-        Innerfile = el.ElementsNamed("innerfile").Select(x => new refType(x)).ToArray();
-        Innerclass = el.ElementsNamed("innerclass").Select(x => new refType(x)).ToArray();
-        Innerconcept = el.ElementsNamed("innerconcept").Select(x => new refType(x)).ToArray();
-        Innernamespace = el.ElementsNamed("innernamespace").Select(x => new refType(x)).ToArray();
-        Innerpage = el.ElementsNamed("innerpage").Select(x => new refType(x)).ToArray();
-        Innergroup = el.ElementsNamed("innergroup").Select(x => new refType(x)).ToArray();
-        Sectiondef = el.ElementsNamed("sectiondef").Select(x => new sectiondefType(x)).ToArray();
+        IncludedBy = el.ElementsNamed("includedby").Select(x => new incType(x)).ToArray();
+        InnerDirs = el.ElementsNamed("innerdir").Select(x => new refType(x)).ToArray();
+        InnerFiles = el.ElementsNamed("innerfile").Select(x => new refType(x)).ToArray();
+        InnerClasses = el.ElementsNamed("innerclass").Select(x => new refType(x)).ToArray();
+        InnerConcepts = el.ElementsNamed("innerconcept").Select(x => new refType(x)).ToArray();
+        InnerNamespaces = el.ElementsNamed("innernamespace").Select(x => new refType(x)).ToArray();
+        InnerPages = el.ElementsNamed("innerpage").Select(x => new refType(x)).ToArray();
+        InnerGroups = el.ElementsNamed("innergroup").Select(x => new refType(x)).ToArray();
+        SectionDefs = el.ElementsNamed("sectiondef").Select(x => new sectiondefType(x)).ToArray();
 
         Id = el.GetAttributeString("id");
         Kind = el.GetAttributeEnum<DoxCompoundKind>("kind");
@@ -103,65 +107,65 @@ class DoxygenType
     }
 
     // elements
-    public string Compoundname {get;}
-    public string? Title {get;}
-    public graphType? Incdepgraph {get;}
-    public graphType? Invincdepgraph {get;}
-    public templateparamlistType? Templateparamlist {get;}
+    public string CompoundName { get; }
+    public string? Title { get; }
+    public graphType? Incdepgraph { get; }
+    public graphType? Invincdepgraph { get; }
+    public templateparamlistType? Templateparamlist { get; }
     // public tableofcontentsType? Tableofcontents {get;}
-    public linkedTextType? Requiresclause {get;}
-    public linkedTextType? Initializer {get;}
-    public descriptionType? Briefdescription {get;}
-    public descriptionType? Detaileddescription {get;}
-    public graphType? Inheritancegraph {get;}
-    public graphType? Collaborationgraph {get;}
-    public listingType? Programlisting {get;}
-    public locationType? Location {get;}
-    public listofallmembersType? Listofallmembers {get;}
-    public compoundRefType[] Basecompoundref {get;}
-    public compoundRefType[] Derivedcompoundref {get;}
-    public incType[] Includes {get;}
-    public incType[] Includedby {get;}
-    public refType[] Innerdir {get;}
-    public refType[] Innerfile {get;}
-    public refType[] Innerclass {get;}
-    public refType[] Innerconcept {get;}
-    public refType[] Innernamespace {get;}
-    public refType[] Innerpage {get;}
-    public refType[] Innergroup {get;}
-    public sectiondefType[] Sectiondef {get;}
+    public linkedTextType? Requiresclause { get; }
+    public linkedTextType? Initializer { get; }
+    public descriptionType? Briefdescription { get; }
+    public descriptionType? Detaileddescription { get; }
+    public graphType? Inheritancegraph { get; }
+    public graphType? Collaborationgraph { get; }
+    public listingType? Programlisting { get; }
+    public locationType? Location { get; }
+    public listofallmembersType? Listofallmembers { get; }
+    public compoundRefType[] BaseCompoundRefs { get; }
+    public compoundRefType[] DerivedCompoundRefs { get; }
+    public incType[] Includes { get; }
+    public incType[] IncludedBy { get; }
+    public refType[] InnerDirs { get; }
+    public refType[] InnerFiles { get; }
+    public refType[] InnerClasses { get; }
+    public refType[] InnerConcepts { get; }
+    public refType[] InnerNamespaces { get; }
+    public refType[] InnerPages { get; }
+    public refType[] InnerGroups { get; }
+    public sectiondefType[] SectionDefs { get; }
 
     // <xsd:element name="qualifier" minOccurs="0" maxOccurs="unbounded" />
 
     // attributes
-    public string Id {get;}
-    public DoxCompoundKind Kind {get;}
-    public DoxProtectionKind? Prot {get;}
-    public DoxLanguage? Language {get;}
-    public DoxBool? Final {get;}
-    public DoxBool? Inline {get;}
-    public DoxBool? Sealed {get;}
-    public DoxBool? Abstract {get;}
-  }
+    public string Id { get; }
+    public DoxCompoundKind Kind { get; }
+    public DoxProtectionKind? Prot { get; }
+    public DoxLanguage? Language { get; }
+    public DoxBool? Final { get; }
+    public DoxBool? Inline { get; }
+    public DoxBool? Sealed { get; }
+    public DoxBool? Abstract { get; }
+}
 
-  class listofallmembersType
-  {
+class listofallmembersType
+{
     public listofallmembersType(XmlElement el)
     {
         member = el.ElementsNamed("member").Select(x => new memberRefType(x)).ToArray();
     }
 
     // nodes
-    public memberRefType[] member {get;}
-  }
+    public memberRefType[] member { get; }
+}
 
-  class memberRefType
-  {
+class memberRefType
+{
     public memberRefType(XmlElement el)
     {
         scope = el.GetTextOfSubElement("scope");
         name = el.GetTextOfSubElement("name");
-        
+
         refid = el.GetAttributeString("refid");
         prot = el.GetAttributeEnum<DoxProtectionKind>("prot");
         virt = el.GetAttributeEnum<DoxVirtualKind>("virt");
@@ -169,32 +173,32 @@ class DoxygenType
     }
 
     // nodes
-    public string scope {get;}
-    public string name {get;}
-    
-    // attributes
-    public string refid {get;}
-    public DoxProtectionKind prot {get;}
-    public DoxVirtualKind virt {get;}
-    public string ambiguityscope {get;}
-  }
+    public string scope { get; }
+    public string name { get; }
 
-  class docHtmlOnlyType
-  {
+    // attributes
+    public string refid { get; }
+    public DoxProtectionKind prot { get; }
+    public DoxVirtualKind virt { get; }
+    public string ambiguityscope { get; }
+}
+
+class docHtmlOnlyType
+{
     public docHtmlOnlyType(XmlElement el)
     {
         Extension = el.GetFirstText();
         throw new NotImplementedException();
     }
 
-    public string Extension {get;}
+    public string Extension { get; }
 
     // attributes
     string block { get; }
-  }
+}
 
-  class compoundRefType
-  {
+class compoundRefType
+{
     public compoundRefType(XmlElement el)
     {
         Extension = el.GetFirstText();
@@ -202,49 +206,49 @@ class DoxygenType
         refid = el.GetAttributeStringOrNull("refid");
         prot = el.GetAttributeEnum<DoxProtectionKind>("prot");
         virt = el.GetAttributeEnum<DoxVirtualKind>("virt");
-}
+    }
 
-    public string Extension {get;}
+    public string Extension { get; }
 
     // attributes
-    public string? refid {get;}
-    public DoxProtectionKind prot {get;}
-    public DoxVirtualKind virt {get;}
-  }
+    public string? refid { get; }
+    public DoxProtectionKind prot { get; }
+    public DoxVirtualKind virt { get; }
+}
 
-  class reimplementType
-  {
+class reimplementType
+{
     public reimplementType(XmlElement el)
     {
         Extension = el.GetFirstText();
         refid = el.GetAttributeString("refid");
     }
 
-    public string Extension {get;}
+    public string Extension { get; }
 
     // attributes
     public string refid { get; }
-  }
+}
 
-  class incType
-  {
+class incType
+{
     public incType(XmlElement el)
     {
         Extension = el.GetFirstText();
 
         refid = el.GetAttributeStringOrNull("refid");
         local = el.GetAttributeEnum<DoxBool>("local");
-}
+    }
 
-    public string Extension {get;}
+    public string Extension { get; }
 
     // attributes
-    public string? refid {get;}
-    public DoxBool local {get;}
-  }
+    public string? refid { get; }
+    public DoxBool local { get; }
+}
 
-  class refType
-  {
+class refType
+{
     public refType(XmlElement el)
     {
         Extension = el.GetFirstText();
@@ -254,16 +258,16 @@ class DoxygenType
         inline = el.GetAttributeEnumOrNull<DoxBool>("inline");
     }
 
-    public string Extension {get;}
+    public string Extension { get; }
 
     // attributes
-    public string refid {get;}
-    public DoxProtectionKind? prot {get;}
-    public DoxBool? inline {get;}
-  }
+    public string refid { get; }
+    public DoxProtectionKind? prot { get; }
+    public DoxBool? inline { get; }
+}
 
-  class refTextType
-  {
+class refTextType
+{
     public refTextType(XmlElement el)
     {
         Extension = el.GetFirstText();
@@ -274,17 +278,17 @@ class DoxygenType
         tooltip = el.GetAttributeStringOrNull("tooltip");
     }
 
-    public string Extension {get;}
+    public string Extension { get; }
 
     // attributes
-    public string refid {get;}
-    public DoxRefKind kindref {get;}
-    public string? external {get;}
-    public string? tooltip {get;}
-  }
+    public string refid { get; }
+    public DoxRefKind kindref { get; }
+    public string? external { get; }
+    public string? tooltip { get; }
+}
 
-  class sectiondefType
-  {
+class sectiondefType
+{
     public sectiondefType(XmlElement el)
     {
         header = el.GetTextOfSubElementOrNull("header");
@@ -294,20 +298,20 @@ class DoxygenType
     }
 
     // elements
-    public string? header {get;}
-    public descriptionType? description {get;}
-    public memberdefType[] memberdef {get;}
+    public string? header { get; }
+    public descriptionType? description { get; }
+    public memberdefType[] memberdef { get; }
 
     // attributes
-    public DoxSectionKind kind {get;}
-  }
+    public DoxSectionKind kind { get; }
+}
 
-  class memberdefType
-  {
+class memberdefType
+{
     public memberdefType(XmlElement el)
     {
         Name = el.GetTextOfSubElement("name");
-    
+
         Definition = el.GetTextOfSubElementOrNull("definition");
         Argsstring = el.GetTextOfSubElementOrNull("argsstring");
         Qualifiedname = el.GetTextOfSubElementOrNull("qualifiedname");
@@ -329,7 +333,7 @@ class DoxygenType
         Briefdescription = el.GetFirstElementTypeOrNull("briefdescription", x => new descriptionType(x));
         Detaileddescription = el.GetFirstElementTypeOrNull("detaileddescription", x => new descriptionType(x));
         Inbodydescription = el.GetFirstElementTypeOrNull("inbodydescription", x => new descriptionType(x));
-    
+
         Reimplements = el.ElementsNamed("reimplements").Select(x => new reimplementType(x)).ToArray();
         Reimplementedby = el.ElementsNamed("reimplementedby").Select(x => new reimplementType(x)).ToArray();
         Param = el.ElementsNamed("param").Select(x => new paramType(x)).ToArray();
@@ -385,102 +389,102 @@ class DoxygenType
 
     // elements
     // missing types.. string?
-    public string Name {get;}
-    
-    public string? Definition {get;}
-    public string? Argsstring {get;}
-    public string? Qualifiedname {get;}
-    public string? Read {get;}
-    public string? Write {get;}
-    public string? Bitfield {get;}
+    public string Name { get; }
 
-    public string[] Qualifier {get;}
+    public string? Definition { get; }
+    public string? Argsstring { get; }
+    public string? Qualifiedname { get; }
+    public string? Read { get; }
+    public string? Write { get; }
+    public string? Bitfield { get; }
+
+    public string[] Qualifier { get; }
 
     //
 
-    public locationType? Location {get;}
+    public locationType? Location { get; }
 
-    public templateparamlistType? Templateparamlist {get;}
-    public linkedTextType? Type {get;}
-    public linkedTextType? Requiresclause {get;}
-    public linkedTextType? Initializer {get;}
-    public linkedTextType? Exceptions {get;}
-    public descriptionType? Briefdescription {get;}
-    public descriptionType? Detaileddescription {get;}
-    public descriptionType? Inbodydescription {get;}
-    
-    public reimplementType[] Reimplements {get;}
-    public reimplementType[] Reimplementedby {get;}
-    public paramType[] Param {get;}
-    public enumvalueType[] Enumvalue {get;}
-    public referenceType[] References {get;}
-    public referenceType[] Referencedby {get;}
+    public templateparamlistType? Templateparamlist { get; }
+    public linkedTextType? Type { get; }
+    public linkedTextType? Requiresclause { get; }
+    public linkedTextType? Initializer { get; }
+    public linkedTextType? Exceptions { get; }
+    public descriptionType? Briefdescription { get; }
+    public descriptionType? Detaileddescription { get; }
+    public descriptionType? Inbodydescription { get; }
+
+    public reimplementType[] Reimplements { get; }
+    public reimplementType[] Reimplementedby { get; }
+    public paramType[] Param { get; }
+    public enumvalueType[] Enumvalue { get; }
+    public referenceType[] References { get; }
+    public referenceType[] Referencedby { get; }
 
     // attributes
-    public DoxMemberKind Kind {get;}
-    public string Id {get;}
-    public DoxProtectionKind Prot {get;}
-    public DoxBool Static {get;}
-    
-    public DoxBool? Strong {get;}
-    public DoxBool? Const {get;}
-    public DoxBool? Explicit {get;}
-    public DoxBool? Inline {get;}
-    public DoxRefQualifierKind? Refqual {get;}
-    public DoxVirtualKind? Virt {get;}
-    public DoxBool? Volatile {get;}
-    public DoxBool? Mutable {get;}
-    public DoxBool? Noexcept {get;}
-    public DoxBool? Constexpr {get;}
+    public DoxMemberKind Kind { get; }
+    public string Id { get; }
+    public DoxProtectionKind Prot { get; }
+    public DoxBool Static { get; }
+
+    public DoxBool? Strong { get; }
+    public DoxBool? Const { get; }
+    public DoxBool? Explicit { get; }
+    public DoxBool? Inline { get; }
+    public DoxRefQualifierKind? Refqual { get; }
+    public DoxVirtualKind? Virt { get; }
+    public DoxBool? Volatile { get; }
+    public DoxBool? Mutable { get; }
+    public DoxBool? Noexcept { get; }
+    public DoxBool? Constexpr { get; }
 
 
     // Qt property -->
-    public DoxBool? Readable {get;}
-    public DoxBool? Writable {get;}
-    
-    // C++/CLI variable -->
-    public DoxBool? Initonly {get;}
-    
-    // C++/CLI and C# property -->
-    public DoxBool? Settable {get;}
-    public DoxBool? Privatesettable {get;}
-    public DoxBool? Protectedsettable {get;}
-    public DoxBool? Gettable {get;}
-    public DoxBool? Privategettable {get;}
-    public DoxBool? Protectedgettable {get;}
-    
-    // C++/CLI function -->
-    public DoxBool? Final {get;}
-    public DoxBool? Sealed {get;}
-    public DoxBool? New {get;}
-    
-    // C++/CLI event -->
-    public DoxBool? Add {get;}
-    public DoxBool? Remove {get;}
-    public DoxBool? Raise {get;}
-    
-    // Objective-C 2.0 protocol method -->
-    public DoxBool? Optional {get;}
-    public DoxBool? Required {get;}
-    
-    // Objective-C 2.0 property accessor -->
-    public DoxAccessor? Accessor {get;}
-    
-    // UNO IDL -->
-    public DoxBool? Attribute {get;}
-    public DoxBool? Property {get;}
-    public DoxBool? Readonly {get;}
-    public DoxBool? Bound {get;}
-    public DoxBool? Removable {get;}
-    public DoxBool? Constrained {get;}
-    public DoxBool? Transient {get;}
-    public DoxBool? Maybevoid {get;}
-    public DoxBool? Maybedefault {get;}
-    public DoxBool? Maybeambiguous {get;}
-  }
+    public DoxBool? Readable { get; }
+    public DoxBool? Writable { get; }
 
-  class descriptionType
-  {
+    // C++/CLI variable -->
+    public DoxBool? Initonly { get; }
+
+    // C++/CLI and C# property -->
+    public DoxBool? Settable { get; }
+    public DoxBool? Privatesettable { get; }
+    public DoxBool? Protectedsettable { get; }
+    public DoxBool? Gettable { get; }
+    public DoxBool? Privategettable { get; }
+    public DoxBool? Protectedgettable { get; }
+
+    // C++/CLI function -->
+    public DoxBool? Final { get; }
+    public DoxBool? Sealed { get; }
+    public DoxBool? New { get; }
+
+    // C++/CLI event -->
+    public DoxBool? Add { get; }
+    public DoxBool? Remove { get; }
+    public DoxBool? Raise { get; }
+
+    // Objective-C 2.0 protocol method -->
+    public DoxBool? Optional { get; }
+    public DoxBool? Required { get; }
+
+    // Objective-C 2.0 property accessor -->
+    public DoxAccessor? Accessor { get; }
+
+    // UNO IDL -->
+    public DoxBool? Attribute { get; }
+    public DoxBool? Property { get; }
+    public DoxBool? Readonly { get; }
+    public DoxBool? Bound { get; }
+    public DoxBool? Removable { get; }
+    public DoxBool? Constrained { get; }
+    public DoxBool? Transient { get; }
+    public DoxBool? Maybevoid { get; }
+    public DoxBool? Maybedefault { get; }
+    public DoxBool? Maybeambiguous { get; }
+}
+
+class descriptionType
+{
     public descriptionType(XmlElement el)
     {
         title = el.GetTextOfSubElementOrNull("title");
@@ -495,7 +499,7 @@ class DoxygenType
             }).ToArray();
     }
 
-    public Node[] Nodes {get;}
+    public Node[] Nodes { get; }
 
     public interface Node
     {
@@ -545,15 +549,15 @@ class DoxygenType
     };
 
     // elements
-    public string? title {get;}
-  }
+    public string? title { get; }
+}
 
-  class enumvalueType
-  {
+class enumvalueType
+{
     public enumvalueType(XmlElement el)
     {
         name = el.GetTextOfSubElement("name");
-        
+
         initializer = el.GetFirstElementTypeOrNull("initializer", x => new linkedTextType(x));
         briefdescription = el.GetFirstElementTypeOrNull("briefdescription", x => new descriptionType(x));
         detaileddescription = el.GetFirstElementTypeOrNull("detaileddescription", x => new descriptionType(x));
@@ -563,28 +567,28 @@ class DoxygenType
     }
 
     // elements
-    public string name {get;}
+    public string name { get; }
 
     // mixed?
-    public linkedTextType? initializer {get;}
-    public descriptionType? briefdescription {get;}
-    public descriptionType? detaileddescription {get;}
+    public linkedTextType? initializer { get; }
+    public descriptionType? briefdescription { get; }
+    public descriptionType? detaileddescription { get; }
 
     // attributes
-    public string id {get;}
-    public DoxProtectionKind prot {get;}
-  }
+    public string id { get; }
+    public DoxProtectionKind prot { get; }
+}
 
-  class templateparamlistType
-  {
+class templateparamlistType
+{
     public templateparamlistType(XmlElement el)
     {
         param = el.ElementsNamed("param").Select(x => new paramType(x)).ToArray();
     }
 
     // elements
-    public paramType[] param {get;}
-  }
+    public paramType[] param { get; }
+}
 
 
 class paramType
@@ -596,10 +600,10 @@ class paramType
         defname = el.GetTextOfSubElementOrNull("defname");
         array = el.GetTextOfSubElementOrNull("array");
 
-        type = el.GetFirstElementTypeOrNull("type", x=> new linkedTextType(x));
-        defval = el.GetFirstElementTypeOrNull("defval", x=> new linkedTextType(x));
-        typeconstraint = el.GetFirstElementTypeOrNull("typeconstraint", x=> new linkedTextType(x));
-        briefdescription = el.GetFirstElementTypeOrNull("briefdescription", x=> new descriptionType(x));
+        type = el.GetFirstElementTypeOrNull("type", x => new linkedTextType(x));
+        defval = el.GetFirstElementTypeOrNull("defval", x => new linkedTextType(x));
+        typeconstraint = el.GetFirstElementTypeOrNull("typeconstraint", x => new linkedTextType(x));
+        briefdescription = el.GetFirstElementTypeOrNull("briefdescription", x => new descriptionType(x));
     }
 
     // elements
@@ -617,12 +621,12 @@ class paramType
 }
 
 class linkedTextType
-  {
+{
     public linkedTextType(XmlElement el)
     {
         Nodes = el.MapChildren<Node>(
-            x=> new Text(x),
-            x => x.Name switch { "ref" => new Ref(x), _ => throw new Exception("invalid type")}
+            x => new Text(x),
+            x => x.Name switch { "ref" => new Ref(x), _ => throw new Exception("invalid type") }
             ).ToArray();
     }
 
@@ -666,18 +670,18 @@ class linkedTextType
             return Value.Extension;
         }
     }
-  }
+}
 
-  class graphType
-  {
+class graphType
+{
     public graphType(XmlElement el)
     {
         Nodes = el.ElementsNamed("node").Select(x => new nodeType(x)).ToArray();
     }
 
     // elements
-      public nodeType[] Nodes {get;}
-  }
+    public nodeType[] Nodes { get; }
+}
 
 class nodeType
 {
@@ -701,25 +705,25 @@ class nodeType
 
 
 class childnodeType
-  {
+{
     public childnodeType(XmlElement el)
     {
-        edgelabel = el.ElementsNamed("edgelabel").Select(x=>x.GetFirstText()).ToArray();
+        edgelabel = el.ElementsNamed("edgelabel").Select(x => x.GetFirstText()).ToArray();
         refid = el.GetAttributeString("refid");
         relation = el.GetAttributeEnum<DoxGraphRelation>("relation");
     }
 
     // elements
-    string[] edgelabel {get;} // unspecified type
+    string[] edgelabel { get; } // unspecified type
 
     // attributes
-    public string refid {get;}
-    public DoxGraphRelation relation {get;}
-  }
+    public string refid { get; }
+    public DoxGraphRelation relation { get; }
+}
 
 
-  class linkType
-  {
+class linkType
+{
     public linkType(XmlElement el)
     {
         refid = el.GetAttributeString("refid");
@@ -727,15 +731,15 @@ class childnodeType
     }
 
     // attributes
-    public string refid {get;}
-    public string? external {get;}
-  }
+    public string refid { get; }
+    public string? external { get; }
+}
 
 
-  
 
-  class listingType
-  {
+
+class listingType
+{
     public listingType(XmlElement el)
     {
         // throw new NotImplementedException();
@@ -745,11 +749,11 @@ class childnodeType
     // codelineType[] codeline;
 
     // attributes
-    public string? filename {get;}
-  }
+    public string? filename { get; }
+}
 
-  class codelineType
-  {
+class codelineType
+{
     public codelineType(XmlElement el)
     {
         throw new NotImplementedException();
@@ -759,14 +763,14 @@ class childnodeType
     // highlightType[] highlight;
 
     // attributes
-    public int lineno {get;}
-    public string refid {get;}
-    public DoxRefKind refkind {get;}
-    public DoxBool external {get;}
-  }
+    public int lineno { get; }
+    public string refid { get; }
+    public DoxRefKind refkind { get; }
+    public DoxBool external { get; }
+}
 
-  class highlightType
-  {
+class highlightType
+{
     public highlightType(XmlElement el)
     {
         throw new NotImplementedException();
@@ -779,22 +783,22 @@ class childnodeType
     // </xsd:choice>
 
     // attributes
-    public DoxHighlightClass Class {get;} // class
-  }
+    public DoxHighlightClass Class { get; } // class
+}
 
-  class spType // mixed
-    {
+class spType // mixed
+{
     public spType(XmlElement el)
     {
         throw new NotImplementedException();
     }
 
     // attributes
-    public int? value {get;}
-  }
+    public int? value { get; }
+}
 
-  class referenceType// mixed class
-  {
+class referenceType// mixed class
+{
     public referenceType(XmlElement el)
     {
         refid = el.GetAttributeString("refid");
@@ -805,16 +809,16 @@ class childnodeType
     }
 
     // attributes
-    public string refid {get;}
-    public string? compoundref {get;}
-    public int? startline {get;}
-    public int? endline {get;}
-    
-    public string name { get;}
-  }
+    public string refid { get; }
+    public string? compoundref { get; }
+    public int? startline { get; }
+    public int? endline { get; }
 
-  class locationType
-  {
+    public string name { get; }
+}
+
+class locationType
+{
     public locationType(XmlElement el)
     {
         file = el.GetAttributeString("file");
@@ -833,16 +837,16 @@ class childnodeType
     }
 
     // attributes
-    public string file {get;}
-    public int? line {get;}
-    public int? column {get;}
-    public string? declfile {get;}
-    public int? declline {get;}
-    public int? declcolumn {get;}
-    public string? bodyfile {get;}
-    public int? bodystart {get;}
-    public int? bodyend {get;}
-  }
+    public string file { get; }
+    public int? line { get; }
+    public int? column { get; }
+    public string? declfile { get; }
+    public int? declline { get; }
+    public int? declcolumn { get; }
+    public string? bodyfile { get; }
+    public int? bodystart { get; }
+    public int? bodyend { get; }
+}
 
 #if false
 
@@ -1652,71 +1656,71 @@ enum DoxRefKind
 
 enum DoxMemberKind
 {
-      [EnumString("define")]
-      Define,
+    [EnumString("define")]
+    Define,
 
-      [EnumString("property")]
-      Property,
+    [EnumString("property")]
+    Property,
 
-      [EnumString("event")]
-      Event,
+    [EnumString("event")]
+    Event,
 
-      [EnumString("variable")]
-      Variable,
+    [EnumString("variable")]
+    Variable,
 
-      [EnumString("typedef")]
-      Typedef,
+    [EnumString("typedef")]
+    Typedef,
 
-      [EnumString("enum")]
-      Enum,
+    [EnumString("enum")]
+    Enum,
 
-      [EnumString("function")]
-      Function,
+    [EnumString("function")]
+    Function,
 
-      [EnumString("signal")]
-      Signal,
+    [EnumString("signal")]
+    Signal,
 
-      [EnumString("prototype")]
-      Prototype,
+    [EnumString("prototype")]
+    Prototype,
 
-      [EnumString("friend")]
-      Friend,
+    [EnumString("friend")]
+    Friend,
 
-      [EnumString("dcop")]
-      Dcop,
+    [EnumString("dcop")]
+    Dcop,
 
-      [EnumString("slot")]
-      Slot,
+    [EnumString("slot")]
+    Slot,
 
-      [EnumString("interface")]
-      Interface,
+    [EnumString("interface")]
+    Interface,
 
-      [EnumString("service")]
-      Service,
+    [EnumString("service")]
+    Service,
 }
 
 enum DoxProtectionKind
 {
-      [EnumString("public")]
-      Public,
+    [EnumString("public")]
+    Public,
 
-      [EnumString("protected")]
-      Protected,
+    [EnumString("protected")]
+    Protected,
 
-      [EnumString("private")]
-      Private,
+    [EnumString("private")]
+    Private,
 
-      [EnumString("package")]
-      Package,
+    [EnumString("package")]
+    Package,
 }
 
 enum DoxRefQualifierKind
 {
-      [EnumString("lvalue")]
-      Lvalue,
+    [EnumString("lvalue")]
+    Lvalue,
 
-      [EnumString("rvalue")]
-      Rvalue,
+    [EnumString("rvalue")]
+    Rvalue,
 }
 
 enum DoxLanguage

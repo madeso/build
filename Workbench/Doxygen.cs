@@ -50,24 +50,24 @@ namespace Workbench.Doxygen.Index
 
     class CompoundType
     {
-        public string name { get; }
+        public string Name { get; }
         public MemberType[] members { get; }
         public string refid { get; }
         public CompoundKind kind { get; }
 
-        public Compound.DoxygenType Compund { get; }
+        public Compound.ParsedDoxygenFile DoxygenFile { get; }
 
         public override string ToString()
         {
-            return $"{kind} {name} ({refid})";
+            return $"{kind} {Name} ({refid})";
         }
 
         public CompoundType(Compound.CompoundLoader dir, XmlElement el)
         {
-            name = el.GetTextOfSubElement("name");
+            Name = el.GetTextOfSubElement("name");
             refid = el.GetAttributeString("refid");
 
-            Compund = dir.Load(refid);
+            DoxygenFile = dir.Load(refid);
 
             kind = ParseKind(el.GetAttributeString("kind"));
             members = el.ElementsNamed("member").Select(x => new MemberType(x)).ToArray();

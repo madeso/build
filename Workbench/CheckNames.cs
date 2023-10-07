@@ -161,7 +161,7 @@ internal class CheckNames
 
     private void CheckNamespace(CompoundType k)
     {
-        CheckName(RemoveNamespace(k.name), k.Compund.Compound.Location!, CaseMatch.LowerSnakeCase, NoValidNames, "namespace");
+        CheckName(RemoveNamespace(k.Name), k.DoxygenFile.FirstCompound.Location!, CaseMatch.LowerSnakeCase, NoValidNames, "namespace");
         CheckSectionDefs(k);
     }
 
@@ -175,7 +175,7 @@ internal class CheckNames
 
     private void CheckSectionDefs(CompoundType k)
     {
-        foreach (var d in k.Compund.Compound.Sectiondef)
+        foreach (var d in k.DoxygenFile.FirstCompound.SectionDefs)
         {
             foreach (var m in d.memberdef)
             {
@@ -195,7 +195,7 @@ internal class CheckNames
                         break;
                     case DoxMemberKind.Function:
                         CheckFunction(m);
-                        CheckFunctionName(k.Compund.Compound, m, isFunction: true);
+                        CheckFunctionName(k.DoxygenFile.FirstCompound, m, isFunction: true);
                         break;
                     default:
                         throw new Exception("Unhandled type");
@@ -215,7 +215,7 @@ internal class CheckNames
         counts[name] = value;
     }
 
-    private void CheckFunctionName(compounddefType c, memberdefType mem, bool isFunction)
+    private void CheckFunctionName(CompoundDef c, memberdefType mem, bool isFunction)
     {
         var source = isFunction ? "function" : "method";
         
@@ -269,14 +269,13 @@ internal class CheckNames
         }
     }
 
-    private void CheckClass(CompoundType k)
+    private void CheckClass(CompoundDef c)
     {
-        var c = k.Compund.Compound;
         if(c.Templateparamlist != null)
         {
             CheckTemplateArguments(c.Location!, c.Templateparamlist.param);
         }
-        foreach (var mem in c.Sectiondef.SelectMany(x => x.memberdef))
+        foreach (var mem in c.SectionDefs.SelectMany(x => x.memberdef))
         {
             switch (mem.Kind)
             {
@@ -310,7 +309,7 @@ internal class CheckNames
 
         // todo(Gustav): check template parameter on current klass
 
-        string name = RemoveNamespace(k.name);
+        string name = RemoveNamespace(c.CompoundName);
         name = RemoveTemplateArguments(name);
         CheckName(name, c.Location!, CaseMatch.CamelCase, ValidTypeNames, "class/struct");
     }

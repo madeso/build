@@ -96,6 +96,32 @@ internal sealed class ListCallgraph : Command<ListCallgraph.Arg>
 }
 
 
+internal sealed class WriteCodeCity : Command<WriteCodeCity.Arg>
+{
+    public sealed class Arg : CommandSettings
+    {
+        [Description("Doxygen xml folder")]
+        [CommandArgument(0, "[doxygen xml]")]
+        public string DoxygenXml { get; init; } = string.Empty;
+
+        [Description("Output file")]
+        [CommandArgument(2, "[output]")]
+        public string OutputFile { get; init; } = string.Empty;
+    }
+
+    public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
+    {
+        return CommonExecute.WithPrinter(printer =>
+        {
+            var cubes = CodeCity.Facade.Collect(printer, arg.DoxygenXml);
+            File.WriteAllLines(arg.OutputFile, CodeCity.Facade.HtmlLines("CodeCity", cubes));
+            return 0;
+        }
+        );
+    }
+}
+
+
 internal sealed class PrintCommand : Command<PrintCommand.Arg>
 {
     public sealed class Arg : CommandSettings
@@ -131,6 +157,8 @@ public static class Main
             root.AddCommand<ListGraphvizCommand>("list").WithDescription("Write dependencies to graphviz");
             root.AddCommand<ListCallgraph>("calls").WithDescription("Write callgraph to graphviz");
             root.AddCommand<PrintCommand>("print").WithDescription("Print all classes and functions in a namespace");
+
+            root.AddCommand<WriteCodeCity>("code-city").WithDescription("Geenrate a code city from doxygen");
         });
     }
 }

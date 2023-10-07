@@ -35,7 +35,7 @@ public class Dependencies
         var namespaces = (
                 rootNamespace == null
                 ? DoxygenUtils.AllNamespaces(dox)
-                : DoxygenUtils.IterateNamespaces(dox, rootNamespace)
+                : DoxygenUtils.IterateAllNamespaces(dox, rootNamespace)
             ).ToImmutableArray();
 
         var g = new Graphviz();
@@ -46,19 +46,19 @@ public class Dependencies
         {
             foreach(var k in DoxygenUtils.IterateClassesInNamespace(dox, ns))
             {
-                if(ignoredClasses.Contains(k.name))
+                if(ignoredClasses.Contains(k.CompoundName))
                 {
                     continue;
                 }
 
                 var name = clusterNamespce
-                    ? k.name.Split(":", StringSplitOptions.RemoveEmptyEntries).Last()
-                    : k.name;
+                    ? k.CompoundName.Split(":", StringSplitOptions.RemoveEmptyEntries).Last()
+                    : k.CompoundName;
 
-                var node = g.AddNodeWithId(name, Shape.box3d, k.refid);
-                classes!.Add(k.refid, node);
+                var node = g.AddNodeWithId(name, Shape.box3d, k.Id);
+                classes!.Add(k.Id, node);
 
-                node.cluster = g.FindOrCreateCluster(ns.Compoundname);
+                node.cluster = g.FindOrCreateCluster(ns.CompoundName);
             }
         }
 
@@ -80,7 +80,7 @@ public class Dependencies
         printer.Info("Adding members for class...");
         foreach (var klass in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
         {
-            if(false == classes.TryGetValue(klass.refid, out var graphvizKlass))
+            if(false == classes.TryGetValue(klass.Id, out var graphvizKlass))
             {
                 continue;
             }
@@ -88,7 +88,7 @@ public class Dependencies
             var existingRefs = new HashSet<string>();
 
             // add inheritence
-            foreach(var r in klass.Compund.Compound.Basecompoundref)
+            foreach(var r in klass.BaseCompoundRefs)
             {
                 if(r.refid == null) continue;
                 AddReference(r.refid, g, classes, () => graphvizKlass, existingRefs);
@@ -158,11 +158,11 @@ public class Dependencies
         }
 
         printer.Info("Working...");
-        var namespaces = DoxygenUtils.IterateNamespaces(dox, rootNamespace).ToImmutableArray();
+        var namespaces = DoxygenUtils.IterateAllNamespaces(dox, rootNamespace).ToImmutableArray();
 
         foreach (var k in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
         {
-            AnsiConsole.MarkupLineInterpolated($"Class {k.name}");
+            AnsiConsole.MarkupLineInterpolated($"Class {k.CompoundName}");
         }
 
         foreach (var k in namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Typedef)))
@@ -221,7 +221,7 @@ public class Dependencies
         Namespace
     }
 
-    private record Method(CompoundType? Klass, memberdefType Function);
+    private record Method(CompoundDef? Klass, memberdefType Function);
     internal static void WriteCallgraphToGraphviz(Printer printer, string doxygenXml, string namespaceFilter, string outputFile, ClusterCallgraphOn clusterOn)
     {
         // todo(Gustav): option to remove namespace prefixes
@@ -259,7 +259,7 @@ public class Dependencies
             var baseName = $"{func.Function.Name}{func.Function.Argsstring}";
             if(clusterOn != ClusterCallgraphOn.Class && func.Klass != null)
             {
-                baseName = $"{func.Klass.name}.{baseName}";
+                baseName = $"{func.Klass.CompoundName}.{baseName}";
             }
             functions.Add(func.Function.Id, g.AddNodeWithId(baseName, FuncToShape(func), func.Function.Id));
         }
@@ -269,7 +269,7 @@ public class Dependencies
             case ClusterCallgraphOn.Class:
                 foreach(var klass in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
                 {
-                    var cluster = g.FindOrCreateCluster(klass.refid, klass.name);
+                    var cluster = g.FindOrCreateCluster(klass.Id, klass.CompoundName);
                     foreach(var fun in DoxygenUtils.AllMembersForAClass(klass)
                         .Where(mem => mem.Kind == DoxMemberKind.Function))
                     {
