@@ -6,14 +6,13 @@ using System.Diagnostics;
 using Workbench;
 
 internal record ProcessExit(string CommandLine, int ExitCode);
-
 internal record OutputLine(string Line, bool IsError);
 
 internal class ProcessExitWithOutput
 {
-    public string CommandLine { get; private init; }
-    public int ExitCode { get; private init; }
-    public OutputLine[] Output { get; private init; }
+    public string CommandLine { get; }
+    public int ExitCode { get; }
+    public OutputLine[] Output { get; }
 
     public ProcessExitWithOutput(ProcessExit pe, OutputLine[] output)
     {
@@ -108,7 +107,6 @@ public class ProcessBuilder
                 }
                 proc.StandardInput.Close();
             }
-
             
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
@@ -181,13 +179,13 @@ public class ProcessBuilder
     {
         var args = arguments.ToArray();
         // https://stackoverflow.com/a/10489920
-        string result = "";
+        var result = "";
 
         if (Environment.OSVersion.Platform is PlatformID.Unix
             or
             PlatformID.MacOSX)
         {
-            foreach (string arg in args)
+            foreach (var arg in args)
             {
                 result += (result.Length > 0 ? " " : "")
                     + arg

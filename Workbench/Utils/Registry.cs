@@ -1,6 +1,6 @@
 namespace Workbench.Utils;
 
-// access registry on windows, returns None on non-windows
+// access registry on windows, returns null on non-windows
 
 public static class Registry
 {

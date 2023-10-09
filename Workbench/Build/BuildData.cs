@@ -1,11 +1,8 @@
-namespace Workbench;
-
-
-using System.IO;
-using System.Text.Json.Serialization;
 using Workbench.Config;
 
-public struct BuildData
+namespace Workbench.Build;
+
+public readonly struct BuildData
 {
     public string Name { get; }
     public List<BuildDependency> Dependencies { get; }
@@ -37,9 +34,9 @@ public struct BuildData
             loaded =>
             {
                 var bd = new BuildData(loaded.Name, Environment.CurrentDirectory, print);
-                foreach (var dependency_name in loaded.Dependencies)
+                foreach (var dependencyName in loaded.Dependencies)
                 {
-                    bd.Dependencies.Add(Workbench.BuildDependencies.CreateDependency(dependency_name, bd));
+                    bd.Dependencies.Add(BuildDependencies.CreateDependency(dependencyName, bd));
                 }
                 return bd;
             }

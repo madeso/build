@@ -1,6 +1,5 @@
 using Spectre.Console;
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Xml;
 using Workbench.CMake;
@@ -13,7 +12,7 @@ public class Solution
 {
     private readonly Dictionary<Guid, Project> projects = new();
 
-    // list always contains atleast one item (unless it has been removed), missing entry means 0 items
+    // list always contains at least one item (unless it has been removed), missing entry means 0 items
     private readonly Dictionary<Guid, List<Guid>> uses = new();
     private readonly Dictionary<Guid, List<Guid>> isUsedBy = new();
 
@@ -60,10 +59,10 @@ public class Solution
         {
             var nodeShape = p.Type switch
             {
-                ProjectType.Executable => Shape.folder,
-                ProjectType.Static => Shape.component,
-                ProjectType.Shared => Shape.ellipse,
-                _ => Shape.plaintext,
+                ProjectType.Executable => Shape.Folder,
+                ProjectType.Static => Shape.Component,
+                ProjectType.Shared => Shape.Ellipse,
+                _ => Shape.PlainText,
             };
             nodes.Add(p.Name, gv.AddNode(p.Name, nodeShape));
         }
@@ -72,15 +71,15 @@ public class Solution
         {
             foreach (var to in p.Uses)
             {
-                var nfrom = nodes[p.Name];
-                var nto = nodes[to.Name];
+                var nodeFrom = nodes[p.Name];
+                var nodeTo = nodes[to.Name];
                 if (reverse == false)
                 {
-                    gv.AddEdge(nfrom, nto);
+                    gv.AddEdge(nodeFrom, nodeTo);
                 }
                 else
                 {
-                    gv.AddEdge(nto, nfrom);
+                    gv.AddEdge(nodeTo, nodeFrom);
                 }
             }
         }
@@ -250,41 +249,155 @@ internal class SolutionParser
 
         {
             var lines = File.ReadLines(solution_path).ToArray();
-            Project? current_project = null;
-            string project_line = string.Empty;
+            Project? currentProject = null;
+            var projectLine = string.Empty;
             var solutionDir = new FileInfo(solution_path).Directory?.FullName!;
             foreach (var line in lines)
             {
                 if (line.StartsWith("Project"))
                 {
                     // this might be a "folder" or a actual project
-                    project_line = line;
+                    projectLine = line;
                 }
                 else if (line.Trim() == "ProjectSection(ProjectDependencies) = postProject")
                 {
                     // it is a project
-                    var equal_index = project_line.IndexOf('=');
-                    var data = project_line.Substring(equal_index + 1).Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    var equalIndex = projectLine.IndexOf('=');
+                    var data = projectLine.Substring(equalIndex + 1).Split(',', StringSplitOptions.RemoveEmptyEntries);
                     var name = data[0].Trim().Trim('\"').Trim();
-                    var relative_path = data[1].Trim().Trim('\"').Trim();
-                    var project_guid = data[2].Trim().Trim('\"').Trim();
+                    var relativePath = data[1].Trim().Trim('\"').Trim();
+                    var projectGuid = data[2].Trim().Trim('\"').Trim();
                     // todo(Gustav): reuse guid?
-                    current_project = solution.AddProject(Solution.ProjectType.Unknown, name);
-                    loads.Add(new(current_project, Path.Join(solutionDir, relative_path)));
-                    projects[project_guid.ToLowerInvariant()] = current_project;
+                    currentProject = solution.AddProject(Solution.ProjectType.Unknown, name);
+                    loads.Add(new(currentProject, Path.Join(solutionDir, relativePath)));
+                    projects[projectGuid.ToLowerInvariant()] = currentProject;
                 }
-                else if (current_project != null && line.Trim().StartsWith("{"))
+                else if (currentProject != null && line.Trim().StartsWith("{"))
                 {
-                    var project_guid = line.Split('=')[0].Trim();
-                    dependencies.Add(new(current_project, project_guid));
+                    var projectGuid = line.Split('=')[0].Trim();
+                    dependencies.Add(new(currentProject, projectGuid));
                 }
                 else if (line == "EndProject")
                 {
-                    current_project = null;
-                    project_line = string.Empty;
+                    currentProject = null;
+                    projectLine = string.Empty;
                 }
             }
         }
+
+        foreach (var (project, projectRelativePath) in loads)
+        {
+            var pathToProjectFile = DetermineRealFilename(projectRelativePath);
+            if (pathToProjectFile == "")
+            {
+                continue;
+            }
+            if (File.Exists(pathToProjectFile) == false)
+            {
+                printer.Info($"Unable to open project file: {pathToProjectFile}");
+                continue;
+            }
+            var document = new XmlDocument();
+            document.Load(pathToProjectFile);
+            var rootElement = document.DocumentElement;
+            if (rootElement == null) { printer.Error($"Failed to load {projectRelativePath}"); continue; }
+            var namespaceMatch = Regex.Match("\\{.*\\}", rootElement.Name);
+            var xmlNamespace = namespaceMatch.Success ? namespaceMatch.Groups[0].Value : "";
+            HashSet<string> configurations = new();
+            foreach (var n in rootElement.ElementsNamed("VisualStudioProject").ElementsNamed("Configurations").ElementsNamed("Configuration"))
+            {
+                var configurationType = n.Attributes["ConfigurationType"];
+                if (configurationType != null)
+                {
+                    configurations.Add(configurationType.Value);
+                }
+            }
+
+            if (configurations.Count != 0)
+            {
+                var suggestedType = configurations.FirstOrDefault() ?? "";
+                if (suggestedType == "2")
+                {
+                    project.Type = ProjectType.Shared;
+                }
+                else if (suggestedType == "4")
+                {
+                    project.Type = ProjectType.Static;
+                }
+                else if (suggestedType == "1")
+                {
+                    project.Type = ProjectType.Executable;
+                }
+            }
+
+            foreach (var n in rootElement.ElementsNamed("PropertyGroup").ElementsNamed("OutputType"))
+            {
+                var innerText = n.InnerText.Trim().ToLowerInvariant();
+                if (innerText == "winexe")
+                {
+                    project.Type = ProjectType.Executable;
+                }
+                else if (innerText == "exe")
+                {
+                    project.Type = ProjectType.Executable;
+                }
+                else if (innerText == "library")
+                {
+                    project.Type = ProjectType.Shared;
+                }
+                else
+                {
+                    printer.Info($"Unknown build type in {pathToProjectFile}: {innerText}");
+                }
+            }
+
+            var configurationTypes = rootElement.ElementsNamed("PropertyGroup").ElementsNamed("ConfigurationType").ToImmutableHashSet();
+            foreach(var n in configurationTypes)
+            {
+                var innerText = n.InnerText.Trim().ToLowerInvariant();
+                if (innerText == "utility")
+                {
+                }
+                else if (innerText == "staticlibrary")
+                {
+                    project.Type = ProjectType.Static;
+                }
+                else if (innerText == "application")
+                {
+                    project.Type = ProjectType.Executable;
+                }
+                else
+                {
+                    printer.Info($"Unknown build type in {pathToProjectFile}: {innerText}");
+                }
+            }
+
+            foreach (var n in rootElement.ElementsNamed("ItemGroup").ElementsNamed("ProjectReference").ElementsNamed("Project"))
+            {
+                var innerText = n.InnerText.Trim();
+                dependencies.Add(new(project, innerText));
+            }
+        }
+
+
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // complete loading
+        foreach (var (from, dependency) in dependencies)
+        {
+            var projectGuid = dependency.ToLowerInvariant();
+            if (projects.TryGetValue(projectGuid, out var project))
+            {
+                solution.AddDependency(from, project);
+            }
+            else
+            {
+                // todo(Gustav) look into these warnings...!
+                // printer.Info("Missing reference ", s)
+                // pass
+            }
+        }
+
+        return solution;
 
         ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // load additional project data from file
@@ -307,121 +420,6 @@ internal class SolutionParser
             }
             return "";
         }
-        
-        foreach (var (project, projectRelativePath) in loads)
-        {
-            var pathToProjectFile = DetermineRealFilename(projectRelativePath);
-            if (pathToProjectFile == "")
-            {
-                continue;
-            }
-            if (File.Exists(pathToProjectFile) == false)
-            {
-                printer.Info($"Unable to open project file: {pathToProjectFile}");
-                continue;
-            }
-            var document = new XmlDocument();
-            document.Load(pathToProjectFile);
-            var root_element = document.DocumentElement;
-            if (root_element == null) { printer.Error($"Failed to load {projectRelativePath}"); continue; }
-            var namespace_match = Regex.Match("\\{.*\\}", root_element.Name);
-            var xmlNamespace = namespace_match.Success ? namespace_match.Groups[0].Value : "";
-            HashSet<string> configurations = new();
-            foreach (var n in root_element.ElementsNamed("VisualStudioProject").ElementsNamed("Configurations").ElementsNamed("Configuration"))
-            {
-                if (n.Attributes == null) { continue; }
-                var configuration_type = n.Attributes["ConfigurationType"];
-                if (configuration_type != null)
-                {
-                    configurations.Add(configuration_type.Value);
-                }
-            }
-
-            if (configurations.Count != 0)
-            {
-                var suggested_type = configurations.FirstOrDefault() ?? "";
-                if (suggested_type == "2")
-                {
-                    project.Type = ProjectType.Shared;
-                }
-                else if (suggested_type == "4")
-                {
-                    project.Type = ProjectType.Static;
-                }
-                else if (suggested_type == "1")
-                {
-                    project.Type = ProjectType.Executable;
-                }
-            }
-
-            foreach (var n in root_element.ElementsNamed("PropertyGroup").ElementsNamed("OutputType"))
-            {
-                var inner_text = n.InnerText.Trim().ToLowerInvariant();
-                if (inner_text == "winexe")
-                {
-                    project.Type = ProjectType.Executable;
-                }
-                else if (inner_text == "exe")
-                {
-                    project.Type = ProjectType.Executable;
-                }
-                else if (inner_text == "library")
-                {
-                    project.Type = ProjectType.Shared;
-                }
-                else
-                {
-                    printer.Info($"Unknown build type in {pathToProjectFile}: {inner_text}");
-                }
-            }
-
-            var configurationTypes = root_element.ElementsNamed("PropertyGroup").ElementsNamed("ConfigurationType").ToImmutableHashSet();
-            foreach(var n in configurationTypes)
-            {
-                var inner_text = n.InnerText.Trim().ToLowerInvariant();
-                if (inner_text == "utility")
-                {
-                }
-                else if (inner_text == "staticlibrary")
-                {
-                    project.Type = ProjectType.Static;
-                }
-                else if (inner_text == "application")
-                {
-                    project.Type = ProjectType.Executable;
-                }
-                else
-                {
-                    printer.Info($"Unknown build type in {pathToProjectFile}: {inner_text}");
-                }
-            }
-
-            foreach (var n in root_element.ElementsNamed("ItemGroup").ElementsNamed("ProjectReference").ElementsNamed("Project"))
-            {
-                var inner_text = n.InnerText.Trim();
-                dependencies.Add(new(project, inner_text));
-            }
-        }
-
-
-        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        // complete loading
-        foreach (var (from, dependency) in dependencies)
-        {
-            var projectGuid = dependency.ToLowerInvariant();
-            if (projects.TryGetValue(projectGuid, out var project))
-            {
-                solution.AddDependency(from, project);
-            }
-            else
-            {
-                // todo(Gustav) look into theese warnings...!
-                // printer.Info("Missing reference ", s)
-                // pass
-            }
-        }
-
-        return solution;
     }
 
 }

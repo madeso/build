@@ -1,4 +1,3 @@
-using Microsoft.Win32.SafeHandles;
 using System.Xml;
 
 namespace Workbench.Utils;
@@ -6,24 +5,10 @@ namespace Workbench.Utils;
 internal static class XmlExtensions
 {
     public static bool HasAttribute(this XmlNode element, string search)
-    {
-        var attr = element.Attributes;
-        if (attr == null) { return false; }
-
-        XmlAttribute? attribute = attr[search];
-        return attribute != null;
-    }
+        => element.Attributes?[search] != null;
 
     public static string? GetAttributeStringOrNull(this XmlNode element, string name)
-    {
-        var attr = element.Attributes;
-        if (attr == null) { return null; }
-
-        XmlAttribute? attribute = attr[name];
-        if (attribute == null) return null;
-
-        else return attribute.Value;
-    }
+        => element.Attributes?[name]?.Value;
 
     public static int? GetAttributeIntOrNull(this XmlNode element, string name)
     {
@@ -34,16 +19,12 @@ internal static class XmlExtensions
     }
 
     public static int GetAttributeInt(this XmlNode element, string name)
-    {
-        return element.GetAttributeIntOrNull(name) ?? throw new Exception("missing int");
-    }
+        => element.GetAttributeIntOrNull(name)
+           ?? throw new Exception("missing int");
 
     public static string GetAttributeString(this XmlNode element, string name)
-    {
-        string? v = element.GetAttributeStringOrNull(name);
-        if (v == null) throw new Exception(element.Name + " is missing text attribute \"" + name + "\"");
-        else return v;
-    }
+        => element.GetAttributeStringOrNull(name)
+           ?? throw new Exception($"{element.Name} is missing text attribute \"{name}\"");
 
     public static IEnumerable<XmlElement> Elements(this XmlNode root)
     {
@@ -56,7 +37,6 @@ internal static class XmlExtensions
 
     public static XmlElement? GetFirstElementOrNull(this XmlNode root, string name)
     {
-        // todo(Gustav): throw if too many
         var arr = root.ElementsNamed(name).ToArray();
 
         return arr.Length switch
@@ -71,75 +51,55 @@ internal static class XmlExtensions
         where T : class
     {
         var el = root.GetFirstElementOrNull(name);
-        if (el == null) return null;
-
-        return converter(el);
+        return el == null
+            ? null
+            : converter(el);
     }
 
     public static T GetFirstElementType<T>(this XmlNode root, string name, Func<XmlElement, T> converter)
         where T : class
-    {
-        var r = root.GetFirstElementTypeOrNull(name, converter);
-        if (r == null) { throw new Exception("Missing required element"); }
-
-        return r;
-    }
+        => root.GetFirstElementTypeOrNull(name, converter)
+           ?? throw new Exception("Missing required element");
 
     private static string? GetFirstElementStringOrNull(this XmlNode root, string name)
-    {
-        return root.GetFirstElementTypeOrNull(name, GetSmartText);
-    }
+        => root.GetFirstElementTypeOrNull(name, GetSmartText);
 
     private static string GetFirstElementString(this XmlNode root, string name)
-    {
-        var s = root.GetFirstElementStringOrNull(name);
-        if (s == null) throw new Exception("string was null");
-
-        return s;
-    }
+        => root.GetFirstElementStringOrNull(name)
+           ?? throw new Exception("string was null");
 
     public static string NameOf(this XmlElement element)
     {
-        string attribute = "";
-        if (HasAttribute(element, "id"))
-        {
-            attribute = "[" + element.GetAttributeString("id") + "]";
-        }
-        return element.Name + attribute; ;
+        var id = element.GetAttributeStringOrNull("id");
+        return id == null
+            ? element.Name
+            : $"{element.Name}[{id}]";
     }
 
-    public static string PathOf(this XmlElement element)
+    public static string PathOf(this XmlElement rootElement)
     {
-        XmlElement c = element;
-        string result = "";
-        while (c != null)
+        var result = "";
+
+        var iterator = rootElement;
+        while (iterator != null)
         {
-            result = c.NameOf() + "/" + result;
+            result = iterator.NameOf() + "/" + result;
+            iterator = iterator.ParentNode as XmlElement;
         }
+
         return result;
     }
 
     public static IEnumerable<XmlElement> ElementsNamed(this XmlNode root, string childName)
-    {
-        foreach (var el in root.Elements())
-        {
-            if (el.Name != childName) continue;
-            yield return el;
-        }
-    }
+        => root.Elements()
+            .Where(el => el.Name == childName);
 
     public static IEnumerable<XmlElement> ElementsNamed(this IEnumerable<XmlNode> nodes, string childName)
-    {
-        return nodes.SelectMany(x => x.ElementsNamed(childName));
-    }
+        => nodes.SelectMany(x => x.ElementsNamed(childName));
 
     public static string GetFirstText(this XmlNode node)
-    {
-        var result = node.GetFirstTextOrNull();
-        if (result == null) throw new Exception("node is missing any text nodes");
-
-        return result;
-    }
+        => node.GetFirstTextOrNull()
+           ?? throw new Exception("node is missing any text nodes");
 
     public static string? GetFirstTextOrNull(this XmlNode node)
     {
@@ -147,6 +107,7 @@ internal static class XmlExtensions
         {
             throw new Exception("Too many child nodes");
         }
+
         foreach (XmlNode n in node.ChildNodes)
         {
             var s = GetSmartTextOrNull(n);
@@ -156,73 +117,63 @@ internal static class XmlExtensions
     }
 
     public static string GetSmartText(this XmlNode el)
-    {
-        var s = GetSmartTextOrNull(el);
-        if (s == null) throw new Exception("Failed to get smart text of node");
+        => GetSmartTextOrNull(el)
+           ?? throw new Exception("Failed to get smart text of node");
 
-        else return s;
-    }
-    private static string? GetSmartTextOrNull(XmlNode el)
-    {
-        return el switch
+    private static string? GetSmartTextOrNull(XmlNode node) =>
+        node switch
         {
             XmlText text => text.Value,
             XmlCDataSection cdata => cdata.Value,
             _ => null
         };
-    }
 
-    public static string? GetTextOfSubElementOrNull(this XmlNode node, string p)
+    public static string? GetTextOfSubElementOrNull(this XmlNode node, string name)
     {
-        var el = node.GetFirstElementOrNull(p);
-        if (el == null) { return null; }
+        var element = node.GetFirstElementOrNull(name);
+        if (element == null) return null;
 
-        if (el.ChildNodes.Count > 1)
-        {
-            throw new Exception("too many text elements");
-        }
+        if (element.ChildNodes.Count > 1) throw new Exception("too many text elements");
 
-        var ch = el.FirstChild;
-        if (ch == null) { return null; }
+        var firstChild = element.FirstChild;
+        if (firstChild == null) return null;
 
-        return GetSmartTextOrNull(ch);
+        return GetSmartTextOrNull(firstChild);
     }
 
-    public static string GetTextOfSubElement(this XmlNode node, string p)
-    {
-        var t = node.GetTextOfSubElementOrNull(p);
-        if (t == null) throw new Exception("Failed to get smart text of node");
+    public static string GetTextOfSubElement(this XmlNode node, string name)
+        => node.GetTextOfSubElementOrNull(name)
+           ?? throw new Exception("Failed to get smart text of node");
 
-        return t;
-    }
-
-    public static E? GetAttributeEnumOrNull<E>(this XmlNode root, string name) where E : struct
+    public static TEnum? GetAttributeEnumOrNull<TEnum>(this XmlNode root, string name) where TEnum : struct
     {
         var v = root.GetAttributeStringOrNull(name);
         if (v == null) { return null; }
 
-        var (ret, err) = ReflectedValues<E>.Converter.StringToEnum(v);
+        var (ret, err) = ReflectedValues<TEnum>.Converter.StringToEnum(v);
         if (ret == null) { throw new Exception(err); }
 
         return ret;
     }
 
-    public static E GetAttributeEnum<E>(this XmlNode root, string name) where E : struct
-    {
-        return root.GetAttributeEnumOrNull<E>(name) ?? throw new Exception("missing required enum");
-    }
+    public static TEnum GetAttributeEnum<TEnum>(this XmlNode root, string name) where TEnum : struct
+        => root.GetAttributeEnumOrNull<TEnum>(name)
+           ?? throw new Exception("missing required enum");
 
-    public static IEnumerable<T> MapChildren<T>(this XmlNode root, Func<string, T> fromstr, Func<XmlElement, T> fromel)
+    public static IEnumerable<T> MapChildren<T>(this XmlNode root,
+        Func<string, T> fromString,
+        Func<XmlElement, T> fromElement)
     {
         foreach (var node in root.ChildNodes)
         {
-            if (node is XmlElement el)
+            switch (node)
             {
-                yield return fromel(el);
-            }
-            else if (node is XmlText text)
-            {
-                yield return fromstr(text.Value!);
+                case XmlElement el:
+                    yield return fromElement(el);
+                    break;
+                case XmlText text:
+                    yield return fromString(text.Value!);
+                    break;
             }
         }
     }

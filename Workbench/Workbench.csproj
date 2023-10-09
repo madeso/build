@@ -8,6 +8,8 @@
         <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
 
 		<AssemblyName>wb</AssemblyName>
+
+		<RootNamespace>Workbench</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>

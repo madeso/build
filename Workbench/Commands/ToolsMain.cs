@@ -54,7 +54,7 @@ internal sealed class LineCountCommand : Command<LineCountCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => F.handle_line_count(print, settings.Files,
+        return CommonExecute.WithPrinter(print => F.HandleLineCountCommand(print, settings.Files,
             settings.each, settings.show, settings.discard_empty));
     }
 }
@@ -100,7 +100,7 @@ internal sealed class IncludeListCommand : Command<IncludeListCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => F.handle_list(print, settings.GetPathToCompileCommandsOrNull(print),
+        return CommonExecute.WithPrinter(print => F.HandleListCommand(print, settings.GetPathToCompileCommandsOrNull(print),
             settings.Files, settings.print_files, settings.print_stats, settings.print_max,
             settings.print_list, settings.count, settings.limit));
     }
@@ -136,7 +136,7 @@ internal sealed class IncludeGraphvizCommand : Command<IncludeGraphvizCommand.Ar
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return CommonExecute.WithPrinter(print =>
-            F.handle_gv(print, settings.GetPathToCompileCommandsOrNull(print),
+            F.HandleGraphvizCommand(print, settings.GetPathToCompileCommandsOrNull(print),
                 settings.Files, settings.limit, settings.group, settings.cluster));
     }
 }
@@ -174,7 +174,7 @@ internal sealed class ListIndentsCommand : Command<ListIndentsCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return CommonExecute.WithPrinter(print =>
-            F.handle_list_indents(print, settings.Files, settings.each, settings.show, settings.hist, settings.discard_empty));
+            F.HandleListIndents(print, settings.Files, settings.each, settings.show, settings.hist, settings.discard_empty));
     }
 }
 
@@ -193,7 +193,7 @@ internal sealed class MissingPragmaOnceCommand : Command<MissingPragmaOnceComman
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => F.handle_missing_include_guards(print, settings.Files));
+        return CommonExecute.WithPrinter(print => F.MissingIncludeGuardsCommand(print, settings.Files));
     }
 }
 
@@ -221,7 +221,7 @@ internal sealed class MissingInCmakeCommand : Command<MissingInCmakeCommand.Arg>
                 return -1;
             }
 
-            return F.handle_missing_in_cmake(print, settings.Files, CMake.CmakeTools.FindBuildOrNone(settings, print), cmake);
+            return F.HandleMissingInCmakeCommand(print, settings.Files, CMake.CmakeTools.FindBuildOrNone(settings, print), cmake);
         });
     }
 }
@@ -250,7 +250,7 @@ internal sealed class ListNoProjectFoldersCommand : Command<ListNoProjectFolders
                 return -1;
             }
 
-            return F.handle_list_no_project_folder(print, settings.Files, settings.GetPathToCompileCommandsOrNull(print), cmake);
+            return F.HandleListNoProjectFolderCommand(print, settings.Files, settings.GetPathToCompileCommandsOrNull(print), cmake);
         });
     }
 }
@@ -270,7 +270,7 @@ internal sealed class CheckFilesCommand : Command<CheckFilesCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => F.handle_check_files(print, settings.Files));
+        return CommonExecute.WithPrinter(print => F.HandleCheckFilesCommand(print, settings.Files));
     }
 }
 

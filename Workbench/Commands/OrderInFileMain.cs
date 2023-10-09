@@ -35,7 +35,7 @@ internal sealed class ClassifyClass : Command<ClassifyClass.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return CommonExecute.WithPrinter(printer => OrderInFile.ClassifyClass(printer, arg.DoxygenXml, arg.ClassName, Environment.CurrentDirectory));
+        return CommonExecute.WithPrinter(printer => OrderInFile.ClassifyClass(arg.DoxygenXml, arg.ClassName));
     }
 }
 

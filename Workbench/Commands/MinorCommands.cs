@@ -45,7 +45,7 @@ internal sealed class CatDirCommand : Command<CatDirCommand.Arg>
         {
             var dir = new DirectoryInfo(arg.Dir);
             foreach (var file in FileUtil.IterateFiles(dir, false, true)
-                .Where(file => FileUtil.FileHasAnyExtension(file.FullName, arg.AllSources ? FileUtil.HEADER_AND_SOURCE_FILES : FileUtil.HEADER_FILES))
+                .Where(file => FileUtil.FileHasAnyExtension(file.FullName, arg.AllSources ? FileUtil.HeaderAndSourceFiles : FileUtil.HeaderFiles))
             )
             {
                 print.Info($"File: {file.FullName}");

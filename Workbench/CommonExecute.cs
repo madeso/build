@@ -1,3 +1,4 @@
+using Workbench.Build;
 using Workbench.CheckIncludes;
 
 namespace Workbench;

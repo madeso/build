@@ -1,5 +1,3 @@
-﻿using static Workbench.CheckIncludes.RegexOrErr;
-
 namespace Workbench.Utils;
 
 public class ColCounter<T>
@@ -40,7 +38,7 @@ public class ColCounter<T>
         return data.Select(x => x.Value).Sum();
     }
 
-    public void update(ColCounter<T> rhs)
+    public void Update(ColCounter<T> rhs)
     {
         foreach (var (key, count) in rhs.data)
         {
@@ -52,14 +50,11 @@ public class ColCounter<T>
     {
         foreach (var (key, rhsValue) in rhs.data)
         {
-            if (data.TryGetValue(key, out var selfValue))
-            {
-                Set(key, Math.Max(selfValue, rhsValue));
-            }
-            else
-            {
-                Set(key, rhsValue);
-            }
+            Set(key,
+                data.TryGetValue(key, out var selfValue)
+                    ? Math.Max(selfValue, rhsValue)
+                    : rhsValue
+                );
         }
     }
 

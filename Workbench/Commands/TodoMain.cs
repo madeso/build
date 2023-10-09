@@ -77,14 +77,11 @@ internal sealed class GroupWithTimeCommand : Command<GroupWithTimeCommand.Arg>
                 return todos.Select(x => new {Todo = x, Blame = blames[x.Line-1] });
             });
 
-        // use author datetime when sorting
-        static DateTime BlameToTime(Git.BlameLine b) => b.Author.Time;
-
         // extract from file grouping and order by time
         var sortedTodos = todoWithBlame.SelectMany(x => x).OrderByDescending(x => BlameToTime(x.Blame));
 
         // group on x time ago to break up the info dump
-        var timeGrouped = sortedTodos.GroupBy(x => DateUtils.TimeAgo(BlameToTime(x.Blame)),
+        var timeGrouped = sortedTodos.GroupBy(x => BlameToTime(x.Blame).GetTimeAgoString(),
                 (x, todos) => new {Time = x, Todos = todos.ToArray()}
             ).ToArray();
 
@@ -100,5 +97,8 @@ internal sealed class GroupWithTimeCommand : Command<GroupWithTimeCommand.Arg>
         }
 
         return 0;
+
+        // use author datetime when sorting
+        static DateTime BlameToTime(Git.BlameLine b) => b.Author.Time;
     }
 }

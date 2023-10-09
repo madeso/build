@@ -2,27 +2,27 @@ namespace Workbench;
 
 internal class Html
 {
-    public string str = "";
+    public string Buffer = "";
 
-    public void push_str(string s)
+    public void PushString(string s)
     {
-        str += s;
+        Buffer += s;
     }
 
-    public void begin(string title)
+    public void BeginJoin(string title)
     {
-        begin_x(title, true);
+        Begin(title, true);
     }
 
-    public void begin_nojoin(string title)
+    public void BeginNoJoin(string title)
     {
-        begin_x(title, false);
+        Begin(title, false);
     }
 
-    private void begin_x(string title, bool use_join)
+    private void Begin(string title, bool useJoin)
     {
-        string div_class = use_join ? "body" : "body_single";
-        str +=
+        var divClass = useJoin ? "body" : "body_single";
+        Buffer +=
             $@"
 <!DOCTYPE html>
 <html>
@@ -46,13 +46,13 @@ internal class Html
 <div id=""content"">
 
 <h1>{title}</h1>
-<div id=""{div_class}"">
+<div id=""{divClass}"">
 ";
     }
 
-    public void end()
+    public void End()
     {
-        str += @"
+        Buffer += @"
 </div>
 </div>
 </div>
@@ -62,7 +62,7 @@ internal class Html
     }
 
 
-    public static string safe_string(string str)
+    public static string GetSafeString(string str)
     {
         // algorithm inspired by the description of the doxygen version
         // https://stackoverflow.com/a/30490482
@@ -97,23 +97,23 @@ internal class Html
     }
 
 
-    internal static string safe_inspect_filename(string path, string extWithDot)
+    internal static string GetSafeInspectFilename(string path, string extWithDot)
     {
-        return $"inspect_{safe_string(path)}{extWithDot}";
+        return $"inspect_{GetSafeString(path)}{extWithDot}";
     }
 
-    public static string safe_inspect_filename_html(string path)
+    public static string GetSafeInspectFilenameHtml(string path)
     {
-        return safe_inspect_filename(path, ".html");
+        return GetSafeInspectFilename(path, ".html");
     }
 
-    public static string safe_inspect_filename_without_html(string path)
+    public static string GetSafeInspectFilenameWithoutHtml(string path)
     {
-        return safe_inspect_filename(path, "");
+        return GetSafeInspectFilename(path, "");
     }
 
 
-    public static string get_filename(string root, string path)
+    public static string GetFilename(string root, string path)
     {
         return Path.GetRelativePath(root, path);
     }
@@ -121,27 +121,27 @@ internal class Html
 
     public static string inspect_filename_link(string root, string path)
     {
-        var file = safe_inspect_filename_html(path);
-        var name = get_filename(root, path);
+        var file = GetSafeInspectFilenameHtml(path);
+        var name = GetFilename(root, path);
 
         return $"<a href=\"{file}\">{name}</a>";
     }
 
 
-    private static string path_to_css_file(string root) { return Path.Join(root, "header_hero_report.css"); }
+    private static string GetPathToCssFile(string root) { return Path.Join(root, "header_hero_report.css"); }
 
 
-    public static void write_css_file(string root)
+    public static void WriteCssFile(string root)
     {
-        File.WriteAllText(path_to_css_file(root), CSS_SOURCE);
+        File.WriteAllText(GetPathToCssFile(root), CssSource);
     }
 
-    internal void write_to_file(string path)
+    internal void WriteToFile(string path)
     {
-        File.WriteAllText(path, str);
+        File.WriteAllText(path, Buffer);
     }
 
-    private const string CSS_SOURCE = @"
+    private const string CssSource = @"
 
 /* Reset */
 

@@ -113,13 +113,11 @@ internal class Facade
             // add inner classes
             foreach (var klass in classes)
             {
-                // todo(Gustav): handle proeprties better
+                // todo(Gustav): handle properties better
                 var numberOfVariables = DoxygenUtils.AllMembersForAClass(klass)
-                    .Where(mem => mem.Kind == DoxMemberKind.Variable)
-                    .Count();
+                    .Count(mem => mem.Kind == DoxMemberKind.Variable);
                 var numberOfMethods = DoxygenUtils.AllMembersForAClass(klass)
-                    .Where(mem => mem.Kind == DoxMemberKind.Function)
-                    .Count();
+                    .Count(mem => mem.Kind == DoxMemberKind.Function);
                 var funcLoc = DoxygenUtils.AllMembersForAClass(klass)
                     .Where(mem => mem.Kind == DoxMemberKind.Function)
                     .Select(mem => LengthOfCode(mem.Location))

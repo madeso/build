@@ -90,7 +90,7 @@ internal sealed class WriteCommand : Command<WriteCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
         return CommonExecute.WithPrinter(printer =>
-            F.handle_write(printer, args.MakeExclusionList(), args.target, args.simplify, args.reverse, args.Solution)
+            F.WriteCommand(printer, args.MakeExclusionList(), args.target, args.simplify, args.reverse, args.Solution)
         );
     }
 }
@@ -105,7 +105,7 @@ internal sealed class SourceCommand : Command<SourceCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
         return CommonExecute.WithPrinter(printer =>
-            F.handle_source(printer, args.MakeExclusionList(), args.simplify, args.reverse, args.Solution)
+            F.SourceCommand(printer, args.MakeExclusionList(), args.simplify, args.reverse, args.Solution)
         );
     }
 }
@@ -119,7 +119,7 @@ internal sealed class ListCommand : Command<ListCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
-        return CommonExecute.WithPrinter(printer => F.handle_list(printer, args.Solution));
+        return CommonExecute.WithPrinter(printer => F.ListCommand(printer, args.Solution));
     }
 }
 

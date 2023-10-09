@@ -1,4 +1,4 @@
-﻿using Spectre.Console;
+using Spectre.Console;
 using Spectre.Console.Cli;
 using System.Collections.Immutable;
 using System.ComponentModel;
@@ -53,7 +53,6 @@ internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
         var grouped = F.GroupExtensionsWithMaxIndent(settings.TabWidth, settings.EnableJavadocHack, files);
         foreach (var f in grouped)
         {
-            if (f.MaxIdent == null) { continue; }
             AnsiConsole.MarkupLineInterpolated($"Max ident [red]{f.MaxIdent.Info.Max}[/] ([red]{f.MaxIdent.Info.MaxLevel}[/]) for [blue]{f.Type}[/] in [blue]{f.MaxIdent.File}[/] ({f.MaxIdent.Info.MaxLine})");
         }
 

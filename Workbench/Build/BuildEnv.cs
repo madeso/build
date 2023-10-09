@@ -1,10 +1,9 @@
-using Spectre.Console.Cli;
 using System.ComponentModel;
-using System.Reflection.Metadata.Ecma335;
 using System.Text.Json.Serialization;
+using Spectre.Console.Cli;
 using Workbench.Utils;
 
-namespace Workbench;
+namespace Workbench.Build;
 
 [TypeConverter(typeof(EnumTypeConverter<Compiler>))]
 [JsonConverter(typeof(EnumJsonConverter<Compiler>))]
@@ -42,28 +41,28 @@ public enum Platform
 
 
 // #[derive(Serialize, Deserialize, Debug)]
-public class BuildEnviroment
+public class BuildEnvironment
 {
-    public Compiler? compiler { get; set; } = null;
-    public Platform? platform { get; set; } = null;
+    public Compiler? Compiler { get; set; } = null;
+    public Platform? Platform { get; set; } = null;
 
-    public static BuildEnviroment CreateEmpty()
+    public static BuildEnvironment CreateEmpty()
     {
-        return new BuildEnviroment();
+        return new BuildEnvironment();
     }
 
     public CMake.Generator CreateCmakeGenerator()
     {
-        if (compiler == null) { throw new ArgumentNullException(nameof(compiler)); }
-        if (platform == null) { throw new ArgumentNullException(nameof(platform)); }
-        return BuildUitls.CreateCmakeGenerator(compiler.Value, platform.Value);
+        if (Compiler == null) { throw new ArgumentNullException(nameof(Compiler)); }
+        if (Platform == null) { throw new ArgumentNullException(nameof(Platform)); }
+        return BuildFunctions.CreateCmakeGenerator(Compiler.Value, Platform.Value);
     }
 
     internal string CreateMsBuildPlatform()
     {
-        if (compiler == null) { throw new ArgumentNullException(nameof(compiler)); }
-        if (platform == null) { throw new ArgumentNullException(nameof(platform)); }
-        return BuildUitls.CreateMsBuildPlatform(compiler.Value, platform.Value);
+        if (Compiler == null) { throw new ArgumentNullException(nameof(Compiler)); }
+        if (Platform == null) { throw new ArgumentNullException(nameof(Platform)); }
+        return BuildFunctions.CreateMsBuildPlatform(Compiler.Value, Platform.Value);
     }
 
     // validate the build environment
@@ -71,13 +70,13 @@ public class BuildEnviroment
     {
         var status = true;
 
-        if (compiler == null)
+        if (Compiler == null)
         {
             printer.Error("Compiler not set");
             status = false;
         }
 
-        if (platform == null)
+        if (Platform == null)
         {
             printer.Error("Platform not set");
             status = false;
@@ -87,61 +86,62 @@ public class BuildEnviroment
     }
 
     // update the build environment from an argparse namespace
-    public void UpdateFromArguments(Printer printer, EnviromentArgument args)
+    public void UpdateFromArguments(Printer printer, EnvironmentArgument args)
     {
-        UpdateCompiler(printer, args);
-        UpdatePlatform(printer, args);
+        UpdateCompiler();
+        UpdatePlatform();
+        return;
 
-        void UpdateCompiler(Printer printer, EnviromentArgument args)
+        void UpdateCompiler()
         {
             if (args.Compiler == null) { return; }
 
-            if (compiler == null)
+            if (Compiler == null)
             {
-                compiler = args.Compiler;
+                Compiler = args.Compiler;
                 return;
             }
 
-            if (args.Compiler == compiler) { return; }
+            if (args.Compiler == Compiler) { return; }
 
             if (args.ForceChange)
             {
-                printer.Warning($"Compiler changed via argument from {compiler} to {args.Compiler}");
-                compiler = args.Compiler;
+                printer.Warning($"Compiler changed via argument from {Compiler} to {args.Compiler}");
+                Compiler = args.Compiler;
             }
             else
             {
-                printer.Error($"Compiler changed via argument from {compiler} to {args.Compiler}");
+                printer.Error($"Compiler changed via argument from {Compiler} to {args.Compiler}");
             }
         }
 
-        void UpdatePlatform(Printer printer, EnviromentArgument args)
+        void UpdatePlatform()
         {
             if (args.Platform == null) { return; }
 
-            if (platform == null)
+            if (Platform == null)
             {
-                platform = args.Platform;
+                Platform = args.Platform;
                 return;
             }
 
-            if (args.Platform == platform) { return; }
+            if (args.Platform == Platform) { return; }
 
             if (args.ForceChange)
             {
-                printer.Warning($"Platform changed via argument from {platform} to {args.Platform}");
-                platform = args.Platform;
+                printer.Warning($"Platform changed via argument from {Platform} to {args.Platform}");
+                Platform = args.Platform;
             }
             else
             {
-                printer.Error($"Platform changed via argument from {platform} to {args.Platform}");
+                printer.Error($"Platform changed via argument from {Platform} to {args.Platform}");
             }
         }
     }
 }
 
 
-public class EnviromentArgument : CommandSettings
+public class EnvironmentArgument : CommandSettings
 {
     [Description("The compiler to use")]
     [CommandOption("--compiler")]
@@ -159,7 +159,7 @@ public class EnviromentArgument : CommandSettings
     public bool ForceChange { get; set; }
 }
 
-public static class BuildUitls
+public static class BuildFunctions
 {
     private static bool Is64Bit(Platform platform)
     {
@@ -172,7 +172,7 @@ public static class BuildUitls
         };
     }
 
-    private static string GetCmakeArchitctureArgument(Platform platform)
+    private static string GetCmakeArchitectureArgument(Platform platform)
     {
         if (Is64Bit(platform))
         {
@@ -186,8 +186,7 @@ public static class BuildUitls
 
     // gets the visual studio cmake generator argument for the compiler and platform
     internal static CMake.Generator CreateCmakeGenerator(Compiler compiler, Platform platform)
-    {
-        return compiler switch
+        => compiler switch
         {
             Compiler.VisualStudio2015 => Is64Bit(platform)
                 ? new CMake.Generator("Visual Studio 14 2015 Win64")
@@ -196,42 +195,40 @@ public static class BuildUitls
                 ? new CMake.Generator("Visual Studio 15 Win64")
                 : new CMake.Generator("Visual Studio 15"),
             Compiler.VisualStudio2019 =>
-                new CMake.Generator("Visual Studio 16 2019", GetCmakeArchitctureArgument(platform)),
+                new CMake.Generator("Visual Studio 16 2019", GetCmakeArchitectureArgument(platform)),
             Compiler.VisualStudio2022 =>
-                new CMake.Generator("Visual Studio 17 2022", GetCmakeArchitctureArgument(platform)),
+                new CMake.Generator("Visual Studio 17 2022", GetCmakeArchitectureArgument(platform)),
             _ => throw new Exception("Invalid compiler"),
         };
-    }
 
     internal static string CreateMsBuildPlatform(Compiler compiler, Platform platform)
-    {
-        return platform switch
+        => platform switch
         {
             Platform.Win32 => "Win32",
             Platform.X64 => "\x64",
+            Platform.Auto => throw new Exception("Invalid setting..."),
             _ => throw new Exception("Invalid compiler"),
         };
-    }
 
-    public static void SaveToFile(BuildEnviroment self, string path)
+    public static void SaveToFile(BuildEnvironment self, string path)
     {
         File.WriteAllText(path, JsonUtil.Write(self));
     }
 
-    // load build enviroment from json file
-    public static BuildEnviroment LoadFromFileOrCreateEmpty(string path, Printer printer)
+    // load build environment from json file
+    public static BuildEnvironment LoadFromFileOrCreateEmpty(string path, Printer printer)
     {
         if (File.Exists(path) == false)
         {
-            return BuildEnviroment.CreateEmpty();
+            return BuildEnvironment.CreateEmpty();
         }
 
         var content = File.ReadAllText(path);
 
-        var loaded = JsonUtil.Parse<BuildEnviroment>(printer, path, content);
+        var loaded = JsonUtil.Parse<BuildEnvironment>(printer, path, content);
         if (loaded == null)
         {
-            return BuildEnviroment.CreateEmpty();
+            return BuildEnvironment.CreateEmpty();
         }
 
         return loaded;

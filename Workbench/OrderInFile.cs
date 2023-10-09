@@ -1,32 +1,32 @@
 using Spectre.Console;
-using Workbench.CompileCommands;
 using Workbench.Doxygen.Compound;
-using Workbench.Doxygen.Index;
 using static Workbench.Doxygen.Compound.linkedTextType;
 
 namespace Workbench;
 
 internal static class OrderInFile
 {
-    internal static int ClassifyClass(Printer printer, string file, string className, string root)
+    internal static int ClassifyClass(string file, string className)
     {
         var parsed = Doxygen.Doxygen.ParseIndex(file);
 
-        int total = 0;
-        int matches = 0;
+        var total = 0;
+        var matches = 0;
 
         foreach (var k in DoxygenUtils.AllClasses(parsed))
         {
             total += 1;
-            if(k.CompoundName.Contains(className))
+            if (!k.CompoundName.Contains(className))
             {
-                AnsiConsole.MarkupLineInterpolated($"[blue]{k.CompoundName}[/]");
-                matches += 1;
+                continue;
+            }
 
-                foreach(var member in DoxygenUtils.AllMembersForAClass(k))
-                {
-                    AnsiConsole.MarkupLineInterpolated($"{DoxygenUtils.MemberToString(member)} - {Classify(k, member).Name}");
-                }
+            AnsiConsole.MarkupLineInterpolated($"[blue]{k.CompoundName}[/]");
+            matches += 1;
+
+            foreach(var member in DoxygenUtils.AllMembersForAClass(k))
+            {
+                AnsiConsole.MarkupLineInterpolated($"{DoxygenUtils.MemberToString(member)} - {Classify(k, member).Name}");
             }
         }
 
@@ -39,13 +39,13 @@ internal static class OrderInFile
     {
         var parsed = Doxygen.Doxygen.ParseIndex(file);
 
-        int checks = 0;
-        List<CheckError> fails = new();
+        var checks = 0;
+        var fails = new List<CheckError>();
 
         foreach (var k in DoxygenUtils.AllClasses(parsed))
         {
             checks += 1;
-            var err = CheckClass(printer, k, root);
+            var err = CheckClass(k, root);
             if (err != null)
             {
                 fails.Add(err);
@@ -69,9 +69,9 @@ internal static class OrderInFile
         else { return -1; }
     }
 
-    record CheckError(CompoundDef Class, string PrimaryFile, string SecondaryFile, string ErrorMessage);
+    private record CheckError(CompoundDef Class, string PrimaryFile, string SecondaryFile, string ErrorMessage);
 
-    private static CheckError? CheckClass(Printer printer, CompoundDef k, string root)
+    private static CheckError? CheckClass(CompoundDef k, string root)
     {
         // k.name
         var members = DoxygenUtils.AllMembersForAClass(k).ToArray();
@@ -91,9 +91,9 @@ internal static class OrderInFile
 
                 if (lastClass.Order > newClass.Order)
                 {
-                    string primaryFile = DoxygenUtils.LocationToString(member.Location, root);
-                    string secondaryFile = DoxygenUtils.LocationToString(lastMember.Location, root);
-                    string errorMessage = $"Members for {k.CompoundName} are orderd badly, can't go from {lastClass.Name} ({DoxygenUtils.MemberToString(lastMember!)}) to {newClass.Name} ({DoxygenUtils.MemberToString(member)})!";
+                    var primaryFile = DoxygenUtils.LocationToString(member.Location, root);
+                    var secondaryFile = DoxygenUtils.LocationToString(lastMember.Location, root);
+                    var errorMessage = $"Members for {k.CompoundName} are ordered badly, can't go from {lastClass.Name} ({DoxygenUtils.MemberToString(lastMember!)}) to {newClass.Name} ({DoxygenUtils.MemberToString(member)})!";
                     return new CheckError(k, primaryFile, secondaryFile, errorMessage);
                 }
             }
@@ -119,7 +119,7 @@ internal static class OrderInFile
         AnsiConsole.WriteLine("");
     }
 
-    private static void PrintSuggestedOrder(CompoundDef k, memberdefType[] members)
+    private static void PrintSuggestedOrder(CompoundDef k, IEnumerable<memberdefType> members)
     {
         var sorted = members
             .GroupBy(x => Classify(k, x), (group, items) => (group, items.ToArray()))
@@ -144,22 +144,22 @@ internal static class OrderInFile
         }
     }
 
-    private static NamedOrder typedefs = new NamedOrder("typedefs", -40);
-    private static NamedOrder friends = new NamedOrder("friends", -30);
-    private static NamedOrder enums = new NamedOrder("enums", -20);
-    private static NamedOrder vars = new NamedOrder("variables", -10);
-    private static NamedOrder constructors = new NamedOrder("constructors", 0);
-    private static NamedOrder defaults = new NamedOrder("defaults", 1);
-    private static NamedOrder deleted = new NamedOrder("deleted", 2);
-    private static NamedOrder creators = new NamedOrder("creators", 5);
-    private static NamedOrder manipulator = new NamedOrder("manipulators", 10);
-    private static NamedOrder calculators = new NamedOrder("calculators", 15);
-    private static NamedOrder accessor = new NamedOrder("acessors", 20);
-    private static NamedOrder operators = new NamedOrder("operators", 30);
-    private static NamedOrder utils = new NamedOrder("utils", 35);
-    private static NamedOrder overrides = new NamedOrder("override", 37);
-    private static NamedOrder virtuals = new NamedOrder("virtual", 40);
-    private static NamedOrder pureVirtuals = new NamedOrder("pure virtual", 45);
+    private static readonly NamedOrder Typedefs = new("typedefs", -40);
+    private static readonly NamedOrder Friends = new("friends", -30);
+    private static readonly NamedOrder Enums = new("enums", -20);
+    private static readonly NamedOrder Vars = new("variables", -10);
+    private static readonly NamedOrder Constructors = new("constructors", 0);
+    private static readonly NamedOrder Defaults = new("defaults", 1);
+    private static readonly NamedOrder Deleted = new("deleted", 2);
+    private static readonly NamedOrder Creators = new("creators", 5);
+    private static readonly NamedOrder Manipulator = new("manipulators", 10);
+    private static readonly NamedOrder Calculators = new("calculators", 15);
+    private static readonly NamedOrder Accessor = new("acessors", 20);
+    private static readonly NamedOrder Operators = new("operators", 30);
+    private static readonly NamedOrder Utils = new("utils", 35);
+    private static readonly NamedOrder Overrides = new("override", 37);
+    private static readonly NamedOrder Virtuals = new("virtual", 40);
+    private static readonly NamedOrder PureVirtuals = new("pure virtual", 45);
 
     private static NamedOrder Classify(CompoundDef k, memberdefType m)
     {
@@ -178,42 +178,42 @@ internal static class OrderInFile
     {
         if(m.Argsstring?.EndsWith("=delete") ?? false)
         {
-            return deleted;
+            return Deleted;
         }
 
         if (m.Argsstring?.EndsWith("=default") ?? false)
         {
             if(DoxygenUtils.IsConstructorOrDestructor(m) && m.Param.Length == 0)
             {
-                // empty constructors and destrctors are not-default even when they are defaulted
-                return constructors;
+                // empty constructors and destructors are not-default even when they are defaulted
+                return Constructors;
             }
             else
             {
-                return defaults;
+                return Defaults;
             }
         }
 
         if (m.Name.StartsWith("operator"))
         {
-            return operators;
+            return Operators;
         }
 
         if(m.Virt != null && m.Virt != DoxVirtualKind.NonVirtual)
         {
             if (DoxygenUtils.IsFunctionOverride(m))
             {
-                return overrides;
+                return Overrides;
             }
 
             if (m.Virt == DoxVirtualKind.Virtual && DoxygenUtils.IsConstructorOrDestructor(m) == false)
             {
-                return virtuals;
+                return Virtuals;
             }
 
             if (m.Virt == DoxVirtualKind.PureVirtual)
             {
-                return pureVirtuals;
+                return PureVirtuals;
             }
         }
 
@@ -221,7 +221,7 @@ internal static class OrderInFile
         {
             if (DoxygenUtils.IsFunctionOverride(m))
             {
-                return overrides;
+                return Overrides;
             }
 
             if (m.Static == DoxBool.Yes)
@@ -229,57 +229,55 @@ internal static class OrderInFile
                 // undecorated return AND that is a ref AND that references the current class
                 if (m.Type?.Nodes.Any(node => node is Ref ret && ret.Value.refid == k.Id) ?? false)
                 {
-                    return creators;
+                    return Creators;
                 }
                 else
                 {
-                    return utils;
+                    return Utils;
                 }
             }
             else if (DoxygenUtils.IsConstructorOrDestructor(m))
             {
                 // constructor
-                return constructors;
+                return Constructors;
             }
             else if (m.Const == DoxBool.Yes || m.Constexpr == DoxBool.Yes)
             {
                 if (m.Param.Length > 0)
                 {
-                    return calculators;
+                    return Calculators;
                 }
                 else
                 {
-                    return accessor;
+                    return Accessor;
                 }
             }
             else
             {
-                return manipulator;
+                return Manipulator;
             }
         }
 
         if (m.Kind == DoxMemberKind.Variable)
         {
-            return vars;
+            return Vars;
         }
 
         if(m.Kind == DoxMemberKind.Typedef)
         {
-            return typedefs;
+            return Typedefs;
         }
 
         if (m.Kind == DoxMemberKind.Enum)
         {
-            return enums;
+            return Enums;
         }
 
         if(m.Kind == DoxMemberKind.Friend)
         {
-            return friends;
+            return Friends;
         }
 
         return new NamedOrder("everything", 0);
-
-        
     }
 }

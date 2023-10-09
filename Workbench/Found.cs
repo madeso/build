@@ -1,33 +1,20 @@
-﻿namespace Workbench;
+namespace Workbench;
 
-public class Found
+public record Found(string? Value, string Name)
 {
-    public string? value { get; }
-    public string name { get; }
-
-    public Found(string? value, string name)
-    {
-        this.value = value;
-        this.name = name;
-    }
-
     public override string ToString()
     {
-        if (value != null)
-        {
-            return $"Found {value} from {name}";
-        }
-        else
-        {
-            return $"NOT FOUND in {name}";
-        }
+        return Value != null
+            ? $"Found {Value} from {Name}"
+            : $"NOT FOUND in {Name}"
+            ;
     }
 
     public static string? GetFirstValueOrNull(IEnumerable<Found> founds)
     {
         return founds
-            .Where(found => found.value != null)
-            .Select(found => found.value)
+            .Where(found => found.Value != null)
+            .Select(found => found.Value)
             .FirstOrDefault();
     }
 }

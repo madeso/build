@@ -1,56 +1,61 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Workbench.Utils;
 
 public class StringListCombiner
 {
-    public StringListCombiner(string seperator, string finalSeperator, string empty)
+    public StringListCombiner(string separator, string finalSeparator, string empty)
     {
-        this.seperator = seperator;
-        this.finalSeperator = finalSeperator;
-        this.empty = empty;
+        _separator = separator;
+        _finalSeparator = finalSeparator;
+        _empty = empty;
     }
-    public StringListCombiner(string seperator, string finalSeperator)
+
+
+    public StringListCombiner(string separator, string finalSeparator)
     {
-        this.seperator = seperator;
-        this.finalSeperator = finalSeperator;
-        empty = "";
+        _separator = separator;
+        _finalSeparator = finalSeparator;
+        _empty = "";
     }
-    public StringListCombiner(string seperator)
+
+
+    public StringListCombiner(string separator)
     {
-        this.seperator = seperator;
-        finalSeperator = seperator;
-        empty = "";
+        _separator = separator;
+        _finalSeparator = separator;
+        _empty = "";
     }
+
 
     public static StringListCombiner EnglishOr(string empty = "<none>")
     {
         return new StringListCombiner(", ", " or ", empty);
     }
 
-    public string combine(string[] strings)
+
+    public string Combine(string[] strings)
     {
-        if (strings.Length == 0) return empty;
+        if (strings.Length == 0) return _empty;
+        
         StringBuilder builder = new();
-        for (int index = 0; index < strings.Length; ++index)
+        for (var index = 0; index < strings.Length; ++index)
         {
-            string value = strings[index];
+            var value = strings[index];
             builder.Append(value);
 
-            if (strings.Length != index + 1) // if this item isnt the last one in the list
-            {
-                string s = seperator;
-                if (strings.Length == index + 2)
-                {
-                    s = finalSeperator;
-                }
-                builder.Append(s);
-            }
+            // if this item isn't the last one in the list
+            if (strings.Length == index + 1) continue;
+
+            builder.Append(strings.Length == index + 2
+                    ? _finalSeparator
+                    : _separator
+                );
         }
         return builder.ToString();
     }
 
-    private readonly string seperator;
-    private readonly string finalSeperator;
-    private readonly string empty;
+    private readonly string _separator;
+    private readonly string _finalSeparator;
+    private readonly string _empty;
 }

@@ -6,7 +6,7 @@ public static class Cpplint
 {
     public static int HandleList(Printer print, string root)
     {
-        var files = FileUtil.list_all_files(root);
+        var files = FileUtil.ListAllFiles(root);
         foreach(var f in files)
         {
             print.Info(f);
@@ -45,7 +45,7 @@ public static class Cpplint
 
     public static int HandleRun(Printer printer, string root)
     {
-        var files = FileUtil.list_all_files(root);
+        var files = FileUtil.ListAllFiles(root);
         var hasErrors = false;
         foreach(var f in files)
         {

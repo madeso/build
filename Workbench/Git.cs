@@ -44,7 +44,7 @@ public static class Git
 
     public record BlameLine
         (
-            string Hash, int OriginalLineNumer, int FinalLineNumber, string Line,
+            string Hash, int OriginalLineNumber, int FinalLineNumber, string Line,
             Author Author, Author Committer, string Summary, string Filename
         );
 
@@ -55,9 +55,9 @@ public static class Git
             .RunAndGetOutput()
             .RequireSuccess()
             ;
-        string hash = string.Empty;
-        int originalLineNumber = 0;
-        int finalLineNumber = 0;
+        var hash = string.Empty;
+        var originalLineNumber = 0;
+        var finalLineNumber = 0;
         var args = new Dictionary<string, string>();
         
         string GetArg(string name, string def)
@@ -115,17 +115,17 @@ public static class Git
             string AuthorName,
             string AuthorEmail,
             DateTime AuthorDate,
-            string CommiterName,
-            string CommiterEmail,
-            DateTime CommiterDate,
+            string CommitterName,
+            string CommitterEmail,
+            DateTime CommitterDate,
             string Subject
         );
 
     public static IEnumerable<LogLine> Log(string folder)
     {
-        const char SEP = ';';
-        var logFormat = string.Join(SEP, "%h", "%p", "%an", "%ae", "%aI", "%cn", "%ce", "%cI", "%s");
-        var sepCount = logFormat.Count(c => c == SEP);
+        const char separator = ';';
+        var logFormat = string.Join(separator, "%h", "%p", "%an", "%ae", "%aI", "%cn", "%ce", "%cI", "%s");
+        var sepCount = logFormat.Count(c => c == separator);
         var output = new ProcessBuilder("git", "log", $"--format=format:{logFormat}")
                 .InDirectory(folder)
                 .RunAndGetOutput()
@@ -134,7 +134,7 @@ public static class Git
         foreach (var line in output.Select(x => x.Line))
         {
             if (string.IsNullOrWhiteSpace(line)) continue;
-            var options = line.Split(SEP, sepCount+1, StringSplitOptions.TrimEntries);
+            var options = line.Split(separator, sepCount+1, StringSplitOptions.TrimEntries);
 
             yield return new LogLine(options[0], options[1],
                 options[2], options[3], DateTime.Parse(options[4]),

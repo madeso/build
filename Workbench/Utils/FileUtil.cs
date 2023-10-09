@@ -2,72 +2,66 @@ namespace Workbench.Utils;
 
 internal static class FileUtil
 {
-    public static readonly string[] HEADER_FILES = new string[] { "", ".h", ".hpp", ".hxx" };
-    public static readonly string[] SOURCE_FILES = new string[] { ".cc", ".cpp", ".cxx", ".inl" };
-    public static readonly string[] HEADER_AND_SOURCE_FILES = SOURCE_FILES.Concat(HEADER_FILES).ToArray();
-
-    public static readonly string[] PITCHFORK_FOLDERS = new string[] { "apps", "libs", "src", "include" };
+    public static readonly string[] HeaderFiles = { "", ".h", ".hpp", ".hxx" };
+    public static readonly string[] SourceFiles = { ".cc", ".cpp", ".cxx", ".inl" };
+    public static readonly string[] HeaderAndSourceFiles = SourceFiles.Concat(HeaderFiles).ToArray();
+    public static readonly string[] PitchforkFolders = { "apps", "libs", "src", "include" };
 
     public static IEnumerable<string> PitchforkBuildFolders(string root)
     {
         var build = new DirectoryInfo(Path.Join(root, "build"));
-        if(build.Exists)
+        if (!build.Exists)
         {
-            yield return build.FullName;
+            yield break;
+        }
 
-            foreach(var d in build.GetDirectories())
-            {
-                yield return d.FullName;
-            }
+        yield return build.FullName;
+
+        foreach (var d in build.GetDirectories())
+        {
+            yield return d.FullName;
         }
     }
 
     public static bool IsTranslationUnitExtension(string ext)
-    {
-        return ext switch
+        => ext switch
         {
             ".cpp" or ".c" or ".cc" or ".cxx" or ".mm" or ".m" => true,
             _ => false,
         };
-    }
 
     internal static bool IsSource(string path)
-    {
-        return Path.GetExtension(path) switch
+        => Path.GetExtension(path) switch
         {
             ".cc" or ".cpp" or ".c" => true,
             _ => false
         };
-    }
 
-    internal static bool is_header(string path)
-    {
-        return Path.GetExtension(path) switch
+    internal static bool IsHeader(string path)
+        => Path.GetExtension(path) switch
         {
             "" => true,
             ".h" => true,
             ".hpp" => true,
             _ => false
         };
-    }
 
     public static bool IsTranslationUnit(string path)
-    {
-        return IsTranslationUnitExtension(Path.GetExtension(path));
-    }
+        => IsTranslationUnitExtension(Path.GetExtension(path));
 
     public static bool FileHasAnyExtension(string filePath, string[] extensions)
-    {
-        var ext = Path.GetExtension(filePath);
-        return extensions.Contains(ext);
-    }
+        => extensions.Contains(Path.GetExtension(filePath));
 
-    public static IEnumerable<string> ListFilesRecursivly(DirectoryInfo path, string[] extensions)
-    {
-        return ListFilesRecursivly(path.FullName, extensions);
-    }
+    public static IEnumerable<string> ListFilesRecursively(IEnumerable<DirectoryInfo> paths, string[] extensions)
+        => paths.SelectMany(p => ListFilesRecursively(p, extensions));
 
-    public static IEnumerable<string> ListFilesRecursivly(string path, string[] extensions)
+    public static IEnumerable<string> ListFilesRecursively(IEnumerable<string> paths, string[] extensions)
+        => paths.SelectMany(p => ListFilesRecursively(p, extensions));
+
+    public static IEnumerable<string> ListFilesRecursively(DirectoryInfo path, string[] extensions)
+        => ListFilesRecursively(path.FullName, extensions);
+
+    public static IEnumerable<string> ListFilesRecursively(string path, string[] extensions)
     {
         if (File.Exists(path))
         {
@@ -86,38 +80,17 @@ internal static class FileUtil
         }
     }
 
-    private static IEnumerable<string> list_files_in_dir(string dir)
-    {
-        return ListFilesRecursivly(dir, HEADER_AND_SOURCE_FILES)
-            .Where(x => new FileInfo(x).Name.StartsWith("pch.") == false);
-    }
-
-    public static IEnumerable<string> list_all_files(string root)
-    {
-        IEnumerable<string> Files(string relativeDir)
-        {
-            var dir = new DirectoryInfo(Path.Join(root, relativeDir)).FullName;
-            if (Directory.Exists(dir) == false)
-            {
-                yield break;
-            }
-            foreach (var f in list_files_in_dir(dir))
-            {
-                yield return f;
-            }
-        }
-
-        return PITCHFORK_FOLDERS
-            .Select(Files)
-            .Aggregate((a, b) => a.Concat(b));
-    }
+    public static IEnumerable<string> ListAllFiles(string root)
+        => PitchforkFolders
+            .Select(relativeDir => new DirectoryInfo(Path.Join(root, relativeDir)).FullName)
+            .Where(Directory.Exists)
+            .SelectMany(dir => ListFilesRecursively(dir, HeaderAndSourceFiles)
+                .Where(x => new FileInfo(x).Name.StartsWith("pch.") == false))
+            ;
 
     public static string GetFirstFolder(string root, string file)
-    {
-        var rel = Path.GetRelativePath(root, file);
-        var cat = rel.Split(Path.DirectorySeparatorChar, 2)[0];
-        return cat;
-    }
+     => Path.GetRelativePath(root, file)
+         .Split(Path.DirectorySeparatorChar, 2)[0];
 
     public static IEnumerable<FileInfo> IterateFiles(DirectoryInfo root, bool includeHidden, bool recursive)
     {
@@ -128,12 +101,10 @@ internal static class FileUtil
                 : FileAttributes.System
         };
 
-        foreach (var f in SubIterateFiles(root, searchOptions, recursive))
-        {
-            yield return f;
-        }
+        return SubIterateFiles(root, searchOptions, recursive);
 
-        static IEnumerable<FileInfo> SubIterateFiles(DirectoryInfo root, EnumerationOptions searchOptions, bool includeDirectories)
+        static IEnumerable<FileInfo> SubIterateFiles(DirectoryInfo root, EnumerationOptions searchOptions,
+            bool includeDirectories)
         {
             foreach (var f in root.GetFiles("*", searchOptions))
             {
@@ -142,64 +113,39 @@ internal static class FileUtil
 
             if (includeDirectories)
             {
-                foreach (var d in root.GetDirectories("*", searchOptions))
+                var files = root.GetDirectories("*", searchOptions)
+                        .Where(d => d.Name switch
+                        {
+                            ".git" => false,
+                            "node_modules" => false,
+                            _ => true,
+                        })
+                        .SelectMany(d => SubIterateFiles(d, searchOptions, true))
+                    ;
+                foreach (var f in files)
                 {
-                    if (IsValidDirectory(d) == false) { continue; }
-                    foreach (var f in SubIterateFiles(d, searchOptions, true))
-                    {
-                        yield return f;
-                    }
+                    yield return f;
                 }
             }
         }
     }
 
     public static string? ClassifySourceOrNull(FileInfo f)
-    {
-        return f.Extension switch
-        {
-            ".cs" => "c#",
-            ".jsx" => "React",
-            ".ts" or ".js" => "Javascript/typescript",
-            ".cpp" or ".c" or ".h" or ".hpp" => "C/C++",
-            _ => null,
-        };
-    }
+     => f.Extension switch
+     {
+         ".cs" => "c#",
+         ".jsx" => "React",
+         ".ts" or ".js" => "Javascript/typescript",
+         ".cpp" or ".c" or ".h" or ".hpp" => "C/C++",
+         _ => null,
+     };
 
     public static bool LooksAutoGenerated(IEnumerable<string> lines)
-    {
-        return lines
-                    .Take(5)
-                    .Select(x => LineLooksLikeAutoGenerated(x))
-                    .Where(x => x)
-                    .FirstOrDefault(false);
-    }
-
-    private static bool LineLooksLikeAutoGenerated(string line)
-    {
-        var lower = line.ToLowerInvariant();
-        if (lower.Contains("auto-generated"))
-        {
-            return true;
-        }
-
-        if (lower.Contains("generated by"))
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-    private static bool IsValidDirectory(DirectoryInfo d)
-    {
-        return d.Name switch
-        {
-            ".git" => false,
-            "node_modules" => false,
-            _ => true,
-        };
-    }
+    => lines
+        .Take(5)
+        .Select(line => line.ToLowerInvariant())
+        .Any(lower => lower.Contains("auto-generated") || lower.Contains("generated by"))
+    ;
 
     internal static string RealPath(string rel)
     {

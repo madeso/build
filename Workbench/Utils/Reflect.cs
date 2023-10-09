@@ -4,43 +4,60 @@ namespace Workbench.Utils;
 
 public static class Reflect
 {
-    public record Resolvers<Data>(Func<MemberInfo, Data> Member, Func<PropertyInfo, Data> Property);
+    public record Resolvers<TData>(Func<MemberInfo, TData> Member, Func<PropertyInfo, TData> Property);
 
-    public static IEnumerable<KeyValuePair<Data, Member>> PublicStaticValuesOf<Container, Member, Data>(Resolvers<Data> resolvers)
+
+    public static IEnumerable<KeyValuePair<TData, TMember>>
+        PublicStaticValuesOf<TContainer, TMember, TData>(Resolvers<TData> resolvers)
     {
-        Type containerType = typeof(Container);
-        Type memberType = typeof(Member);
-        FieldInfo[] infos = containerType.GetFields(BindingFlags.Public | BindingFlags.Static);
-        foreach (FieldInfo member in infos)
+        var containerType = typeof(TContainer);
+        var memberType = typeof(TMember);
+
+        foreach (var member in containerType
+                     .GetFields(BindingFlags.Public | BindingFlags.Static))
         {
-            if (member.FieldType == memberType)
+            if (member.FieldType != memberType)
             {
-                var val = member.GetValue(null);
-                if (val == null) { continue; }
-                yield return new KeyValuePair<Data, Member>(resolvers.Member(member), (Member)val);
+                continue;
             }
+
+            var val = member.GetValue(null);
+            if (val == null) { continue; }
+            yield return new KeyValuePair<TData, TMember>(resolvers.Member(member), (TMember)val);
         }
-        var pinfos = containerType.GetProperties(BindingFlags.Public | BindingFlags.Static);
-        foreach (PropertyInfo property in pinfos)
+
+        foreach (var property in containerType
+                     .GetProperties(BindingFlags.Public | BindingFlags.Static))
         {
-            if (property.DeclaringType == memberType)
+            if (property.DeclaringType != memberType)
             {
-                var val = property.GetValue(null, null);
-                if (val == null) { continue; }
-                yield return new KeyValuePair<Data, Member>(resolvers.Member(property), (Member)val);
+                continue;
             }
+
+            var val = property.GetValue(null, null);
+            if (val == null) { continue; }
+            yield return new KeyValuePair<TData, TMember>(resolvers.Member(property), (TMember)val);
         }
     }
 
-    public static Resolvers<string> NameResolver { get; } = new Resolvers<string>(mem => mem.Name, prop => prop.Name);
-    public static Resolvers<Att> Atributes<Att>()
-        where Att : Attribute
+
+    public static Resolvers<string> NameResolver { get; } = new(mem => mem.Name, prop => prop.Name);
+
+
+    public static Resolvers<TAttribute> Attributes<TAttribute>()
+        where TAttribute : Attribute
     {
-        static Att GetAttribute(IEnumerable<Attribute> attributes)
+        return new Resolvers<TAttribute>
+            (
+                mem => GetAttribute(mem.GetCustomAttributes()),
+                prop => GetAttribute(prop.GetCustomAttributes())
+            );
+
+        static TAttribute GetAttribute(IEnumerable<Attribute> attributes)
         {
             foreach (var attribute in attributes)
             {
-                if (attribute is Att my)
+                if (attribute is TAttribute my)
                 {
                     return my;
                 }
@@ -49,16 +66,12 @@ public static class Reflect
             // how should missing attributes be handled?
             throw new NotImplementedException();
         }
-
-        return new Resolvers<Att>
-            (
-                mem => GetAttribute(mem.GetCustomAttributes()),
-                prop => GetAttribute(prop.GetCustomAttributes())
-            );
     }
 
-    public static IEnumerable<KeyValuePair<Data, Container>> PublicStaticValuesOf<Container, Data>(Resolvers<Data> resolvers)
+
+    public static IEnumerable<KeyValuePair<TData, TContainer>>
+        PublicStaticValuesOf<TContainer, TData>(Resolvers<TData> resolvers)
     {
-        return PublicStaticValuesOf<Container, Container, Data>(resolvers);
+        return PublicStaticValuesOf<TContainer, TContainer, TData>(resolvers);
     }
 }

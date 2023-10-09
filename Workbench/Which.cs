@@ -1,3 +1,5 @@
+using Workbench.Utils;
+
 namespace Workbench;
 
 public static class Which
@@ -10,29 +12,25 @@ public static class Which
             ? Path.ChangeExtension(binaryArg.Trim(), "exe")
             : binaryArg.Trim()
             ;
-        foreach (var p in GetPaths())
-        {
-            var ret = Path.Join(p, binary);
-            if (File.Exists(ret)) return ret;
-        }
-
-        return null;
+        return GetPaths()
+            .Select(p => Path.Join(p, binary))
+            .FirstOrDefault(File.Exists)
+            ;
     }
 
     private static IEnumerable<string> GetPaths()
     {
-        var targets = new EnvironmentVariableTarget[]
+        var targets = new[]
         {
             EnvironmentVariableTarget.Process,
             EnvironmentVariableTarget.User,
             EnvironmentVariableTarget.Machine
         };
-        foreach (var target in targets)
-        {
-            var path = Environment.GetEnvironmentVariable("PATH", target);
-            if (path == null) { continue; }
-            var paths = path.Split(';', StringSplitOptions.TrimEntries);
-            foreach (var p in paths) { yield return p; }
-        }
+
+        return targets
+            .Select(target => Environment.GetEnvironmentVariable("PATH", target))
+            .IgnoreNull()
+            .SelectMany(path => path.Split(';', StringSplitOptions.TrimEntries))
+            ;
     }
 }

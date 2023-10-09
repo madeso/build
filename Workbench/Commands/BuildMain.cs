@@ -56,7 +56,7 @@ internal sealed class StatusCommand : Command<StatusCommand.Arg>
 
 internal sealed class InstallCommand : Command<InstallCommand.Arg>
 {
-    public sealed class Arg : EnviromentArgument
+    public sealed class Arg : EnvironmentArgument
     {
     }
 
@@ -69,7 +69,7 @@ internal sealed class InstallCommand : Command<InstallCommand.Arg>
 
 internal sealed class CmakeCommand : Command<CmakeCommand.Arg>
 {
-    public sealed class Arg : EnviromentArgument
+    public sealed class Arg : EnvironmentArgument
     {
         [Description("Don't run command, only print")]
         [CommandOption("--nop")]
@@ -91,7 +91,7 @@ internal sealed class CmakeCommand : Command<CmakeCommand.Arg>
 
 internal sealed class DevCommand : Command<DevCommand.Arg>
 {
-    public sealed class Arg : EnviromentArgument
+    public sealed class Arg : EnvironmentArgument
     {
     }
 
@@ -104,7 +104,7 @@ internal sealed class DevCommand : Command<DevCommand.Arg>
 
 internal sealed class BuildCommand : Command<BuildCommand.Arg>
 {
-    public sealed class Arg : EnviromentArgument
+    public sealed class Arg : EnvironmentArgument
     {
     }
 

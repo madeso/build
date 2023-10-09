@@ -55,10 +55,10 @@ public class Dependencies
                     ? k.CompoundName.Split(":", StringSplitOptions.RemoveEmptyEntries).Last()
                     : k.CompoundName;
 
-                var node = g.AddNodeWithId(name, Shape.box3d, k.Id);
+                var node = g.AddNodeWithId(name, Shape.Box3d, k.Id);
                 classes!.Add(k.Id, node);
 
-                node.cluster = g.FindOrCreateCluster(ns.CompoundName);
+                node.Cluster = g.FindOrCreateCluster(ns.CompoundName);
             }
         }
 
@@ -70,7 +70,7 @@ public class Dependencies
                 continue;
             }
 
-            var node = g.AddNode(k.Name, Shape.box);
+            var node = g.AddNode(k.Name, Shape.Box);
             classes!.Add(k.Id, node);
 
             var existingRefs = new HashSet<string>();
@@ -128,7 +128,7 @@ public class Dependencies
                 {
                     if(funcNode == null)
                     {
-                        funcNode = g.AddNode($"{func.Name}{func.Argsstring}", Shape.ellipse);
+                        funcNode = g.AddNode($"{func.Name}{func.Argsstring}", Shape.Ellipse);
                     }
                     return funcNode;
                 }
@@ -278,7 +278,7 @@ public class Dependencies
                             continue;
                         }
 
-                        funNode.cluster = cluster;
+                        funNode.Cluster = cluster;
                     }
                 }
                 break;
@@ -323,10 +323,10 @@ public class Dependencies
 
         static Shape FuncToShape(Method func) => func.Function.Prot switch
         {
-            DoxProtectionKind.Public => Shape.ellipse,
-            DoxProtectionKind.Protected => Shape.diamond,
-            DoxProtectionKind.Private => Shape.box,
-            DoxProtectionKind.Package => Shape.egg, // // internal, kinda like public so should roughly match
+            DoxProtectionKind.Public => Shape.Ellipse,
+            DoxProtectionKind.Protected => Shape.Diamond,
+            DoxProtectionKind.Private => Shape.Box,
+            DoxProtectionKind.Package => Shape.Egg, // // internal, kinda like public so should roughly match
             _ => throw new NotImplementedException(),
         };
     }

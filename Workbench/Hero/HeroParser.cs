@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using Workbench.Utils;
 
@@ -13,14 +13,14 @@ internal enum ParseResult { Ok, Error }
 
 public class Result
 {
-    public readonly List<string> system_includes = new();
-    public readonly List<string> local_includes = new();
-    public int number_of_lines = 0;
+    public readonly List<string> SystemIncludes = new();
+    public readonly List<string> LocalIncludes = new();
+    public int NumberOfLines = 0;
 
-    private ParseResult parse_line(string line)
+    private ParseResult ParseLine(string line)
     {
         var i = 0;
-        var path_start = 0;
+        var pathStart = 0;
         var state = States.Start;
 
         while (true)
@@ -64,8 +64,8 @@ public class Result
                         }
                         break;
                     case States.Hash:
-                        i -= 1;
-                        if (line.IndexOf("include", i) == i)
+                        i -= 1;`
+                        if (line.IndexOf("include", i, StringComparison.InvariantCulture) == i)
                         {
                             i += 7;
                             state = States.Include;
@@ -79,12 +79,12 @@ public class Result
                     case States.Include:
                         if (c == "<")
                         {
-                            path_start = i;
+                            pathStart = i;
                             state = States.AngleBracket;
                         }
                         else if (c == "\"")
                         {
-                            path_start = i;
+                            pathStart = i;
                             state = States.Quote;
                         }
                         else
@@ -95,14 +95,14 @@ public class Result
                     case States.AngleBracket:
                         if (c == ">")
                         {
-                            system_includes.Add(line.Substring(path_start, i - path_start - 1));
+                            SystemIncludes.Add(line.Substring(pathStart, i - pathStart - 1));
                             return ParseResult.Ok;
                         }
                         break;
                     case States.Quote:
                         if (c == "\"")
                         {
-                            local_includes.Add(line.Substring(path_start, i - path_start - 1));
+                            LocalIncludes.Add(line.Substring(pathStart, i - pathStart - 1));
                             return ParseResult.Ok;
                         }
                         break;
@@ -123,12 +123,12 @@ public class Result
         }
 
         var lines = File.ReadAllLines(fi);
-        res.number_of_lines = lines.Length;
+        res.NumberOfLines = lines.Length;
         foreach (var line in lines)
         {
             if (line.Contains('#') && line.Contains("include"))
             {
-                if (res.parse_line(line) == ParseResult.Error)
+                if (res.ParseLine(line) == ParseResult.Error)
                 {
                     errors.Add($"Could not parse line: {line} in file: {fi}");
                 }
@@ -168,54 +168,54 @@ internal static class F
 
 public class ItemAnalytics
 {
-    public int total_included_lines = 0;
-    public HashSet<string> all_includes = new();
-    public HashSet<string> all_included_by = new();
-    public HashSet<string> translation_units_included_by = new();
-    public bool is_analyzed = false;
+    public int TotalIncludedLines = 0;
+    public HashSet<string> AllIncludes = new();
+    public HashSet<string> AllIncludedBy = new();
+    public HashSet<string> TranslationUnitsIncludedBy = new();
+    public bool IsAnalyzed = false;
 }
 
 public class Analytics
 {
-    public readonly Dictionary<string, ItemAnalytics> file_to_data = new();
+    public readonly Dictionary<string, ItemAnalytics> FileToData = new();
 
-    public static Analytics analyze(Data.Project project)
+    public static Analytics Analyze(Data.Project project)
     {
         var analytics = new Analytics();
         foreach (var file in project.ScannedFiles.Keys)
         {
-            analytics.analyze(file, project);
+            analytics.Analyze(file, project);
         }
         return analytics;
     }
 
-    private void add_trans(string inc, string path)
+    private void AddTrans(string inc, string path)
     {
-        if (file_to_data.TryGetValue(inc, out var it))
+        if (FileToData.TryGetValue(inc, out var it))
         {
-            it.translation_units_included_by.Add(path);
+            it.TranslationUnitsIncludedBy.Add(path);
         }
     }
 
-    private void add_all_inc(string inc, string path)
+    private void AddAllInc(string inc, string path)
     {
-        if (file_to_data.TryGetValue(inc, out var it))
+        if (FileToData.TryGetValue(inc, out var it))
         {
-            it.all_included_by.Add(path);
+            it.AllIncludedBy.Add(path);
         }
     }
 
-    private void analyze(string path, Data.Project project)
+    private void Analyze(string path, Data.Project project)
     {
-        if (file_to_data.TryGetValue(path, out var reta))
+        if (FileToData.TryGetValue(path, out var analytics))
         {
-            Debug.Assert(reta.is_analyzed);
+            Debug.Assert(analytics.IsAnalyzed);
             return;
         }
 
         var ret = new ItemAnalytics
         {
-            is_analyzed = true
+            IsAnalyzed = true
         };
 
         var sf = project.ScannedFiles[path];
@@ -223,30 +223,30 @@ public class Analytics
         {
             if (include == path) { continue; }
 
-            var is_tu = FileUtil.IsTranslationUnit(path);
+            var isTranslationUnit = FileUtil.IsTranslationUnit(path);
 
-            analyze(include, project);
+            Analyze(include, project);
 
 
-            if (file_to_data.TryGetValue(include, out var ai))
+            if (FileToData.TryGetValue(include, out var ai))
             {
-                ret.all_includes.Add(include);
-                ai.all_included_by.Add(path);
+                ret.AllIncludes.Add(include);
+                ai.AllIncludedBy.Add(path);
 
-                if (is_tu)
+                if (isTranslationUnit)
                 {
-                    ai.translation_units_included_by.Add(path);
+                    ai.TranslationUnitsIncludedBy.Add(path);
                 }
 
-                var union = ret.all_includes.Union(ai.all_includes).ToHashSet();
-                ret.all_includes = union;
+                var union = ret.AllIncludes.Union(ai.AllIncludes).ToHashSet();
+                ret.AllIncludes = union;
 
-                foreach (var inc in ai.all_includes)
+                foreach (var inc in ai.AllIncludes)
                 {
-                    add_all_inc(inc, path);
-                    if (is_tu)
+                    AddAllInc(inc, path);
+                    if (isTranslationUnit)
                     {
-                        add_trans(inc, path);
+                        AddTrans(inc, path);
                     }
                 }
             }
@@ -256,9 +256,9 @@ public class Analytics
             }
         }
 
-        ret.total_included_lines = ret.all_includes.Select(f => project.ScannedFiles[f].NumberOfLines).Sum();
+        ret.TotalIncludedLines = ret.AllIncludes.Select(f => project.ScannedFiles[f].NumberOfLines).Sum();
 
-        file_to_data.Add(path, ret);
+        FileToData.Add(path, ret);
     }
 }
 
@@ -281,33 +281,33 @@ public static class Report
     }
 #endif
 
-    private static void add_project_table_summary(Html sb, IEnumerable<TableRow> table)
+    private static void AddProjectTableSummary(Html sb, IEnumerable<TableRow> table)
     {
-        sb.push_str("<div id=\"summary\">\n");
-        sb.push_str("<table class=\"summary\">\n");
+        sb.PushString("<div id=\"summary\">\n");
+        sb.PushString("<table class=\"summary\">\n");
         foreach (var row in table)
         {
-            sb.push_str($"  <tr><th>{row.Label}:</th> <td>{row.Value}</td></tr>\n");
+            sb.PushString($"  <tr><th>{row.Label}:</th> <td>{row.Value}</td></tr>\n");
         }
-        sb.push_str("</table>\n");
-        sb.push_str("</div>\n");
+        sb.PushString("</table>\n");
+        sb.PushString("</div>\n");
     }
 
-    private static void add_file_table(Html sb, Data.OutputFolders root, string id, string header, IEnumerable<PathCount> count_list)
+    private static void AddFileTable(Html sb, Data.OutputFolders root, string id, string header, IEnumerable<PathCount> count_list)
     {
-        sb.push_str($"<div id=\"{id}\">\n");
-        sb.push_str($"<a name=\"{id}\"></a>");
-        sb.push_str($"<h2>{header}</h2>\n\n");
+        sb.PushString($"<div id=\"{id}\">\n");
+        sb.PushString($"<a name=\"{id}\"></a>");
+        sb.PushString($"<h2>{header}</h2>\n\n");
 
-        sb.push_str("<table class=\"list\">\n");
-        foreach (var (path_to_file, count) in count_list)
+        sb.PushString("<table class=\"list\">\n");
+        foreach (var (pathToFile, count) in count_list)
         {
-            var z = Html.inspect_filename_link(root.InputRoot, path_to_file);
+            var z = Html.inspect_filename_link(root.InputRoot, pathToFile);
             var nf = Core.FormatNumber(count);
-            sb.push_str($"  <tr><td class=\"num\">{nf}</td> <td class=\"file\">{z}</td></tr>\n");
+            sb.PushString($"  <tr><td class=\"num\">{nf}</td> <td class=\"file\">{z}</td></tr>\n");
         }
-        sb.push_str("</table>\n");
-        sb.push_str("</div>\n");
+        sb.PushString("</table>\n");
+        sb.PushString("</div>\n");
     }
 
     private static string path_to_index_file(string root)
@@ -318,51 +318,51 @@ public static class Report
     {
         var sb = new Html();
 
-        sb.begin("Report");
+        sb.BeginJoin("Report");
 
         // Summary
         {
-            var pch_lines = project.ScannedFiles
+            var pchLines = project.ScannedFiles
                 .Where(kvp => kvp.Value.IsPrecompiled)
                 .Select(kvp => kvp.Value.NumberOfLines)
                 .Sum();
-            var super_total_lines = project.ScannedFiles
+            var superTotalLines = project.ScannedFiles
                 .Select(kvp => kvp.Value.NumberOfLines)
                 .Sum();
-            var total_lines = super_total_lines - pch_lines;
-            var total_parsed = analytics.file_to_data
+            var totalLines = superTotalLines - pchLines;
+            var totalParsed = analytics.FileToData
                 .Where(kvp => FileUtil.IsTranslationUnit(kvp.Key) && !project.ScannedFiles[kvp.Key].IsPrecompiled)
-                .Select(kvp => kvp.Value.total_included_lines + project.ScannedFiles[kvp.Key].NumberOfLines)
+                .Select(kvp => kvp.Value.TotalIncludedLines + project.ScannedFiles[kvp.Key].NumberOfLines)
                 .Sum();
-            var factor = total_parsed / (double)total_lines;
+            var factor = totalParsed / (double)totalLines;
             var table = new TableRow[]
             {
-                new TableRow("Files", Core.FormatNumber(project.ScannedFiles.Count)),
-                new TableRow("Total lines", Core.FormatNumber(total_lines)),
-                new TableRow("Total precompiled", $"{Core.FormatNumber(pch_lines)} (<a href=\"#pch\">list</a>)"),
-                new TableRow("Total parsed", Core.FormatNumber(total_parsed)),
-                new TableRow("Blowup factor", $"{factor:0.00} (<a href=\"#largest\">largest</a>, <a href=\"#hubs\">hubs</a>)"),
+                new("Files", Core.FormatNumber(project.ScannedFiles.Count)),
+                new("Total lines", Core.FormatNumber(totalLines)),
+                new("Total precompiled", $"{Core.FormatNumber(pchLines)} (<a href=\"#pch\">list</a>)"),
+                new("Total parsed", Core.FormatNumber(totalParsed)),
+                new("Blowup factor", $"{factor:0.00} (<a href=\"#largest\">largest</a>, <a href=\"#hubs\">hubs</a>)"),
             };
-            add_project_table_summary(sb, table);
+            AddProjectTableSummary(sb, table);
         }
 
         {
-            var most = analytics.file_to_data
-                .Select(kvp => new PathCount(kvp.Key, project.ScannedFiles[kvp.Key].NumberOfLines * kvp.Value.translation_units_included_by.Count))
+            var most = analytics.FileToData
+                .Select(kvp => new PathCount(kvp.Key, project.ScannedFiles[kvp.Key].NumberOfLines * kvp.Value.TranslationUnitsIncludedBy.Count))
                 .Where(kvp => !project.ScannedFiles[kvp.Path].IsPrecompiled)
                 .Where(kvp => kvp.Count > 0)
                 .OrderByDescending(kvp => kvp.Count)
                 .ToImmutableArray();
-            add_file_table(sb, root, "largest", "Biggest Contributors", most);
+            AddFileTable(sb, root, "largest", "Biggest Contributors", most);
         }
 
         {
-            var hubs = analytics.file_to_data
-                .Select(kvp => new PathCount(kvp.Key, kvp.Value.all_includes.Count * kvp.Value.translation_units_included_by.Count))
+            var hubs = analytics.FileToData
+                .Select(kvp => new PathCount(kvp.Key, kvp.Value.AllIncludes.Count * kvp.Value.TranslationUnitsIncludedBy.Count))
                 .Where(kvp => kvp.Count > 0)
                 .OrderByDescending(kvp => kvp.Count)
                 .ToImmutableArray();
-            add_file_table(sb, root, "hubs", "Header Hubs", hubs);
+            AddFileTable(sb, root, "hubs", "Header Hubs", hubs);
         }
 
         {
@@ -371,12 +371,12 @@ public static class Report
                 .Select(kvp => new PathCount(kvp.Key, kvp.Value.NumberOfLines))
                 .OrderByDescending(kvp => kvp.Count)
                 .ToImmutableArray();
-            add_file_table(sb, root, "pch", "Precompiled Headers", pch);
+            AddFileTable(sb, root, "pch", "Precompiled Headers", pch);
         }
 
-        sb.end();
+        sb.End();
 
-        sb.write_to_file(path_to_index_file(root.OutputDirectory));
+        sb.WriteToFile(path_to_index_file(root.OutputDirectory));
     }
 
 }
@@ -387,21 +387,21 @@ public static class Report
 
 public class ProgressFeedback
 {
-    private readonly Printer printer;
+    private readonly Printer _printer;
 
     public ProgressFeedback(Printer printer)
     {
-        this.printer = printer;
+        _printer = printer;
     }
 
     public void UpdateTitle(string newTitle)
     {
-        printer.Info($"{newTitle}");
+        _printer.Info($"{newTitle}");
     }
 
     public void UpdateMessage(string newMessage)
     {
-        printer.Info($"  {newMessage}");
+        _printer.Info($"  {newMessage}");
     }
 
     public void UpdateCount(int newCount)
@@ -415,17 +415,17 @@ public class ProgressFeedback
 
 public class Scanner
 {
-    private bool is_scanning_pch = false;
+    private bool _isScanningPch = false;
 
-    private readonly HashSet<string> file_queue = new();
-    private readonly List<string> scan_queue = new();
-    private readonly Dictionary<string, string> system_includes = new();
-    public readonly List<string> errors = new();
-    public readonly Dictionary<string, List<string>> not_found_origins = new();
-    public readonly ColCounter<string> missing_ext = new();
+    private readonly HashSet<string> _fileQueue = new();
+    private readonly List<string> _scanQueue = new();
+    private readonly Dictionary<string, string> _systemIncludes = new();
+    public readonly List<string> Errors = new();
+    public readonly Dictionary<string, List<string>> NotFoundOrigins = new();
+    public readonly ColCounter<string> MissingExt = new();
 
 
-    public void rescan(Data.Project project, ProgressFeedback feedback)
+    public void Rescan(Data.Project project, ProgressFeedback feedback)
     {
         feedback.UpdateTitle("Scanning precompiled header...");
         foreach (var sf in project.ScannedFiles.Values)
@@ -435,65 +435,65 @@ public class Scanner
         }
 
         // scan everything that goes into precompiled header
-        is_scanning_pch = true;
+        _isScanningPch = true;
         foreach (var inc in project.PrecompiledHeaders)
         {
             if (File.Exists(inc))
             {
-                scan_file(project, inc);
-                while (scan_queue.Count > 0)
+                ScanFile(project, inc);
+                while (_scanQueue.Count > 0)
                 {
-                    var to_scan = scan_queue.ToImmutableArray();
-                    scan_queue.Clear();
-                    foreach (var fi in to_scan)
+                    var toScan = _scanQueue.ToImmutableArray();
+                    _scanQueue.Clear();
+                    foreach (var fi in toScan)
                     {
-                        scan_file(project, fi);
+                        ScanFile(project, fi);
                     }
                 }
-                file_queue.Clear();
+                _fileQueue.Clear();
             }
         }
-        is_scanning_pch = false;
+        _isScanningPch = false;
 
         feedback.UpdateTitle("Scanning directories...");
         foreach (var dir in project.ScanDirectories)
         {
             feedback.UpdateMessage($"{dir}");
-            scan_directory(dir, feedback);
+            ScanDirectory(dir, feedback);
         }
 
         feedback.UpdateTitle("Scanning files...");
 
         var dequeued = 0;
 
-        while (scan_queue.Count > 0)
+        while (_scanQueue.Count > 0)
         {
-            dequeued += scan_queue.Count;
-            var to_scan = scan_queue.ToImmutableArray();
-            scan_queue.Clear();
-            foreach (var fi in to_scan)
+            dequeued += _scanQueue.Count;
+            var toScan = _scanQueue.ToImmutableArray();
+            _scanQueue.Clear();
+            foreach (var fi in toScan)
             {
-                feedback.UpdateCount(dequeued + scan_queue.Count);
+                feedback.UpdateCount(dequeued + _scanQueue.Count);
                 feedback.NextItem();
                 feedback.UpdateMessage($"{fi}");
-                scan_file(project, fi);
+                ScanFile(project, fi);
             }
         }
-        file_queue.Clear();
-        system_includes.Clear();
+        _fileQueue.Clear();
+        _systemIncludes.Clear();
 
         project.ScannedFiles.RemoveAll(kvp => kvp.Value.IsTouched == false);
     }
 
-    private void scan_directory(string dir, ProgressFeedback feedback)
+    private void ScanDirectory(string dir, ProgressFeedback feedback)
     {
-        if (please_scan_directory(dir, feedback) == false)
+        if (PleaseScanDirectory(dir, feedback) == false)
         {
-            errors.Add($"Cannot descend into {dir}");
+            Errors.Add($"Cannot descend into {dir}");
         }
     }
 
-    private bool please_scan_directory(string dir, ProgressFeedback feedback)
+    private bool PleaseScanDirectory(string dir, ProgressFeedback feedback)
     {
         feedback.UpdateMessage($"{dir}");
 
@@ -503,87 +503,88 @@ public class Scanner
             return true;
         }
 
-        var dirinfo = new DirectoryInfo(dir);
+        var dirInfo = new DirectoryInfo(dir);
 
-        foreach (var ffile in dirinfo.GetFiles())
+        foreach (var file in dirInfo.GetFiles())
         {
-            ScanSingleFile(ffile);
+            ScanSingleFile(file);
         }
 
-        foreach (var ssubdir in dirinfo.GetDirectories())
+        foreach (var subDir in dirInfo.GetDirectories())
         {
-            var subdir = ssubdir.FullName;
-            scan_directory(subdir, feedback);
+            var dirFullpath = subDir.FullName;
+            ScanDirectory(dirFullpath, feedback);
         }
 
         return true;
 
-        void ScanSingleFile(FileInfo ffile)
+        void ScanSingleFile(FileInfo fileInfo)
         {
-            var file = ffile.FullName;
+            var file = fileInfo.FullName;
             var ext = Path.GetExtension(file);
             if (FileUtil.IsTranslationUnitExtension(ext))
             {
-                add_to_queue(file, F.canonicalize_or_default(file));
+                AddToQueue(file, F.canonicalize_or_default(file));
             }
             else
             {
                 // printer.info("invalid extension {}", ext);
-                missing_ext.AddOne(ext);
+                MissingExt.AddOne(ext);
             }
         }
     }
 
-    private void add_to_queue(string inc, string abs)
+    private void AddToQueue(string inc, string abs)
     {
-        if (!file_queue.Contains(abs))
+        if (_fileQueue.Contains(abs))
         {
-            file_queue.Add(abs);
-            scan_queue.Add(inc);
+            return;
         }
+
+        _fileQueue.Add(abs);
+        _scanQueue.Add(inc);
     }
 
-    private void scan_file(Data.Project project, string p)
+    private void ScanFile(Data.Project project, string p)
     {
         var path = F.canonicalize_or_default(p);
         // todo(Gustav): add last scan feature!!!
-        if (project.ScannedFiles.ContainsKey(path)) // && project.LastScan > path.LastWriteTime && !this.is_scanning_pch
+        if (project.ScannedFiles.TryGetValue(path, out var scannedFile)) // && project.LastScan > path.LastWriteTime && !this.is_scanning_pch
         {
-            var sf = project.ScannedFiles[path];
-            please_scan_file(project, path, sf);
-            project.ScannedFiles.Add(path, sf);
+            PleaseScanFile(project, path, scannedFile);
+            project.ScannedFiles.Add(path, scannedFile);
         }
         else
         {
-            var res = Result.ParseFile(path, errors);
-            var sf = new Data.SourceFile
+            var parsed = Result.ParseFile(path, Errors);
+            var sourceFile = new Data.SourceFile
             (
-                numberOfLines: res.number_of_lines,
-                localIncludes: res.local_includes,
-                systemIncludes: res.system_includes,
-                isPrecompiled: is_scanning_pch
+                numberOfLines: parsed.NumberOfLines,
+                localIncludes: parsed.LocalIncludes,
+                systemIncludes: parsed.SystemIncludes,
+                isPrecompiled: _isScanningPch
             );
-            please_scan_file(project, path, sf);
-            project.ScannedFiles.Add(path, sf);
+            PleaseScanFile(project, path, sourceFile);
+            project.ScannedFiles.Add(path, sourceFile);
         }
     }
 
-    private void please_scan_file(Data.Project project, string path, Data.SourceFile sf)
+    private void PleaseScanFile(Data.Project project, string path, Data.SourceFile sf)
     {
         sf.IsTouched = true;
         sf.AbsoluteIncludes.Clear();
 
-        var local_dir = new FileInfo(path).Directory?.FullName;
-        if (local_dir == null)
+        var localDir = new FileInfo(path).Directory?.FullName;
+        if (localDir == null)
         {
             throw new Exception($"{path} does not have a directory");
         }
         foreach (var s in sf.LocalIncludes)
         {
-            var inc = Path.Join(local_dir, s);
+            var inc = Path.Join(localDir, s);
             var abs = F.canonicalize_or_default(inc);
             // found a header that's part of PCH during regular scan: ignore it
-            if (!is_scanning_pch && project.ScannedFiles.ContainsKey(abs) && project.ScannedFiles[abs].IsPrecompiled)
+            if (!_isScanningPch && project.ScannedFiles.ContainsKey(abs) && project.ScannedFiles[abs].IsPrecompiled)
             {
                 F.touch_file(project, abs);
                 continue;
@@ -597,50 +598,50 @@ public class Scanner
                 continue;
             }
             sf.AbsoluteIncludes.Add(abs);
-            add_to_queue(inc, abs);
+            AddToQueue(inc, abs);
         }
 
         foreach (var s in sf.SystemIncludes)
         {
-            if (system_includes.ContainsKey(s))
+            if (_systemIncludes.TryGetValue(s, out var systemInclude))
             {
-                var abs = system_includes[s];
                 // found a header that's part of PCH during regular scan: ignore it
-                if (!is_scanning_pch && project.ScannedFiles.ContainsKey(abs) && project.ScannedFiles[abs].IsPrecompiled)
+                if (!_isScanningPch && project.ScannedFiles.ContainsKey(systemInclude) && project.ScannedFiles[systemInclude].IsPrecompiled)
                 {
-                    F.touch_file(project, abs);
+                    F.touch_file(project, systemInclude);
                     continue;
                 }
-                sf.AbsoluteIncludes.Add(abs);
+                sf.AbsoluteIncludes.Add(systemInclude);
             }
             else
             {
-                string? found_path = project.IncludeDirectories
+                var foundPath = project.IncludeDirectories
                     .Select(dir => Path.Join(dir, s))
-                    .Where(f => File.Exists(f))
-                    .FirstOrDefault();
+                    .FirstOrDefault(File.Exists);
 
-                if (found_path != null)
+                if (foundPath != null)
                 {
-                    var abs = F.canonicalize_or_default(found_path);
+                    var canonicalized = F.canonicalize_or_default(foundPath);
                     // found a header that's part of PCH during regular scan: ignore it
-                    if (!is_scanning_pch && project.ScannedFiles.ContainsKey(abs) && project.ScannedFiles[abs].IsPrecompiled)
+                    if (!_isScanningPch
+                        && project.ScannedFiles.TryGetValue(canonicalized, out var scannedFile)
+                        && scannedFile.IsPrecompiled)
                     {
-                        F.touch_file(project, abs);
+                        F.touch_file(project, canonicalized);
                         continue;
                     }
 
-                    sf.AbsoluteIncludes.Add(abs);
-                    system_includes.Add(s, abs);
-                    add_to_queue(found_path, abs);
+                    sf.AbsoluteIncludes.Add(canonicalized);
+                    _systemIncludes.Add(s, canonicalized);
+                    AddToQueue(foundPath, canonicalized);
                 }
-                else if (not_found_origins.TryGetValue(s, out var file_list))
+                else if (NotFoundOrigins.TryGetValue(s, out var fileList))
                 {
-                    file_list.Add(path);
+                    fileList.Add(path);
                 }
                 else
                 {
-                    not_found_origins.Add(s, new() { path });
+                    NotFoundOrigins.Add(s, new() { path });
                 }
             }
         }

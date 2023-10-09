@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 
 namespace Workbench.Hero.Data;
 
@@ -25,6 +25,7 @@ public class UserInput
     {
         DecorateThis(printer, root, ProjectDirectories, "Project directories", f => Directory.Exists(f) || File.Exists(f));
         DecorateThis(printer, root, IncludeDirectories, "Include directories", Directory.Exists);
+        return;
 
         static void DecorateThis(Printer printer, string root, List<string> d, string name, Func<string, bool> exists)
         {
@@ -82,16 +83,13 @@ public class Project
 
 public class SourceFile
 {
-    public List<string> LocalIncludes { get; } = new();
-    public List<string> SystemIncludes { get; } = new();
-    public List<string> AbsoluteIncludes { get; set; } = new(); // change to a hash set?
-    public int NumberOfLines { get; set; } = 0;
-    public bool IsTouched { get; set; } = false;
-    public bool IsPrecompiled { get; set; } = false;
+    public List<string> LocalIncludes { get; }
+    public List<string> SystemIncludes { get; }
+    public int NumberOfLines { get; set; }
+    public bool IsPrecompiled { get; set; }
 
-    private SourceFile()
-    {
-    }
+    public List<string> AbsoluteIncludes { get; set; } // change to a hash set?
+    public bool IsTouched { get; set; }
 
     public SourceFile(int numberOfLines, List<string> localIncludes, List<string> systemIncludes, bool isPrecompiled)
     {
@@ -99,5 +97,8 @@ public class SourceFile
         SystemIncludes = systemIncludes;
         NumberOfLines = numberOfLines;
         IsPrecompiled = isPrecompiled;
+
+        AbsoluteIncludes = new List<string>();
+        IsTouched = false;
     }
 }

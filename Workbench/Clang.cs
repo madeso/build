@@ -10,31 +10,8 @@ internal class Store
     public readonly Dictionary<string, StoredTidyUpdate> Cache = new();
 }
 
-internal class TidyOutput
-{
-    public string[] Output { get; init; }
-    public TimeSpan Taken { get; init; }
-
-    public TidyOutput(string[] output, TimeSpan taken)
-    {
-        Output = output;
-        Taken = taken;
-    }
-}
-
-internal class StoredTidyUpdate
-{
-    public string[] Output { get; init; }
-    public TimeSpan Taken { get; init; }
-    public DateTime Modifed { get; init; }
-
-    public StoredTidyUpdate(string[] output, TimeSpan taken, DateTime modified)
-    {
-        Output = output;
-        Taken = taken;
-        Modifed = modified;
-    }
-}
+internal record TidyOutput(string[] Output, TimeSpan Taken);
+internal record StoredTidyUpdate(string[] Output, TimeSpan Taken, DateTime Modified);
 
 internal class FileStatistics
 {
@@ -79,28 +56,28 @@ internal class NamePrinter
 
 internal static class F
 {
-    private static string GetPathToStore(string build_folder)
+    private static string GetPathToStore(string buildFolder)
     {
-        return Path.Join(build_folder, FileNames.ClangTidyStore);
+        return Path.Join(buildFolder, FileNames.ClangTidyStore);
     }
 
     private static Store? LoadStore(Printer print, string buildFolder)
     {
-        static Store? get_file_data(Printer print, string file_name, Store missing_file)
+        static Store? GetFileData(Printer print, string fileName, Store missingFile)
         {
-            if (File.Exists(file_name))
+            if (File.Exists(fileName))
             {
-                var content = File.ReadAllText(file_name);
-                var loaded = JsonUtil.Parse<Store>(print, file_name, content);
+                var content = File.ReadAllText(fileName);
+                var loaded = JsonUtil.Parse<Store>(print, fileName, content);
                 return loaded;
             }
             else
             {
-                return missing_file;
+                return missingFile;
             }
         }
 
-        return get_file_data(print, GetPathToStore(buildFolder), new Store());
+        return GetFileData(print, GetPathToStore(buildFolder), new Store());
     }
 
     private static void SaveStore(string buildFolder, Store data)
@@ -126,10 +103,10 @@ internal static class F
     // return a iterator over the the "compiled" .clang-tidy lines
     private static IEnumerable<string> GenerateClangTidyAsIterator(string root)
     {
-        var clang_tidy_file = File.ReadAllLines(GetPathToClangTidySource(root));
+        var clangTidyFile = File.ReadAllLines(GetPathToClangTidySource(root));
         var write = false;
         var checks = new List<string>();
-        foreach (var line in clang_tidy_file)
+        foreach (var line in clangTidyFile)
         {
             if (write)
             {
@@ -141,20 +118,20 @@ internal static class F
             }
             else
             {
-                var stripped_line = line.Trim();
-                if (stripped_line == "")
+                var strippedLine = line.Trim();
+                if (strippedLine == "")
                 { }
-                else if (stripped_line[0] == '#')
+                else if (strippedLine[0] == '#')
                 { }
-                else if (stripped_line == "END_CHECKS")
+                else if (strippedLine == "END_CHECKS")
                 {
                     write = true;
-                    var checks_value = string.Join(',', checks);
-                    yield return $"Checks: \"{checks_value} \"";
+                    var checksValue = string.Join(',', checks);
+                    yield return $"Checks: \"{checksValue} \"";
                 }
                 else
                 {
-                    checks.Add(stripped_line);
+                    checks.Add(strippedLine);
                 }
             }
         }
@@ -170,12 +147,11 @@ internal static class F
     }
 
     private static CategoryAndFiles[] MapFilesOnFirstDir(string root, IEnumerable<string> filesIterator)
-    {
-        var ret = filesIterator
+     => filesIterator
             .Select(f => new { Path = f, Cat = FileUtil.GetFirstFolder(root, f) })
             // ignore external and build folders
             .Where(f => f.Cat != "external").Where(f => f.Cat.StartsWith("build") == false)
-            // permform actual grouping
+            // perform actual grouping
             .GroupBy
             (
                 x => x.Cat,
@@ -184,17 +160,15 @@ internal static class F
                     files
                         // sort files
                         .Select(x => x.Path)
-                        .OrderBy(f => Path.GetFileName(f))
-                        .ThenByDescending(f => Path.GetExtension(f))
+                        .OrderBy(Path.GetFileName)
+                        .ThenByDescending(Path.GetExtension)
                         .ToArray()
                 )
             ).ToArray();
-        return ret;
-    }
 
     private static CategoryAndFiles[] MapAllFilesInRootOnFirstDir(string root, string[] extensions)
     {
-        return MapFilesOnFirstDir(root, FileUtil.ListFilesRecursivly(root, extensions));
+        return MapFilesOnFirstDir(root, FileUtil.ListFilesRecursively(root, extensions));
     }
 
     private static bool FileMatchesAllFilters(string file, string[]? filters)
@@ -213,27 +187,25 @@ internal static class F
         return info.LastWriteTimeUtc;
     }
 
-    private static DateTime GetLastModificationForFiles(string[] input_files)
+    private static DateTime GetLastModificationForFiles(IEnumerable<string> inputFiles)
+     => inputFiles.Select(GetLastModification).Max();
+
+    private static bool IsModificationTheLatest(IEnumerable<string> inputFiles, DateTime output)
     {
-        return input_files.Select(x => GetLastModification(x)).Max();
+        return GetLastModificationForFiles(inputFiles) <= output;
     }
 
-    private static bool IsModificationTheLatest(string[] input_files, DateTime output)
+    private static TidyOutput? GetExistingOutputOrNull(Store store, Printer printer, string root,
+        string projectBuildFolder, string sourceFile)
     {
-        var sourcemod = GetLastModificationForFiles(input_files);
-        return sourcemod <= output;
-    }
+        var rootFile = GetPathToClangTidySource(root);
 
-    private static TidyOutput? GetExistingOutputOrNull(Store store, Printer printer, string root, string project_build_folder, string source_file)
-    {
-        var root_file = GetPathToClangTidySource(root);
-
-        if (store.Cache.TryGetValue(source_file, out var stored) == false)
+        if (store.Cache.TryGetValue(sourceFile, out var stored) == false)
         {
             return null;
         }
 
-        if (IsModificationTheLatest(new string[] { root_file, source_file }, stored.Modifed))
+        if (IsModificationTheLatest(new[] { rootFile, sourceFile }, stored.Modified))
         {
             return new TidyOutput(stored.Output, stored.Taken);
         }
@@ -241,13 +213,15 @@ internal static class F
         return null;
     }
 
-    private static void StoreOutput(Store store, Printer printer, string root, string project_build_folder, string sourceFile, TidyOutput output)
+    private static void StoreOutput(Store store, Printer printer, string root, string projectBuildFolder,
+        string sourceFile, TidyOutput output)
     {
         var clangTidySource = GetPathToClangTidySource(root);
 
-        var data = new StoredTidyUpdate(output.Output, output.Taken, GetLastModificationForFiles(new string[] { clangTidySource, sourceFile }));
+        var data = new StoredTidyUpdate(output.Output, output.Taken,
+            GetLastModificationForFiles(new[] { clangTidySource, sourceFile }));
         store.Cache[sourceFile] = data;
-        SaveStore(project_build_folder, store);
+        SaveStore(projectBuildFolder, store);
     }
 
     // runs clang-tidy and returns all the text output
@@ -255,10 +229,10 @@ internal static class F
     {
         if (false == force)
         {
-            var existing_output = GetExistingOutputOrNull(store, printer, root, project_build_folder, source_file);
-            if (existing_output != null)
+            var existingOutput = GetExistingOutputOrNull(store, printer, root, project_build_folder, source_file);
+            if (existingOutput != null)
             {
-                return existing_output;
+                return existingOutput;
             }
         }
 
@@ -425,7 +399,7 @@ internal static class F
             return -1;
         }
 
-        var files = FileUtil.ListFilesRecursivly(root, FileUtil.SOURCE_FILES);
+        var files = FileUtil.ListFilesRecursively(root, FileUtil.SourceFiles);
 
         if (args_sort)
         {
@@ -476,7 +450,7 @@ internal static class F
         var total_classes = new ColCounter<string>();
         Dictionary<string, List<string>> warnings_per_file = new();
 
-        var data = MapAllFilesInRootOnFirstDir(root, headers ? FileUtil.HEADER_AND_SOURCE_FILES : FileUtil.SOURCE_FILES);
+        var data = MapAllFilesInRootOnFirstDir(root, headers ? FileUtil.HeaderAndSourceFiles : FileUtil.SourceFiles);
         var stats = new FileStatistics();
 
         foreach (var (project, source_files) in data)
@@ -506,9 +480,9 @@ internal static class F
                     {
                         break;
                     }
-                    project_counter.update(warnings);
-                    total_counter.update(warnings);
-                    total_classes.update(classes);
+                    project_counter.Update(warnings);
+                    total_counter.Update(warnings);
+                    total_classes.Update(classes);
                     foreach (var k in classes.Keys)
                     {
                         if (warnings_per_file.TryGetValue(k, out var warnings_list))
@@ -584,7 +558,7 @@ internal static class F
             return -1;
         }
 
-        var data = MapAllFilesInRootOnFirstDir(root, FileUtil.HEADER_AND_SOURCE_FILES);
+        var data = MapAllFilesInRootOnFirstDir(root, FileUtil.HeaderAndSourceFiles);
 
         foreach (var (project, source_files) in data)
         {

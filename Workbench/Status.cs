@@ -4,7 +4,7 @@ namespace Workbench;
 
 internal static class Status
 {
-    private static void print_found_list(Printer printer, string name, List<Found> list)
+    private static void PrintFoundList(Printer printer, string name, List<Found> list)
     {
         var found = Found.GetFirstValueOrNull(list) ?? "<None>";
         printer.Info($"{name}: {found}");
@@ -16,19 +16,19 @@ internal static class Status
 
     internal static void HandleStatus(Printer printer, CompileCommands.CommonArguments cc)
     {
-        print_found_list(printer, "cmake", CmakeTools.ListAllInstallations(printer).ToList());
+        PrintFoundList(printer, "cmake", CmakeTools.ListAllInstallations(printer).ToList());
 
         var root = Environment.CurrentDirectory;
         printer.Info($"Root: {root}");
 
-        var project_build_folder = CompileCommands.F.FindBuildRootOrNull(root);
-        if (project_build_folder == null)
+        var projectBuildFolder = CompileCommands.F.FindBuildRootOrNull(root);
+        if (projectBuildFolder == null)
         {
             printer.Error("Unable to find build folder");
         }
         else
         {
-            printer.Info($"Project build folder: {project_build_folder}");
+            printer.Info($"Project build folder: {projectBuildFolder}");
         }
 
         var ccs = cc.GetPathToCompileCommandsOrNull(printer);

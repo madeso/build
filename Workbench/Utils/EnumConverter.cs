@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -60,12 +60,12 @@ internal class EnumConverter<T>
             .Select(SimpleQuote).ToArray();
         if (suggestions.Length == 0)
         {
-            var all = StringListCombiner.EnglishOr().combine(fromString.Keys.Select(SimpleQuote).ToArray());
+            var all = StringListCombiner.EnglishOr().Combine(fromString.Keys.Select(SimpleQuote).ToArray());
             return (null, $"Invalid value {SimpleQuote(name)}! You need to select either {all}");
         }
         else
         {
-            var mean = StringListCombiner.EnglishOr().combine(suggestions);
+            var mean = StringListCombiner.EnglishOr().Combine(suggestions);
             return (null, $"Invalid value {SimpleQuote(name)}! Perhaps you meant {mean}?");
         }
     }
@@ -79,7 +79,7 @@ internal class EnumConverter<T>
     {
         var ret = new EnumConverter<T>();
 
-        foreach (var (att, val) in Reflect.PublicStaticValuesOf<T, EnumStringAttribute>(Reflect.Atributes<EnumStringAttribute>()))
+        foreach (var (att, val) in Reflect.PublicStaticValuesOf<T, EnumStringAttribute>(Reflect.Attributes<EnumStringAttribute>()))
         {
             ret.Add(val, att.PrimaryName, att.OtherNames);
         }
@@ -129,12 +129,12 @@ internal class EnumTypeConverter<T> : TypeConverter
 
     public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value)
     {
-        if (value is not string casted)
+        if (value is not string name)
         {
             return base.ConvertFrom(context, culture, value);
         }
 
-        var (ret, error) = ReflectedValues<T>.Converter.StringToEnum(casted);
+        var (ret, error) = ReflectedValues<T>.Converter.StringToEnum(name);
         if (ret == null)
         {
             throw new NotSupportedException(error);
@@ -166,30 +166,20 @@ internal class EnumJsonConverter<T> : JsonConverter<T>
         writer.WriteStringValue(ReflectedValues<T>.Converter.EnumToString(value));
     }
 
-    public override bool CanConvert(Type typeToConvert)
-    {
-        return base.CanConvert(typeToConvert);
-    }
-
     public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        var casted = reader.GetString()!;
+        var name = reader.GetString()!;
 
-        var (ret, error) = ReflectedValues<T>.Converter.StringToEnum(casted);
+        var (ret, error) = ReflectedValues<T>.Converter.StringToEnum(name);
         if (ret == null)
         {
-            throw SeriError(error);
+            // AppendPathInformation is internal
+            throw new JsonException(error);//  { AppendPathInformation = true };
+
+            // use JsonSerializationException.Create but that is internal
+            // same issue with Json.Net
         }
 
         return ret.Value;
-    }
-
-    private static JsonException SeriError(string message)
-    {
-        // AppendPathInformation is internal
-        throw new JsonException(message);//  { AppendPathInformation = true };
-
-        // use JsonSerializationException.Create but that is internal
-        // same issue with Json.Net
     }
 }

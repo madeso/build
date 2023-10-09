@@ -1,5 +1,3 @@
-using Spectre.Console;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Workbench.Config;
 
@@ -12,9 +10,7 @@ internal record CommonArgs
     bool UseVerboseOutput
 );
 
-
-
-public struct IncludeData
+public readonly struct IncludeData
 {
     public List<List<OptionalRegex>> IncludeDirectories { get; }
 
@@ -24,17 +20,17 @@ public struct IncludeData
         (
             (Func<string, OptionalRegex>)(regex =>
             {
-                var regex_source = replacer.Replace(regex);
-                if (regex_source != regex)
+                var regexSource = replacer.Replace(regex);
+                if (regexSource != regex)
                 {
                     return new OptionalRegexDynamic(regex);
                 }
                 else
                 {
-                    switch (CompileRegex(regex_source))
+                    switch (CompileRegex(regexSource))
                     {
                         case RegexOrErr.Value re:
-                            return new OptionalRegexStatic(re.regex);
+                            return new OptionalRegexStatic(re.Regex);
 
                         case RegexOrErr.Error err:
                             var error = $"{regex} is invalid regex: {err.error}";
@@ -48,11 +44,11 @@ public struct IncludeData
         );
     }
 
-    internal static RegexOrErr CompileRegex(string regex_source)
+    internal static RegexOrErr CompileRegex(string regexSource)
     {
         try
         {
-            return new RegexOrErr.Value(new Regex(regex_source, RegexOptions.Compiled));
+            return new RegexOrErr.Value(new Regex(regexSource, RegexOptions.Compiled));
         }
         catch (ArgumentException err)
         {
@@ -60,10 +56,10 @@ public struct IncludeData
         }
     }
 
-    public IncludeData(List<List<string>> includes, Printer print)
+    public IncludeData(IEnumerable<List<string>> includes, Printer print)
     {
         var replacer = IncludeTools.CreateReplacer("file_stem");
-        IncludeDirectories = includes.Select(includes => StringsToRegex(replacer, includes, print).ToList()).ToList();
+        IncludeDirectories = includes.Select(singleInclude => StringsToRegex(replacer, singleInclude, print).ToList()).ToList();
     }
 
     private static IncludeData? LoadFromDirectoryOrNull(Printer print)
@@ -86,22 +82,22 @@ public interface OptionalRegex
 
 public class OptionalRegexDynamic : OptionalRegex
 {
-    private readonly string regex;
+    private readonly string _regex;
 
     public OptionalRegexDynamic(string regex)
     {
-        this.regex = regex;
+        _regex = regex;
     }
 
     public Regex? GetRegex(Printer print, TextReplacer replacer)
     {
-        var regexSource = replacer.Replace(regex);
+        var regexSource = replacer.Replace(_regex);
         switch (IncludeData.CompileRegex(regexSource))
         {
             case RegexOrErr.Value re:
-                return re.regex;
+                return re.Regex;
             case RegexOrErr.Error error:
-                print.Error($"{regex} -> {regexSource} is invalid regex: {error.error}");
+                print.Error($"{_regex} -> {regexSource} is invalid regex: {error.error}");
                 return null;
             default:
                 throw new ArgumentException("invalid state");
@@ -111,38 +107,38 @@ public class OptionalRegexDynamic : OptionalRegex
 
 public class OptionalRegexStatic : OptionalRegex
 {
-    private readonly Regex regex;
+    private readonly Regex _regex;
 
     public OptionalRegexStatic(Regex regex)
     {
-        this.regex = regex;
+        _regex = regex;
     }
 
     public Regex? GetRegex(Printer print, TextReplacer replacer)
     {
-        return regex;
+        return _regex;
     }
 }
 
 public class OptionalRegexFailed : OptionalRegex
 {
-    private readonly string error;
+    private readonly string _error;
 
     public OptionalRegexFailed(string error)
     {
-        this.error = error;
+        _error = error;
     }
 
     public Regex? GetRegex(Printer print, TextReplacer replacer)
     {
-        print.Error(error);
+        print.Error(_error);
         return null;
     }
 }
 
 internal abstract record RegexOrErr
 {
-    public record Value(Regex regex) : RegexOrErr;
+    public record Value(Regex Regex) : RegexOrErr;
     public record Error(string error) : RegexOrErr;
 }
 

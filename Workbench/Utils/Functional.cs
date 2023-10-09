@@ -1,4 +1,4 @@
-﻿namespace Workbench;
+namespace Workbench.Utils;
 
 internal static class Functional
 {
@@ -9,6 +9,15 @@ internal static class Functional
         {
             yield return start;
             start += step;
+        }
+    }
+
+    public static IEnumerable<T> IgnoreNull<T>(this IEnumerable<T?> it)
+    {
+        foreach (var t in it)
+        {
+            if (t == null) continue;
+            yield return t;
         }
     }
 }

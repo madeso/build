@@ -1,72 +1,51 @@
 using System.Collections.Immutable;
-using System.ComponentModel;
-using System.Drawing;
-using System.Reflection;
 using Workbench.Utils;
 
 namespace Workbench;
 
 public enum Shape
 {
-    box,
-    polygon,
-    ellipse,
-    oval,
-    circle,
-    point,
-    egg,
-    triangle,
-    plaintext,
-    plain,
-    diamond,
-    trapezium,
-    parallelogram,
-    house,
-    pentagon,
-    hexagon,
-    septagon,
-    octagon,
-    doublecircle,
-    doubleoctagon,
-    tripleoctagon,
-    invtriangle,
-    invtrapezium,
-    invhouse,
+    Box,
+    Polygon,
+    Ellipse,
+    Oval,
+    Circle,
+    Point,
+    Egg,
+    Triangle,
+    PlainText,
+    Plain,
+    Diamond,
+    Trapezium,
+    Parallelogram,
+    House,
+    Pentagon,
+    Hexagon,
+    Septagon,
+    Octagon,
+    DoubleCircle,
+    DoubleOctagon,
+    TripleOctagon,
+    InvertedTriangle,
+    InvertedTrapezium,
+    InvertedHouse,
     Mdiamond,
-    Msquare,
-    Mcircle,
-    rect,
-    rectangle,
-    square,
-    star,
-    none,
-    underline,
-    cylinder,
-    note,
-    tab,
-    folder,
-    box3d,
-    component,
-    promoter,
-    cds,
-    terminator,
-    utr,
-    primersite,
-    restrictionsite,
-    fivepoverhang,
-    threepoverhang,
-    noverhang,
-    assembly,
-    signature,
-    insulator,
-    ribosite,
-    rnastab,
-    proteasesite,
-    proteinstab,
-    rpromoter,
-    rarrow,
-    larrow,
-    lpromoter
+    SquareWithDiagonals,
+    CircleWithDiagonals,
+    Rect,
+    Rectangle,
+    Square,
+    Star,
+    None,
+    Underline,
+    Cylinder,
+    Note,
+    Tab,
+    Folder,
+    Box3d,
+    Component,
+
+    // excluded shapes for synthetic biology since they are not at useful for us
 }
 
 public class Graphviz
@@ -85,39 +64,39 @@ public class Graphviz
 
     public class Node
     {
-        public readonly string id;
-        public string display;
-        public readonly Shape shape;
-        public Cluster? cluster;
+        public readonly string Id;
+        public string Display;
+        public readonly Shape Shape;
+        public Cluster? Cluster;
 
         public Node(string id, string display, Shape shape, Cluster? cluster)
         {
-            this.id = id;
-            this.display = display;
-            this.shape = shape;
-            this.cluster = cluster;
+            Id = id;
+            Display = display;
+            Shape = shape;
+            Cluster = cluster;
         }
 
         public override string ToString()
         {
-            return display;
+            return Display;
         }
     }
 
     public class Edge
     {
-        public readonly Node from;
-        public readonly Node to;
+        public readonly Node From;
+        public readonly Node To;
 
         public Edge(Node from, Node to)
         {
-            this.from = from;
-            this.to = to;
+            From = from;
+            To = to;
         }
 
         public override string ToString()
         {
-            return $"{from} -> {to}";
+            return $"{From} -> {To}";
         }
     }
 
@@ -175,8 +154,8 @@ public class Graphviz
     {
         var suggestedId = a.ToLower().Trim().Replace(" ", "").Replace("::", "_");
 
-        string cleanedId = string.Empty;
-        bool first = true;
+        var cleanedId = string.Empty;
+        var first = true;
         foreach (var c in suggestedId)
         {
             if (first && char.IsLetter(c) || c == '_')
@@ -187,6 +166,8 @@ public class Graphviz
             {
                 cleanedId += c;
             }
+
+            first = false;
         }
 
         if (cleanedId.Length == 0)
@@ -201,14 +182,10 @@ public class Graphviz
 
     public Node? GetNodeFromId(string id)
     {
-        if (id_to_node.TryGetValue(id, out var ret))
-        {
-            return ret;
-        }
-        else
-        {
-            return null;
-        }
+        return id_to_node.TryGetValue(id, out var ret)
+            ? ret
+            : null
+            ;
     }
 
     public void AddEdge(Node from, Node to)
@@ -283,7 +260,7 @@ public class Graphviz
 
         yield return "<script>";
         yield return "window.onload = function() {";
-        yield return "    // Expose to window namespase for testing purposes";
+        yield return "    // Expose to window namespace for testing purposes";
         yield return "    window.zoomTiger = svgPanZoom('#container svg', {";
         yield return "        zoomEnabled: true";
         yield return "      , controlIconsEnabled: true";
@@ -328,10 +305,9 @@ public class Graphviz
             yield return "digraph G";
             yield return "{";
 
-            foreach (var group in nodes.GroupBy(x => x.cluster))
+            foreach (var groupedNodes in nodes.GroupBy(x => x.Cluster).Select(x => x.ToList()))
             {
-                var nodes = group.ToList();
-                var cluster = nodes.FirstOrDefault()?.cluster;
+                var cluster = groupedNodes.FirstOrDefault()?.Cluster;
                 var indent = string.Empty;
                 if (cluster != null)
                 {
@@ -341,9 +317,9 @@ public class Graphviz
                     yield return $"    {indent}color=blue;";
                 }
 
-                foreach (var n in nodes)
+                foreach (var n in groupedNodes)
                 {
-                    yield return $"    {indent}{n.id} [label=\"{Escape(n.display)}\" shape={ShapeToString(n.shape)}];";
+                    yield return $"    {indent}{n.Id} [label=\"{Escape(n.Display)}\" shape={ShapeToString(n.Shape)}];";
                 }
 
                 if (cluster != null)
@@ -355,9 +331,9 @@ public class Graphviz
             yield return "";
             foreach (var e in edges)
             {
-                var from = e.from;
-                var to = e.to;
-                yield return $"    {from.id} -> {to.id};";
+                var from = e.From;
+                var to = e.To;
+                yield return $"    {from.Id} -> {to.Id};";
             }
 
             yield return "}";
@@ -368,72 +344,52 @@ public class Graphviz
     {
         return shape switch
         {
-            Shape.box => "box",
-            Shape.polygon => "polygon",
-            Shape.ellipse => "ellipse",
-            Shape.oval => "oval",
-            Shape.circle => "circle",
-            Shape.point => "point",
-            Shape.egg => "egg",
-            Shape.triangle => "triangle",
-            Shape.plaintext => "plaintext",
-            Shape.plain => "plain",
-            Shape.diamond => "diamond",
-            Shape.trapezium => "trapezium",
-            Shape.parallelogram => "parallelogram",
-            Shape.house => "house",
-            Shape.pentagon => "pentagon",
-            Shape.hexagon => "hexagon",
-            Shape.septagon => "septagon",
-            Shape.octagon => "octagon",
-            Shape.doublecircle => "doublecircle",
-            Shape.doubleoctagon => "doubleoctagon",
-            Shape.tripleoctagon => "tripleoctagon",
-            Shape.invtriangle => "invtriangle",
-            Shape.invtrapezium => "invtrapezium",
-            Shape.invhouse => "invhouse",
+            Shape.Box => "box",
+            Shape.Polygon => "polygon",
+            Shape.Ellipse => "ellipse",
+            Shape.Oval => "oval",
+            Shape.Circle => "circle",
+            Shape.Point => "point",
+            Shape.Egg => "egg",
+            Shape.Triangle => "triangle",
+            Shape.PlainText => "plaintext",
+            Shape.Plain => "plain",
+            Shape.Diamond => "diamond",
+            Shape.Trapezium => "trapezium",
+            Shape.Parallelogram => "parallelogram",
+            Shape.House => "house",
+            Shape.Pentagon => "pentagon",
+            Shape.Hexagon => "hexagon",
+            Shape.Septagon => "septagon",
+            Shape.Octagon => "octagon",
+            Shape.DoubleCircle => "doublecircle",
+            Shape.DoubleOctagon => "doubleoctagon",
+            Shape.TripleOctagon => "tripleoctagon",
+            Shape.InvertedTriangle => "invtriangle",
+            Shape.InvertedTrapezium => "invtrapezium",
+            Shape.InvertedHouse => "invhouse",
             Shape.Mdiamond => "Mdiamond",
-            Shape.Msquare => "Msquare",
-            Shape.Mcircle => "Mcircle",
-            Shape.rect => "rect",
-            Shape.rectangle => "rectangle",
-            Shape.square => "square",
-            Shape.star => "star",
-            Shape.none => "none",
-            Shape.underline => "underline",
-            Shape.cylinder => "cylinder",
-            Shape.note => "note",
-            Shape.tab => "tab",
-            Shape.folder => "folder",
-            Shape.box3d => "box3d",
-            Shape.component => "component",
-            Shape.promoter => "promoter",
-            Shape.cds => "cds",
-            Shape.terminator => "terminator",
-            Shape.utr => "utr",
-            Shape.primersite => "primersite",
-            Shape.restrictionsite => "restrictionsite",
-            Shape.fivepoverhang => "fivepoverhang",
-            Shape.threepoverhang => "threepoverhang",
-            Shape.noverhang => "noverhang",
-            Shape.assembly => "assembly",
-            Shape.signature => "signature",
-            Shape.insulator => "insulator",
-            Shape.ribosite => "ribosite",
-            Shape.rnastab => "rnastab",
-            Shape.proteasesite => "proteasesite",
-            Shape.proteinstab => "proteinstab",
-            Shape.rpromoter => "rpromoter",
-            Shape.rarrow => "rarrow",
-            Shape.larrow => "larrow",
-            Shape.lpromoter => "lpromoter",
+            Shape.SquareWithDiagonals => "Msquare",
+            Shape.CircleWithDiagonals => "Mcircle",
+            Shape.Rect => "rect",
+            Shape.Rectangle => "rectangle",
+            Shape.Square => "square",
+            Shape.Star => "star",
+            Shape.None => "none",
+            Shape.Underline => "underline",
+            Shape.Cylinder => "cylinder",
+            Shape.Note => "note",
+            Shape.Tab => "tab",
+            Shape.Folder => "folder",
+            Shape.Box3d => "box3d",
+            Shape.Component => "component",
             _ => throw new NotImplementedException(),
         };
     }
 
-    private string Escape(string display)
+    private static string Escape(string display)
     {
-        string r = "";
+        var r = "";
         foreach (var c in display)
         {
             r += c switch
@@ -446,20 +402,17 @@ public class Graphviz
         return r;
     }
 
-    private IEnumerable<Node> get_all_dependencies_for_node(Node thisnode)
+    private IEnumerable<Node> GetAllDependenciesForNode(Node thisNode)
     {
-        foreach (var e in edges)
-        {
-            if (e.from == thisnode)
-            {
-                yield return e.to;
-            }
-        }
+        return edges
+                .Where(e => e.From == thisNode)
+                .Select(e => e.To)
+            ;
     }
 
-    private void deep_add_all_dependencies(HashSet<Node> children, Node node, bool add)
+    private void DeepAddAllDependencies(HashSet<Node> children, Node node, bool add)
     {
-        var deps = get_all_dependencies_for_node(node);
+        var deps = GetAllDependenciesForNode(node);
         foreach (var p in deps)
         {
             if (p == null) { throw new Exception("invalid internal state"); }
@@ -469,7 +422,7 @@ public class Graphviz
                 children.Add(p);
             }
 
-            deep_add_all_dependencies(children, p, true);
+            DeepAddAllDependencies(children, p, true);
         }
     }
 
@@ -491,67 +444,18 @@ public class Graphviz
         {
             // get all unique dependencies
             var se = new HashSet<Node>();
-            deep_add_all_dependencies(se, node, false);
+            DeepAddAllDependencies(se, node, false);
 
             // get all dependencies from current, and remove all from list
-            var deps = get_all_dependencies_for_node(node).ToImmutableArray();
-            edges.RemoveAll(e => e.from == node);
+            var deps = GetAllDependenciesForNode(node).ToImmutableArray();
+            edges.RemoveAll(e => e.From == node);
 
             // add them back
-            foreach (var dependency in deps)
+            foreach (var dependency in deps
+                         .Where(dependency => se.Contains(dependency) == false))
             {
-                if (se.Contains(dependency) == false)
-                {
-                    AddEdge(node, dependency);
-                }
+                AddEdge(node, dependency);
             }
         }
-    }
-
-    internal static void TestCluster(string outputFile)
-    {
-        var g = new Graphviz();
-
-        var cluster0 = g.FindOrCreateCluster("process #1");
-        var cluster1 = g.FindOrCreateCluster("process #2");
-
-        var a0 = g.AddNode("a0", Shape.egg);
-        var a1 = g.AddNode("a1", Shape.egg);
-        var a2 = g.AddNode("a2", Shape.egg);
-        var a3 = g.AddNode("a3", Shape.egg);
-        var b0 = g.AddNode("b0", Shape.egg);
-        var b1 = g.AddNode("b1", Shape.egg);
-        var b2 = g.AddNode("b2", Shape.egg);
-        var b3 = g.AddNode("b3", Shape.egg);
-
-        a0.cluster = cluster0;
-        a1.cluster = cluster0;
-        a2.cluster = cluster0;
-        a3.cluster = cluster0;
-        b0.cluster = cluster1;
-        b1.cluster = cluster1;
-        b2.cluster = cluster1;
-        b3.cluster = cluster1;
-
-        g.AddEdge(a0, a1);
-        g.AddEdge(a1, a2);
-        g.AddEdge(a2, a3);
-
-        g.AddEdge(b0, b1);
-        g.AddEdge(b1, b2);
-        g.AddEdge(b2, b3);
-
-        var start = g.AddNode("start", Shape.diamond);
-        var end = g.AddNode("end", Shape.square);
-
-        g.AddEdge(start, a0);
-	    g.AddEdge(start, b0);
-	    g.AddEdge(a1, b3);
-	    g.AddEdge(b2, a3);
-	    g.AddEdge(a3, a0);
-	    g.AddEdge(a3, end);
-	    g.AddEdge(b3, end);
-
-        g.SmartWriteFile(outputFile);
     }
 }

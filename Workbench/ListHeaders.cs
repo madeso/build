@@ -3,7 +3,6 @@
 // todo(Gustav): improve preproc parser so strings are excluded
 
 
-using Spectre.Console;
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -43,140 +42,123 @@ internal class Line
 
 internal class CommentStripper
 {
-    public readonly List<Line> ret = new List<Line>();
-    private string mem = "";
-    private char last = '\0';
-    private bool single_line_comment = false;
-    private bool multi_line_comment = false;
-    private int line = 1;
+    public readonly List<Line> ret = new();
+    private string _mem = "";
+    private char _last = '\0';
+    private bool _singleLineComment = false;
+    private bool _multiLineComment = false;
+    private int _line = 1;
 
-    private void add_last()
+    private void AddLast()
     {
-        if (last != '\0')
+        if (_last != '\0')
         {
-            mem += last;
+            _mem += _last;
         }
-        last = '\0';
+        _last = '\0';
     }
 
-    public void complete()
+    public void Complete()
     {
-        add_last();
-        if (string.IsNullOrEmpty(mem) == false)
+        AddLast();
+        if (string.IsNullOrEmpty(_mem) == false)
         {
-            add_mem();
+            AddMem();
         }
     }
 
-    private void add_mem()
+    private void AddMem()
     {
-        ret.Add(new Line(text: mem, line: line));
-        mem = "";
+        ret.Add(new Line(text: _mem, line: _line));
+        _mem = "";
     }
 
-    public void add(char c)
+    public void Add(char c)
     {
-        var last = this.last;
+        var last = this._last;
         if (c != '\n')
         {
-            this.last = c;
+            this._last = c;
         }
 
         if (c == '\n')
         {
-            add_last();
-            add_mem();
-            line += 1;
-            single_line_comment = false;
+            AddLast();
+            AddMem();
+            _line += 1;
+            _singleLineComment = false;
             return;
         }
-        if (single_line_comment)
+        if (_singleLineComment)
         {
             return;
         }
-        if (multi_line_comment)
+        if (_multiLineComment)
         {
             if (last == '*' && c == '/')
             {
-                multi_line_comment = false;
+                _multiLineComment = false;
             }
 
             return;
         }
         if (last == '/' && c == '/')
         {
-            single_line_comment = true;
+            _singleLineComment = true;
         }
 
         if (last == '/' && c == '*')
         {
-            multi_line_comment = true;
+            _multiLineComment = true;
             return;
         }
 
-        add_last();
+        AddLast();
     }
 }
 
-internal class Preproc
+internal record PreProcessor(string Command, string Arguments, int Line);
+
+internal class PreProcessorParser
 {
-    public string command { get; init; }
-    public string arguments { get; init; }
-    public int line { get; init; }
+    private readonly List<PreProcessor> _commands;
+    private int _index;
 
-    public Preproc(string command, string arguments, int line)
+    public PreProcessorParser(List<PreProcessor> commands, int index)
     {
-        this.command = command;
-        this.arguments = arguments;
-        this.line = line;
-    }
-}
-
-internal class PreprocParser
-{
-    private readonly List<Preproc> commands;
-    private int index;
-
-    public PreprocParser(List<Preproc> commands, int index)
-    {
-        this.commands = commands;
-        this.index = index;
+        _commands = commands;
+        _index = index;
     }
 
-    public bool validate_index()
+    public bool IsValidIndex()
     {
-        return index < commands.Count;
+        return _index < _commands.Count;
     }
 
-    public Preproc? opeek()
+    public PreProcessor? Peek()
     {
-        if (validate_index())
+        return IsValidIndex()
+            ? _commands[_index]
+            : null;
+    }
+
+    public void Skip()
+    {
+        _index += 1;
+    }
+
+    public void Undo()
+    {
+        _index -= 1;
+    }
+
+    public PreProcessor? Next()
+    {
+        if (IsValidIndex())
         {
-            return commands[index];
-        }
-        else
-        {
-            return null;
-        }
-    }
-
-    public void skip()
-    {
-        index += 1;
-    }
-
-    public void undo()
-    {
-        index -= 1;
-    }
-
-    public Preproc? next()
-    {
-        if (validate_index())
-        {
-            var it = index;
-            index += 1;
-            return commands[it];
+            var it = _index;
+            _index += 1;
+            return _commands[it];
         }
         else
         {
@@ -478,12 +460,12 @@ internal static class F
         {
             foreach (var c in line)
             {
-                cs.add(c);
+                cs.Add(c);
             }
-            cs.add('\n');
+            cs.Add('\n');
         }
 
-        cs.complete();
+        cs.Complete();
 
         return cs.ret;
     }
@@ -493,32 +475,32 @@ internal static class F
         return name is "if" or "ifdef" or "ifndef";
     }
 
-    private static string PeekName(PreprocParser commands)
+    private static string PeekName(PreProcessorParser commands)
     {
-        var peeked = commands.opeek();
+        var peeked = commands.Peek();
         return peeked != null
-            ? peeked.command
+            ? peeked.Command
             : string.Empty
             ;
     }
 
-    private static void GroupCommands(string path, Printer print, List<Statement> ret, PreprocParser commands, int depth)
+    private static void GroupCommands(string path, Printer print, List<Statement> ret, PreProcessorParser commands, int depth)
     {
         while (true)
         {
-            var command = commands.next();
+            var command = commands.Next();
             if (command == null) { break; }
 
-            if (IsIfStart(command.command))
+            if (IsIfStart(command.Command))
             {
-                var group = new Block(command.command, command.arguments);
+                var group = new Block(command.Command, command.Arguments);
                 GroupCommands(path, print, group.true_block, commands, depth + 1);
                 while (PeekName(commands) == "elif")
                 {
-                    var next = commands.next();
+                    var next = commands.Next();
                     if (next == null) { throw new NullReferenceException(); }
 
-                    var elif_args = next.arguments;
+                    var elif_args = next.Arguments;
                     var block = new List<Statement>();
                     GroupCommands(path, print, block, commands, depth + 1);
                     group.elifs.Add
@@ -532,12 +514,12 @@ internal static class F
                 }
                 if (PeekName(commands) == "else")
                 {
-                    commands.skip();
+                    commands.Skip();
                     GroupCommands(path, print, group.false_block, commands, depth + 1);
                 }
                 if (PeekName(commands) == "endif")
                 {
-                    commands.skip();
+                    commands.Skip();
                 }
                 else
                 {
@@ -545,38 +527,38 @@ internal static class F
                 }
                 ret.Add(group);
             }
-            else if (command.command == "else")
+            else if (command.Command == "else")
             {
-                commands.undo();
+                commands.Undo();
                 return;
             }
-            else if (command.command == "endif")
+            else if (command.Command == "endif")
             {
                 if (depth > 0)
                 {
-                    commands.undo();
+                    commands.Undo();
                     return;
                 }
                 else
                 {
-                    print.Error($"{path}({command.line}): Ignored unmatched endif");
+                    print.Error($"{path}({command.Line}): Ignored unmatched endif");
                 }
             }
-            else if (command.command == "elif")
+            else if (command.Command == "elif")
             {
                 if (depth > 0)
                 {
-                    commands.undo();
+                    commands.Undo();
                     return;
                 }
                 else
                 {
-                    print.Error($"{path}({command.line}): Ignored unmatched elif");
+                    print.Error($"{path}({command.Line}): Ignored unmatched elif");
                 }
             }
             else
             {
-                switch (command.command)
+                switch (command.Command)
                 {
                     case "define":
                     case "error":
@@ -584,8 +566,8 @@ internal static class F
                     case "pragma":
                     case "undef":
                         ret.Add(new Command(
-                            name: command.command,
-                            value: command.arguments
+                            name: command.Command,
+                            value: command.Arguments
                         ));
                         break;
                     case "version":
@@ -593,7 +575,7 @@ internal static class F
                         // pass
                         break;
                     default:
-                        print.Error($"{path}({command.line}): unknown pragma {command.command}");
+                        print.Error($"{path}({command.Line}): unknown pragma {command.Command}");
                         break;
                 }
             }
@@ -619,7 +601,7 @@ internal static class F
         }
     }
 
-    internal static IEnumerable<Preproc> ParseToStatements(IEnumerable<Line> lines)
+    internal static IEnumerable<PreProcessor> ParseToStatements(IEnumerable<Line> lines)
     {
         foreach (var line in lines)
         {
@@ -629,19 +611,19 @@ internal static class F
                 var (command, arguments) = SplitIdentifier(li);
 
                 yield return new
-                    Preproc
+                    PreProcessor
                     (
                         command,
                         arguments,
-                        line: line.line
+                        Line: line.line
                     );
             }
         }
     }
 
-    internal static List<Statement> ParseToBlocks(string path, Printer print, List<Preproc> r)
+    internal static List<Statement> ParseToBlocks(string path, Printer print, List<PreProcessor> r)
     {
-        var parser = new PreprocParser(commands: r, index: 0);
+        var parser = new PreProcessorParser(commands: r, index: 0);
         var ret = new List<Statement>();
         GroupCommands(path, print, ret, parser, 0);
         return ret;
