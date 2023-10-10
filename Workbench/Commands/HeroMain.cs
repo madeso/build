@@ -1,4 +1,4 @@
-﻿using Spectre.Console.Cli;
+using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Workbench.Hero;
@@ -37,12 +37,7 @@ internal sealed class NewHeroCommand : Command<NewHeroCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return CommonExecute.WithPrinter(print =>
-        {
-            return CommonExecute.WithPrinter(print =>
-            {
-                return F.HandleNewHero(settings.ProjectFile, settings.Overwrite, print);
-            });
-        });
+            F.HandleNewHero(settings.ProjectFile, settings.Overwrite, print));
     }
 }
 
@@ -62,12 +57,7 @@ internal sealed class RunHeroHtmlCommand : Command<RunHeroHtmlCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return CommonExecute.WithPrinter(print =>
-        {
-            return CommonExecute.WithPrinter(print =>
-            {
-                return F.HandleRunHeroHtml(settings.ProjectFile, settings.OutputDirectory, print);
-            });
-        });
+            F.HandleRunHeroHtml(settings.ProjectFile, settings.OutputDirectory, print));
     }
 }
 
@@ -108,17 +98,14 @@ internal sealed class RunHeroDotCommand : Command<RunHeroDotCommand.Arg>
     {
         return CommonExecute.WithPrinter(print =>
         {
-            return CommonExecute.WithPrinter(print =>
-            {
-                return F.RunHeroGraphviz(
-                    args.ProjectFile,
-                    args.OutputFile,
-                    args.SimplifyGraphviz,
-                    args.OnlyHeaders,
-                    args.Cluster,
-                    args.Exclude ?? Array.Empty<string>(),
-                    print);
-            });
+            return F.RunHeroGraphviz(
+                args.ProjectFile,
+                args.OutputFile,
+                args.SimplifyGraphviz,
+                args.OnlyHeaders,
+                args.Cluster,
+                args.Exclude ?? Array.Empty<string>(),
+                print);
         });
     }
 }
