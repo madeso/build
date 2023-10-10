@@ -64,7 +64,7 @@ public class Result
                         }
                         break;
                     case States.Hash:
-                        i -= 1;`
+                        i -= 1;
                         if (line.IndexOf("include", i, StringComparison.InvariantCulture) == i)
                         {
                             i += 7;

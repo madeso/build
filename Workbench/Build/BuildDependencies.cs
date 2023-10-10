@@ -40,7 +40,7 @@ public interface BuildDependency
     void AddCmakeArguments(CMake.CMake cmake);
 
     // install the dependency
-    public void Install(BuildEnviroment env, Printer print, BuildData data);
+    public void Install(BuildEnvironment env, Printer print, BuildData data);
 
     // get the status of the dependency
     public IEnumerable<string> GetStatus();
@@ -89,7 +89,7 @@ internal class DependencySdl2 : BuildDependency
         cmake.AddArgument("SDL2_HINT_BUILD", _buildFolder);
     }
 
-    public void Install(BuildEnviroment env, Printer print, BuildData data)
+    public void Install(BuildEnvironment env, Printer print, BuildData data)
     {
         var generator = env.CreateCmakeGenerator();
 
@@ -169,7 +169,7 @@ internal class DependencyPython : BuildDependency
         cmake.AddArgument("PYTHON_EXECUTABLE:FILEPATH", pythonExe);
     }
 
-    public void Install(BuildEnviroment env, Printer print, BuildData data)
+    public void Install(BuildEnvironment env, Printer print, BuildData data)
     {
     }
 
@@ -210,7 +210,7 @@ internal class DependencyAssimp : BuildDependency
         cmake.AddArgument("ASSIMP_ROOT_DIR", _installFolder);
     }
 
-    public void Install(BuildEnviroment env, Printer print, BuildData data)
+    public void Install(BuildEnvironment env, Printer print, BuildData data)
     {
         const string url = "https://github.com/assimp/assimp/archive/v5.0.1.zip";
 
@@ -459,7 +459,7 @@ internal class DependencyWxWidgets : BuildDependency
     private string GetLibraryFolder()
         => Path.Join(_buildFolder, "lib", "vc_x64_lib");
 
-    public void Install(BuildEnviroment env, Printer print, BuildData data)
+    public void Install(BuildEnvironment env, Printer print, BuildData data)
     {
         var generator = env.CreateCmakeGenerator();
 
