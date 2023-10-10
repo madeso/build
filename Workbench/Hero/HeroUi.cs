@@ -9,7 +9,7 @@ namespace Workbench.Hero;
 internal static class Ui
 {
 
-    public static void scan_and_generate_html(Printer printer, Data.UserInput input, Data.OutputFolders root)
+    public static void ScanAndGenerateHtml(Printer printer, Data.UserInput input, Data.OutputFolders root)
     {
         var project = new Data.Project(input);
         var scanner = new Parser.Scanner();
@@ -18,13 +18,13 @@ internal static class Ui
         GenerateReport(root, project, scanner);
     }
 
-    public static void scan_and_generate_dot(Printer printer, Data.UserInput input, Data.OutputFolders root, bool simplifyGraphviz, bool onlyHeaders, string[] exclude, bool cluster)
+    public static void ScanAndGenerateDot(Printer printer, Data.UserInput input, Data.OutputFolders root, bool simplifyGraphviz, bool onlyHeaders, string[] exclude, bool cluster)
     {
         var project = new Data.Project(input);
         var scanner = new Parser.Scanner();
         var feedback = new Parser.ProgressFeedback(printer);
         scanner.Rescan(project, feedback);
-        generate_dot(printer, root, project, scanner, simplifyGraphviz, onlyHeaders, exclude, input, cluster);
+        GenerateDot(printer, root, project, scanner, simplifyGraphviz, onlyHeaders, exclude, input, cluster);
     }
 
 
@@ -58,7 +58,7 @@ internal static class Ui
         }
     }
 
-    private static void generate_dot(Printer print, Data.OutputFolders root, Data.Project project, Parser.Scanner scanner, bool simplifyGraphviz, bool onlyHeaders, string[] exclude, Data.UserInput input, bool cluster)
+    private static void GenerateDot(Printer print, Data.OutputFolders root, Data.Project project, Parser.Scanner scanner, bool simplifyGraphviz, bool onlyHeaders, string[] exclude, Data.UserInput input, bool cluster)
     {
         var analytics = Parser.Analytics.Analyze(project);
         var gv = new Graphviz();
@@ -182,7 +182,7 @@ internal static class Ui
         }
     }
 
-    private static void write_inspect_header_table
+    private static void WriteInspectHeaderTable
     (
         Html html,
         Data.OutputFolders root,
@@ -219,7 +219,7 @@ internal static class Ui
 
         html.BeginJoin($"Inspecting - {displayName}");
 
-        write_inspect_header_table
+        WriteInspectHeaderTable
         (
             html, root,
             analytics,
@@ -255,7 +255,7 @@ internal static class Ui
             html.PushString("</div>\n");
         }
 
-        write_inspect_header_table
+        WriteInspectHeaderTable
         (
             html, root,
             analytics,
@@ -307,7 +307,7 @@ internal static class F
         var inputRoot = new FileInfo(projectFile).DirectoryName ?? Environment.CurrentDirectory;
         input.Decorate(print, inputRoot);
         Directory.CreateDirectory(outputDirectory);
-        Ui.scan_and_generate_html(print, input, new(inputRoot, outputDirectory));
+        Ui.ScanAndGenerateHtml(print, input, new(inputRoot, outputDirectory));
         return 0;
     }
 
@@ -329,7 +329,7 @@ internal static class F
         }
         var inputRoot = new FileInfo(projectFile).DirectoryName ?? Environment.CurrentDirectory;
         input.Decorate(print, inputRoot);
-        Ui.scan_and_generate_dot(print, input, new(inputRoot, outputFile), simplifyGraphviz, onlyHeaders, exclude, cluster);
+        Ui.ScanAndGenerateDot(print, input, new(inputRoot, outputFile), simplifyGraphviz, onlyHeaders, exclude, cluster);
         return 0;
     }
 }
