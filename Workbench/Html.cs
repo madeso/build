@@ -1,3 +1,5 @@
+using Workbench.Utils;
+
 namespace Workbench;
 
 internal class Html
@@ -113,16 +115,24 @@ internal class Html
     }
 
 
-    public static string GetFilename(string root, string path)
+    public static string GetFilename(string? common, string root, string path)
     {
+        if (common != null)
+        {
+            var rel = Path.GetRelativePath(common, path);
+            if (rel.StartsWith("..") == false)
+            {
+                return rel;
+            }
+        }
         return Path.GetRelativePath(root, path);
     }
 
 
-    public static string inspect_filename_link(string root, string path)
+    public static string inspect_filename_link(string? common, string? root, string path)
     {
         var file = GetSafeInspectFilenameHtml(path);
-        var name = GetFilename(root, path);
+        var name = GetFilename(common, root, path);
 
         return $"<a href=\"{file}\">{name}</a>";
     }

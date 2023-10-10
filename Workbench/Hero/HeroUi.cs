@@ -1,3 +1,4 @@
+using Workbench.Hero.Data;
 using Workbench.Utils;
 
 namespace Workbench.Hero;
@@ -15,7 +16,17 @@ internal static class Ui
         var scanner = new Parser.Scanner();
         var feedback = new Parser.ProgressFeedback(printer);
         scanner.Rescan(project, feedback);
-        GenerateReport(root, project, scanner);
+        var f = new UniqueFiles();
+        AddFiles(f, project);
+        GenerateReport(f.GetCommon(), root, project, scanner);
+    }
+
+    private static void AddFiles(UniqueFiles uniqueFiles, Project project)
+    {
+        foreach(var k in project.ScannedFiles.Keys)
+        {
+            uniqueFiles.Add(k);
+        }
     }
 
     public static void ScanAndGenerateDot(Printer printer, Data.UserInput input, Data.OutputFolders root, bool simplifyGraphviz, bool onlyHeaders, string[] exclude, bool cluster)
@@ -24,7 +35,9 @@ internal static class Ui
         var scanner = new Parser.Scanner();
         var feedback = new Parser.ProgressFeedback(printer);
         scanner.Rescan(project, feedback);
-        GenerateDot(printer, root, project, scanner, simplifyGraphviz, onlyHeaders, exclude, input, cluster);
+        var f = new UniqueFiles();
+        AddFiles(f, project);
+        GenerateDot(printer, f.GetCommon(), root, project, scanner, simplifyGraphviz, onlyHeaders, exclude, input, cluster);
     }
 
 
@@ -58,7 +71,7 @@ internal static class Ui
         }
     }
 
-    private static void GenerateDot(Printer print, Data.OutputFolders root, Data.Project project, Parser.Scanner scanner, bool simplifyGraphviz, bool onlyHeaders, string[] exclude, Data.UserInput input, bool cluster)
+    private static void GenerateDot(Printer print, string? common, Data.OutputFolders root, Data.Project project, Parser.Scanner scanner, bool simplifyGraphviz, bool onlyHeaders, string[] exclude, Data.UserInput input, bool cluster)
     {
         var analytics = Parser.Analytics.Analyze(project);
         var gv = new Graphviz();
@@ -72,7 +85,7 @@ internal static class Ui
             }
 
             print.Info($"{file} added as a node");
-            var displayName = Html.GetFilename(root.InputRoot, file);
+            var displayName = Html.GetFilename(common, root.InputRoot, file);
             var nodeId = Html.GetSafeInspectFilenameWithoutHtml(file);
             var addedNode = gv.AddNodeWithId(displayName, Shape.Box, nodeId);
             if (!cluster) continue;
@@ -129,7 +142,7 @@ internal static class Ui
         gv.WriteFile(root.OutputDirectory);
     }
 
-    private static void GenerateReport(Data.OutputFolders root, Data.Project project, Parser.Scanner scanner)
+    private static void GenerateReport(string? common, Data.OutputFolders root, Data.Project project, Parser.Scanner scanner)
     {
         {
             var html = new Html();
@@ -161,7 +174,7 @@ internal static class Ui
 
                 foreach (var file in origins)
                 {
-                    html.PushString($"<li>{Html.inspect_filename_link(root.InputRoot, file)}</li>");
+                    html.PushString($"<li>{Html.inspect_filename_link(common, root.InputRoot, file)}</li>");
                 }
                 html.PushString("</ul></div>");
 
@@ -174,16 +187,17 @@ internal static class Ui
 
         var analytics = Parser.Analytics.Analyze(project);
         Html.WriteCssFile(root.OutputDirectory);
-        Parser.Report.GenerateIndexPage(root, project, analytics);
+        Parser.Report.GenerateIndexPage(common, root, project, analytics);
 
         foreach (var f in project.ScannedFiles.Keys)
         {
-            write_inspection_page(root, f, project, analytics);
+            write_inspection_page(common, root, f, project, analytics);
         }
     }
 
     private static void WriteInspectHeaderTable
     (
+        string? common,
         Html html,
         Data.OutputFolders root,
         Parser.Analytics analytics,
@@ -200,7 +214,7 @@ internal static class Ui
 
         foreach (var s in included.OrderByDescending(s => lengthFun(analytics.FileToData[s])))
         {
-            var displayFilename = Html.inspect_filename_link(root.InputRoot, s);
+            var displayFilename = Html.inspect_filename_link(common, root.InputRoot, s);
             var displayCount = Core.FormatNumber(lengthFun(analytics.FileToData[s]));
             var displayLines = Core.FormatNumber(analytics.FileToData[s].TotalIncludedLines);
 
@@ -211,17 +225,17 @@ internal static class Ui
         html.PushString("</div>\n");
     }
 
-    private static void write_inspection_page(Data.OutputFolders root, string file, Data.Project project, Parser.Analytics analytics)
+    private static void write_inspection_page(string? common, Data.OutputFolders root, string file, Data.Project project, Parser.Analytics analytics)
     {
         var html = new Html();
 
-        var displayName = Html.GetFilename(root.InputRoot, file);
+        var displayName = Html.GetFilename(common, root.InputRoot, file);
 
         html.BeginJoin($"Inspecting - {displayName}");
 
         WriteInspectHeaderTable
         (
-            html, root,
+            common, html, root,
             analytics,
             project.ScannedFiles
                 .Where(kvp => kvp.Value.AbsoluteIncludes.Contains(file))
@@ -257,7 +271,7 @@ internal static class Ui
 
         WriteInspectHeaderTable
         (
-            html, root,
+            common, html, root,
             analytics,
             project.ScannedFiles[file].AbsoluteIncludes,
             "includes", $"{displayName} includes these",

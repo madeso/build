@@ -293,7 +293,7 @@ public static class Report
         sb.PushString("</div>\n");
     }
 
-    private static void AddFileTable(Html sb, Data.OutputFolders root, string id, string header, IEnumerable<PathCount> count_list)
+    private static void AddFileTable(string? common, Html? sb, Data.OutputFolders root, string id, string header, IEnumerable<PathCount> count_list)
     {
         sb.PushString($"<div id=\"{id}\">\n");
         sb.PushString($"<a name=\"{id}\"></a>");
@@ -302,7 +302,7 @@ public static class Report
         sb.PushString("<table class=\"list\">\n");
         foreach (var (pathToFile, count) in count_list)
         {
-            var z = Html.inspect_filename_link(root.InputRoot, pathToFile);
+            var z = Html.inspect_filename_link(common, root.InputRoot, pathToFile);
             var nf = Core.FormatNumber(count);
             sb.PushString($"  <tr><td class=\"num\">{nf}</td> <td class=\"file\">{z}</td></tr>\n");
         }
@@ -314,7 +314,7 @@ public static class Report
     { return Path.Join(root, "index.html"); }
 
 
-    public static void GenerateIndexPage(Data.OutputFolders root, Data.Project project, Analytics analytics)
+    public static void GenerateIndexPage(string? common, Data.OutputFolders? root, Data.Project project, Analytics analytics)
     {
         var sb = new Html();
 
@@ -353,7 +353,7 @@ public static class Report
                 .Where(kvp => kvp.Count > 0)
                 .OrderByDescending(kvp => kvp.Count)
                 .ToImmutableArray();
-            AddFileTable(sb, root, "largest", "Biggest Contributors", most);
+            AddFileTable(common, sb, root, "largest", "Biggest Contributors", most);
         }
 
         {
@@ -362,7 +362,7 @@ public static class Report
                 .Where(kvp => kvp.Count > 0)
                 .OrderByDescending(kvp => kvp.Count)
                 .ToImmutableArray();
-            AddFileTable(sb, root, "hubs", "Header Hubs", hubs);
+            AddFileTable(common, sb, root, "hubs", "Header Hubs", hubs);
         }
 
         {
@@ -371,7 +371,7 @@ public static class Report
                 .Select(kvp => new PathCount(kvp.Key, kvp.Value.NumberOfLines))
                 .OrderByDescending(kvp => kvp.Count)
                 .ToImmutableArray();
-            AddFileTable(sb, root, "pch", "Precompiled Headers", pch);
+            AddFileTable(common, sb, root, "pch", "Precompiled Headers", pch);
         }
 
         sb.End();

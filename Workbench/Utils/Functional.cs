@@ -20,4 +20,33 @@ internal static class Functional
             yield return t;
         }
     }
+
+    public static IEnumerable<(T?, T?)> ZipLongest<T>(this IEnumerable<T> left, IEnumerable<T> right)
+        where T : class
+    {
+        using var leftEnumerator = left.GetEnumerator();
+        using var rightEnumerator = right.GetEnumerator();
+
+        var hasLeft = leftEnumerator.MoveNext();
+        var hasRight = rightEnumerator.MoveNext();
+
+        while (hasLeft || hasRight)
+        {
+            if (hasLeft && hasRight)
+            {
+                yield return new (leftEnumerator.Current, rightEnumerator.Current);
+            }
+            else if (hasLeft)
+            {
+                yield return new (leftEnumerator.Current, null);
+            }
+            else if (hasRight)
+            {
+                yield return new (null, rightEnumerator.Current);
+            }
+
+            hasLeft = leftEnumerator.MoveNext();
+            hasRight = rightEnumerator.MoveNext();
+        }
+    }
 }
