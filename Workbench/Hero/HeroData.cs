@@ -10,9 +10,9 @@ public record OutputFolders(string InputRoot, string OutputDirectory);
 
 public class UserInput
 {
-    public List<string> ProjectDirectories {get;}= new();
-    public List<string> IncludeDirectories {get;}= new();
-    public List<string> PrecompiledHeaders { get; } = new();
+    public List<string> ProjectDirectories { get; set; }= new();
+    public List<string> IncludeDirectories { get; set; } = new();
+    public List<string> PrecompiledHeaders { get; set; } = new();
 
     public bool Validate(Printer print)
     {
