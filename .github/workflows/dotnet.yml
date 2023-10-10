@@ -4,21 +4,26 @@ on: [push, pull_request]
 
 jobs:
   build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        dotnet_version: [7.0.x]
+        configuration: [Debug, Release]
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v3
     - name: Setup .NET
       uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: 7.0.x
+        dotnet-version: ${{ matrix.dotnet_version }}
     - name: Restore dependencies
       run: dotnet restore
       working-directory: ./Workbench
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --configuration ${{ matrix.configuration }} --no-restore
       working-directory: ./Workbench
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --no-build --configuration ${{ matrix.configuration }} --verbosity normal
       working-directory: ./Workbench
