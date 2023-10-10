@@ -300,6 +300,10 @@ internal static class F
         {
             return -1;
         }
+        if (input.Validate(print) == false)
+        {
+            return -1;
+        }
         var inputRoot = new FileInfo(projectFile).DirectoryName ?? Environment.CurrentDirectory;
         input.Decorate(print, inputRoot);
         Directory.CreateDirectory(outputDirectory);
@@ -316,6 +320,10 @@ internal static class F
     {
         var input = Data.UserInput.LoadFromFile(print, projectFile);
         if (input == null)
+        {
+            return -1;
+        }
+        if (input.Validate(print) == false)
         {
             return -1;
         }

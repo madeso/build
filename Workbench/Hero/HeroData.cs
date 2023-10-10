@@ -14,6 +14,25 @@ public class UserInput
     public List<string> IncludeDirectories {get;}= new();
     public List<string> PrecompiledHeaders { get; } = new();
 
+    public bool Validate(Printer print)
+    {
+        var status = true;
+
+        if (ProjectDirectories.Count == 0)
+        {
+            status = false;
+            print.Error("Project directories are empty");
+        }
+
+        if (IncludeDirectories.Count == 0)
+        {
+            status = false;
+            print.Error("Include directories are empty");
+        }
+
+        return status;
+    }
+
     public static UserInput? LoadFromFile(Printer print, string file)
     {
         var content = File.ReadAllText(file);
