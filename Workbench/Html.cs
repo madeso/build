@@ -129,7 +129,7 @@ internal class Html
     }
 
 
-    public static string inspect_filename_link(string? common, string? root, string path)
+    public static string inspect_filename_link(string? common, string root, string path)
     {
         var file = GetSafeInspectFilenameHtml(path);
         var name = GetFilename(common, root, path);

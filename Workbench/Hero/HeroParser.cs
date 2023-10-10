@@ -293,7 +293,7 @@ public static class Report
         sb.PushString("</div>\n");
     }
 
-    private static void AddFileTable(string? common, Html? sb, Data.OutputFolders root, string id, string header, IEnumerable<PathCount> count_list)
+    private static void AddFileTable(string? common, Html sb, Data.OutputFolders root, string id, string header, IEnumerable<PathCount> count_list)
     {
         sb.PushString($"<div id=\"{id}\">\n");
         sb.PushString($"<a name=\"{id}\"></a>");
@@ -314,7 +314,7 @@ public static class Report
     { return Path.Join(root, "index.html"); }
 
 
-    public static void GenerateIndexPage(string? common, Data.OutputFolders? root, Data.Project project, Analytics analytics)
+    public static void GenerateIndexPage(string? common, Data.OutputFolders root, Data.Project project, Analytics analytics)
     {
         var sb = new Html();
 
