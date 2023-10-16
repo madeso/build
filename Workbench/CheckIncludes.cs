@@ -223,7 +223,7 @@ public static class IncludeTools
 
                 if (re == null) { continue; }
 
-                if (re.Matches(line) != null)
+                if (re.IsMatch(line))
                 {
                     return index;
                 }
