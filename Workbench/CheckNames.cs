@@ -1,7 +1,4 @@
 using Spectre.Console;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Xml.Linq;
 using Workbench.Config;
 using Workbench.Doxygen.Compound;
 using Workbench.Doxygen.Index;
@@ -12,7 +9,7 @@ namespace Workbench;
 
 internal class CheckNames
 {
-    CheckNamesFile file;
+    readonly CheckNamesFile file;
 
     private bool ValidTypeNames(string name)
     {
@@ -161,7 +158,7 @@ internal class CheckNames
 
     private void CheckNamespace(CompoundType k)
     {
-        CheckName(RemoveNamespace(k.Name), k.DoxygenFile.FirstCompound.Location!, CaseMatch.LowerSnakeCase, NoValidNames, "namespace");
+        CheckName(RemoveNamespace(k.Name), k.DoxygenFile.FirstCompound.Location!, CaseMatch.IsLowerSnakeCase, NoValidNames, "namespace");
         CheckSectionDefs(k);
     }
 
@@ -182,13 +179,13 @@ internal class CheckNames
                 switch (m.Kind)
                 {
                     case DoxMemberKind.Variable:
-                        CheckName(m.Name, m.Location, CaseMatch.LowerSnakeCase, NoValidNames, "variable");
+                        CheckName(m.Name, m.Location, CaseMatch.IsLowerSnakeCase, NoValidNames, "variable");
                         break;
                     case DoxMemberKind.Define:
-                        CheckName(m.Name, m.Location, CaseMatch.UpperSnakeCase, NoValidNames, "define");
+                        CheckName(m.Name, m.Location, CaseMatch.IsUpperSnakeCase, NoValidNames, "define");
                         break;
                     case DoxMemberKind.Typedef:
-                        CheckName(m.Name, m.Location, CaseMatch.CamelCase, ValidTypeNames, "typedef");
+                        CheckName(m.Name, m.Location, CaseMatch.IsCamelCase, ValidTypeNames, "typedef");
                         break;
                     case DoxMemberKind.Enum:
                         CheckEnum(m);
@@ -226,7 +223,7 @@ internal class CheckNames
 
         var memName = RemoveTemplateArguments(mem.Name);
 
-        if (false == CheckName(memName, mem.Location, CaseMatch.LowerSnakeCase, _ => true, source))
+        if (false == CheckName(memName, mem.Location, CaseMatch.IsLowerSnakeCase, _ => true, source))
         {
             return;
         }
@@ -289,7 +286,7 @@ internal class CheckNames
                     CheckEnum(mem);
                     break;
                 case Doxygen.Compound.DoxMemberKind.Variable:
-                    CheckName(mem.Name, mem.Location, CaseMatch.LowerSnakeCase, NoValidNames, "member variables");
+                    CheckName(mem.Name, mem.Location, CaseMatch.IsLowerSnakeCase, NoValidNames, "member variables");
                     break;
                 case Doxygen.Compound.DoxMemberKind.Function:
                     CheckFunction(mem);
@@ -311,7 +308,7 @@ internal class CheckNames
 
         string name = RemoveNamespace(c.CompoundName);
         name = RemoveTemplateArguments(name);
-        CheckName(name, c.Location!, CaseMatch.CamelCase, ValidTypeNames, "class/struct");
+        CheckName(name, c.Location!, CaseMatch.IsCamelCase, ValidTypeNames, "class/struct");
     }
 
     
@@ -336,21 +333,21 @@ internal class CheckNames
 
     private void CheckEnum(memberdefType mem)
     {
-        CheckName(mem.Name, mem.Location, CaseMatch.CamelCase, NoValidNames, "enum");
+        CheckName(mem.Name, mem.Location, CaseMatch.IsCamelCase, NoValidNames, "enum");
         foreach(var e in mem.Enumvalue)
         {
-            CheckName(e.name, mem.Location, CaseMatch.LowerSnakeCase, NoValidNames, "enum value");
+            CheckName(e.name, mem.Location, CaseMatch.IsLowerSnakeCase, NoValidNames, "enum value");
         }
     }
 
     private void CheckTypedef(memberdefType mem)
     {
-        CheckName(mem.Name, mem.Location, CaseMatch.CamelCase, NoValidNames, "typedef");
+        CheckName(mem.Name, mem.Location, CaseMatch.IsCamelCase, NoValidNames, "typedef");
     }
 
     private void CheckDefine(memberdefType mem)
     {
-        CheckName(mem.Name, mem.Location, CaseMatch.CamelCase, NoValidNames, "define");
+        CheckName(mem.Name, mem.Location, CaseMatch.IsCamelCase, NoValidNames, "define");
     }
 
     private void CheckTemplateArguments(locationType location, paramType[] pp)
@@ -380,7 +377,7 @@ internal class CheckNames
         if (templateName.Length == 1 && templateName[0] == templateName.ToUpper()[0]) { return; }
 
         // otherwise it must follow the "template name"
-        CheckName(templateName, location, CaseMatch.TemplateName, ValidTypeNames, "template param");
+        CheckName(templateName, location, CaseMatch.IsTemplateName, ValidTypeNames, "template param");
 
         if(templateName.EndsWith("Function") || templateName.EndsWith("Fun"))
         {

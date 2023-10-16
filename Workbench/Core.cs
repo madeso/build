@@ -27,13 +27,13 @@ public static class Core
 
     public static bool IsWindows()
     {
-        return System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
     }
 
     // check if the script is running on 64bit or not
     public static bool Is64Bit()
     {
-        return System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture == Architecture.X64;
+        return RuntimeInformation.ProcessArchitecture == Architecture.X64;
     }
 
     /// make sure directory exists 
@@ -41,11 +41,11 @@ public static class Core
     {
         if (Directory.Exists(dir))
         {
-            print.Info($"Dir exist, not creating {dir}");
+            Printer.Info($"Dir exist, not creating {dir}");
         }
         else
         {
-            print.Info($"Not a directory, creating {dir}");
+            Printer.Info($"Not a directory, creating {dir}");
             try
             {
                 Directory.CreateDirectory(dir);
@@ -72,11 +72,11 @@ public static class Core
     {
         if (File.Exists(dest))
         {
-            print.Info($"Already downloaded {dest}");
+            Printer.Info($"Already downloaded {dest}");
         }
         else
         {
-            print.Info($"Downloading {dest}");
+            Printer.Info($"Downloading {dest}");
             DownloadFile(print, url, dest);
         }
 
@@ -99,9 +99,9 @@ public static class Core
         }
 
         VerifyDirectoryExists(print, to);
-        MoveFilesRecursivly(from, to);
+        MoveFilesRecursively(from, to);
 
-        static void MoveFilesRecursivly(string from, string to)
+        static void MoveFilesRecursively(string from, string to)
         {
             var paths = new DirectoryInfo(from);
 
@@ -117,14 +117,14 @@ public static class Core
                 var src = Path.Join(from, dir.Name);
                 var dst = Path.Join(to, dir.Name);
                 Directory.CreateDirectory(dst);
-                MoveFilesRecursivly(src, dst);
+                MoveFilesRecursively(src, dst);
                 Directory.Delete(src, false);
             }
         }
     }
 
     /// extract a zip file to folder
-    public static void ExtractZip(Printer print, string zip, string to)
+    public static void ExtractZip(string zip, string to)
     {
         ZipFile.ExtractToDirectory(zip, to);
     }
@@ -139,25 +139,18 @@ public static class Core
 /// multi replace calls on a single text 
 public class TextReplacer
 {
-    private readonly record struct SingleReplacement(string From, string To);
+    private record SingleReplacement(string From, string To);
 
-    private readonly List<SingleReplacement> replacements = new();
+    private readonly List<SingleReplacement> _replacements = new();
 
     // add a replacement command 
-    public void Add(string old, string neww)
+    public void Add(string from, string to)
     {
-        replacements.Add(new SingleReplacement(old, neww));
+        _replacements.Add(new SingleReplacement(from, to));
     }
 
     public string Replace(string inText)
-    {
-        var text = inText;
-
-        foreach (var replacement in replacements)
-        {
-            text = text.Replace(replacement.From, replacement.To);
-        }
-
-        return text;
-    }
+        => _replacements
+            .Aggregate(inText,
+                (current, replacement) => current.Replace(replacement.From, replacement.To));
 }

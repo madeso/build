@@ -1,4 +1,4 @@
-﻿using Spectre.Console.Cli;
+using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Workbench.Clang;
@@ -46,7 +46,7 @@ internal sealed class TidyCommand : Command<TidyCommand.Arg>
     {
         [Description("combinatory filter on what to run")]
         [CommandArgument(0, "<filter>")]
-        public string[] Filter { get; set; } = new string[0];
+        public string[] Filter { get; set; } = Array.Empty<string>();
 
         [Description("don't do anything")]
         [CommandOption("--nop")]

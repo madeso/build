@@ -2,18 +2,17 @@ namespace Workbench;
 
 using Spectre.Console;
 using System;
-using System.Net.Http.Headers;
 using Workbench.Utils;
 
 public class Printer
 {
-    private int error_count = 0;
+    private int _errorCount = 0;
     private readonly List<string> errors = new();
 
     // print a "pretty" header to the terminal
-    public void Header(string headerText) { HeaderWithCustomChar(headerText, "-"); }
+    public static void Header(string headerText) { HeaderWithCustomChar(headerText, "-"); }
 
-    private void HeaderWithCustomChar(string projectName, string headerCharacter)
+    private static void HeaderWithCustomChar(string projectName, string headerCharacter)
     {
         var header_size = 65;
         var header_spacing = 1;
@@ -36,19 +35,19 @@ public class Printer
         AnsiConsole.MarkupLineInterpolated($"{header_string}");
     }
 
-    public void Info(string text)
+    public static void Info(string text)
     {
         AnsiConsole.MarkupLineInterpolated($"{text}");
     }
 
-    public void Line()
+    public static void Line()
     {
         AnsiConsole.MarkupLine("-------------------------------------------------------------");
     }
 
     public void Error(string text)
     {
-        error_count += 1;
+        _errorCount += 1;
         errors.Add(text);
         AnsiConsole.MarkupLineInterpolated($"[red]ERROR: {text}[/]");
     }
@@ -56,7 +55,7 @@ public class Printer
     internal void Error(string file, string error)
     {
         var text = $"{file}: {error}";
-        error_count += 1;
+        _errorCount += 1;
         errors.Add(text);
         var message = $"{file}: ERROR: {error}";
         if(IsConnectedToConsole())
@@ -72,7 +71,7 @@ public class Printer
         {
             try
             {
-                return System.Console.WindowWidth > 0;
+                return Console.WindowWidth > 0;
             }
             catch(IOException)
             {
@@ -81,12 +80,12 @@ public class Printer
         }
     }
 
-    public void Warning(string text)
+    public static void Warning(string text)
     {
         AnsiConsole.MarkupLineInterpolated($"WARNING: {text}");
     }
 
-    public void PrintContentsOfFile(string path)
+    public static void PrintContentsOfFile(string path)
     {
         if (File.Exists(path))
         {
@@ -103,23 +102,23 @@ public class Printer
     }
 
     // print files and folder recursivly
-    public void PrintDirectoryStructure(string root) {
-        PrinteRecursive(root, "");
+    public static void PrintDirectoryStructure(string root) {
+        PrintRecursive(root, "");
 
-        static void PrinteRecursive(string root, string start)
+        static void PrintRecursive(string root, string start)
         {
             var ident = " ".Repeat(4);
 
             var paths = new DirectoryInfo(root);
-            foreach (var file_path in paths.EnumerateDirectories())
+            foreach (var filePath in paths.EnumerateDirectories())
             {
-                AnsiConsole.MarkupLineInterpolated($"{start}{file_path.Name}/");
-                PrinteRecursive(file_path.FullName, $"{start}{ident}");
+                AnsiConsole.MarkupLineInterpolated($"{start}{filePath.Name}/");
+                PrintRecursive(filePath.FullName, $"{start}{ident}");
             }
 
-            foreach (var file_path in paths.EnumerateFiles())
+            foreach (var filePath in paths.EnumerateFiles())
             {
-                AnsiConsole.MarkupLineInterpolated($"{start}{file_path.Name}");
+                AnsiConsole.MarkupLineInterpolated($"{start}{filePath.Name}");
             }
         }
     }
@@ -127,9 +126,9 @@ public class Printer
 
     public void PrintErrorCount()
     {
-        if (error_count > 0)
+        if (_errorCount > 0)
         {
-            AnsiConsole.MarkupLineInterpolated($"Errors detected: ({error_count})");
+            AnsiConsole.MarkupLineInterpolated($"Errors detected: ({_errorCount})");
         }
     }
 

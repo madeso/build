@@ -12,6 +12,7 @@ internal class Store
 
 internal record TidyOutput(string[] Output, TimeSpan Taken);
 internal record StoredTidyUpdate(string[] Output, TimeSpan Taken, DateTime Modified);
+internal record CategoryAndFiles(string Category, string[] Files);
 
 internal class FileStatistics
 {
@@ -25,10 +26,10 @@ internal class FileStatistics
     internal void Print()
     {
         if (data.Count == 0) { return; }
-        var average_value = TimeSpan.FromSeconds(data.Average(x => x.Value.TotalSeconds));
+        var averageValue = TimeSpan.FromSeconds(data.Average(x => x.Value.TotalSeconds));
         var mi = data.MinBy(x => x.Value);
         var ma = data.MaxBy(x => x.Value);
-        AnsiConsole.MarkupLineInterpolated($"average: {average_value:.2f}s");
+        AnsiConsole.MarkupLineInterpolated($"average: {averageValue:.2f}s");
         AnsiConsole.MarkupLineInterpolated($"max: {ma.Value:.2f}s foreach {ma.Key}");
         AnsiConsole.MarkupLineInterpolated($"min: {mi.Value:.2f}s foreach {mi.Key}");
         AnsiConsole.MarkupLineInterpolated($"{data.Count} files");
@@ -284,7 +285,7 @@ internal static class F
         var classes = new ColCounter<string>();
         if (false == shortList && only.Length == 0)
         {
-            printer.Info($"took {time_taken:.2f}s");
+            Printer.Info($"took {time_taken:.2f}s");
         }
         stats.Add(printable_file, time_taken);
         var print_empty = false;
@@ -331,7 +332,7 @@ internal static class F
                 {
                     if (false == hidden && print_empty)
                     {
-                        printer.Info("");
+                        Printer.Info("");
                         print_empty = false;
                     }
                 }
@@ -340,7 +341,7 @@ internal static class F
                     if (false == hidden)
                     {
                         print_empty = true;
-                        printer.Info(line);
+                        Printer.Info(line);
                     }
                 }
             }
@@ -348,7 +349,7 @@ internal static class F
         if (false == shortList && only.Length == 0)
         {
             PrintWarningCounter(printer, classes, printable_file);
-            printer.Info("");
+            Printer.Info("");
         }
         return (warnings, classes);
     }
@@ -356,10 +357,10 @@ internal static class F
     // print warning counter to the console
     private static void PrintWarningCounter(Printer print, ColCounter<string> project_counter, string project)
     {
-        print.Info($"{project_counter.TotalCount()} warnings in {project}.");
+        Printer.Info($"{project_counter.TotalCount()} warnings in {project}.");
         foreach (var (file, count) in project_counter.MostCommon().Take(10))
         {
-            print.Info($"{file} at {count}");
+            Printer.Info($"{file} at {count}");
         }
     }
 
@@ -388,12 +389,12 @@ internal static class F
         }
     }
 
-    internal static int HandleTidyListFilesCommand(Printer print, bool args_sort)
+    internal static int HandleTidyListFilesCommand(Printer print, bool sortFiles)
     {
         var root = Environment.CurrentDirectory;
 
-        var project_build_folder = CompileCommands.F.FindBuildRootOrNull(root);
-        if (project_build_folder is null)
+        var buildFolder = CompileCommand.FindBuildRootOrNull(root);
+        if (buildFolder is null)
         {
             print.Error("unable to find build folder");
             return -1;
@@ -401,24 +402,24 @@ internal static class F
 
         var files = FileUtil.ListFilesRecursively(root, FileUtil.SourceFiles);
 
-        if (args_sort)
+        if (sortFiles)
         {
             var sorted = MapFilesOnFirstDir(root, files);
-            foreach (var (project, source_files) in sorted)
+            foreach (var (project, sourceFiles) in sorted)
             {
-                print.Header(project);
-                foreach (var source_file in source_files)
+                Printer.Header(project);
+                foreach (var file in sourceFiles)
                 {
-                    print.Info(source_file);
+                    Printer.Info(file);
                 }
-                print.Info("");
+                Printer.Info("");
             }
         }
         else
         {
             foreach (var file in files)
             {
-                print.Info(file);
+                Printer.Info(file);
             }
         }
 
@@ -429,7 +430,7 @@ internal static class F
     internal static int HandleRunClangTidyCommand(Printer printer, string tidy_path, bool force, bool headers, bool short_args, bool args_nop, string[] args_filter, string[] args_only, bool args_fix)
     {
         var root = Environment.CurrentDirectory;
-        var project_build_folder = CompileCommands.F.FindBuildRootOrNull(root);
+        var project_build_folder = CompileCommand.FindBuildRootOrNull(root);
         if (project_build_folder is null)
         {
             printer.Error("unable to find build folder");
@@ -444,7 +445,7 @@ internal static class F
         }
 
         WriteTidyFileToDisk(root);
-        printer.Info($"using clang-tidy: {tidy_path}");
+        Printer.Info($"using clang-tidy: {tidy_path}");
 
         var total_counter = new ColCounter<string>();
         var total_classes = new ColCounter<string>();
@@ -469,7 +470,7 @@ internal static class F
                 {
                     if (false == short_args)
                     {
-                        printer.Header(project);
+                        Printer.Header(project);
                     }
                     first_file = false;
                 }
@@ -506,33 +507,33 @@ internal static class F
                 if (args_only.Length == 0)
                 {
                     PrintWarningCounter(printer, project_counter, project);
-                    printer.Info("");
-                    printer.Info("");
+                    Printer.Info("");
+                    Printer.Info("");
                 }
             }
         }
 
         if (false == short_args && args_only.Length == 0)
         {
-            printer.Header("TIDY REPORT");
+            Printer.Header("TIDY REPORT");
             PrintWarningCounter(printer, total_counter, "total");
-            printer.Info("");
+            Printer.Info("");
             PrintWarningCounter(printer, total_classes, "classes");
-            printer.Info("");
-            printer.Line();
-            printer.Info("");
+            Printer.Info("");
+            Printer.Line();
+            Printer.Info("");
             foreach (var (k, v) in warnings_per_file)
             {
-                printer.Info($"{k}:");
+                Printer.Info($"{k}:");
                 foreach (var f in v)
                 {
-                    printer.Info($"  {f}");
+                    Printer.Info($"  {f}");
                 }
-                printer.Info("");
+                Printer.Info("");
             }
 
-            printer.Line();
-            printer.Info("");
+            Printer.Line();
+            Printer.Info("");
             stats.Print();
         }
 
@@ -547,12 +548,12 @@ internal static class F
     }
 
     // callback function called when running clang.py format
-    internal static int HandleClangFormatCommand(Printer printer, bool args_nop)
+    internal static int HandleClangFormatCommand(Printer printer, bool nop)
     {
         var root = Environment.CurrentDirectory;
 
-        var project_build_folder = CompileCommands.F.FindBuildRootOrNull(root);
-        if (project_build_folder is null)
+        var projectBuildFolder = CompileCommand.FindBuildRootOrNull(root);
+        if (projectBuildFolder is null)
         {
             printer.Error("unable to find build folder");
             return -1;
@@ -560,27 +561,27 @@ internal static class F
 
         var data = MapAllFilesInRootOnFirstDir(root, FileUtil.HeaderAndSourceFiles);
 
-        foreach (var (project, source_files) in data)
+        foreach (var (project, sourceFiles) in data)
         {
-            printer.Header(project);
-            foreach (var source_file in source_files)
+            Printer.Header(project);
+            foreach (var file in sourceFiles)
             {
-                printer.Info(Path.GetRelativePath(source_file, root));
-                if (args_nop == false)
+                Printer.Info(Path.GetRelativePath(file, root));
+                if (nop != false)
                 {
-                    var res = new ProcessBuilder("clang-format", "-i", source_file).RunAndGetOutput();
-                    if (res.ExitCode != 0)
-                    {
-                        res.PrintOutput(printer);
-                        return -1;
-                    }
+                    continue;
+                }
+
+                var res = new ProcessBuilder("clang-format", "-i", file).RunAndGetOutput();
+                if (res.ExitCode != 0)
+                {
+                    res.PrintOutput(printer);
+                    return -1;
                 }
             }
-            printer.Info("");
+            Printer.Info("");
         }
 
         return 0;
     }
 }
-
-internal record CategoryAndFiles(string Category, string[] Files);

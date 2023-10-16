@@ -28,7 +28,7 @@ internal static class F
     internal static int HandleBuild(Printer printer, BuildEnvironment build, BuildData data)
     {
         SaveBuildData(printer, build, data);
-        GenerateCmakeProject(build, data).Build(printer, CMake.Config.Releaase);
+        GenerateCmakeProject(build, data).Build(printer, CMake.Config.Release);
         return 0;
     }
 
@@ -88,30 +88,30 @@ internal static class F
     {
         var env = BuildFunctions.LoadFromFileOrCreateEmpty(data.GetPathToSettingsFile(), printer);
 
-        printer.Header(data.Name);
-        printer.Info($"Project: {data.Name}");
-        printer.Info($"Dependencies: {data.Dependencies.Count}");
-        printer.Info("Environment:");
-        printer.Info($"  Compiler: {EnumTools.GetString(env.Compiler) ?? "missing"}");
-        printer.Info($"  Platform: {EnumTools.GetString(env.Platform) ?? "missing"}");
-        printer.Info("");
-        printer.Info("Folders:");
-        printer.Info($"  Data: {data.GetPathToSettingsFile()}");
-        printer.Info($"  Root: {data.RootDirectory}");
-        printer.Info($"  Build: {data.ProjectDirectory}");
-        printer.Info($"  Dependencies: {data.DependencyDirectory}");
+        Printer.Header(data.Name);
+        Printer.Info($"Project: {data.Name}");
+        Printer.Info($"Dependencies: {data.Dependencies.Count}");
+        Printer.Info("Environment:");
+        Printer.Info($"  Compiler: {EnumTools.GetString(env.Compiler) ?? "missing"}");
+        Printer.Info($"  Platform: {EnumTools.GetString(env.Platform) ?? "missing"}");
+        Printer.Info("");
+        Printer.Info("Folders:");
+        Printer.Info($"  Data: {data.GetPathToSettingsFile()}");
+        Printer.Info($"  Root: {data.RootDirectory}");
+        Printer.Info($"  Build: {data.ProjectDirectory}");
+        Printer.Info($"  Dependencies: {data.DependencyDirectory}");
         const string indent = "    ";
         if (data.Dependencies.Count > 0)
         {
-            printer.Info("");
+            Printer.Info("");
         }
         foreach (var dep in data.Dependencies)
         {
-            printer.Info($"{indent}{dep.GetName()}");
+            Printer.Info($"{indent}{dep.GetName()}");
             var lines = dep.GetStatus();
             foreach (var line in lines)
             {
-                printer.Info($"{indent}{indent}{line}");
+                Printer.Info($"{indent}{indent}{line}");
             }
         }
 

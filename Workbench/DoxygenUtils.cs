@@ -130,11 +130,10 @@ internal static class DoxygenUtils
     internal static CompoundDef? FindNamespace(DoxygenType dox, string namespaceName)
     {
         return dox.compounds
-            .Where(c => c.kind == CompoundKind.Namespace)
-            .Where(c => c.Name == namespaceName)
-            .FirstOrDefault()
-            ?.DoxygenFile
-            ?.FirstCompound
+                .Where(c => c.kind == CompoundKind.Namespace)
+                .FirstOrDefault(c => c.Name == namespaceName)
+                ?.DoxygenFile
+                ?.FirstCompound
             ;
     }
 }

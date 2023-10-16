@@ -1,4 +1,4 @@
-﻿using Spectre.Console.Cli;
+using Spectre.Console.Cli;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Workbench.Commands.StatusCommands;
@@ -15,7 +15,7 @@ public static class Main
 
 internal sealed class DebugCommand : Command<DebugCommand.Arg>
 {
-    public sealed class Arg : CompileCommands.CommonArguments
+    public sealed class Arg : CompileCommandsArguments
     {
     }
 

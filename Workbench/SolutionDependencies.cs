@@ -76,7 +76,7 @@ static class F
             "-K" + graphvizLayout,
             "-O" + targetFile + "." + imageFormat
         );
-        printer.Info($"Running graphviz {cmdline}");
+        Printer.Info($"Running graphviz {cmdline}");
         cmdline.RunAndPrintOutput(printer);
     }
 
@@ -147,7 +147,7 @@ static class F
 
         foreach (var line in gv.Lines)
         {
-            printer.Info(line);
+            Printer.Info(line);
         }
 
         return 0;
@@ -173,7 +173,7 @@ static class F
 
         gv.WriteFile(targetFile);
 
-        printer.Info($"Wrote {targetFile}");
+        Printer.Info($"Wrote {targetFile}");
 
         return 0;
     }
@@ -183,10 +183,10 @@ static class F
         var solution = SolutionParser.ParseVisualStudio(printer, solutionPath);
         foreach (var project in solution.Projects)
         {
-            printer.Info(project.Name);
+            Printer.Info(project.Name);
         }
 
-        printer.Info("");
+        Printer.Info("");
 
         return 0;
     }

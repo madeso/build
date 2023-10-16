@@ -65,7 +65,7 @@ internal sealed class LineCountCommand : Command<LineCountCommand.Arg>
 [Description("list headers from files")]
 internal sealed class IncludeListCommand : Command<IncludeListCommand.Arg>
 {
-    public sealed class Arg : CompileCommands.CommonArguments
+    public sealed class Arg : CompileCommandsArguments
     {
         [Description("File to read")]
         [CommandArgument(0, "<input files>")]
@@ -112,7 +112,7 @@ internal sealed class IncludeListCommand : Command<IncludeListCommand.Arg>
 [Description("generate a graphviz of the includes")]
 internal sealed class IncludeGraphvizCommand : Command<IncludeGraphvizCommand.Arg>
 {
-    public sealed class Arg : CompileCommands.CommonArguments
+    public sealed class Arg : CompileCommandsArguments
     {
         [Description("File to read")]
         [CommandArgument(0, "<input files>")]
@@ -203,7 +203,7 @@ internal sealed class MissingPragmaOnceCommand : Command<MissingPragmaOnceComman
 [Description("find files that existis on disk but missing in cmake")]
 internal sealed class MissingInCmakeCommand : Command<MissingInCmakeCommand.Arg>
 {
-    public sealed class Arg : CompileCommands.CommonArguments
+    public sealed class Arg : CompileCommandsArguments
     {
         [Description("File to read")]
         [CommandArgument(0, "<input files>")]
@@ -232,7 +232,7 @@ internal sealed class MissingInCmakeCommand : Command<MissingInCmakeCommand.Arg>
 [Description("find projects that have not set the solution folder")]
 internal sealed class ListNoProjectFoldersCommand : Command<ListNoProjectFoldersCommand.Arg>
 {
-    public sealed class Arg : CompileCommands.CommonArguments
+    public sealed class Arg : CompileCommandsArguments
     {
         [Description("File to read")]
         [CommandArgument(0, "<input files>")]

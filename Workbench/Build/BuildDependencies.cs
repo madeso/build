@@ -93,7 +93,7 @@ internal class DependencySdl2 : BuildDependency
     {
         var generator = env.CreateCmakeGenerator();
 
-        print.Header("Installing dependency sdl2");
+        Printer.Header("Installing dependency sdl2");
 
         var zipFile = Path.Join(data.DependencyDirectory, $"{_folderName}.zip");
 
@@ -101,22 +101,22 @@ internal class DependencySdl2 : BuildDependency
         {
             Core.VerifyDirectoryExists(print, _rootFolder);
             Core.VerifyDirectoryExists(print, data.DependencyDirectory);
-            print.Info("downloading sdl2");
+            Printer.Info("downloading sdl2");
             Core.DownloadFileIfMissing(print, _url, zipFile);
         }
         else
         {
-            print.Info("SDL2 zip file exist, not downloading again...");
+            Printer.Info("SDL2 zip file exist, not downloading again...");
         }
 
         if (false == File.Exists(Path.Join(_rootFolder, "INSTALL.txt")))
         {
-            Core.ExtractZip(print, zipFile, _rootFolder);
+            Core.ExtractZip(zipFile, _rootFolder);
             Core.MoveFiles(print, Path.Join(_rootFolder, _folderName), _rootFolder);
         }
         else
         {
-            print.Info("SDL2 is unzipped, not unzipping again");
+            Printer.Info("SDL2 is unzipped, not unzipping again");
         }
 
         if (false == File.Exists(Path.Join(_buildFolder, "SDL2.sln")))
@@ -129,11 +129,11 @@ internal class DependencySdl2 : BuildDependency
             project.AddArgument("SDL_STATIC", "ON");
             project.AddArgument("SDL_SHARED", "OFF");
             project.Configure(print);
-            project.Build(print, CMake.Config.Releaase);
+            project.Build(print, CMake.Config.Release);
         }
         else
         {
-            print.Info("SDL2 build exist, not building again...");
+            Printer.Info("SDL2 build exist, not building again...");
         }
     }
 
@@ -216,16 +216,16 @@ internal class DependencyAssimp : BuildDependency
 
         var generator = env.CreateCmakeGenerator();
 
-        print.Header("Installing dependency assimp");
+        Printer.Header("Installing dependency assimp");
         var zipFile = Path.Join(data.DependencyDirectory, "assimp.zip");
         if (false == Directory.Exists(_dependencyFolder))
         {
             Core.VerifyDirectoryExists(print, _dependencyFolder);
             Core.VerifyDirectoryExists(print, data.DependencyDirectory);
-            print.Info("downloading assimp");
+            Printer.Info("downloading assimp");
             Core.DownloadFileIfMissing(print, url, zipFile);
-            print.Info("extracting assimp");
-            Core.ExtractZip(print, zipFile, _dependencyFolder);
+            Printer.Info("extracting assimp");
+            Core.ExtractZip(zipFile, _dependencyFolder);
             var build = Path.Join(_dependencyFolder, "cmake-build");
             Core.MoveFiles(print, Path.Join(_dependencyFolder, "assimp-5.0.1"), _dependencyFolder);
 
@@ -235,19 +235,19 @@ internal class DependencyAssimp : BuildDependency
             {
                 project.MakeStaticLibrary();
             }
-            print.Info($"Installing cmake to {_installFolder}");
+            Printer.Info($"Installing cmake to {_installFolder}");
             project.SetInstallFolder(_installFolder);
             Core.VerifyDirectoryExists(print, _installFolder);
 
             project.Configure(print);
-            project.Build(print, CMake.Config.Releaase);
+            project.Build(print, CMake.Config.Release);
 
-            print.Info("Installing assimp");
-            project.Install(print, CMake.Config.Releaase);
+            Printer.Info("Installing assimp");
+            project.Install(print, CMake.Config.Release);
         }
         else
         {
-            print.Info("Assimp build exist, not building again...");
+            Printer.Info("Assimp build exist, not building again...");
         }
     }
 
@@ -397,13 +397,13 @@ internal static class BuildUtils
             var mrelease = mtrelease.Match(line);
             if (mdebug.Success)
             {
-                print.Info($"in {path} changed to static debug");
+                Printer.Info($"in {path} changed to static debug");
                 var spaces = mdebug.Groups[1].Value;
                 lines.Add($"{spaces}<RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>");
             }
             else if (mrelease.Success)
             {
-                print.Info($"in {path} changed to static release");
+                Printer.Info($"in {path} changed to static release");
                 var spaces = mrelease.Groups[1].Value;
                 lines.Add($"{spaces}<RuntimeLibrary>MultiThreaded</RuntimeLibrary>");
             }
@@ -463,7 +463,7 @@ internal class DependencyWxWidgets : BuildDependency
     {
         var generator = env.CreateCmakeGenerator();
 
-        print.Header("Installing dependency wxwidgets");
+        Printer.Header("Installing dependency wxwidgets");
 
         var zipFile = Path.Join(data.DependencyDirectory, $"{_folderName}.zip");
 
@@ -471,21 +471,21 @@ internal class DependencyWxWidgets : BuildDependency
         {
             Core.VerifyDirectoryExists(print, _rootFolder);
             Core.VerifyDirectoryExists(print, data.DependencyDirectory);
-            print.Info("downloading wxwidgets");
+            Printer.Info("downloading wxwidgets");
             Core.DownloadFileIfMissing(print, _url, zipFile);
         }
         else
         {
-            print.Info("wxWidgets zip file exist, not downloading again...");
+            Printer.Info("wxWidgets zip file exist, not downloading again...");
         }
 
         if (false == File.Exists(Path.Join(_rootFolder, "CMakeLists.txt")))
         {
-            Core.ExtractZip(print, zipFile, _rootFolder);
+            Core.ExtractZip(zipFile, _rootFolder);
         }
         else
         {
-            print.Info("wxWidgets is unzipped, not unzipping again");
+            Printer.Info("wxWidgets is unzipped, not unzipping again");
         }
 
         var buildDbg = false == File.Exists(Path.Join(GetLibraryFolder(), "wxzlibd.lib"));
@@ -496,19 +496,19 @@ internal class DependencyWxWidgets : BuildDependency
             var project = ConfigProject(print, _rootFolder, _buildFolder, generator);
             if(buildDbg)
             {
-                print.Info("building debug wxWidgets");
+                Printer.Info("building debug wxWidgets");
                 project.Build(print, CMake.Config.Debug);
             }
 
             if(buildRel)
             {
-                print.Info("building release wxWidgets");
-                project.Build(print, CMake.Config.Releaase);
+                Printer.Info("building release wxWidgets");
+                project.Build(print, CMake.Config.Release);
             }
         }
         else
         {
-            print.Info("wxWidgets build exist, not building again...");
+            Printer.Info("wxWidgets build exist, not building again...");
         }
     }
 

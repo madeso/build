@@ -45,7 +45,7 @@ internal static class ConfigFile
         }
 
         File.WriteAllText(path, content);
-        print.Info($"Wrote {path}");
+        Printer.Info($"Wrote {path}");
         return 0;
     }
 }

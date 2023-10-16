@@ -1,43 +1,44 @@
-using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Text.Json.Serialization;
+using Spectre.Console.Cli;
+using Workbench.Utils;
 
-namespace Workbench.CompileCommands;
+namespace Workbench;
 
 public class CompileCommand
 {
-    public string directory;
-    public string command;
+    public string Directory;
+    public string Command;
 
     public CompileCommand(string directory, string command)
     {
-        this.directory = directory;
-        this.command = command;
+        this.Directory = directory;
+        this.Command = command;
     }
 
     public IEnumerable<string> GetRelativeIncludes()
     {
-        // shitty comamndline parser... beware
-        foreach (var c in command.Split(' '))
+        // shitty commandline parser... beware
+        foreach (var c in Command.Split(' '))
         {
-            const string include_prefix = "-I";
-            if (c.StartsWith(include_prefix) == false) { continue; }
+            const string includePrefix = "-I";
+            if (c.StartsWith(includePrefix) == false) { continue; }
 
-            yield return c[include_prefix.Length..].Trim();
+            yield return c[includePrefix.Length..].Trim();
         }
     }
 
     public Dictionary<string, string> GetDefines()
     {
-        // shitty comamndline parser... beware
+        // shitty commandline parser... beware
         var r = new Dictionary<string, string>();
 
-        foreach (var c in command.Split(' '))
+        foreach (var c in Command.Split(' '))
         {
-            const string define_prefix = "-D";
-            if (c.StartsWith(define_prefix) == false) { continue; }
+            const string definePrefix = "-D";
+            if (c.StartsWith(definePrefix) == false) { continue; }
 
-            var def = c[define_prefix.Length..];
+            var def = c[definePrefix.Length..];
 
             var arr = def.Split('=', 2);
             var key = arr[0];
@@ -47,22 +48,7 @@ public class CompileCommand
 
         return r;
     }
-}
 
-internal class CompileCommandJson
-{
-    [JsonPropertyName("file")]
-    public string file = "";
-
-    [JsonPropertyName("directory")]
-    public string directory = "";
-
-    [JsonPropertyName("command")]
-    public string command = "";
-}
-
-internal static class F
-{
     internal static Dictionary<string, CompileCommand>? LoadCompileCommandsOrNull(Printer printer, string path)
     {
         var content = File.ReadAllText(path);
@@ -74,69 +60,59 @@ internal static class F
             return null;
         }
 
-        var r = new Dictionary<string, CompileCommand>();
-        foreach (var entry in store)
-        {
-            r.Add
-            (
-                entry.file,
-                new CompileCommand
-                (
-                    directory: entry.directory,
-                    command: entry.command
-                )
-            );
-        }
-
-        return r;
+        return store.ToDictionary(entry => entry.File,
+            entry => new CompileCommand(directory: entry.Directory, command: entry.Command)
+        );
     }
 
-    internal const string COMPILE_COMMANDS_FILE_NAME = "compile_commands.json";
+    internal const string JsonFileName = "compile_commands.json";
 
     /// find the build folder containing the compile_commands file or None
     public static string? FindBuildRootOrNull(string root)
-    {
-        foreach (var build in Utils.FileUtil.PitchforkBuildFolders(root))
-        {
-            var compile_commands_json = Path.Join(build, COMPILE_COMMANDS_FILE_NAME);
-            if (Path.Exists(compile_commands_json))
-            {
-                return build;
-            }
-        }
+        => FileUtil
+            .PitchforkBuildFolders(root)
+            .FirstOrDefault(build => Path.Exists(Path.Join(build, JsonFileName)))
+    ;
+}
 
-        return null;
-    }
+internal class CompileCommandJson
+{
+    [JsonPropertyName("file")]
+    public string File = "";
+
+    [JsonPropertyName("directory")]
+    public string Directory = "";
+
+    [JsonPropertyName("command")]
+    public string Command = "";
 }
 
 
-internal class CommonArguments : CommandSettings
+internal class CompileCommandsArguments : CommandSettings
 {
     [Description("the path to compile_commands.json")]
     [CommandOption("--compile-commands")]
     [DefaultValue(null)]
-    public string? compileCommands { get; set; }
+    public string? CompileCommands { get; set; }
 
     public string? GetPathToCompileCommandsOrNull(Printer print)
     {
-        string? get_argument_or_none(string cwd)
-        {
-            if (compileCommands != null)
-            {
-                return compileCommands;
-            }
-
-            var r = F.FindBuildRootOrNull(cwd);
-            if (r == null) { return null; }
-            return Path.Join(r, F.COMPILE_COMMANDS_FILE_NAME);
-        }
-
-        var ret = get_argument_or_none(Environment.CurrentDirectory);
+        var ret = GetArgumentOrNone(Environment.CurrentDirectory, CompileCommands);
         if (ret == null)
         {
-            print.Error($"Unable to locate {F.COMPILE_COMMANDS_FILE_NAME}");
+            print.Error($"Unable to locate {CompileCommand.JsonFileName}");
         }
         return ret;
+
+        static string? GetArgumentOrNone(string cwd, string? cc)
+        {
+            if (cc != null) { return cc; }
+
+            var r = CompileCommand.FindBuildRootOrNull(cwd);
+            if (r == null) { return null; }
+
+            return Path.Join(r, CompileCommand.JsonFileName);
+        }
     }
 }
 

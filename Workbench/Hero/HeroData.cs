@@ -57,18 +57,18 @@ public class UserInput
 
             foreach (var x in changes.Where(x => x.Exist == true))
             {
-                printer.Info($"{x.Src} does not exist in {name}, but was replaced with {x.Dst}");
+                Printer.Info($"{x.Src} does not exist in {name}, but was replaced with {x.Dst}");
             }
 
             foreach (var x in changes.Where(x => x.Exist == false))
             {
-                printer.Info($"{x.Src} was removed from {name} since it doesn't exist and the replacement {x.Dst} was found");
+                Printer.Info($"{x.Src} was removed from {name} since it doesn't exist and the replacement {x.Dst} was found");
             }
 
             d.RemoveAll(missing.Contains);
             foreach (var f in d)
             {
-                printer.Info($"{f} was kept in {name}");
+                Printer.Info($"{f} was kept in {name}");
             }
             d.AddRange(changes.Where(x => x.Exist).Select(x => x.Dst));
         }

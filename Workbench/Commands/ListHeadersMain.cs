@@ -1,4 +1,4 @@
-﻿using Spectre.Console.Cli;
+using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Workbench.ListHeaders;
@@ -35,7 +35,7 @@ internal sealed class LinesCommand : Command<LinesCommand.Arg>
 
 internal sealed class FilesCommand : Command<FilesCommand.Arg>
 {
-    public sealed class Arg : CompileCommands.CommonArguments
+    public sealed class Arg : CompileCommandsArguments
     {
         [Description("project file")]
         [CommandArgument(0, "<source>")]

@@ -8,14 +8,13 @@ namespace Workbench.Doxygen.Compound;
 
 class CompoundLoader
 {
-    string dir;
+    readonly string dir;
+    readonly Dictionary<string, ParsedDoxygenFile> cache = new();
 
     public CompoundLoader(string dir)
     {
         this.dir = dir;
     }
-
-    Dictionary<string, ParsedDoxygenFile> cache = new();
 
     public ParsedDoxygenFile Load(string id)
     {
@@ -187,14 +186,14 @@ class docHtmlOnlyType
 {
     public docHtmlOnlyType(XmlElement el)
     {
-        Extension = el.GetFirstText();
+        // Extension = el.GetFirstText();
         throw new NotImplementedException();
     }
 
-    public string Extension { get; }
+    // public string Extension { get; }
 
     // attributes
-    string block { get; }
+    // string block { get; }
 }
 
 class compoundRefType
@@ -749,7 +748,7 @@ class listingType
     // codelineType[] codeline;
 
     // attributes
-    public string? filename { get; }
+    // public string? filename { get; }
 }
 
 class codelineType
@@ -763,10 +762,10 @@ class codelineType
     // highlightType[] highlight;
 
     // attributes
-    public int lineno { get; }
-    public string refid { get; }
-    public DoxRefKind refkind { get; }
-    public DoxBool external { get; }
+    // public int lineno { get; }
+    // public string refid { get; }
+    // public DoxRefKind refkind { get; }
+    // public DoxBool external { get; }
 }
 
 class highlightType
@@ -783,7 +782,7 @@ class highlightType
     // </xsd:choice>
 
     // attributes
-    public DoxHighlightClass Class { get; } // class
+    // public DoxHighlightClass Class { get; } // class
 }
 
 class spType // mixed
@@ -794,7 +793,7 @@ class spType // mixed
     }
 
     // attributes
-    public int? value { get; }
+    // public int? value { get; }
 }
 
 class referenceType// mixed class

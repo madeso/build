@@ -42,7 +42,7 @@ internal class ProcessExitWithOutput
             }
             else
             {
-                print.Info(line.Line);
+                Printer.Info(line.Line);
             }
         }
 
@@ -51,7 +51,7 @@ internal class ProcessExitWithOutput
 
     public ProcessExitWithOutput PrintStatus(Printer print)
     {
-        print.Info($"Return value: {ExitCode}");
+        Printer.Info($"Return value: {ExitCode}");
         if (ExitCode != 0)
         {
             print.Error($"Failed to run command: {CommandLine}");
@@ -202,14 +202,12 @@ public class ProcessBuilder
         }
         else //Windows family
         {
-            bool enclosedInApo, wasApo;
-            string subResult;
             foreach (string arg in args)
             {
-                enclosedInApo = arg.LastIndexOfAny(
-                    new char[] { ' ', '\t', '|', '@', '^', '<', '>', '&' }) >= 0;
-                wasApo = enclosedInApo;
-                subResult = "";
+                var enclosedInApo = arg.LastIndexOfAny(
+                    new[] { ' ', '\t', '|', '@', '^', '<', '>', '&' }) >= 0;
+                var wasApo = enclosedInApo;
+                var subResult = "";
                 for (int i = arg.Length - 1; i >= 0; i--)
                 {
                     switch (arg[i])
@@ -243,7 +241,7 @@ public class ProcessBuilder
 
     internal void RunAndPrintOutput(Printer printer)
     {
-        printer.PrintStatus(RunWithCallback(null, printer.Info, err => printer.Error(err),
+        printer.PrintStatus(RunWithCallback(null, Printer.Info, err => printer.Error(err),
             (mess, ex) => {
                     printer.Error(mess);
                     printer.Error(ex.Message);

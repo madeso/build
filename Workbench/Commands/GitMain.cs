@@ -135,7 +135,7 @@ internal sealed class AuthorsCommand : Command<AuthorsCommand.Arg>
 
         public DateTime Start { get; private set; }
 
-        public string Email { get; private set; }
+        public string Email { get; }
 
         public void Expand(DateTime d)
         {

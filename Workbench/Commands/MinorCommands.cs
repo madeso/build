@@ -48,11 +48,11 @@ internal sealed class CatDirCommand : Command<CatDirCommand.Arg>
                 .Where(file => FileUtil.FileHasAnyExtension(file.FullName, arg.AllSources ? FileUtil.HeaderAndSourceFiles : FileUtil.HeaderFiles))
             )
             {
-                print.Info($"File: {file.FullName}");
+                Printer.Info($"File: {file.FullName}");
                 foreach (var line in File.ReadAllLines(file.FullName))
                 {
                     if (string.IsNullOrWhiteSpace(line)) { continue; }
-                    print.Info($"    {line}");
+                    Printer.Info($"    {line}");
                 }
             }
             return 0;
@@ -73,7 +73,7 @@ internal sealed class CatCommand : Command<CatCommand.Arg>
     {
         return CommonExecute.WithPrinter(print =>
         {
-            print.PrintContentsOfFile(settings.Path);
+            Printer.PrintContentsOfFile(settings.Path);
             return 0;
         });
     }
@@ -92,7 +92,7 @@ internal sealed class LsCommand : Command<LsCommand.Arg>
     {
         return CommonExecute.WithPrinter(print =>
         {
-            print.PrintDirectoryStructure(settings.Path);
+            Printer.PrintDirectoryStructure(settings.Path);
             return 0;
         });
     }

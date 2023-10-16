@@ -80,11 +80,11 @@ internal static class Ui
         {
             if (ExcludeFile(file, input, onlyHeaders, exclude))
             {
-                print.Info($"{file} rejected due to non-header");
+                Printer.Info($"{file} rejected due to non-header");
                 continue;
             }
 
-            print.Info($"{file} added as a node");
+            Printer.Info($"{file} added as a node");
             var displayName = Html.GetFilename(common, root.InputRoot, file);
             var nodeId = Html.GetSafeInspectFilenameWithoutHtml(file);
             var addedNode = gv.AddNodeWithId(displayName, Shape.Box, nodeId);
@@ -101,7 +101,7 @@ internal static class Ui
         {
             if (ExcludeFile(file, input, onlyHeaders, exclude))
             {
-                print.Info($"{file} rejected due to non-header");
+                Printer.Info($"{file} rejected due to non-header");
                 continue;
             }
 
@@ -116,7 +116,7 @@ internal static class Ui
             {
                 if (ExcludeFile(s, input, onlyHeaders, exclude))
                 {
-                    print.Info($"{s} rejected due to non-header");
+                    Printer.Info($"{s} rejected due to non-header");
                     continue;
                 }
 

@@ -33,7 +33,7 @@ public readonly struct IncludeData
                             return new OptionalRegexStatic(re.Regex);
 
                         case RegexOrErr.Error err:
-                            var error = $"{regex} is invalid regex: {err.error}";
+                            var error = $"{regex} is invalid regex: {err.Message}";
                             print.Error(error);
                             return new OptionalRegexFailed(error);
                         default:
@@ -97,7 +97,7 @@ public class OptionalRegexDynamic : OptionalRegex
             case RegexOrErr.Value re:
                 return re.Regex;
             case RegexOrErr.Error error:
-                print.Error($"{_regex} -> {regexSource} is invalid regex: {error.error}");
+                print.Error($"{_regex} -> {regexSource} is invalid regex: {error.Message}");
                 return null;
             default:
                 throw new ArgumentException("invalid state");
@@ -139,7 +139,7 @@ public class OptionalRegexFailed : OptionalRegex
 internal abstract record RegexOrErr
 {
     public record Value(Regex Regex) : RegexOrErr;
-    public record Error(string error) : RegexOrErr;
+    public record Error(string Message) : RegexOrErr;
 }
 
 public class Include : IComparable<Include>
@@ -160,7 +160,7 @@ public class Include : IComparable<Include>
         var lhs = this;
         if (lhs.LineClass == rhs.LineClass)
         {
-            return lhs.Line.CompareTo(rhs.Line);
+            return string.Compare(lhs.Line, rhs.Line, StringComparison.InvariantCulture);
         }
         else
         {
@@ -183,7 +183,7 @@ public static class IncludeTools
 
     private static void PrintWarning(Printer print, string filename, int line, string message)
     {
-        print.Warning($"{filename}({line}): warning CHK3030: {message}");
+        Printer.Warning($"{filename}({line}): warning CHK3030: {message}");
     }
 
     private static void PrintMessage(MessageType messageType, Printer print, string filename, int line, string message)
@@ -316,7 +316,7 @@ public static class IncludeTools
             last_class = line_class.Value;
             if (verbose)
             {
-                print.Info($"{line_class.Value} {l}");
+                Printer.Info($"{line_class.Value} {l}");
             }
         }
 
@@ -423,14 +423,14 @@ public static class IncludeTools
 
     private static void print_lines(Printer print, IEnumerable<string> lines)
     {
-        print.Info("*************************************************");
+        Printer.Info("*************************************************");
         foreach (var line in lines)
         {
-            print.Info(line);
+            Printer.Info(line);
         }
-        print.Info("*************************************************");
-        print.Info("");
-        print.Info("");
+        Printer.Info("*************************************************");
+        Printer.Info("");
+        Printer.Info("");
     }
 
 
@@ -452,7 +452,7 @@ public static class IncludeTools
 
         if (verbose)
         {
-            print.Info($"Opening file {filename}");
+            Printer.Info($"Opening file {filename}");
         }
 
         var lines = Core.ReadFileToLines(filename);
@@ -477,7 +477,7 @@ public static class IncludeTools
         {
             // file contains unclassified header
             return false;
-        };
+        }
 
         if (classified.HasInvalidOrder == false)
         {
@@ -523,7 +523,7 @@ public static class IncludeTools
 
                 if (nop.nop)
                 {
-                    print.Info($"Will write the following to {filename}");
+                    Printer.Info($"Will write the following to {filename}");
                     print_lines(print, fileData);
                 }
                 else
@@ -532,7 +532,7 @@ public static class IncludeTools
                 }
                 break;
             default:
-                print.Info("I think the correct order would be:");
+                Printer.Info("I think the correct order would be:");
                 print_lines(print, sortedIncludeLines);
                 break;
         }
@@ -582,9 +582,9 @@ public static class IncludeTools
 
         if (args.PrintStatusAtTheEnd)
         {
-            print.Info($"Files parsed: {fileCount}");
-            print.Info($"Files errored: {fileError}");
-            print.Info($"Errors found: {errorCount}");
+            Printer.Info($"Files parsed: {fileCount}");
+            Printer.Info($"Files errored: {fileError}");
+            Printer.Info($"Errors found: {errorCount}");
         }
 
         return errorCount;

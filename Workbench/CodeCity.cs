@@ -61,10 +61,10 @@ internal class Facade
         const float CLASS_SIZE_MOD = 1;
         const float CLASS_HEIGHT_MOD = 1;
 
-        printer.Info("Parsing doxygen XML...");
+        Printer.Info("Parsing doxygen XML...");
         var dox = Doxygen.Doxygen.ParseIndex(doxygenXml);
 
-        printer.Info("Collecting functions...");
+        Printer.Info("Collecting functions...");
         var namespaces = DoxygenUtils.AllNamespaces(dox).ToImmutableArray();
 
         var allNamespacesInNamespaces = namespaces

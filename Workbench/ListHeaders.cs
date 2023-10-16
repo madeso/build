@@ -220,10 +220,10 @@ internal class FileStats
 
 internal class FileWalker
 {
-    private readonly Dictionary<string, CompileCommands.CompileCommand> commands;
+    private readonly Dictionary<string, CompileCommand> commands;
     public FileStats stats = new();
 
-    public FileWalker(Dictionary<string, CompileCommands.CompileCommand> commands)
+    public FileWalker(Dictionary<string, CompileCommand> commands)
     {
         this.commands = commands;
     }
@@ -248,14 +248,14 @@ internal class FileWalker
         Dictionary<string, List<Statement>> file_cache
     )
     {
-        print.Info($"Parsing {path}");
+        Printer.Info($"Parsing {path}");
         stats.file_count += 1;
 
         if (commands.TryGetValue(path, out var cc) == false)
         {
             print.Error($"Unable to get include directories for {path}");
             return true;
-        };
+        }
 
         var directories = cc.GetRelativeIncludes();
 
@@ -641,7 +641,7 @@ internal static class F
             case ListAction.Lines:
                 foreach (var line in lines)
                 {
-                    print.Info(line.text);
+                    Printer.Info(line.text);
                 }
                 break;
             case ListAction.Statements:
@@ -649,7 +649,7 @@ internal static class F
                     var statements = ParseToStatements(lines).ToList();
                     foreach (var statement in statements)
                     {
-                        print.Info($"{statement}");
+                        Printer.Info($"{statement}");
                     }
                 }
                 break;
@@ -659,7 +659,7 @@ internal static class F
                     var blocks = ParseToBlocks(fileName, print, statements);
                     foreach (var block in blocks)
                     {
-                        print.Info($"{block}");
+                        Printer.Info($"{block}");
                     }
                 }
                 break;
@@ -702,7 +702,7 @@ internal static class F
         // var ccpath = args.GetPathToCompileCommandsOrNull(print);
         if (ccpath == null) { return -1; }
 
-        var commands = CompileCommands.F.LoadCompileCommandsOrNull(print, ccpath);
+        var commands = CompileCommand.LoadCompileCommandsOrNull(print, ccpath);
         if (commands == null) { return -1; }
 
         var walker = new FileWalker(commands);
@@ -730,13 +730,13 @@ internal static class F
 
         var stats = walker.stats;
 
-        print.Info($"Top {mostCommonCount} includes are:");
+        Printer.Info($"Top {mostCommonCount} includes are:");
 
         foreach (var (file, count) in stats.includes.MostCommon().Take(mostCommonCount))
         {
             var d = Path.GetRelativePath(Environment.CurrentDirectory, file);
             var times = count / (double)stats.file_count;
-            print.Info($" - {d} {times:.2}x ({count}/{stats.file_count})");
+            Printer.Info($" - {d} {times:.2}x ({count}/{stats.file_count})");
         }
 
         return 0;

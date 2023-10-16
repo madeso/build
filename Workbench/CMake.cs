@@ -1,12 +1,8 @@
 using System.Collections.Immutable;
-using System.ComponentModel;
-using System.Net.NetworkInformation;
-using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Workbench.Utils;
-using static Workbench.Commands.IndentCommands.IndentationCommand;
 
 namespace Workbench.CMake;
 
@@ -16,37 +12,37 @@ internal static class CmakeTools
 
     private static Found FindInstallationInRegistry(Printer printer)
     {
-        var registry_source = "registry";
+        const string registrySource = "registry";
 
-        var install_dir = Registry.Hklm(@"SOFTWARE\Kitware\CMake", "InstallDir");
-        if (install_dir == null) { return new Found(null, registry_source); }
+        var installDir = Registry.Hklm(@"SOFTWARE\Kitware\CMake", "InstallDir");
+        if (installDir == null) { return new Found(null, registrySource); }
 
-        var path = Path.Join(install_dir, "bin", "cmake.exe");
+        var path = Path.Join(installDir, "bin", "cmake.exe");
         if (File.Exists(path) == false)
         {
             printer.Error($"Found path to cmake in registry ({path}) but it didn't exist");
-            return new Found(null, registry_source);
+            return new Found(null, registrySource);
         }
 
-        return new Found(path, registry_source);
+        return new Found(path, registrySource);
     }
 
 
     private static Found FindInstallationInPath(Printer printer)
     {
-        var path_source = "path";
+        const string pathSource = "path";
         var path = Which.Find("cmake");
         if (path == null)
         {
-            return new Found(null, path_source);
+            return new Found(null, pathSource);
         }
 
         if (File.Exists(path) == false)
         {
             printer.Error($"Found path to cmake in path ({path}) but it didn't exist");
-            return new Found(null, path_source);
+            return new Found(null, pathSource);
         }
-        return new Found(path, path_source);
+        return new Found(path, pathSource);
     }
 
 
@@ -67,16 +63,16 @@ internal static class CmakeTools
     {
         var source = "current dir";
 
-        var build_root = new DirectoryInfo(Environment.CurrentDirectory).FullName;
-        if (new FileInfo(Path.Join(build_root, CmakeCacheFile)).Exists == false)
+        var buildRoot = new DirectoryInfo(Environment.CurrentDirectory).FullName;
+        if (new FileInfo(Path.Join(buildRoot, CmakeCacheFile)).Exists == false)
         {
             return new Found(null, source);
         }
 
-        return new Found(build_root, source);
+        return new Found(buildRoot, source);
     }
 
-    public static Found FindBuildFromCompileCommands(CompileCommands.CommonArguments settings, Printer printer)
+    public static Found FindBuildFromCompileCommands(CompileCommandsArguments settings, Printer printer)
     {
         var found = settings.GetPathToCompileCommandsOrNull(printer);
         return new Found(found, "compile commands");
@@ -97,7 +93,7 @@ internal static class CmakeTools
         };
     }
 
-    public static IEnumerable<Found> ListAllBuilds(CompileCommands.CommonArguments settings, Printer printer)
+    public static IEnumerable<Found> ListAllBuilds(CompileCommandsArguments settings, Printer printer)
     {
         yield return FindBuildInCurrentDirectory();
         yield return FindBuildFromCompileCommands(settings, printer);
@@ -105,7 +101,7 @@ internal static class CmakeTools
     }
 
 
-    public static string? FindBuildOrNone(CompileCommands.CommonArguments settings, Printer printer)
+    public static string? FindBuildOrNone(CompileCommandsArguments settings, Printer printer)
     {
         return Found.GetFirstValueOrNull(ListAllBuilds(settings, printer));
     }
@@ -159,7 +155,7 @@ public class Generator
 
 public enum Config
 {
-    Debug, Releaase
+    Debug, Release
 }
 
 public enum Install
@@ -218,10 +214,9 @@ public class CMake
         }
 
         var command = new ProcessBuilder(cmake);
-        foreach (var arg in arguments)
+        foreach (var argument in arguments.Select(arg => arg.FormatForCmakeArgument()))
         {
-            var argument = arg.FormatForCmakeArgument();
-            printer.Info($"Setting CMake argument for config: {argument}");
+            Printer.Info($"Setting CMake argument for config: {argument}");
             command.AddArgument(argument);
         }
 
@@ -241,7 +236,7 @@ public class CMake
         {
             if (nop)
             {
-                printer.Info($"Configuring cmake: {command}");
+                Printer.Info($"Configuring cmake: {command}");
             }
             else
             {
@@ -250,7 +245,7 @@ public class CMake
         }
         else
         {
-            printer.Info($"Configuring cmake: {command}");
+            Printer.Info($"Configuring cmake: {command}");
         }
     }
 
@@ -277,7 +272,7 @@ public class CMake
         command.AddArgument(config switch
         {
             Config.Debug => "Debug",
-            Config.Releaase => "Release",
+            Config.Release => "Release",
             _ => throw new NotImplementedException(),
         });
 
@@ -290,7 +285,7 @@ public class CMake
         }
         else
         {
-            printer.Info($"Found path to cmake in path ({command}) but it didn't exist");
+            Printer.Info($"Found path to cmake in path ({command}) but it didn't exist");
         }
     }
 
@@ -310,7 +305,7 @@ public class CMake
 public class Trace
 {
     [JsonPropertyName("file")]
-    public string File { set; get; } = string.Empty;
+    public string? File { set; get; } = string.Empty;
 
     [JsonPropertyName("line")]
     public int Line { set; get; }
@@ -326,12 +321,12 @@ public class Trace
         List<Trace> lines = new();
         List<string> error = new();
 
-        void on_line(string src)
+        void OnLine(string src)
         {
             try
             {
                 var parsed = JsonSerializer.Deserialize<Trace>(src);
-                if (parsed != null && parsed.File != null)
+                if (parsed is { File: not null })
                 {
                     // file != null ignores the version json object
                     lines.Add(parsed);
@@ -354,49 +349,43 @@ public class Trace
         var stderr = new List<string>();
         var ret = new ProcessBuilder(cmakeExecutable, "--trace-expand", "--trace-format=json-v1", "-S", Environment.CurrentDirectory, "-B", dir)
             .InDirectory(dir)
-            .RunWithCallback(null, on_line, err => { on_line(err); stderr.Add(err); }, (err, ex) => { error.Add(err); error.Add(ex.Message);})
+            .RunWithCallback(null, OnLine, err => { OnLine(err); stderr.Add(err); }, (err, ex) => { error.Add(err); error.Add(ex.Message);})
             .ExitCode
             ;
 
-        if (ret != 0)
+        if (ret == 0)
         {
-            var stderrmess = string.Join(Environment.NewLine, stderr).Trim();
-            var space = string.IsNullOrEmpty(stderrmess) ? string.Empty : ": ";
-            var mess = string.Join(Environment.NewLine, error);
-            throw new TraceError($"{stderrmess}{space}{error.Count} -> {mess}");
+            return lines;
         }
 
-        return lines;
+        var stderrMessage = string.Join(Environment.NewLine, stderr).Trim();
+        var space = string.IsNullOrEmpty(stderrMessage) ? string.Empty : ": ";
+        var errorMessage = string.Join(Environment.NewLine, error);
+        throw new TraceError($"{stderrMessage}{space}{error.Count} -> {errorMessage}");
+
     }
 
     
     public IEnumerable<string> ListFilesInCmakeLibrary()
     {
-        return RunFileList("STATIC");
+        return ListFilesInArgs("STATIC");
     }
 
     public IEnumerable<string> ListFilesInCmakeExecutable()
     {
-        return RunFileList("WIN32", "MACOSX_BUNDLE");
+        return ListFilesInArgs("WIN32", "MACOSX_BUNDLE");
     }
 
-    private IEnumerable<string> RunFileList(params string[] ignoreableArguments)
+    private IEnumerable<string> ListFilesInArgs(params string[] argumentsToIgnore)
     {
-        var cmake = this;
-        var args = cmake.Args.Skip(1).ToImmutableArray();
-        args = Args
-            .Skip(1) // name of library/app
-            .SkipWhile(arg => ignoreableArguments.Contains(arg))
-            .ToImmutableArray();
-        var folder = new FileInfo(cmake.File).Directory?.FullName!;
+        var folder = new FileInfo(File!).Directory?.FullName!;
 
-        foreach (var a in args)
-        {
-            foreach (var f in a.Split(';'))
-            {
-                yield return new FileInfo(Path.Join(folder, f)).FullName;
-            }
-        }
+        return Args
+                .Skip(1) // name of library/app
+                .SkipWhile(argumentsToIgnore.Contains)
+                .SelectMany(a => a.Split(';'))
+                .Select(f => new FileInfo(Path.Join(folder, f)).FullName)
+            ;
     }
 }
 

@@ -310,8 +310,8 @@ public static class Report
         sb.PushString("</div>\n");
     }
 
-    private static string path_to_index_file(string root)
-    { return Path.Join(root, "index.html"); }
+    private static string GetPathToIndexFile(string root)
+        => Path.Join(root, "index.html");
 
 
     public static void GenerateIndexPage(string? common, Data.OutputFolders root, Data.Project project, Analytics analytics)
@@ -376,7 +376,7 @@ public static class Report
 
         sb.End();
 
-        sb.WriteToFile(path_to_index_file(root.OutputDirectory));
+        sb.WriteToFile(GetPathToIndexFile(root.OutputDirectory));
     }
 
 }
@@ -396,12 +396,12 @@ public class ProgressFeedback
 
     public void UpdateTitle(string newTitle)
     {
-        _printer.Info($"{newTitle}");
+        Printer.Info($"{newTitle}");
     }
 
     public void UpdateMessage(string newMessage)
     {
-        _printer.Info($"  {newMessage}");
+        Printer.Info($"  {newMessage}");
     }
 
     public void UpdateCount(int newCount)

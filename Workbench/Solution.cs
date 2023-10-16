@@ -294,7 +294,7 @@ internal class SolutionParser
             }
             if (File.Exists(pathToProjectFile) == false)
             {
-                printer.Info($"Unable to open project file: {pathToProjectFile}");
+                Printer.Info($"Unable to open project file: {pathToProjectFile}");
                 continue;
             }
             var document = new XmlDocument();
@@ -347,7 +347,7 @@ internal class SolutionParser
                 }
                 else
                 {
-                    printer.Info($"Unknown build type in {pathToProjectFile}: {innerText}");
+                    Printer.Info($"Unknown build type in {pathToProjectFile}: {innerText}");
                 }
             }
 
@@ -368,7 +368,7 @@ internal class SolutionParser
                 }
                 else
                 {
-                    printer.Info($"Unknown build type in {pathToProjectFile}: {innerText}");
+                    Printer.Info($"Unknown build type in {pathToProjectFile}: {innerText}");
                 }
             }
 

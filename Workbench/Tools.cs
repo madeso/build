@@ -1,6 +1,5 @@
 using Spectre.Console;
 using System.Collections.Immutable;
-using Workbench.CompileCommands;
 using Workbench.Utils;
 
 namespace Workbench.Tools;
@@ -19,7 +18,7 @@ internal static class F
         var c = cc[path];
         foreach (var relativeInclude in c.GetRelativeIncludes())
         {
-            yield return new FileInfo(Path.Join(c.directory, relativeInclude)).FullName;
+            yield return new FileInfo(Path.Join(c.Directory, relativeInclude)).FullName;
         }
     }
 
@@ -95,8 +94,8 @@ internal static class F
     // todo(Gustav): merge with global Graphviz
     class Graphvizer
     {
-        Dictionary<string, string> nodes = new(); // id -> name
-        ColCounter<string> links = new(); // link with counts
+        private readonly Dictionary<string, string> nodes = new(); // id -> name
+        private readonly ColCounter<string> links = new(); // link with counts
 
         private record GroupedItems(string Group, KeyValuePair<string, string>[] Items);
 
@@ -195,7 +194,7 @@ internal static class F
             {
                 if (printFiles)
                 {
-                    print.Info(resolved);
+                    Printer.Info(resolved);
                 }
                 counter.AddOne(resolved);
                 Work(print, resolved, includeDirectories, counter, printFiles, limit);
@@ -204,7 +203,7 @@ internal static class F
             {
                 if (printFiles)
                 {
-                    print.Info($"Unable to find {include}");
+                    Printer.Info($"Unable to find {include}");
                 }
                 counter.AddOne(include);
             }
@@ -216,7 +215,7 @@ internal static class F
     {
         foreach (var (file, count) in counter.MostCommon().Take(mostCommonCount))
         {
-            print.Info($"{file}: {count}");
+            Printer.Info($"{file}: {count}");
         }
     }
 
@@ -300,11 +299,11 @@ internal static class F
                 continue;
             }
 
-            print.Info(file);
+            Printer.Info(file);
             count += 1;
         }
 
-        print.Info($"Found {count} in {totalFiles} files.");
+        Printer.Info($"Found {count} in {totalFiles} files.");
         return 0;
     }
 
@@ -350,7 +349,7 @@ internal static class F
                 x.Value
             ))
             .ToImmutableArray();
-        print.Info($"Found {foundFiles} files.");
+        Printer.Info($"Found {foundFiles} files.");
 
         if (argsHist)
         {
@@ -370,11 +369,11 @@ internal static class F
             {
                 if (argsShow)
                 {
-                    print.Info($"{label}: {files}");
+                    Printer.Info($"{label}: {files}");
                 }
                 else
                 {
-                    print.Info($"{label}: {files.Count}");
+                    Printer.Info($"{label}: {files.Count}");
                 }
             }
         }
@@ -398,7 +397,7 @@ internal static class F
         {
             return -1;
         }
-        var compile_commands = CompileCommands.F.LoadCompileCommandsOrNull(print, compileCommandsArg);
+        var compile_commands = CompileCommand.LoadCompileCommandsOrNull(print, compileCommandsArg);
         if (compile_commands == null)
         {
             return -1;
@@ -431,28 +430,28 @@ internal static class F
 
         if (printMax)
         {
-            print.Info("");
-            print.Info("");
-            print.Info("10 top number of includes for a translation unit");
+            Printer.Info("");
+            Printer.Info("");
+            Printer.Info("10 top number of includes for a translation unit");
             PrintMostCommon(print, maxCounter, 10);
         }
 
         if (printList)
         {
-            print.Info("");
-            print.Info("");
-            print.Info("Number of includes per translation unit");
+            Printer.Info("");
+            Printer.Info("");
+            Printer.Info("Number of includes per translation unit");
             foreach (var (file, count) in totalCounter.Items.OrderBy(x => x.Key))
             {
                 if (count >= args_count)
                 {
-                    print.Info($"{file} included in {count}/{numberOfTranslationUnits}");
+                    Printer.Info($"{file} included in {count}/{numberOfTranslationUnits}");
                 }
             }
         }
 
-        print.Info("");
-        print.Info("");
+        Printer.Info("");
+        Printer.Info("");
 
         return 0;
     }
@@ -468,7 +467,7 @@ internal static class F
             return -1;
         }
 
-        var compileCommands = CompileCommands.F.LoadCompileCommandsOrNull(print, compileCommandsArg);
+        var compileCommands = CompileCommand.LoadCompileCommandsOrNull(print, compileCommandsArg);
         if (compileCommands == null) { return -1; }
 
         var limit = CompleteLimitArg(args_limit);
@@ -486,7 +485,7 @@ internal static class F
 
         foreach (var line in gv.GetLines(args_group || clusterOutput, clusterOutput))
         {
-            print.Info(line);
+            Printer.Info(line);
         }
 
         return 0;
@@ -508,6 +507,8 @@ internal static class F
 
         foreach (var cmd in CMake.Trace.TraceDirectory(cmake, buildRoot))
         {
+            if (cmd.File == null) { continue; }
+
             if (bases.Select(b => FileIsInFolder(cmd.File, b)).Any())
             {
                 if ((new[] { "add_library", "add_executable" }).Contains(cmd.Cmd.ToLowerInvariant()))
@@ -545,34 +546,34 @@ internal static class F
         foreach (var g in grouped)
         {
             missingFiles += 1;
-            print.Info(Path.GetRelativePath(Environment.CurrentDirectory, g.cmake_file));
+            Printer.Info(Path.GetRelativePath(Environment.CurrentDirectory, g.cmake_file));
             foreach (var f in g.sorted_files)
             {
-                print.Info($"    {f}");
+                Printer.Info($"    {f}");
             }
             if (g.sorted_files.Length > 1)
             {
-                print.Info($"    = {g.sorted_files.Length} projects");
+                Printer.Info($"    = {g.sorted_files.Length} projects");
             }
-            print.Info("");
+            Printer.Info("");
         }
-        print.Info($"Found missing: {totalMissing} projects in {missingFiles} files");
+        Printer.Info($"Found missing: {totalMissing} projects in {missingFiles} files");
         PrintMostCommon(print, projectFolders, 10);
 
         return 0;
     }
 
 
-    public static int HandleMissingInCmakeCommand(Printer print, string[] args_files, string? build_root, string cmake)
+    public static int HandleMissingInCmakeCommand(Printer print, string[] relativeFiles, string? buildRoot, string cmake)
     {
-        var bases = args_files.Select(FileUtil.RealPath).ToImmutableArray();
-        if (build_root == null) { return -1; }
+        var bases = relativeFiles.Select(FileUtil.RealPath).ToImmutableArray();
+        if (buildRoot == null) { return -1; }
 
         var paths = new HashSet<string>();
 
-        foreach (var cmd in CMake.Trace.TraceDirectory(cmake, build_root))
+        foreach (var cmd in CMake.Trace.TraceDirectory(cmake, buildRoot))
         {
-            if (bases.Select(b => FileIsInFolder(cmd.File, b)).Any())
+            if (bases.Select(b => FileIsInFolder(cmd.File!, b)).Any())
             {
                 if (cmd.Cmd.ToLower() == "add_library")
                 {
@@ -586,17 +587,17 @@ internal static class F
         }
 
         var count = 0;
-        foreach (var file in FileUtil.ListFilesRecursively(args_files, FileUtil.HeaderAndSourceFiles))
+        foreach (var file in FileUtil.ListFilesRecursively(relativeFiles, FileUtil.HeaderAndSourceFiles))
         {
             var resolved = new FileInfo(file).FullName;
             if (paths.Contains(resolved) == false)
             {
-                print.Info(resolved);
+                Printer.Info(resolved);
                 count += 1;
             }
         }
 
-        print.Info($"Found {count} files not referenced in cmake");
+        Printer.Info($"Found {count} files not referenced in cmake");
         return 0;
     }
 
@@ -625,18 +626,18 @@ internal static class F
             }
         }
 
-        print.Info($"Found {fileCount} files.");
+        Printer.Info($"Found {fileCount} files.");
         foreach (var (count, files) in stats.OrderBy(x => x.Key))
         {
             var c = files.Count;
             var countStr = each <= 1 ? $"{count}" : $"{count}-{count + each - 1}";
             if (args_show && c < 3)
             {
-                print.Info($"{countStr}: {files}");
+                Printer.Info($"{countStr}: {files}");
             }
             else
             {
-                print.Info($"{countStr}: {c}");
+                Printer.Info($"{countStr}: {c}");
             }
         }
 
@@ -659,7 +660,7 @@ internal static class F
             }
         }
 
-        print.Info($"Found {errors} errors in {files} files.");
+        Printer.Info($"Found {errors} errors in {files} files.");
 
         return errors > 0 ? -1 : 0;
     }
