@@ -37,40 +37,40 @@ namespace Workbench.Doxygen.Index
 
     class DoxygenType
     {
-        public CompoundType[] compounds { get; }
+        public CompoundType[] Compounds { get; }
         public ImmutableDictionary<string, CompoundType> refidLookup { get; }
 
         public DoxygenType(Compound.CompoundLoader dir, XmlElement el)
         {
-            compounds = el.ElementsNamed("compound").Select(x => new CompoundType(dir, x)).ToArray();
+            Compounds = el.ElementsNamed("compound").Select(x => new CompoundType(dir, x)).ToArray();
 
-            this.refidLookup = compounds.ToImmutableDictionary(c => c.refid);
+            this.refidLookup = Compounds.ToImmutableDictionary(c => c.RefId);
         }
     }
 
     class CompoundType
     {
         public string Name { get; }
-        public MemberType[] members { get; }
-        public string refid { get; }
-        public CompoundKind kind { get; }
+        public MemberType[] Members { get; }
+        public string RefId { get; }
+        public CompoundKind Kind { get; }
 
         public Compound.ParsedDoxygenFile DoxygenFile { get; }
 
         public override string ToString()
         {
-            return $"{kind} {Name} ({refid})";
+            return $"{Kind} {Name} ({RefId})";
         }
 
         public CompoundType(Compound.CompoundLoader dir, XmlElement el)
         {
             Name = el.GetTextOfSubElement("name");
-            refid = el.GetAttributeString("refid");
+            RefId = el.GetAttributeString("refid");
 
-            DoxygenFile = dir.Load(refid);
+            DoxygenFile = dir.Load(RefId);
 
-            kind = ParseKind(el.GetAttributeString("kind"));
-            members = el.ElementsNamed("member").Select(x => new MemberType(x)).ToArray();
+            Kind = ParseKind(el.GetAttributeString("kind"));
+            Members = el.ElementsNamed("member").Select(x => new MemberType(x)).ToArray();
         }
 
         private static CompoundKind ParseKind(string v)
@@ -99,20 +99,20 @@ namespace Workbench.Doxygen.Index
 
     class MemberType
     {
-        public string name { get; }
-        public string refid { get; }
-        public MemberKind kind { get; }
+        public string Name { get; }
+        public string RefId { get; }
+        public MemberKind Kind { get; }
 
         public override string ToString()
         {
-            return $"{kind} {name} ({refid})";
+            return $"{Kind} {Name} ({RefId})";
         }
 
         public MemberType(XmlElement el)
         {
-            name = el.GetTextOfSubElement("name");
-            refid = el.GetAttributeString("refid");
-            kind = ParseKind(el.GetAttributeString("kind"));
+            Name = el.GetTextOfSubElement("name");
+            RefId = el.GetAttributeString("refid");
+            Kind = ParseKind(el.GetAttributeString("kind"));
         }
 
         private static MemberKind ParseKind(string v)

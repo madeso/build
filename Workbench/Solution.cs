@@ -14,10 +14,10 @@ public class Solution
 
     // list always contains at least one item (unless it has been removed), missing entry means 0 items
     private readonly Dictionary<Guid, List<Guid>> uses = new();
-    private readonly Dictionary<Guid, List<Guid>> isUsedBy = new();
+    private readonly Dictionary<Guid, List<Guid>> is_used_by = new();
 
     private List<Guid> Uses(Project p) => uses.TryGetValue(p.Guid, out var ret) ? ret : new(); // app uses lib
-    private List<Guid> IsUsedBy(Project p) => this.isUsedBy.TryGetValue(p.Guid, out var ret) ? ret : new(); // lib is used by app
+    private List<Guid> IsUsedBy(Project p) => this.is_used_by.TryGetValue(p.Guid, out var ret) ? ret : new(); // lib is used by app
 
     public IEnumerable<Project> Projects => projects.Values;
 
@@ -57,29 +57,29 @@ public class Solution
         Dictionary<string, Graphviz.Node> nodes = new();
         foreach (var p in this.projects.Values)
         {
-            var nodeShape = p.Type switch
+            var node_shape = p.Type switch
             {
                 ProjectType.Executable => Shape.Folder,
                 ProjectType.Static => Shape.Component,
                 ProjectType.Shared => Shape.Ellipse,
                 _ => Shape.PlainText,
             };
-            nodes.Add(p.Name, gv.AddNode(p.Name, nodeShape));
+            nodes.Add(p.Name, gv.AddNode(p.Name, node_shape));
         }
 
         foreach (var p in this.projects.Values)
         {
             foreach (var to in p.Uses)
             {
-                var nodeFrom = nodes[p.Name];
-                var nodeTo = nodes[to.Name];
+                var node_from = nodes[p.Name];
+                var node_to = nodes[to.Name];
                 if (reverse == false)
                 {
-                    gv.AddEdge(nodeFrom, nodeTo);
+                    gv.AddEdge(node_from, node_to);
                 }
                 else
                 {
-                    gv.AddEdge(nodeTo, nodeFrom);
+                    gv.AddEdge(node_to, node_from);
                 }
             }
         }
@@ -95,14 +95,14 @@ public class Solution
         {
             this.projects.Remove(g);
             this.uses.Remove(g);
-            this.isUsedBy.Remove(g);
+            this.is_used_by.Remove(g);
 
             foreach(var u in uses.Values)
             {
                 u.RemoveAll(guids.Contains);
             }
 
-            foreach (var u in isUsedBy.Values)
+            foreach (var u in is_used_by.Values)
             {
                 u.RemoveAll(guids.Contains);
             }
@@ -120,7 +120,11 @@ public class Solution
 
     internal void AddDependency(Project exe, Project lib)
     {
-        static void Link(Project from, Dictionary<Guid, List<Guid>> store, Project to)
+        link(exe, uses, lib);
+        link(lib, is_used_by, exe);
+        return;
+
+        static void link(Project from, Dictionary<Guid, List<Guid>> store, Project to)
         {
             if(store.TryGetValue(from.Guid, out var list))
             {
@@ -131,8 +135,6 @@ public class Solution
                 store.Add(from.Guid, new() { to.Guid });
             }
         }
-        Link(exe, uses, lib);
-        Link(lib, isUsedBy, exe);
     }
 }
 
@@ -146,22 +148,41 @@ internal class SolutionParser
         Solution solution = new();
 
         // maps name or alias to a project
-        Dictionary<string, Solution.Project> nameOrAliasMapping = new();
+        Dictionary<string, Solution.Project> name_or_alias_mapping = new();
 
         List<Dependency> dependencies = new();
 
-        void AddExecutable(Trace line)
+        // load targets, aliases and list of dependencies
+        foreach (var line in lines)
         {
-            var app = line.Args[0];
-            var p = solution.AddProject(Solution.ProjectType.Executable, app);
-            nameOrAliasMapping.Add(app, p);
+            switch (line.Cmd.ToLower())
+            {
+                case "add_executable": add_executable(line); break;
+                case "add_library": add_library(line); break;
+                case "target_link_libraries": link_library(line); break;
+            }
         }
 
-        void AddLibrary(Trace line)
+        // link dependencies to targets
+        foreach(var (project, dependency_name) in dependencies)
+        {
+            if(name_or_alias_mapping.TryGetValue(dependency_name, out var dependency))
+            {
+                solution.AddDependency(project, dependency);
+            }
+            else
+            {
+                // todo(Gustav): print error
+            }
+        }
+
+        return solution;
+
+        void add_library(Trace line)
         {
             var lib = line.Args[0];
             AnsiConsole.MarkupLineInterpolated($"Adding lib {lib}");
-            if (nameOrAliasMapping.ContainsKey(lib))
+            if (name_or_alias_mapping.ContainsKey(lib))
             {
                 // todo(Gustav): add warning
                 return;
@@ -170,31 +191,31 @@ internal class SolutionParser
             if (line.Args.Contains("ALIAS"))
             {
                 var name = line.Args[2];
-                nameOrAliasMapping.Add(lib, nameOrAliasMapping[name]);
+                name_or_alias_mapping.Add(lib, name_or_alias_mapping[name]);
                 return;
             }
 
-            var libType = Solution.ProjectType.Static;
+            var lib_type = Solution.ProjectType.Static;
 
             if (line.Args.Contains("SHARED"))
             {
-                libType = Solution.ProjectType.Shared;
+                lib_type = Solution.ProjectType.Shared;
             }
 
             if (line.Args.Contains("INTERFACE"))
             {
-                libType = Solution.ProjectType.Interface;
+                lib_type = Solution.ProjectType.Interface;
             }
 
-            var p = solution.AddProject(libType, lib);
-            nameOrAliasMapping.Add(lib, p);
+            var p = solution.AddProject(lib_type, lib);
+            name_or_alias_mapping.Add(lib, p);
         }
 
-        void LinkLibrary(Trace line)
+        void link_library(Trace line)
         {
-            var targetName = line.Args[0];
+            var target_name = line.Args[0];
 
-            if (nameOrAliasMapping.TryGetValue(targetName, out var target) == false)
+            if (name_or_alias_mapping.TryGetValue(target_name, out var target) == false)
             {
                 // todo(Gustav): add warning
                 return;
@@ -207,31 +228,12 @@ internal class SolutionParser
             }
         }
 
-        // load targets, aliases and list of dependencies
-        foreach (var line in lines)
+        void add_executable(Trace line)
         {
-            switch (line.Cmd.ToLower())
-            {
-                case "add_executable": AddExecutable(line); break;
-                case "add_library": AddLibrary(line); break;
-                case "target_link_libraries": LinkLibrary(line); break;
-            }
+            var app = line.Args[0];
+            var p = solution.AddProject(Solution.ProjectType.Executable, app);
+            name_or_alias_mapping.Add(app, p);
         }
-
-        // link dependencies to targets
-        foreach(var (project, dependencyName) in dependencies)
-        {
-            if(nameOrAliasMapping.TryGetValue(dependencyName, out var dependency))
-            {
-                solution.AddDependency(project, dependency);
-            }
-            else
-            {
-                // todo(Gustav): print error
-            }
-        }
-
-        return solution;
     }
 
 
@@ -249,133 +251,133 @@ internal class SolutionParser
 
         {
             var lines = File.ReadLines(solution_path).ToArray();
-            Project? currentProject = null;
-            var projectLine = string.Empty;
-            var solutionDir = new FileInfo(solution_path).Directory?.FullName!;
+            Project? current_project = null;
+            var project_line = string.Empty;
+            var solution_dir = new FileInfo(solution_path).Directory?.FullName!;
             foreach (var line in lines)
             {
                 if (line.StartsWith("Project"))
                 {
                     // this might be a "folder" or a actual project
-                    projectLine = line;
+                    project_line = line;
                 }
                 else if (line.Trim() == "ProjectSection(ProjectDependencies) = postProject")
                 {
                     // it is a project
-                    var equalIndex = projectLine.IndexOf('=');
-                    var data = projectLine.Substring(equalIndex + 1).Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    var equal_index = project_line.IndexOf('=');
+                    var data = project_line.Substring(equal_index + 1).Split(',', StringSplitOptions.RemoveEmptyEntries);
                     var name = data[0].Trim().Trim('\"').Trim();
-                    var relativePath = data[1].Trim().Trim('\"').Trim();
-                    var projectGuid = data[2].Trim().Trim('\"').Trim();
+                    var relative_path = data[1].Trim().Trim('\"').Trim();
+                    var project_guid = data[2].Trim().Trim('\"').Trim();
                     // todo(Gustav): reuse guid?
-                    currentProject = solution.AddProject(Solution.ProjectType.Unknown, name);
-                    loads.Add(new(currentProject, Path.Join(solutionDir, relativePath)));
-                    projects[projectGuid.ToLowerInvariant()] = currentProject;
+                    current_project = solution.AddProject(Solution.ProjectType.Unknown, name);
+                    loads.Add(new(current_project, Path.Join(solution_dir, relative_path)));
+                    projects[project_guid.ToLowerInvariant()] = current_project;
                 }
-                else if (currentProject != null && line.Trim().StartsWith("{"))
+                else if (current_project != null && line.Trim().StartsWith("{"))
                 {
-                    var projectGuid = line.Split('=')[0].Trim();
-                    dependencies.Add(new(currentProject, projectGuid));
+                    var project_guid = line.Split('=')[0].Trim();
+                    dependencies.Add(new(current_project, project_guid));
                 }
                 else if (line == "EndProject")
                 {
-                    currentProject = null;
-                    projectLine = string.Empty;
+                    current_project = null;
+                    project_line = string.Empty;
                 }
             }
         }
 
-        foreach (var (project, projectRelativePath) in loads)
+        foreach (var (project, project_relative_path) in loads)
         {
-            var pathToProjectFile = DetermineRealFilename(projectRelativePath);
-            if (pathToProjectFile == "")
+            var path_to_project_file = determine_real_filename(project_relative_path);
+            if (path_to_project_file == "")
             {
                 continue;
             }
-            if (File.Exists(pathToProjectFile) == false)
+            if (File.Exists(path_to_project_file) == false)
             {
-                Printer.Info($"Unable to open project file: {pathToProjectFile}");
+                Printer.Info($"Unable to open project file: {path_to_project_file}");
                 continue;
             }
             var document = new XmlDocument();
-            document.Load(pathToProjectFile);
-            var rootElement = document.DocumentElement;
-            if (rootElement == null) { printer.Error($"Failed to load {projectRelativePath}"); continue; }
-            var namespaceMatch = Regex.Match("\\{.*\\}", rootElement.Name);
-            var xmlNamespace = namespaceMatch.Success ? namespaceMatch.Groups[0].Value : "";
+            document.Load(path_to_project_file);
+            var root_element = document.DocumentElement;
+            if (root_element == null) { printer.Error($"Failed to load {project_relative_path}"); continue; }
+            var namespace_match = Regex.Match("\\{.*\\}", root_element.Name);
+            var xml_namespace = namespace_match.Success ? namespace_match.Groups[0].Value : "";
             HashSet<string> configurations = new();
-            foreach (var n in rootElement.ElementsNamed("VisualStudioProject").ElementsNamed("Configurations").ElementsNamed("Configuration"))
+            foreach (var n in root_element.ElementsNamed("VisualStudioProject").ElementsNamed("Configurations").ElementsNamed("Configuration"))
             {
-                var configurationType = n.Attributes["ConfigurationType"];
-                if (configurationType != null)
+                var configuration_type = n.Attributes["ConfigurationType"];
+                if (configuration_type != null)
                 {
-                    configurations.Add(configurationType.Value);
+                    configurations.Add(configuration_type.Value);
                 }
             }
 
             if (configurations.Count != 0)
             {
-                var suggestedType = configurations.FirstOrDefault() ?? "";
-                if (suggestedType == "2")
+                var suggested_type = configurations.FirstOrDefault() ?? "";
+                if (suggested_type == "2")
                 {
                     project.Type = ProjectType.Shared;
                 }
-                else if (suggestedType == "4")
+                else if (suggested_type == "4")
                 {
                     project.Type = ProjectType.Static;
                 }
-                else if (suggestedType == "1")
+                else if (suggested_type == "1")
                 {
                     project.Type = ProjectType.Executable;
                 }
             }
 
-            foreach (var n in rootElement.ElementsNamed("PropertyGroup").ElementsNamed("OutputType"))
+            foreach (var n in root_element.ElementsNamed("PropertyGroup").ElementsNamed("OutputType"))
             {
-                var innerText = n.InnerText.Trim().ToLowerInvariant();
-                if (innerText == "winexe")
+                var inner_text = n.InnerText.Trim().ToLowerInvariant();
+                if (inner_text == "winexe")
                 {
                     project.Type = ProjectType.Executable;
                 }
-                else if (innerText == "exe")
+                else if (inner_text == "exe")
                 {
                     project.Type = ProjectType.Executable;
                 }
-                else if (innerText == "library")
+                else if (inner_text == "library")
                 {
                     project.Type = ProjectType.Shared;
                 }
                 else
                 {
-                    Printer.Info($"Unknown build type in {pathToProjectFile}: {innerText}");
+                    Printer.Info($"Unknown build type in {path_to_project_file}: {inner_text}");
                 }
             }
 
-            var configurationTypes = rootElement.ElementsNamed("PropertyGroup").ElementsNamed("ConfigurationType").ToImmutableHashSet();
-            foreach(var n in configurationTypes)
+            var configuration_types = root_element.ElementsNamed("PropertyGroup").ElementsNamed("ConfigurationType").ToImmutableHashSet();
+            foreach(var n in configuration_types)
             {
-                var innerText = n.InnerText.Trim().ToLowerInvariant();
-                if (innerText == "utility")
+                var inner_text = n.InnerText.Trim().ToLowerInvariant();
+                if (inner_text == "utility")
                 {
                 }
-                else if (innerText == "staticlibrary")
+                else if (inner_text == "staticlibrary")
                 {
                     project.Type = ProjectType.Static;
                 }
-                else if (innerText == "application")
+                else if (inner_text == "application")
                 {
                     project.Type = ProjectType.Executable;
                 }
                 else
                 {
-                    Printer.Info($"Unknown build type in {pathToProjectFile}: {innerText}");
+                    Printer.Info($"Unknown build type in {path_to_project_file}: {inner_text}");
                 }
             }
 
-            foreach (var n in rootElement.ElementsNamed("ItemGroup").ElementsNamed("ProjectReference").ElementsNamed("Project"))
+            foreach (var n in root_element.ElementsNamed("ItemGroup").ElementsNamed("ProjectReference").ElementsNamed("Project"))
             {
-                var innerText = n.InnerText.Trim();
-                dependencies.Add(new(project, innerText));
+                var inner_text = n.InnerText.Trim();
+                dependencies.Add(new(project, inner_text));
             }
         }
 
@@ -384,8 +386,8 @@ internal class SolutionParser
         // complete loading
         foreach (var (from, dependency) in dependencies)
         {
-            var projectGuid = dependency.ToLowerInvariant();
-            if (projects.TryGetValue(projectGuid, out var project))
+            var project_guid = dependency.ToLowerInvariant();
+            if (projects.TryGetValue(project_guid, out var project))
             {
                 solution.AddDependency(from, project);
             }
@@ -401,7 +403,7 @@ internal class SolutionParser
 
         ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // load additional project data from file
-        static string DetermineRealFilename(string pa)
+        static string determine_real_filename(string pa)
         {
             var p = pa;
             if (File.Exists(p))

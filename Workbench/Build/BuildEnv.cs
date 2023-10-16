@@ -88,11 +88,11 @@ public class BuildEnvironment
     // update the build environment from an argparse namespace
     public void UpdateFromArguments(Printer printer, EnvironmentArgument args)
     {
-        UpdateCompiler();
-        UpdatePlatform();
+        update_compiler();
+        update_platform();
         return;
 
-        void UpdateCompiler()
+        void update_compiler()
         {
             if (args.Compiler == null) { return; }
 
@@ -115,7 +115,7 @@ public class BuildEnvironment
             }
         }
 
-        void UpdatePlatform()
+        void update_platform()
         {
             if (args.Platform == null) { return; }
 

@@ -4,7 +4,7 @@ namespace Workbench;
 
 public static class JsonUtil
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    private static readonly JsonSerializerOptions json_options = new()
     {
         WriteIndented = true,
         ReadCommentHandling = JsonCommentHandling.Skip,
@@ -16,7 +16,7 @@ public static class JsonUtil
     {
         try
         {
-            var loaded = JsonSerializer.Deserialize<T>(content, JsonOptions);
+            var loaded = JsonSerializer.Deserialize<T>(content, json_options);
             if (loaded == null) { throw new Exception("internal error"); }
             return loaded;
         }
@@ -34,6 +34,6 @@ public static class JsonUtil
 
     internal static string Write<T>(T self)
     {
-        return JsonSerializer.Serialize<T>(self, JsonOptions);
+        return JsonSerializer.Serialize<T>(self, json_options);
     }
 }

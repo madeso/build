@@ -6,10 +6,10 @@ namespace Workbench;
 
 public static class Core
 {
-    public static IEnumerable<string> ListAllFiles(string rootDirectory)
+    public static IEnumerable<string> ListAllFiles(string root_directory)
     {
         var dirs = new Queue<string>();
-        dirs.Enqueue(rootDirectory);
+        dirs.Enqueue(root_directory);
 
         while (dirs.Count > 0)
         {
@@ -77,10 +77,10 @@ public static class Core
         else
         {
             Printer.Info($"Downloading {dest}");
-            DownloadFile(print, url, dest);
+            download_file(print, url, dest);
         }
 
-        static void DownloadFile(Printer print, string url, string dest)
+        static void download_file(Printer print, string url, string dest)
         {
             using var client = new HttpClient();
             using var s = client.GetStreamAsync(url);
@@ -99,9 +99,9 @@ public static class Core
         }
 
         VerifyDirectoryExists(print, to);
-        MoveFilesRecursively(from, to);
+        move_files_recursively(from, to);
 
-        static void MoveFilesRecursively(string from, string to)
+        static void move_files_recursively(string from, string to)
         {
             var paths = new DirectoryInfo(from);
 
@@ -117,7 +117,7 @@ public static class Core
                 var src = Path.Join(from, dir.Name);
                 var dst = Path.Join(to, dir.Name);
                 Directory.CreateDirectory(dst);
-                MoveFilesRecursively(src, dst);
+                move_files_recursively(src, dst);
                 Directory.Delete(src, false);
             }
         }
@@ -141,16 +141,16 @@ public class TextReplacer
 {
     private record SingleReplacement(string From, string To);
 
-    private readonly List<SingleReplacement> _replacements = new();
+    private readonly List<SingleReplacement> replacements = new();
 
     // add a replacement command 
     public void Add(string from, string to)
     {
-        _replacements.Add(new SingleReplacement(from, to));
+        replacements.Add(new SingleReplacement(from, to));
     }
 
-    public string Replace(string inText)
-        => _replacements
-            .Aggregate(inText,
+    public string Replace(string in_text)
+        => replacements
+            .Aggregate(in_text,
                 (current, replacement) => current.Replace(replacement.From, replacement.To));
 }

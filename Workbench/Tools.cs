@@ -1,8 +1,8 @@
-using Spectre.Console;
 using System.Collections.Immutable;
+using Spectre.Console;
 using Workbench.Utils;
 
-namespace Workbench.Tools;
+namespace Workbench;
 
 
 // todo(Gustav):
@@ -11,14 +11,14 @@ namespace Workbench.Tools;
 //     generate a union graphviz file that is a union of all includes with the TU as the root
 
 
-internal static class F
+internal static class Tools
 {
     private static IEnumerable<string> GetGetIncludeDirectories(string path, IReadOnlyDictionary<string, CompileCommand> cc)
     {
         var c = cc[path];
-        foreach (var relativeInclude in c.GetRelativeIncludes())
+        foreach (var relative_include in c.GetRelativeIncludes())
         {
-            yield return new FileInfo(Path.Join(c.Directory, relativeInclude)).FullName;
+            yield return new FileInfo(Path.Join(c.Directory, relative_include)).FullName;
         }
     }
 
@@ -38,29 +38,29 @@ internal static class F
     }
 
 
-    private static string? ResolveIncludeViaIncludeDirectoriesOrNone(string include, IEnumerable<string> includeDirectories)
+    private static string? ResolveIncludeViaIncludeDirectoriesOrNone(string include, IEnumerable<string> include_directories)
     {
-        return includeDirectories
+        return include_directories
             .Select(directory => Path.Join(directory, include))
             .FirstOrDefault(File.Exists)
             ;
     }
 
 
-    private static bool IsLimited(string realFile, IEnumerable<string> limit)
+    private static bool IsLimited(string real_file, IEnumerable<string> limit)
     {
-        var hasLimits = false;
+        var has_limits = false;
 
         foreach (var l in limit)
         {
-            hasLimits = true;
-            if (realFile.StartsWith(l))
+            has_limits = true;
+            if (real_file.StartsWith(l))
             {
                 return false;
             }
         }
 
-        return hasLimits;
+        return has_limits;
     }
 
 
@@ -76,9 +76,9 @@ internal static class F
     }
 
 
-    private static string GetGroup(string relativeFile)
+    private static string GetGroup(string relative_file)
     {
-        var b = relativeFile.Split("/");
+        var b = relative_file.Split("/");
         if (b.Length == 1)
         {
             return "";
@@ -99,25 +99,25 @@ internal static class F
 
         private record GroupedItems(string Group, KeyValuePair<string, string>[] Items);
 
-        public IEnumerable<string> GetLines(bool group, bool isCluster)
+        public IEnumerable<string> GetLines(bool group, bool is_cluster)
         {
             yield return "digraph G";
             yield return "{";
             var grouped = group
                 ? this.nodes.GroupBy(x => GetGroup(x.Value),
-                        (groupName, items) => new GroupedItems(groupName, items.ToArray()))
+                        (group_name, items) => new GroupedItems(group_name, items.ToArray()))
                     .ToArray()
                 : new GroupedItems[] { new("", this.nodes.ToArray()) }
                 ;
-            foreach (var (groupTitle, items) in grouped)
+            foreach (var (group_title, items) in grouped)
             {
-                var hasGroup = groupTitle != "";
-                var indent = hasGroup ? "    " : "";
+                var has_group = group_title != "";
+                var indent = has_group ? "    " : "";
 
-                if (hasGroup)
+                if (has_group)
                 {
-                    var clusterPrefix = isCluster ? "cluster_" : "";
-                    yield return $"subgraph {clusterPrefix}{groupTitle}";
+                    var cluster_prefix = is_cluster ? "cluster_" : "";
+                    yield return $"subgraph {cluster_prefix}{group_title}";
                     yield return "{";
                 }
 
@@ -126,7 +126,7 @@ internal static class F
                     yield return $"{indent}{identifier} [label=\"{name}\"];";
                 }
 
-                if (hasGroup)
+                if (has_group)
                 {
                     yield return "}";
                 }
@@ -143,65 +143,66 @@ internal static class F
 
         public void Link(string source, string? name, string resolved, string root)
         {
-            var fromNode = CalculateIdentifier(source, name);
-            var toNode = CalculateIdentifier(resolved, null);
-            this.links.AddOne($"{fromNode} -> {toNode}");
+            var from_node = CalculateIdentifier(source, name);
+            var to_node = CalculateIdentifier(resolved, null);
+            this.links.AddOne($"{from_node} -> {to_node}");
 
             // probably will calc more than once but who cares?
-            this.nodes[fromNode] = CalculateDisplay(source, name, root);
-            this.nodes[toNode] = CalculateDisplay(resolved, null, root);
+            this.nodes[from_node] = CalculateDisplay(source, name, root);
+            this.nodes[to_node] = CalculateDisplay(resolved, null, root);
         }
     }
 
 
-    private static void gv_work(string realFile, string? name, ImmutableArray<string> includeDirectories, Graphvizer gv,
+    private static void gv_work(string real_file, string? name, ImmutableArray<string> include_directories, Graphvizer gv,
         ImmutableArray<string> limit, string root)
     {
-        if (IsLimited(realFile, limit))
+        if (IsLimited(real_file, limit))
         {
             return;
         }
 
-        foreach (var include in FindIncludeFiles(realFile))
+        foreach (var include in FindIncludeFiles(real_file))
         {
-            var resolved = ResolveIncludeViaIncludeDirectoriesOrNone(include, includeDirectories);
+            var resolved = ResolveIncludeViaIncludeDirectoriesOrNone(include, include_directories);
             if (resolved != null)
             {
-                gv.Link(realFile, name, resolved, root);
+                gv.Link(real_file, name, resolved, root);
                 // todo(Gustav): fix name to be based on root
-                gv_work(resolved, null, includeDirectories, gv, limit, root);
+                gv_work(resolved, null, include_directories, gv, limit, root);
             }
             else
             {
-                gv.Link(realFile, name, include, root);
+                gv.Link(real_file, name, include, root);
             }
         }
     }
 
 
-    private static void Work(Printer print, string realFile, ImmutableArray<string> includeDirectories,
-        ColCounter<string> counter, bool printFiles, ImmutableArray<string> limit)
+    private static void Work(Printer print, string 
+            real_file, ImmutableArray<string> include_directories,
+        ColCounter<string> counter, bool print_files, ImmutableArray<string> limit)
     {
-        if (IsLimited(realFile, limit))
+        if (IsLimited(real_file, limit))
         {
             return;
         }
 
-        foreach (var include in FindIncludeFiles(realFile))
+        foreach (var include in FindIncludeFiles(real_file))
         {
-            var resolved = ResolveIncludeViaIncludeDirectoriesOrNone(include, includeDirectories);
+            var resolved = ResolveIncludeViaIncludeDirectoriesOrNone(include, include_directories);
             if (resolved != null)
             {
-                if (printFiles)
+                if (print_files)
                 {
                     Printer.Info(resolved);
                 }
                 counter.AddOne(resolved);
-                Work(print, resolved, includeDirectories, counter, printFiles, limit);
+                Work(print, resolved, include_directories, counter, print_files, limit);
             }
             else
             {
-                if (printFiles)
+                if (print_files)
                 {
                     Printer.Info($"Unable to find {include}");
                 }
@@ -211,9 +212,9 @@ internal static class F
     }
 
 
-    private static void PrintMostCommon(Printer print, ColCounter<string> counter, int mostCommonCount)
+    private static void PrintMostCommon(Printer print, ColCounter<string> counter, int most_common_count)
     {
-        foreach (var (file, count) in counter.MostCommon().Take(mostCommonCount))
+        foreach (var (file, count) in counter.MostCommon().Take(most_common_count))
         {
             Printer.Info($"{file}: {count}");
         }
@@ -229,11 +230,11 @@ internal static class F
     }
 
 
-    private static IEnumerable<string> FileReadLines(string path, bool discardEmpty)
+    private static IEnumerable<string> FileReadLines(string path, bool discard_empty)
     {
         var lines = File.ReadLines(path);
 
-        if (!discardEmpty)
+        if (!discard_empty)
         {
             return lines;
         }
@@ -245,24 +246,24 @@ internal static class F
     }
 
 
-    private static int GetLineCount(string path, bool discardEmpty)
+    private static int GetLineCount(string path, bool discard_empty)
     {
-        return FileReadLines(path, discardEmpty)
+        return FileReadLines(path, discard_empty)
             .Count();
     }
 
 
-    private static IEnumerable<int> GetAllIndent(string path, bool discardEmpty)
+    private static IEnumerable<int> GetAllIndent(string path, bool discard_empty)
     {
-        return FileReadLines(path, discardEmpty)
+        return FileReadLines(path, discard_empty)
                 .Select(line => line.Length - line.TrimStart().Length)
             ;
     }
 
 
-    private static int GetMaxIndent(string path, bool discardEmpty)
+    private static int GetMaxIndent(string path, bool discard_empty)
     {
-        return GetAllIndent(path, discardEmpty)
+        return GetAllIndent(path, discard_empty)
             .DefaultIfEmpty(-1)
             .Max();
     }
@@ -289,11 +290,11 @@ internal static class F
     public static int MissingIncludeGuardsCommand(Printer print, string[] files)
     {
         var count = 0;
-        var totalFiles = 0;
+        var total_files = 0;
 
         foreach (var file in FileUtil.ListFilesRecursively(files, FileUtil.HeaderFiles))
         {
-            totalFiles += 1;
+            total_files += 1;
             if (ContainsPragmaOnce(file))
             {
                 continue;
@@ -303,23 +304,23 @@ internal static class F
             count += 1;
         }
 
-        Printer.Info($"Found {count} in {totalFiles} files.");
+        Printer.Info($"Found {count} in {total_files} files.");
         return 0;
     }
 
-    public static int HandleListIndents(Printer print, string[] argsFiles, int each, bool argsShow,
-        bool argsHist, bool discardEmpty)
+    public static int HandleListIndents(Printer print, string[] args_files, int each, bool args_show,
+        bool args_hist, bool discard_empty)
     {
         var stats = new Dictionary<int, List<string>>();
-        var foundFiles = 0;
+        var found_files = 0;
 
-        foreach (var file in FileUtil.ListFilesRecursively(argsFiles, FileUtil.HeaderAndSourceFiles))
+        foreach (var file in FileUtil.ListFilesRecursively(args_files, FileUtil.HeaderAndSourceFiles))
         {
-            foundFiles += 1;
+            found_files += 1;
 
-            var counts = !argsHist
-                    ? new[] { GetMaxIndent(file, discardEmpty) }
-                    : GetAllIndent(file, discardEmpty)
+            var counts = !args_hist
+                    ? new[] { GetMaxIndent(file, discard_empty) }
+                    : GetAllIndent(file, discard_empty)
                         .Order()
                         .Distinct()
                         .ToArray()
@@ -342,22 +343,22 @@ internal static class F
             }
         }
 
-        var allSorted = stats.OrderBy(x => x.Key)
+        var all_sorted = stats.OrderBy(x => x.Key)
             .Select(x => (
                 each <= 1 ? $"{x.Key}" : $"{x.Key}-{x.Key + each - 1}",
                 x.Key,
                 x.Value
             ))
             .ToImmutableArray();
-        Printer.Info($"Found {foundFiles} files.");
+        Printer.Info($"Found {found_files} files.");
 
-        if (argsHist)
+        if (args_hist)
         {
             var chart = new BarChart()
                 .Width(60)
                 .Label("[green bold underline]Number of files / indentation[/]")
                 .CenterLabel();
-            foreach (var (label, start, files) in allSorted)
+            foreach (var (label, start, files) in all_sorted)
             {
                 chart.AddItem(label, files.Count, Color.Green);
             }
@@ -365,9 +366,9 @@ internal static class F
         }
         else
         {
-            foreach (var (label, start, files) in allSorted)
+            foreach (var (label, start, files) in all_sorted)
             {
-                if (argsShow)
+                if (args_show)
                 {
                     Printer.Info($"{label}: {files}");
                 }
@@ -381,71 +382,71 @@ internal static class F
         return 0;
     }
 
-    private static ImmutableArray<string> CompleteLimitArg(IEnumerable<string> argsLimit)
-        => argsLimit.Select(x => new DirectoryInfo(x).FullName).ToImmutableArray();
+    private static ImmutableArray<string> CompleteLimitArg(IEnumerable<string> args_limit)
+        => args_limit.Select(x => new DirectoryInfo(x).FullName).ToImmutableArray();
 
-    public static int HandleListCommand(Printer print, string? compileCommandsArg,
+    public static int HandleListCommand(Printer print, string? compile_commands_arg,
         string[] args_files,
         bool args_print_files,
         bool args_print_stats,
-        bool printMax,
-        bool printList,
+        bool print_max,
+        bool print_list,
         int args_count,
         string[] args_limit)
     {
-        if (compileCommandsArg == null)
+        if (compile_commands_arg == null)
         {
             return -1;
         }
-        var compile_commands = CompileCommand.LoadCompileCommandsOrNull(print, compileCommandsArg);
+        var compile_commands = CompileCommand.LoadCompileCommandsOrNull(print, compile_commands_arg);
         if (compile_commands == null)
         {
             return -1;
         }
 
-        var totalCounter = new ColCounter<string>();
-        var maxCounter = new ColCounter<string>();
+        var total_counter = new ColCounter<string>();
+        var max_counter = new ColCounter<string>();
 
         var limit = CompleteLimitArg(args_limit);
 
-        var numberOfTranslationUnits = 0;
+        var number_of_translation_units = 0;
 
-        foreach (var translationUnit in GetAllTranslationUnits(args_files))
+        foreach (var translation_unit in GetAllTranslationUnits(args_files))
         {
-            numberOfTranslationUnits += 1;
-            var fileCounter = new ColCounter<string>();
-            if (compile_commands.ContainsKey(translationUnit))
+            number_of_translation_units += 1;
+            var file_counter = new ColCounter<string>();
+            if (compile_commands.ContainsKey(translation_unit))
             {
-                var includeDirectories = GetGetIncludeDirectories(translationUnit, compile_commands).ToImmutableArray();
-                Work(print, translationUnit, includeDirectories, fileCounter, args_print_files, limit);
+                var include_directories = GetGetIncludeDirectories(translation_unit, compile_commands).ToImmutableArray();
+                Work(print, translation_unit, include_directories, file_counter, args_print_files, limit);
             }
 
             if (args_print_stats)
             {
-                PrintMostCommon(print, fileCounter, 10);
+                PrintMostCommon(print, file_counter, 10);
             }
-            totalCounter.Update(fileCounter);
-            maxCounter.Max(fileCounter);
+            total_counter.Update(file_counter);
+            max_counter.Max(file_counter);
         }
 
-        if (printMax)
+        if (print_max)
         {
             Printer.Info("");
             Printer.Info("");
             Printer.Info("10 top number of includes for a translation unit");
-            PrintMostCommon(print, maxCounter, 10);
+            PrintMostCommon(print, max_counter, 10);
         }
 
-        if (printList)
+        if (print_list)
         {
             Printer.Info("");
             Printer.Info("");
             Printer.Info("Number of includes per translation unit");
-            foreach (var (file, count) in totalCounter.Items.OrderBy(x => x.Key))
+            foreach (var (file, count) in total_counter.Items.OrderBy(x => x.Key))
             {
                 if (count >= args_count)
                 {
-                    Printer.Info($"{file} included in {count}/{numberOfTranslationUnits}");
+                    Printer.Info($"{file} included in {count}/{number_of_translation_units}");
                 }
             }
         }
@@ -456,34 +457,34 @@ internal static class F
         return 0;
     }
 
-    public static int HandleGraphvizCommand(Printer print, string? compileCommandsArg,
+    public static int HandleGraphvizCommand(Printer print, string? compile_commands_arg,
         string[] args_files,
         string[] args_limit,
         bool args_group,
-        bool clusterOutput)
+        bool cluster_output)
     {
-        if (compileCommandsArg is null)
+        if (compile_commands_arg is null)
         {
             return -1;
         }
 
-        var compileCommands = CompileCommand.LoadCompileCommandsOrNull(print, compileCommandsArg);
-        if (compileCommands == null) { return -1; }
+        var compile_commands = CompileCommand.LoadCompileCommandsOrNull(print, compile_commands_arg);
+        if (compile_commands == null) { return -1; }
 
         var limit = CompleteLimitArg(args_limit);
 
         var gv = new Graphvizer();
 
-        foreach (var translationUnit in GetAllTranslationUnits(args_files))
+        foreach (var translation_unit in GetAllTranslationUnits(args_files))
         {
-            if (compileCommands.ContainsKey(translationUnit))
+            if (compile_commands.ContainsKey(translation_unit))
             {
-                var includeDirectories = GetGetIncludeDirectories(translationUnit, compileCommands).ToImmutableArray();
-                gv_work(translationUnit, "TU", includeDirectories, gv, limit, Environment.CurrentDirectory);
+                var include_directories = GetGetIncludeDirectories(translation_unit, compile_commands).ToImmutableArray();
+                gv_work(translation_unit, "TU", include_directories, gv, limit, Environment.CurrentDirectory);
             }
         }
 
-        foreach (var line in gv.GetLines(args_group || clusterOutput, clusterOutput))
+        foreach (var line in gv.GetLines(args_group || cluster_output, cluster_output))
         {
             Printer.Info(line);
         }
@@ -491,21 +492,22 @@ internal static class F
         return 0;
     }
 
-    public static int HandleListNoProjectFolderCommand(Printer print, string[] argsFiles, string? compile_commands_arg, string cmake)
+    public static int HandleListNoProjectFolderCommand(
+        Printer print, string[] args_files, string? compile_commands_arg, string cmake)
     {
         if (compile_commands_arg == null) { return -1; }
 
-        var bases = argsFiles.Select(FileUtil.RealPath).ToImmutableArray();
+        var bases = args_files.Select(FileUtil.RealPath).ToImmutableArray();
 
-        var buildRoot = new FileInfo(compile_commands_arg).Directory?.FullName;
-        if (buildRoot == null) { return -1; }
+        var build_root = new FileInfo(compile_commands_arg).Directory?.FullName;
+        if (build_root == null) { return -1; }
 
         var projects = new HashSet<string>();
-        var projectsWithFolders = new HashSet<string>();
+        var projects_with_folders = new HashSet<string>();
         var files = new Dictionary<string, string>();
-        var projectFolders = new ColCounter<string>();
+        var project_folders = new ColCounter<string>();
 
-        foreach (var cmd in CMake.Trace.TraceDirectory(cmake, buildRoot))
+        foreach (var cmd in CMake.Trace.TraceDirectory(cmake, build_root))
         {
             if (cmd.File == null) { continue; }
 
@@ -513,11 +515,11 @@ internal static class F
             {
                 if ((new[] { "add_library", "add_executable" }).Contains(cmd.Cmd.ToLowerInvariant()))
                 {
-                    var projectName = cmd.Args[0];
+                    var project_name = cmd.Args[0];
                     if (cmd.Args[1] != "INTERFACE")
                     { // skip interface libraries
-                        projects.Add(projectName);
-                        files[projectName] = cmd.File;
+                        projects.Add(project_name);
+                        files[project_name] = cmd.File;
                     }
                 }
                 if (cmd.Cmd.ToLowerInvariant() == "set_target_properties")
@@ -525,8 +527,8 @@ internal static class F
                     // set_target_properties(core PROPERTIES FOLDER "Libraries")
                     if (cmd.Args[1] == "PROPERTIES" && cmd.Args[2] == "FOLDER")
                     {
-                        projectsWithFolders.Add(cmd.Args[0]);
-                        projectFolders.AddOne(cmd.Args[3]);
+                        projects_with_folders.Add(cmd.Args[0]);
+                        project_folders.AddOne(cmd.Args[3]);
                     }
                 }
             }
@@ -534,18 +536,18 @@ internal static class F
 
         // var sort_on_cmake = lambda x: x[1];
         var missing = projects
-            .Where(x => projectsWithFolders.Contains(x) == false)
+            .Where(x => projects_with_folders.Contains(x) == false)
             .Select(m => new { Missing = m, File = files[m] })
             .OrderBy(x => x.File)
             .ToImmutableArray();
-        var totalMissing = missing.Length;
+        var total_missing = missing.Length;
 
-        int missingFiles = 0;
+        int missing_files = 0;
 
         var grouped = missing.GroupBy(x => x.File, (g, list) => new { cmake_file = g, sorted_files = list.Select(x => x.Missing).OrderBy(x => x).ToImmutableArray() });
         foreach (var g in grouped)
         {
-            missingFiles += 1;
+            missing_files += 1;
             Printer.Info(Path.GetRelativePath(Environment.CurrentDirectory, g.cmake_file));
             foreach (var f in g.sorted_files)
             {
@@ -557,21 +559,21 @@ internal static class F
             }
             Printer.Info("");
         }
-        Printer.Info($"Found missing: {totalMissing} projects in {missingFiles} files");
-        PrintMostCommon(print, projectFolders, 10);
+        Printer.Info($"Found missing: {total_missing} projects in {missing_files} files");
+        PrintMostCommon(print, project_folders, 10);
 
         return 0;
     }
 
 
-    public static int HandleMissingInCmakeCommand(Printer print, string[] relativeFiles, string? buildRoot, string cmake)
+    public static int HandleMissingInCmakeCommand(Printer print, string[] relative_files, string? build_root, string cmake)
     {
-        var bases = relativeFiles.Select(FileUtil.RealPath).ToImmutableArray();
-        if (buildRoot == null) { return -1; }
+        var bases = relative_files.Select(FileUtil.RealPath).ToImmutableArray();
+        if (build_root == null) { return -1; }
 
         var paths = new HashSet<string>();
 
-        foreach (var cmd in CMake.Trace.TraceDirectory(cmake, buildRoot))
+        foreach (var cmd in CMake.Trace.TraceDirectory(cmake, build_root))
         {
             if (bases.Select(b => FileIsInFolder(cmd.File!, b)).Any())
             {
@@ -587,7 +589,7 @@ internal static class F
         }
 
         var count = 0;
-        foreach (var file in FileUtil.ListFilesRecursively(relativeFiles, FileUtil.HeaderAndSourceFiles))
+        foreach (var file in FileUtil.ListFilesRecursively(relative_files, FileUtil.HeaderAndSourceFiles))
         {
             var resolved = new FileInfo(file).FullName;
             if (paths.Contains(resolved) == false)
@@ -607,18 +609,18 @@ internal static class F
         bool args_discard_empty)
     {
         var stats = new Dictionary<int, List<string>>();
-        var fileCount = 0;
+        var file_count = 0;
 
         foreach (var file in FileUtil.ListFilesRecursively(args_files, FileUtil.HeaderAndSourceFiles))
         {
-            fileCount += 1;
+            file_count += 1;
 
             var count = GetLineCount(file, args_discard_empty);
 
             var index = each <= 1 ? count : count - (count % each);
-            if (stats.TryGetValue(index, out var dataValues))
+            if (stats.TryGetValue(index, out var data_values))
             {
-                dataValues.Add(file);
+                data_values.Add(file);
             }
             else
             {
@@ -626,18 +628,18 @@ internal static class F
             }
         }
 
-        Printer.Info($"Found {fileCount} files.");
+        Printer.Info($"Found {file_count} files.");
         foreach (var (count, files) in stats.OrderBy(x => x.Key))
         {
             var c = files.Count;
-            var countStr = each <= 1 ? $"{count}" : $"{count}-{count + each - 1}";
+            var count_str = each <= 1 ? $"{count}" : $"{count}-{count + each - 1}";
             if (args_show && c < 3)
             {
-                Printer.Info($"{countStr}: {files}");
+                Printer.Info($"{count_str}: {files}");
             }
             else
             {
-                Printer.Info($"{countStr}: {c}");
+                Printer.Info($"{count_str}: {c}");
             }
         }
 

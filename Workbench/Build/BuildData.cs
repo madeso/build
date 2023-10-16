@@ -11,12 +11,12 @@ public readonly struct BuildData
     public string ProjectDirectory { get; }
     public string DependencyDirectory { get; }
 
-    public BuildData(string name, string rootDir, Printer print)
+    public BuildData(string name, string root_dir, Printer print)
     {
         Name = name;
         Dependencies = new();
-        RootDirectory = rootDir;
-        BuildDirectory = Path.Join(rootDir, "build");
+        RootDirectory = root_dir;
+        BuildDirectory = Path.Join(root_dir, "build");
         ProjectDirectory = Path.Join(BuildDirectory, name);
         DependencyDirectory = Path.Join(BuildDirectory, "deps");
     }
@@ -34,9 +34,9 @@ public readonly struct BuildData
             loaded =>
             {
                 var bd = new BuildData(loaded.Name, Environment.CurrentDirectory, print);
-                foreach (var dependencyName in loaded.Dependencies)
+                foreach (var dependency_name in loaded.Dependencies)
                 {
-                    bd.Dependencies.Add(BuildDependencies.CreateDependency(dependencyName, bd));
+                    bd.Dependencies.Add(BuildDependencies.CreateDependency(dependency_name, bd));
                 }
                 return bd;
             }

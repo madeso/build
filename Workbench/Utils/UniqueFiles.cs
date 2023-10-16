@@ -28,12 +28,12 @@ public class UniqueFiles
 
     private static DirectoryInfo? GetCommonPrefix(DirectoryInfo left, DirectoryInfo right)
     {
-        var common = Split(left)
-            .ZipLongest(Split(right))
+        var common = split(left)
+            .ZipLongest(split(right))
             .LastOrDefault(pair => pair.Item1 == pair.Item2).Item1;
         return common != null ? new DirectoryInfo(common) : null;
 
-        static IEnumerable<string> Split(DirectoryInfo dir)
+        static IEnumerable<string> split(DirectoryInfo dir)
         {
             List<string> ret = new();
             var c = dir;

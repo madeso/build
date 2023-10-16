@@ -26,10 +26,10 @@ internal class FileStatistics
     internal void Print()
     {
         if (data.Count == 0) { return; }
-        var averageValue = TimeSpan.FromSeconds(data.Average(x => x.Value.TotalSeconds));
+        var average_value = TimeSpan.FromSeconds(data.Average(x => x.Value.TotalSeconds));
         var mi = data.MinBy(x => x.Value);
         var ma = data.MaxBy(x => x.Value);
-        AnsiConsole.MarkupLineInterpolated($"average: {averageValue:.2f}s");
+        AnsiConsole.MarkupLineInterpolated($"average: {average_value:.2f}s");
         AnsiConsole.MarkupLineInterpolated($"max: {ma.Value:.2f}s foreach {ma.Key}");
         AnsiConsole.MarkupLineInterpolated($"min: {mi.Value:.2f}s foreach {mi.Key}");
         AnsiConsole.MarkupLineInterpolated($"{data.Count} files");
@@ -57,34 +57,28 @@ internal class NamePrinter
 
 internal static class F
 {
-    private static string GetPathToStore(string buildFolder)
+    private static string GetPathToStore(string build_folder)
     {
-        return Path.Join(buildFolder, FileNames.ClangTidyStore);
+        return Path.Join(build_folder, FileNames.ClangTidyStore);
     }
 
-    private static Store? LoadStore(Printer print, string buildFolder)
+    private static Store? LoadStore(Printer print, string build_folder)
     {
-        static Store? GetFileData(Printer print, string fileName, Store missingFile)
+        var file_name = GetPathToStore(build_folder);
+        if (!File.Exists(file_name))
         {
-            if (File.Exists(fileName))
-            {
-                var content = File.ReadAllText(fileName);
-                var loaded = JsonUtil.Parse<Store>(print, fileName, content);
-                return loaded;
-            }
-            else
-            {
-                return missingFile;
-            }
+            return new Store();
         }
 
-        return GetFileData(print, GetPathToStore(buildFolder), new Store());
+        var content = File.ReadAllText(file_name);
+        var loaded = JsonUtil.Parse<Store>(print, file_name, content);
+        return loaded;
     }
 
-    private static void SaveStore(string buildFolder, Store data)
+    private static void SaveStore(string build_folder, Store data)
     {
-        var fileName = GetPathToStore(buildFolder);
-        File.WriteAllText(fileName, JsonUtil.Write(data));
+        var file_name = GetPathToStore(build_folder);
+        File.WriteAllText(file_name, JsonUtil.Write(data));
     }
 
     private static bool IsFileIgnoredByClangTidy(string path)
@@ -92,8 +86,8 @@ internal static class F
         var lines = File.ReadAllLines(path);
         if (lines.Length == 0) { return false; }
 
-        var firstLine = lines[0];
-        return firstLine.StartsWith("// clang-tidy: ignore");
+        var first_line = lines[0];
+        return first_line.StartsWith("// clang-tidy: ignore");
     }
 
     private static string GetPathToClangTidySource(string root)
@@ -104,10 +98,10 @@ internal static class F
     // return a iterator over the the "compiled" .clang-tidy lines
     private static IEnumerable<string> GenerateClangTidyAsIterator(string root)
     {
-        var clangTidyFile = File.ReadAllLines(GetPathToClangTidySource(root));
+        var clang_tidy_file = File.ReadAllLines(GetPathToClangTidySource(root));
         var write = false;
         var checks = new List<string>();
-        foreach (var line in clangTidyFile)
+        foreach (var line in clang_tidy_file)
         {
             if (write)
             {
@@ -119,20 +113,20 @@ internal static class F
             }
             else
             {
-                var strippedLine = line.Trim();
-                if (strippedLine == "")
+                var stripped_line = line.Trim();
+                if (stripped_line == "")
                 { }
-                else if (strippedLine[0] == '#')
+                else if (stripped_line[0] == '#')
                 { }
-                else if (strippedLine == "END_CHECKS")
+                else if (stripped_line == "END_CHECKS")
                 {
                     write = true;
-                    var checksValue = string.Join(',', checks);
-                    yield return $"Checks: \"{checksValue} \"";
+                    var checks_value = string.Join(',', checks);
+                    yield return $"Checks: \"{checks_value} \"";
                 }
                 else
                 {
-                    checks.Add(strippedLine);
+                    checks.Add(stripped_line);
                 }
             }
         }
@@ -147,8 +141,8 @@ internal static class F
         }
     }
 
-    private static CategoryAndFiles[] MapFilesOnFirstDir(string root, IEnumerable<string> filesIterator)
-     => filesIterator
+    private static CategoryAndFiles[] MapFilesOnFirstDir(string root, IEnumerable<string> files_iterator)
+     => files_iterator
             .Select(f => new { Path = f, Cat = FileUtil.GetFirstFolder(root, f) })
             // ignore external and build folders
             .Where(f => f.Cat != "external").Where(f => f.Cat.StartsWith("build") == false)
@@ -188,25 +182,25 @@ internal static class F
         return info.LastWriteTimeUtc;
     }
 
-    private static DateTime GetLastModificationForFiles(IEnumerable<string> inputFiles)
-     => inputFiles.Select(GetLastModification).Max();
+    private static DateTime GetLastModificationForFiles(IEnumerable<string> input_files)
+     => input_files.Select(GetLastModification).Max();
 
-    private static bool IsModificationTheLatest(IEnumerable<string> inputFiles, DateTime output)
+    private static bool IsModificationTheLatest(IEnumerable<string> input_files, DateTime output)
     {
-        return GetLastModificationForFiles(inputFiles) <= output;
+        return GetLastModificationForFiles(input_files) <= output;
     }
 
     private static TidyOutput? GetExistingOutputOrNull(Store store, Printer printer, string root,
-        string projectBuildFolder, string sourceFile)
+        string project_build_folder, string source_file)
     {
-        var rootFile = GetPathToClangTidySource(root);
+        var root_file = GetPathToClangTidySource(root);
 
-        if (store.Cache.TryGetValue(sourceFile, out var stored) == false)
+        if (store.Cache.TryGetValue(source_file, out var stored) == false)
         {
             return null;
         }
 
-        if (IsModificationTheLatest(new[] { rootFile, sourceFile }, stored.Modified))
+        if (IsModificationTheLatest(new[] { root_file, source_file }, stored.Modified))
         {
             return new TidyOutput(stored.Output, stored.Taken);
         }
@@ -214,15 +208,15 @@ internal static class F
         return null;
     }
 
-    private static void StoreOutput(Store store, Printer printer, string root, string projectBuildFolder,
-        string sourceFile, TidyOutput output)
+    private static void StoreOutput(Store store, string root, string project_build_folder,
+        string source_file, TidyOutput output)
     {
-        var clangTidySource = GetPathToClangTidySource(root);
+        var clang_tidy_source = GetPathToClangTidySource(root);
 
         var data = new StoredTidyUpdate(output.Output, output.Taken,
-            GetLastModificationForFiles(new[] { clangTidySource, sourceFile }));
-        store.Cache[sourceFile] = data;
-        SaveStore(projectBuildFolder, store);
+            GetLastModificationForFiles(new[] { clang_tidy_source, source_file }));
+        store.Cache[source_file] = data;
+        SaveStore(project_build_folder, store);
     }
 
     // runs clang-tidy and returns all the text output
@@ -230,15 +224,15 @@ internal static class F
     {
         if (false == force)
         {
-            var existingOutput = GetExistingOutputOrNull(store, printer, root, project_build_folder, source_file);
-            if (existingOutput != null)
+            var existing_output = GetExistingOutputOrNull(store, printer, root, project_build_folder, source_file);
+            if (existing_output != null)
             {
-                return existingOutput;
+                return existing_output;
             }
         }
 
-        TidyOutput ret = CallClangTidy(printer, tidy_path, project_build_folder, source_file, fix);
-        StoreOutput(store, printer, root, project_build_folder, source_file, ret);
+        var ret = CallClangTidy(printer, tidy_path, project_build_folder, source_file, fix);
+        StoreOutput(store, root, project_build_folder, source_file, ret);
         return ret;
     }
 
@@ -270,20 +264,25 @@ internal static class F
     }
 
     // runs the clang-tidy process, printing status to terminal
-    private static (ColCounter<string> warnings, ColCounter<string> classes) RunTidy(Store store, Printer printer, string root, bool force, string tidy_path, string source_file, string project_build_folder, FileStatistics stats, bool shortList, NamePrinter name_printer, bool fix, string printable_file, string[] only)
+    private static (ColCounter<string> warnings, ColCounter<string> classes) RunTidy(
+        Store store, Printer printer, string root, bool force, string tidy_path, string source_file,
+        string project_build_folder, FileStatistics stats, bool short_list, NamePrinter name_printer, bool fix,
+        string printable_file, string[] only)
     {
         name_printer.Print();
         var co = GetExistingOutputOrCallClangTidy(store, printer, root, force, tidy_path, project_build_folder, source_file, fix);
-        return CreateStatisticsAndPrintStatus(printer, stats, shortList, printable_file, only, co);
+        return CreateStatisticsAndPrintStatus(printer, stats, short_list, printable_file, only, co);
     }
 
-    private static (ColCounter<string> warnings, ColCounter<string> classes) CreateStatisticsAndPrintStatus(Printer printer, FileStatistics stats, bool shortList, string printable_file, string[] only, TidyOutput co)
+    private static (ColCounter<string> warnings, ColCounter<string> classes) CreateStatisticsAndPrintStatus(
+        Printer printer, FileStatistics stats, bool short_list, string printable_file,
+        string[] only, TidyOutput co)
     {
         var output = co.Output;
         var time_taken = co.Taken;
         var warnings = new ColCounter<string>();
         var classes = new ColCounter<string>();
-        if (false == shortList && only.Length == 0)
+        if (false == short_list && only.Length == 0)
         {
             Printer.Info($"took {time_taken:.2f}s");
         }
@@ -346,7 +345,7 @@ internal static class F
                 }
             }
         }
-        if (false == shortList && only.Length == 0)
+        if (false == short_list && only.Length == 0)
         {
             PrintWarningCounter(printer, classes, printable_file);
             Printer.Info("");
@@ -389,12 +388,12 @@ internal static class F
         }
     }
 
-    internal static int HandleTidyListFilesCommand(Printer print, bool sortFiles)
+    internal static int HandleTidyListFilesCommand(Printer print, bool sort_files)
     {
         var root = Environment.CurrentDirectory;
 
-        var buildFolder = CompileCommand.FindBuildRootOrNull(root);
-        if (buildFolder is null)
+        var build_folder = CompileCommand.FindBuildRootOrNull(root);
+        if (build_folder is null)
         {
             print.Error("unable to find build folder");
             return -1;
@@ -402,13 +401,13 @@ internal static class F
 
         var files = FileUtil.ListFilesRecursively(root, FileUtil.SourceFiles);
 
-        if (sortFiles)
+        if (sort_files)
         {
             var sorted = MapFilesOnFirstDir(root, files);
-            foreach (var (project, sourceFiles) in sorted)
+            foreach (var (project, source_files) in sorted)
             {
                 Printer.Header(project);
-                foreach (var file in sourceFiles)
+                foreach (var file in source_files)
                 {
                     Printer.Info(file);
                 }
@@ -552,8 +551,8 @@ internal static class F
     {
         var root = Environment.CurrentDirectory;
 
-        var projectBuildFolder = CompileCommand.FindBuildRootOrNull(root);
-        if (projectBuildFolder is null)
+        var project_build_folder = CompileCommand.FindBuildRootOrNull(root);
+        if (project_build_folder is null)
         {
             printer.Error("unable to find build folder");
             return -1;
@@ -561,10 +560,10 @@ internal static class F
 
         var data = MapAllFilesInRootOnFirstDir(root, FileUtil.HeaderAndSourceFiles);
 
-        foreach (var (project, sourceFiles) in data)
+        foreach (var (project, source_files) in data)
         {
             Printer.Header(project);
-            foreach (var file in sourceFiles)
+            foreach (var file in source_files)
             {
                 Printer.Info(Path.GetRelativePath(file, root));
                 if (nop != false)

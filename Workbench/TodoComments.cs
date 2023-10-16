@@ -10,13 +10,13 @@ internal partial class TodoComments
 {
     internal static IEnumerable<TodoInFile> ListAllTodos(DirectoryInfo root)
     {
-        var extraExtensions = new string[] { ".jsonc" };
-        var extensions = FileUtil.HeaderAndSourceFiles.Concat(extraExtensions).ToArray();
+        var extra_extensions = new string[] { ".jsonc" };
+        var extensions = FileUtil.HeaderAndSourceFiles.Concat(extra_extensions).ToArray();
 
-        var buildFolder = root.GetDir("build");
+        var build_folder = root.GetDir("build");
 
         var files = FileUtil.ListFilesRecursively(root, extensions)
-            .Where(x => buildFolder.HasFile(x) == false)
+            .Where(x => build_folder.HasFile(x) == false)
             ;
 
         return
@@ -30,7 +30,7 @@ internal partial class TodoComments
 
     private static string? ExtractTodoComment(string line)
     {
-        var match = TodoComment.Match(line);
+        var match = todo_comment.Match(line);
         return match.Success
             ? match.Captures[0].Value
             : null
@@ -39,5 +39,5 @@ internal partial class TodoComments
 
     [GeneratedRegex("// todo(.*)$", RegexOptions.Compiled)]
     private static partial Regex GenerateTodoCommentRegex();
-    private static readonly Regex TodoComment = GenerateTodoCommentRegex();
+    private static readonly Regex todo_comment = GenerateTodoCommentRegex();
 }

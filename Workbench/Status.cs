@@ -21,14 +21,14 @@ internal static class Status
         var root = Environment.CurrentDirectory;
         Printer.Info($"Root: {root}");
 
-        var projectBuildFolder = CompileCommand.FindBuildRootOrNull(root);
-        if (projectBuildFolder == null)
+        var project_build_folder = CompileCommand.FindBuildRootOrNull(root);
+        if (project_build_folder == null)
         {
             printer.Error("Unable to find build folder");
         }
         else
         {
-            Printer.Info($"Project build folder: {projectBuildFolder}");
+            Printer.Info($"Project build folder: {project_build_folder}");
         }
 
         var ccs = cc.GetPathToCompileCommandsOrNull(printer);

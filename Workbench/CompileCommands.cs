@@ -21,10 +21,10 @@ public class CompileCommand
         // shitty commandline parser... beware
         foreach (var c in Command.Split(' '))
         {
-            const string includePrefix = "-I";
-            if (c.StartsWith(includePrefix) == false) { continue; }
+            const string INCLUDE_PREFIX = "-I";
+            if (c.StartsWith(INCLUDE_PREFIX) == false) { continue; }
 
-            yield return c[includePrefix.Length..].Trim();
+            yield return c[INCLUDE_PREFIX.Length..].Trim();
         }
     }
 
@@ -35,10 +35,10 @@ public class CompileCommand
 
         foreach (var c in Command.Split(' '))
         {
-            const string definePrefix = "-D";
-            if (c.StartsWith(definePrefix) == false) { continue; }
+            const string DEFINE_PREFIX = "-D";
+            if (c.StartsWith(DEFINE_PREFIX) == false) { continue; }
 
-            var def = c[definePrefix.Length..];
+            var def = c[DEFINE_PREFIX.Length..];
 
             var arr = def.Split('=', 2);
             var key = arr[0];
@@ -65,13 +65,13 @@ public class CompileCommand
         );
     }
 
-    internal const string JsonFileName = "compile_commands.json";
+    internal const string JSON_FILE_NAME = "compile_commands.json";
 
     /// find the build folder containing the compile_commands file or None
     public static string? FindBuildRootOrNull(string root)
         => FileUtil
             .PitchforkBuildFolders(root)
-            .FirstOrDefault(build => Path.Exists(Path.Join(build, JsonFileName)))
+            .FirstOrDefault(build => Path.Exists(Path.Join(build, JSON_FILE_NAME)))
     ;
 }
 
@@ -97,21 +97,21 @@ internal class CompileCommandsArguments : CommandSettings
 
     public string? GetPathToCompileCommandsOrNull(Printer print)
     {
-        var ret = GetArgumentOrNone(Environment.CurrentDirectory, CompileCommands);
+        var ret = get_argument_or_none(Environment.CurrentDirectory, CompileCommands);
         if (ret == null)
         {
-            print.Error($"Unable to locate {CompileCommand.JsonFileName}");
+            print.Error($"Unable to locate {CompileCommand.JSON_FILE_NAME}");
         }
         return ret;
 
-        static string? GetArgumentOrNone(string cwd, string? cc)
+        static string? get_argument_or_none(string cwd, string? cc)
         {
             if (cc != null) { return cc; }
 
             var r = CompileCommand.FindBuildRootOrNull(cwd);
             if (r == null) { return null; }
 
-            return Path.Join(r, CompileCommand.JsonFileName);
+            return Path.Join(r, CompileCommand.JSON_FILE_NAME);
         }
     }
 }

@@ -21,15 +21,17 @@ internal static class Ui
         GenerateReport(f.GetCommon(), root, project, scanner);
     }
 
-    private static void AddFiles(UniqueFiles uniqueFiles, Project project)
+    private static void AddFiles(UniqueFiles unique_files, Project project)
     {
         foreach(var k in project.ScannedFiles.Keys)
         {
-            uniqueFiles.Add(k);
+            unique_files.Add(k);
         }
     }
 
-    public static void ScanAndGenerateDot(Printer printer, Data.UserInput input, Data.OutputFolders root, bool simplifyGraphviz, bool onlyHeaders, string[] exclude, bool cluster)
+    public static void ScanAndGenerateDot(
+        Printer printer, Data.UserInput input, Data.OutputFolders root, bool simplify_graphviz, bool only_headers,
+        string[] exclude, bool cluster)
     {
         var project = new Data.Project(input);
         var scanner = new Parser.Scanner();
@@ -37,7 +39,7 @@ internal static class Ui
         scanner.Rescan(project, feedback);
         var f = new UniqueFiles();
         AddFiles(f, project);
-        GenerateDot(printer, f.GetCommon(), root, project, scanner, simplifyGraphviz, onlyHeaders, exclude, input, cluster);
+        GenerateDot(f.GetCommon(), root, project, scanner, simplify_graphviz, only_headers, exclude, input, cluster);
     }
 
 
@@ -50,14 +52,14 @@ internal static class Ui
         return list.Select(p => new FileInfo(p)).Any(pp => ff.FullName == pp.FullName);
     }
 
-    private static bool ExcludeFile(string file, Data.UserInput input, bool onlyHeaders, IEnumerable<string> exclude)
+    private static bool ExcludeFile(string file, Data.UserInput input, bool only_headers, IEnumerable<string> exclude)
     {
         if (FileIsInFileList(file, input.ProjectDirectories))
         {
             // explicit included... then it's not excluded
             return false;
         }
-        else if (onlyHeaders && FileUtil.IsHeader(file) == false)
+        else if (only_headers && FileUtil.IsHeader(file) == false)
         {
             return true;
         }
@@ -71,58 +73,60 @@ internal static class Ui
         }
     }
 
-    private static void GenerateDot(Printer print, string? common, Data.OutputFolders root, Data.Project project, Parser.Scanner scanner, bool simplifyGraphviz, bool onlyHeaders, string[] exclude, Data.UserInput input, bool cluster)
+    private static void GenerateDot(
+        string? common, Data.OutputFolders root, Data.Project project, Parser.Scanner scanner,
+        bool simplify_graphviz, bool only_headers, string[] exclude, Data.UserInput input, bool cluster)
     {
         var analytics = Parser.Analytics.Analyze(project);
         var gv = new Graphviz();
 
         foreach (var file in project.ScannedFiles.Keys)
         {
-            if (ExcludeFile(file, input, onlyHeaders, exclude))
+            if (ExcludeFile(file, input, only_headers, exclude))
             {
                 Printer.Info($"{file} rejected due to non-header");
                 continue;
             }
 
             Printer.Info($"{file} added as a node");
-            var displayName = Html.GetFilename(common, root.InputRoot, file);
-            var nodeId = Html.GetSafeInspectFilenameWithoutHtml(file);
-            var addedNode = gv.AddNodeWithId(displayName, Shape.Box, nodeId);
+            var display_name = Html.GetFilename(common, root.InputRoot, file);
+            var node_id = Html.GetSafeInspectFilenameWithoutHtml(file);
+            var added_node = gv.AddNodeWithId(display_name, Shape.Box, node_id);
             if (!cluster) continue;
 
             var parent = new FileInfo(file).Directory?.FullName;
             if (parent != null)
             {
-                addedNode.Cluster = gv.FindOrCreateCluster(Path.GetRelativePath(root.InputRoot, parent));
+                added_node.Cluster = gv.FindOrCreateCluster(Path.GetRelativePath(root.InputRoot, parent));
             }
         }
 
         foreach (var file in project.ScannedFiles.Keys)
         {
-            if (ExcludeFile(file, input, onlyHeaders, exclude))
+            if (ExcludeFile(file, input, only_headers, exclude))
             {
                 Printer.Info($"{file} rejected due to non-header");
                 continue;
             }
 
-            var fromFile = Html.GetSafeInspectFilenameWithoutHtml(file);
-            var fromId = gv.GetNodeFromId(fromFile);
-            if (fromId == null)
+            var from_file = Html.GetSafeInspectFilenameWithoutHtml(file);
+            var from_id = gv.GetNodeFromId(from_file);
+            if (from_id == null)
             {
                 throw new Exception("BUG: Node not added");
             }
 
             foreach (var s in project.ScannedFiles[file].AbsoluteIncludes)
             {
-                if (ExcludeFile(s, input, onlyHeaders, exclude))
+                if (ExcludeFile(s, input, only_headers, exclude))
                 {
                     Printer.Info($"{s} rejected due to non-header");
                     continue;
                 }
 
-                var toFile = Html.GetSafeInspectFilenameWithoutHtml(s);
-                var toId = gv.GetNodeFromId(toFile);
-                if (toId == null)
+                var to_file = Html.GetSafeInspectFilenameWithoutHtml(s);
+                var to_id = gv.GetNodeFromId(to_file);
+                if (to_id == null)
                 {
                     throw new Exception("BUG: Node not added");
                 }
@@ -130,11 +134,11 @@ internal static class Ui
                 // todo(Gustav): add edge label
                 // let display_count    = rust::num_format(length_fun(&analytics.file_to_data[s]));
                 // let display_lines    = rust::num_format(analytics.file_to_data[s].total_included_lines);
-                gv.AddEdge(fromId, toId);
+                gv.AddEdge(from_id, to_id);
             }
         }
 
-        if (simplifyGraphviz)
+        if (simplify_graphviz)
         {
             gv.Simplify();
         }
@@ -166,11 +170,11 @@ internal static class Ui
             var html = new Html();
             html.BeginJoin("Missing");
             // todo(Gustav): sort missing on paths or count?
-            foreach (var (includePath, origins) in scanner.NotFoundOrigins)
+            foreach (var (include_path, origins) in scanner.NotFoundOrigins)
             {
                 var count = origins.Count;
                 var s = count == 1 ? "" : "s";
-                html.PushString($"<div class=\"missing\">{includePath} from <span class=\"num\">{count}</span> file{s} <ul>");
+                html.PushString($"<div class=\"missing\">{include_path} from <span class=\"num\">{count}</span> file{s} <ul>");
 
                 foreach (var file in origins)
                 {
@@ -204,7 +208,7 @@ internal static class Ui
         IEnumerable<string> included,
         string klass,
         string header,
-        Func<Parser.ItemAnalytics, int> lengthFun
+        Func<Parser.ItemAnalytics, int> length_fun
     )
     {
         html.PushString($"<div id=\"{klass}\">\n");
@@ -212,13 +216,13 @@ internal static class Ui
         html.PushString("<table class=\"list\">\n");
         html.PushString("<tr>  <th class=\"file\">File</th>  <th>Count</th>  <th>Lines</th>  </tr>\n");
 
-        foreach (var s in included.OrderByDescending(s => lengthFun(analytics.FileToData[s])))
+        foreach (var s in included.OrderByDescending(s => length_fun(analytics.FileToData[s])))
         {
-            var displayFilename = Html.inspect_filename_link(common, root.InputRoot, s);
-            var displayCount = Core.FormatNumber(lengthFun(analytics.FileToData[s]));
-            var displayLines = Core.FormatNumber(analytics.FileToData[s].TotalIncludedLines);
+            var display_filename = Html.inspect_filename_link(common, root.InputRoot, s);
+            var display_count = Core.FormatNumber(length_fun(analytics.FileToData[s]));
+            var display_lines = Core.FormatNumber(analytics.FileToData[s].TotalIncludedLines);
 
-            html.PushString($"<tr><td class=\"file\">{displayFilename}</td> <td class=\"num\">{displayCount}</td> <td class=\"num\">{displayLines}</td></tr>");
+            html.PushString($"<tr><td class=\"file\">{display_filename}</td> <td class=\"num\">{display_count}</td> <td class=\"num\">{display_lines}</td></tr>");
         }
 
         html.PushString("</table>\n");
@@ -229,9 +233,9 @@ internal static class Ui
     {
         var html = new Html();
 
-        var displayName = Html.GetFilename(common, root.InputRoot, file);
+        var display_name = Html.GetFilename(common, root.InputRoot, file);
 
-        html.BeginJoin($"Inspecting - {displayName}");
+        html.BeginJoin($"Inspecting - {display_name}");
 
         WriteInspectHeaderTable
         (
@@ -240,29 +244,29 @@ internal static class Ui
             project.ScannedFiles
                 .Where(kvp => kvp.Value.AbsoluteIncludes.Contains(file))
                 .Select(kvp => kvp.Key),
-            "included_by", $"These include {displayName}",
+            "included_by", $"These include {display_name}",
             it => it.AllIncludedBy.Count
         );
 
         {
             html.PushString("<div id=\"file\">\n");
 
-            var projectFile = project.ScannedFiles[file];
-            var analyticsFile = analytics.FileToData[file];
-            var fileLines = Core.FormatNumber(projectFile.NumberOfLines);
-            var directLines = Core.FormatNumber(projectFile.AbsoluteIncludes.Select(f => project.ScannedFiles[f].NumberOfLines).Sum());
-            var directCount = Core.FormatNumber(projectFile.AbsoluteIncludes.Count);
-            var totalLines = Core.FormatNumber(analyticsFile.TotalIncludedLines);
-            var totalCount = Core.FormatNumber(analyticsFile.AllIncludes.Count);
+            var project_file = project.ScannedFiles[file];
+            var analytics_file = analytics.FileToData[file];
+            var file_lines = Core.FormatNumber(project_file.NumberOfLines);
+            var direct_lines = Core.FormatNumber(project_file.AbsoluteIncludes.Select(f => project.ScannedFiles[f].NumberOfLines).Sum());
+            var direct_count = Core.FormatNumber(project_file.AbsoluteIncludes.Count);
+            var total_lines = Core.FormatNumber(analytics_file.TotalIncludedLines);
+            var total_count = Core.FormatNumber(analytics_file.AllIncludes.Count);
 
-            html.PushString($"<h2>{displayName}</h2>\n");
+            html.PushString($"<h2>{display_name}</h2>\n");
 
             html.PushString("<table class=\"summary\">");
 
             html.PushString("<tr>  <th></th>                 <th>Lines</th>              <th>Files</th>           </tr>\n");
-            html.PushString($"<tr>  <th>Lines:</th>           <td class=\"num\">{fileLines}</td>   <td class=\"num\">1</td> </tr>\n");
-            html.PushString($"<tr>  <th>Direct Includes:</th> <td class=\"num\">{directLines}</td>  <td class=\"num\">{directCount}</td>  </tr>\n");
-            html.PushString($"<tr>  <th>Total Includes:</th>  <td class=\"num\">{totalLines}</td>  <td class=\"num\">{totalCount}</td> </tr>\n");
+            html.PushString($"<tr>  <th>Lines:</th>           <td class=\"num\">{file_lines}</td>   <td class=\"num\">1</td> </tr>\n");
+            html.PushString($"<tr>  <th>Direct Includes:</th> <td class=\"num\">{direct_lines}</td>  <td class=\"num\">{direct_count}</td>  </tr>\n");
+            html.PushString($"<tr>  <th>Total Includes:</th>  <td class=\"num\">{total_lines}</td>  <td class=\"num\">{total_count}</td> </tr>\n");
 
             html.PushString("</table>");
 
@@ -274,7 +278,7 @@ internal static class Ui
             common, html, root,
             analytics,
             project.ScannedFiles[file].AbsoluteIncludes,
-            "includes", $"{displayName} includes these",
+            "includes", $"{display_name} includes these",
             it => it.AllIncludes.Count
         );
 
@@ -290,11 +294,11 @@ internal static class Ui
 
 internal static class F
 {
-    internal static int HandleNewHero(string projectFile, bool overwrite, Printer print)
+    internal static int HandleNewHero(string project_file, bool overwrite, Printer print)
     {
-        if (File.Exists(projectFile) && overwrite == false)
+        if (File.Exists(project_file) && overwrite == false)
         {
-            print.Error($"{projectFile} already exists.");
+            print.Error($"{project_file} already exists.");
             return -1;
         }
         var input = new Data.UserInput();
@@ -303,13 +307,13 @@ internal static class F
         input.PrecompiledHeaders.Add("list of relative pchs, if there are any");
 
         var content = JsonUtil.Write(input);
-        File.WriteAllText(projectFile, content);
+        File.WriteAllText(project_file, content);
         return 0;
     }
 
-    internal static int HandleRunHeroHtml(string projectFile, string outputDirectory, Printer print)
+    internal static int HandleRunHeroHtml(string project_file, string output_directory, Printer print)
     {
-        var input = Data.UserInput.LoadFromFile(print, projectFile);
+        var input = Data.UserInput.LoadFromFile(print, project_file);
         if (input == null)
         {
             return -1;
@@ -318,21 +322,18 @@ internal static class F
         {
             return -1;
         }
-        var inputRoot = new FileInfo(projectFile).DirectoryName ?? Environment.CurrentDirectory;
-        input.Decorate(print, inputRoot);
-        Directory.CreateDirectory(outputDirectory);
-        Ui.ScanAndGenerateHtml(print, input, new(inputRoot, outputDirectory));
+        var input_root = new FileInfo(project_file).DirectoryName ?? Environment.CurrentDirectory;
+        input.Decorate(print, input_root);
+        Directory.CreateDirectory(output_directory);
+        Ui.ScanAndGenerateHtml(print, input, new(input_root, output_directory));
         return 0;
     }
 
-    internal static int RunHeroGraphviz(string projectFile,
-        string outputFile,
-        bool simplifyGraphviz,
-        bool onlyHeaders,
-        bool cluster,
+    internal static int RunHeroGraphviz(
+        string project_file, string output_file, bool simplify_graphviz, bool only_headers, bool cluster,
         string[] exclude, Printer print)
     {
-        var input = Data.UserInput.LoadFromFile(print, projectFile);
+        var input = Data.UserInput.LoadFromFile(print, project_file);
         if (input == null)
         {
             return -1;
@@ -341,9 +342,9 @@ internal static class F
         {
             return -1;
         }
-        var inputRoot = new FileInfo(projectFile).DirectoryName ?? Environment.CurrentDirectory;
-        input.Decorate(print, inputRoot);
-        Ui.ScanAndGenerateDot(print, input, new(inputRoot, outputFile), simplifyGraphviz, onlyHeaders, exclude, cluster);
+        var input_root = new FileInfo(project_file).DirectoryName ?? Environment.CurrentDirectory;
+        input.Decorate(print, input_root);
+        Ui.ScanAndGenerateDot(print, input, new(input_root, output_file), simplify_graphviz, only_headers, exclude, cluster);
         return 0;
     }
 }

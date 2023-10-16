@@ -36,8 +36,8 @@ internal sealed class FindTodosCommand : Command<FindTodosCommand.Arg>
 
         foreach (var todo in TodoComments.ListAllTodos(root))
         {
-            var fileAndLine = Printer.ToFileString(todo.File.FullName, todo.Line);
-            AnsiConsole.MarkupLineInterpolated($"[blue]{fileAndLine}[/]: {todo.Todo}");
+            var file_and_line = Printer.ToFileString(todo.File.FullName, todo.Line);
+            AnsiConsole.MarkupLineInterpolated($"[blue]{file_and_line}[/]: {todo.Todo}");
             cc.AddOne(todo.File.FullName);
         }
 
@@ -69,36 +69,36 @@ internal sealed class GroupWithTimeCommand : Command<GroupWithTimeCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var root = new DirectoryInfo(Environment.CurrentDirectory);
-        var todos = TodoComments.ListAllTodos(root).OrderBy(x => x.File.Name);
+        var all_todos = TodoComments.ListAllTodos(root).OrderBy(x => x.File.Name);
 
         // group by file to only run blame once (per file)
-        var todoWithBlame = todos.GroupBy(todo => todo.File, (file, todos) => {
+        var todo_with_blame = all_todos.GroupBy(todo => todo.File, (file, todos) => {
                 var blames = Git.Blame(file).ToArray();
                 return todos.Select(x => new {Todo = x, Blame = blames[x.Line-1] });
             });
 
         // extract from file grouping and order by time
-        var sortedTodos = todoWithBlame.SelectMany(x => x).OrderByDescending(x => BlameToTime(x.Blame));
+        var sorted_todos = todo_with_blame.SelectMany(x => x).OrderByDescending(x => blame_to_time(x.Blame));
 
         // group on x time ago to break up the info dump
-        var timeGrouped = sortedTodos.GroupBy(x => BlameToTime(x.Blame).GetTimeAgoString(),
-                (x, todos) => new {Time = x, Todos = todos.ToArray()}
+        var time_grouped = sorted_todos.GroupBy(x => blame_to_time(x.Blame).GetTimeAgoString(),
+                (x, grouped_todos) => new {Time = x, Todos = grouped_todos.ToArray()}
             ).ToArray();
 
-        foreach(var group in timeGrouped)
+        foreach(var group in time_grouped)
         {
             AnsiConsole.MarkupLineInterpolated($"[red]{group.Time}[/]:");
             foreach (var x in group.Todos)
             {
                 var todo = x.Todo;
-                var fileAndLine = Printer.ToFileString(todo.File.FullName, todo.Line);
-                AnsiConsole.MarkupLineInterpolated($"[blue]{fileAndLine}[/] {BlameToTime(x.Blame)}: {todo.Todo}");
+                var file_and_line = Printer.ToFileString(todo.File.FullName, todo.Line);
+                AnsiConsole.MarkupLineInterpolated($"[blue]{file_and_line}[/] {blame_to_time(x.Blame)}: {todo.Todo}");
             }
         }
 
         return 0;
 
         // use author datetime when sorting
-        static DateTime BlameToTime(Git.BlameLine b) => b.Author.Time;
+        static DateTime blame_to_time(Git.BlameLine b) => b.Author.Time;
     }
 }

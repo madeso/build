@@ -2,11 +2,12 @@ namespace Workbench.Utils;
 
 public static class EditDistance
 {
-    public static IEnumerable<string> ClosestMatches(int count, string input, int maxDiff, IEnumerable<string> candidates)
+    public static IEnumerable<string> ClosestMatches(
+        int count, string input, int max_diff, IEnumerable<string> candidates)
     {
         return candidates
             .Select(name => new { Name = name, Distance = Calculate(input, name) })
-            .Where(entry => entry.Distance <= maxDiff)
+            .Where(entry => entry.Distance <= max_diff)
             .OrderBy(entry => entry.Distance)
             .Take(count)
             .Select(entry => entry.Name);
@@ -22,26 +23,26 @@ public static class EditDistance
     /// <returns></returns>
     private static int Calculate(string source1, string source2) //O(n*m)
     {
-        var source1Length = source1.Length;
-        var source2Length = source2.Length;
+        var source1_length = source1.Length;
+        var source2_length = source2.Length;
 
-        var matrix = new int[source1Length + 1, source2Length + 1];
+        var matrix = new int[source1_length + 1, source2_length + 1];
 
         // First calculation, if one entry is empty return full length
-        if (source1Length == 0)
-            return source2Length;
+        if (source1_length == 0)
+            return source2_length;
 
-        if (source2Length == 0)
-            return source1Length;
+        if (source2_length == 0)
+            return source1_length;
 
         // Initialization of matrix with row size source1Length and columns size source2Length
-        for (var i = 0; i <= source1Length; matrix[i, 0] = i++) { }
-        for (var j = 0; j <= source2Length; matrix[0, j] = j++) { }
+        for (var i = 0; i <= source1_length; matrix[i, 0] = i++) { }
+        for (var j = 0; j <= source2_length; matrix[0, j] = j++) { }
 
         // Calculate rows and columns distances
-        for (var i = 1; i <= source1Length; i++)
+        for (var i = 1; i <= source1_length; i++)
         {
-            for (var j = 1; j <= source2Length; j++)
+            for (var j = 1; j <= source2_length; j++)
             {
                 var cost = source2[j - 1] == source1[i - 1] ? 0 : 1;
 
@@ -51,6 +52,6 @@ public static class EditDistance
             }
         }
         // return result
-        return matrix[source1Length, source2Length];
+        return matrix[source1_length, source2_length];
     }
 }

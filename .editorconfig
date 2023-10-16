@@ -22,19 +22,21 @@ end_of_line = crlf
 dotnet_naming_symbols.constants.applicable_kinds = field, local
 dotnet_naming_symbols.constants.required_modifiers = const
 
-dotnet_naming_symbols.variables.applicable_kinds = field, local, parameter, local_function
-dotnet_naming_symbols.variables.required_modifiers =
+dotnet_naming_symbols.local_variables.applicable_kinds = local, parameter, local_function, field
+dotnet_naming_symbols.local_variables.required_modifiers =
+
+dotnet_naming_symbols.public_variables.applicable_kinds = field
+dotnet_naming_symbols.public_variables.required_modifiers =
+dotnet_naming_symbols.public_variables.applicable_accessibilities = public, internal
 
 dotnet_naming_symbols.interface.applicable_kinds = interface
-dotnet_naming_symbols.interface.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
 dotnet_naming_symbols.interface.required_modifiers = 
 
 dotnet_naming_symbols.types.applicable_kinds = class, struct, interface, enum
-dotnet_naming_symbols.types.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
 dotnet_naming_symbols.types.required_modifiers = 
 
 dotnet_naming_symbols.non_field_members.applicable_kinds = property, event, method
-dotnet_naming_symbols.non_field_members.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
+dotnet_naming_symbols.non_field_members.applicable_accessibilities = *
 dotnet_naming_symbols.non_field_members.required_modifiers = 
 
 
@@ -51,9 +53,13 @@ dotnet_naming_style.snake_case_style.word_separator = _
 
 ###################################################################################################
 # Naming rules
-dotnet_naming_rule.variables_should_be_lower_case.severity = suggestion
-dotnet_naming_rule.variables_should_be_lower_case.symbols = variables
-dotnet_naming_rule.variables_should_be_lower_case.style = snake_case_style
+dotnet_naming_rule.private_variables_should_be_lower_case.severity = suggestion
+dotnet_naming_rule.private_variables_should_be_lower_case.symbols = local_variables
+dotnet_naming_rule.private_variables_should_be_lower_case.style = snake_case_style
+
+dotnet_naming_rule.public_variables_should_be_pascal_cases.severity = suggestion
+dotnet_naming_rule.public_variables_should_be_pascal_cases.symbols = public_variables
+dotnet_naming_rule.public_variables_should_be_pascal_cases.style = pascal_case_style
 
 dotnet_naming_rule.interface_should_be_pascal_case.severity = suggestion
 dotnet_naming_rule.interface_should_be_pascal_case.symbols = interface
@@ -67,8 +73,6 @@ dotnet_naming_rule.non_field_members_should_be_pascal_case.severity = suggestion
 dotnet_naming_rule.non_field_members_should_be_pascal_case.symbols = non_field_members
 dotnet_naming_rule.non_field_members_should_be_pascal_case.style = pascal_case_style
 
-
-# Constants are UPPERCASE
 dotnet_naming_rule.constants_should_be_upper_case.severity = suggestion
 dotnet_naming_rule.constants_should_be_upper_case.symbols = constants
 dotnet_naming_rule.constants_should_be_upper_case.style = constant_style

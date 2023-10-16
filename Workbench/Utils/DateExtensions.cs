@@ -9,35 +9,35 @@ internal static class DateExtensions
 
     internal static string GetTimeAgoString(this TimeSpan diff)
     {
-        const int oneMinute = 60;
-        const int oneHour = 60 * oneMinute;
-        const int daysInMonth = 30;
-        const int daysInYear = 365;
+        const int ONE_MINUTE = 60;
+        const int ONE_HOUR = 60 * ONE_MINUTE;
+        const int DAYS_IN_MONTH = 30;
+        const int DAYS_IN_YEAR = 365;
 
-        var dayDiff = (int)diff.TotalDays;
+        var day_diff = (int)diff.TotalDays;
         
-        switch (dayDiff)
+        switch (day_diff)
         {
             case 0:
             {
-                var secDiff = (int)diff.TotalSeconds;
+                var sec_diff = (int)diff.TotalSeconds;
 
-                switch (secDiff)
+                switch (sec_diff)
                 {
-                    case < oneMinute:
+                    case < ONE_MINUTE:
                         return "just now";
-                    case < oneMinute * 2:
+                    case < ONE_MINUTE * 2:
                         return "1 minute ago";
-                    case < oneHour:
+                    case < ONE_HOUR:
                     {
-                        var minutes = Math.Floor((double)secDiff / oneMinute);
+                        var minutes = Math.Floor((double)sec_diff / ONE_MINUTE);
                         return $"{minutes} minutes ago";
                     }
-                    case < oneHour * 2:
+                    case < ONE_HOUR * 2:
                         return "1 hour ago";
                     default:
                     {
-                        var hours = Math.Floor((double)secDiff / oneHour);
+                        var hours = Math.Floor((double)sec_diff / ONE_HOUR);
                         return $"{hours} hours ago";
                     }
                 }
@@ -45,17 +45,17 @@ internal static class DateExtensions
             case 1:
                 return "yesterday";
             case < 7:
-                return $"{dayDiff} days ago";
+                return $"{day_diff} days ago";
             case < 31:
             {
-                var weeks = Math.Ceiling((double)dayDiff / 7);
+                var weeks = Math.Ceiling((double)day_diff / 7);
                 return $"{weeks} weeks ago";
             }
             default:
             {
-                if (diff < TimeSpan.FromDays(daysInYear))
+                if (diff < TimeSpan.FromDays(DAYS_IN_YEAR))
                 {
-                    var months = diff.Days / daysInMonth;
+                    var months = diff.Days / DAYS_IN_MONTH;
             
                     if(months == 12)
                     {
@@ -63,13 +63,13 @@ internal static class DateExtensions
                         return "about a year ago";
                     }
 
-                    return diff.Days > daysInMonth
+                    return diff.Days > DAYS_IN_MONTH
                             ? $"about {months} months ago"
                             : "about a month ago"
                         ;
                 }
 
-                var years = diff.Days / daysInYear;
+                var years = diff.Days / DAYS_IN_YEAR;
                 return years > 1
                         ? $"about {years} years ago"
                         : "about a year ago"

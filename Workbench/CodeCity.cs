@@ -29,13 +29,13 @@ internal record Vec3(float X, float Y, float Z)
 
 internal class Cube
 {
-    public Cube(string name, List<Cube> children, Vec3 position, Vec3 size, int colorSource)
+    public Cube(string name, List<Cube> children, Vec3 position, Vec3 size, int color_source)
     {
         Name = name;
         Children = children;
         Position = position;
         Size = size;
-        ColorSource = colorSource;
+        ColorSource = color_source;
     }
 
     public string Name {get;}
@@ -53,7 +53,7 @@ internal class Cube
 
 internal class Facade
 {
-    internal static List<Cube> Collect(Printer printer, string doxygenXml)
+    internal static List<Cube> Collect(Printer printer, string doxygen_xml)
     {
         const float MIN_SIZE = 2;
         const float NS_SPACING = 1;
@@ -62,29 +62,29 @@ internal class Facade
         const float CLASS_HEIGHT_MOD = 1;
 
         Printer.Info("Parsing doxygen XML...");
-        var dox = Doxygen.Doxygen.ParseIndex(doxygenXml);
+        var dox = Doxygen.Doxygen.ParseIndex(doxygen_xml);
 
         Printer.Info("Collecting functions...");
         var namespaces = DoxygenUtils.AllNamespaces(dox).ToImmutableArray();
 
-        var allNamespacesInNamespaces = namespaces
+        var all_namespaces_in_namespaces = namespaces
             .SelectMany(ns => ns.InnerNamespaces)
-            .Select(ns => ns.refid)
+            .Select(ns => ns.RefId)
             .ToImmutableHashSet();
-        var allClassesInNamespaces = namespaces
+        var all_classes_in_namespaces = namespaces
             .SelectMany(ns => ns.InnerClasses)
-            .Select(k => k.refid)
+            .Select(k => k.RefId)
             .ToImmutableHashSet();
 
-        var rootNamespaces = namespaces
-            .Where(ns => allNamespacesInNamespaces.Contains(ns.Id) == false);
-        var rootClasses = DoxygenUtils.AllClasses(dox)
-            .Where(x => allClassesInNamespaces.Contains(x.Id) == false);
+        var root_namespaces = namespaces
+            .Where(ns => all_namespaces_in_namespaces.Contains(ns.Id) == false);
+        var root_classes = DoxygenUtils.AllClasses(dox)
+            .Where(x => all_classes_in_namespaces.Contains(x.Id) == false);
         // todo(Gustav): the root class seems to exclude a few to many, investigate!
 
-        return CollectFromNamespace(dox, rootNamespaces, rootClasses);
+        return collect_from_namespace(dox, root_namespaces, root_classes);
 
-        static List<Cube> CollectFromNamespace(Doxygen.Index.DoxygenType dox
+        static List<Cube> collect_from_namespace(Doxygen.Index.DoxygenType dox
             , IEnumerable<CompoundDef> namespaces
             , IEnumerable<CompoundDef> classes)
         {
@@ -93,9 +93,9 @@ internal class Facade
             // add inner namespaces
             foreach(var ns in namespaces)
             {
-                int depth = GetNamespaceDepth(dox, ns);
+                int depth = get_namespace_depth(dox, ns);
 
-                var sub = CollectFromNamespace(dox
+                var sub = collect_from_namespace(dox
                     , DoxygenUtils.IterateNamespacesInNamespace(dox, ns)
                     , DoxygenUtils.IterateClassesInNamespace(dox, ns)
                     );
@@ -103,7 +103,7 @@ internal class Facade
                 
                 foreach(var c in sub)
                 {
-                    Move(c, new(NS_SPACING, NS_HEIGHT, NS_SPACING));
+                    move(c, new(NS_SPACING, NS_HEIGHT, NS_SPACING));
                 }
 
                 cubes.Add(new(ns.CompoundName, sub, Vec3.Zero,
@@ -114,18 +114,18 @@ internal class Facade
             foreach (var klass in classes)
             {
                 // todo(Gustav): handle properties better
-                var numberOfVariables = DoxygenUtils.AllMembersForAClass(klass)
+                var number_of_variables = DoxygenUtils.AllMembersForAClass(klass)
                     .Count(mem => mem.Kind == DoxMemberKind.Variable);
-                var numberOfMethods = DoxygenUtils.AllMembersForAClass(klass)
+                var number_of_methods = DoxygenUtils.AllMembersForAClass(klass)
                     .Count(mem => mem.Kind == DoxMemberKind.Function);
-                var funcLoc = DoxygenUtils.AllMembersForAClass(klass)
+                var func_loc = DoxygenUtils.AllMembersForAClass(klass)
                     .Where(mem => mem.Kind == DoxMemberKind.Function)
-                    .Select(mem => LengthOfCode(mem.Location))
+                    .Select(mem => length_of_code(mem.Location))
                     .Sum();
-                var loc = funcLoc;
+                var loc = func_loc;
 
-                var size = (numberOfVariables + MIN_SIZE) * CLASS_SIZE_MOD;
-                var height = (numberOfMethods + MIN_SIZE) * CLASS_HEIGHT_MOD;
+                var size = (number_of_variables + MIN_SIZE) * CLASS_SIZE_MOD;
+                var height = (number_of_methods + MIN_SIZE) * CLASS_HEIGHT_MOD;
 
                 cubes.Add(new(klass.CompoundName, new(), Vec3.Zero, new(size, height, size), loc));
             }
@@ -136,34 +136,34 @@ internal class Facade
 
                 foreach(var c in cubes)
                 {
-                    PackRect(ref packer, (int) Math.Ceiling(c.Size.X), (int) Math.Ceiling(c.Size.Z), c);
+                    pack_rect(ref packer, (int) Math.Ceiling(c.Size.X), (int) Math.Ceiling(c.Size.Z), c);
                 }
 
                 foreach (var r in packer.PackRectangles)
                 {
                     var c = (Cube) r.Data;
-                    MoveTo(c, new(r.X, 0, r.Y));
+                    move_to(c, new(r.X, 0, r.Y));
                 }
             }
 
             return cubes;
         }
 
-        static void Move(Cube cube, Vec3 diff)
+        static void move(Cube cube, Vec3 diff)
         {
             cube.Position += diff;
             foreach(var child in cube.Children)
             {
-                Move(child, diff);
+                move(child, diff);
             }
         }
 
-        static void MoveTo(Cube cube, Vec3 to)
+        static void move_to(Cube cube, Vec3 to)
         {
-            Move(cube, to - cube.Position);
+            move(cube, to - cube.Position);
         }
 
-        static void PackRect(ref Packer packer, int width, int height, Cube c)
+        static void pack_rect(ref Packer packer, int width, int height, Cube c)
         {
             var pr = packer.PackRect(width, height, c);
 
@@ -172,35 +172,35 @@ internal class Facade
             while (pr == null)
             {
                 // double the size
-                var newWidth = packer.Width;
-                var newHeight = packer.Height;
-                if(newWidth > newHeight)
+                var new_width = packer.Width;
+                var new_height = packer.Height;
+                if(new_width > new_height)
                 {
-                    newHeight *= 2;
+                    new_height *= 2;
                 }
                 else
                 {
-                    newWidth *= 2;
+                    new_width *= 2;
                 }
-                var newPacker = new Packer(newWidth, newHeight);
-                foreach (var existingRect in packer.PackRectangles)
+                var new_packer = new Packer(new_width, new_height);
+                foreach (var existing_rect in packer.PackRectangles)
                 {
-                    newPacker.PackRect(existingRect.Width, existingRect.Height, existingRect.Data);
+                    new_packer.PackRect(existing_rect.Width, existing_rect.Height, existing_rect.Data);
                 }
                 packer.Dispose();
-                packer = newPacker;
+                packer = new_packer;
 
                 // try again
                 pr = packer.PackRect(width, height, c);
             }
         }
 
-        static int LengthOfCode(locationType? location)
+        static int length_of_code(LocationType? location)
         {
             if(location == null) return 0;
 
-            var start = location.bodystart;
-            var end = location.bodyend;
+            var start = location.BodyStart;
+            var end = location.BodyEnd;
             
             if(start.HasValue == false) return 0;
             if (end.HasValue == false) return 0;
@@ -208,10 +208,10 @@ internal class Facade
             return end.Value - start.Value;
         }
 
-        static int GetNamespaceDepth(Doxygen.Index.DoxygenType dox, CompoundDef rootNamespace)
+        static int get_namespace_depth(Doxygen.Index.DoxygenType dox, CompoundDef root_namespace)
         {
-            return DoxygenUtils.IterateNamespacesInNamespace(dox, rootNamespace)
-                .Select(nspace => GetNamespaceDepth(dox, nspace) )
+            return DoxygenUtils.IterateNamespacesInNamespace(dox, root_namespace)
+                .Select(nspace => get_namespace_depth(dox, nspace) )
                 .DefaultIfEmpty(0)
                 .Max() + 1;
         }
@@ -305,15 +305,15 @@ internal class Facade
 
 
         Random r = new Random();
-        char RHex()
+        char rand_hex()
         {
             const string HEX = "0123456789abcdef";
             return HEX[r.Next(HEX.Length)];
         }
-        foreach(var c in DepthFirst(cubes))
+        foreach(var c in depth_first(cubes))
         {
             // todo(Gustav): use calcualted color instead of random
-            var color = $"0x{RHex()}{RHex()}{RHex()}{RHex()}{RHex()}{RHex()}";
+            var color = $"0x{rand_hex()}{rand_hex()}{rand_hex()}{rand_hex()}{rand_hex()}{rand_hex()}";
 
             // todo(Gustav): escape name
             yield return $"            MakeCube(\"{c.Name}\", {color}, {c.Size.X}, {c.Size.Y}, {c.Size.Z}," +
@@ -372,12 +372,12 @@ internal class Facade
         yield return "    </body>";
         yield return "</html>";
 
-        static IEnumerable<Cube> DepthFirst(IEnumerable<Cube> cubes)
+        static IEnumerable<Cube> depth_first(IEnumerable<Cube> cubes)
         {
             foreach(var c in cubes)
             {
                 yield return c;
-                foreach(var child in DepthFirst(c.Children))
+                foreach(var child in depth_first(c.Children))
                 {
                     yield return child;
                 }

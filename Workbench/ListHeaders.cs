@@ -28,40 +28,40 @@ internal enum ListAction
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 
 
-internal class Line
+internal class TextLine
 {
-    public string text;
-    public int line;
+    public string Text;
+    public int Line;
 
-    public Line(string text, int line)
+    public TextLine(string text, int line)
     {
-        this.text = text;
-        this.line = line;
+        Text = text;
+        Line = line;
     }
 }
 
 internal class CommentStripper
 {
-    public readonly List<Line> ret = new();
-    private string _mem = "";
-    private char _last = '\0';
-    private bool _singleLineComment = false;
-    private bool _multiLineComment = false;
-    private int _line = 1;
+    public readonly List<TextLine> Result = new();
+    private string memory = "";
+    private char last = '\0';
+    private bool single_line_comment = false;
+    private bool multi_line_comment = false;
+    private int line = 1;
 
     private void AddLast()
     {
-        if (_last != '\0')
+        if (last != '\0')
         {
-            _mem += _last;
+            memory += last;
         }
-        _last = '\0';
+        last = '\0';
     }
 
     public void Complete()
     {
         AddLast();
-        if (string.IsNullOrEmpty(_mem) == false)
+        if (string.IsNullOrEmpty(memory) == false)
         {
             AddMem();
         }
@@ -69,47 +69,46 @@ internal class CommentStripper
 
     private void AddMem()
     {
-        ret.Add(new Line(text: _mem, line: _line));
-        _mem = "";
+        Result.Add(new TextLine(text: memory, line: line));
+        memory = "";
     }
 
     public void Add(char c)
     {
-        var last = this._last;
         if (c != '\n')
         {
-            this._last = c;
+            last = c;
         }
 
         if (c == '\n')
         {
             AddLast();
             AddMem();
-            _line += 1;
-            _singleLineComment = false;
+            line += 1;
+            single_line_comment = false;
             return;
         }
-        if (_singleLineComment)
+        if (single_line_comment)
         {
             return;
         }
-        if (_multiLineComment)
+        if (multi_line_comment)
         {
             if (last == '*' && c == '/')
             {
-                _multiLineComment = false;
+                multi_line_comment = false;
             }
 
             return;
         }
         if (last == '/' && c == '/')
         {
-            _singleLineComment = true;
+            single_line_comment = true;
         }
 
         if (last == '/' && c == '*')
         {
-            _multiLineComment = true;
+            multi_line_comment = true;
             return;
         }
 
@@ -121,44 +120,44 @@ internal record PreProcessor(string Command, string Arguments, int Line);
 
 internal class PreProcessorParser
 {
-    private readonly List<PreProcessor> _commands;
-    private int _index;
+    private readonly List<PreProcessor> commands;
+    private int index;
 
     public PreProcessorParser(List<PreProcessor> commands, int index)
     {
-        _commands = commands;
-        _index = index;
+        this.commands = commands;
+        this.index = index;
     }
 
     public bool IsValidIndex()
     {
-        return _index < _commands.Count;
+        return index < commands.Count;
     }
 
     public PreProcessor? Peek()
     {
         return IsValidIndex()
-            ? _commands[_index]
+            ? commands[index]
             : null;
     }
 
     public void Skip()
     {
-        _index += 1;
+        index += 1;
     }
 
     public void Undo()
     {
-        _index -= 1;
+        index -= 1;
     }
 
     public PreProcessor? Next()
     {
         if (IsValidIndex())
         {
-            var it = _index;
-            _index += 1;
-            return _commands[it];
+            var it = index;
+            index += 1;
+            return commands[it];
         }
         else
         {
@@ -173,83 +172,80 @@ internal interface Statement
 
 internal class Command : Statement
 {
-    public string name;
-    public string value;
+    public string Name {get;}
+    public string Value {get;}
 
     public Command(string name, string value)
     {
-        this.name = name;
-        this.value = value;
+        Name = name;
+        Value = value;
     }
 }
 
-internal class Elif
+internal class ElseIf
 {
-    public string condition;
-    public List<Statement> block;
+    public string Condition { get; }
+    public List<Statement> Block { get; }
 
-    public Elif(string condition, List<Statement> block)
+    public ElseIf(string condition, List<Statement> block)
     {
-        this.condition = condition;
-        this.block = block;
+        Condition = condition;
+        Block = block;
     }
 }
 
 internal class Block : Statement
 {
-    public string name;
-    public string condition;
-    public List<Statement> true_block = new();
-    public List<Statement> false_block = new();
-    public List<Elif> elifs = new();
+    public string Name{ get; }
+    public string Condition{ get; }
+    public List<Statement> TrueBlock { get; } = new();
+    public List<Statement> FalseBlock { get; } = new();
+    public List<ElseIf> ElseIfs { get; } = new();
 
     public Block(string name, string condition)
     {
-        this.name = name;
-        this.condition = condition;
+        Name = name;
+        Condition = condition;
     }
 }
 
 internal class FileStats
 {
-    public ColCounter<string> includes = new();
-    public ColCounter<string> missing = new();
-    public int file_count = 0;
-    public int total_file_count = 0;
+    public ColCounter<string> Includes = new();
+    public ColCounter<string> Missing = new();
+    public int FileCount = 0;
+    public int TotalFileCount = 0;
 }
 
 internal class FileWalker
 {
     private readonly Dictionary<string, CompileCommand> commands;
-    public FileStats stats = new();
+    public FileStats Stats = new();
 
     public FileWalker(Dictionary<string, CompileCommand> commands)
     {
         this.commands = commands;
     }
 
-    private void add_include(string path)
+    private void AddInclude(string path)
     {
-        var d = path;
-        stats.includes.AddOne(d);
+        Stats.Includes.AddOne(path);
     }
 
-    private void add_missing(string _, string include)
+    private void AddMissing(string include)
     {
-        var iss = include;
-        stats.includes.AddOne(iss);
-        stats.missing.AddOne(iss);
+        Stats.Includes.AddOne(include);
+        Stats.Missing.AddOne(include);
     }
 
-    internal bool walk
+    internal bool Walk
     (
-        Printer print,
-        string path,
+        Printer print, string path,
         Dictionary<string, List<Statement>> file_cache
     )
     {
         Printer.Info($"Parsing {path}");
-        stats.file_count += 1;
+        Stats.FileCount += 1;
 
         if (commands.TryGetValue(path, out var cc) == false)
         {
@@ -287,16 +283,16 @@ internal class FileWalker
         int depth
     )
     {
-        stats.total_file_count += 1;
+        Stats.TotalFileCount += 1;
 
         if (FileUtil.IsSource(path))
         {
-            var bblocks = parse_file_to_blocks(path, print);
-            if (bblocks == null)
+            var parsed_blocks = parse_file_to_blocks(path, print);
+            if (parsed_blocks == null)
             {
                 return false;
             }
-            return block_rec(print, directories, included_file_cache, path, defines, bblocks, file_cache, depth);
+            return BlockRecursive(print, directories, included_file_cache, path, defines, parsed_blocks, file_cache, depth);
         }
 
 
@@ -306,10 +302,10 @@ internal class FileWalker
             file_cache.Add(path, blocks);
         }
 
-        return block_rec(print, directories, included_file_cache, path, defines, blocks, file_cache, depth);
+        return BlockRecursive(print, directories, included_file_cache, path, defines, blocks, file_cache, depth);
     }
 
-    private bool block_rec
+    private bool BlockRecursive
     (
         Printer print,
         string[] directories,
@@ -326,27 +322,27 @@ internal class FileWalker
             switch (block)
             {
                 case Block blk:
-                    switch (blk.name)
+                    switch (blk.Name)
                     {
                         case "ifdef":
                         case "ifndef":
-                            var key = F.SplitIdentifier(blk.condition).Item1;
+                            var key = F.SplitIdentifier(blk.Condition).Item1;
 
                             static bool ifdef(bool t, bool f)
                             { return f && t || (!f && !t); }
 
-                            if (blk.elifs.Count > 0)
+                            if (blk.ElseIfs.Count > 0)
                             {
                                 // elifs are unhandled, ignoring ifdef statement"
                             }
                             else
                             {
-                                if (false == block_rec
+                                if (false == BlockRecursive
                                 (
                                     print, directories, included_file_cache, path, defines,
-                                    ifdef(defines.ContainsKey(key), blk.name == "ifdef")
-                                        ? blk.true_block
-                                        : blk.false_block
+                                    ifdef(defines.ContainsKey(key), blk.Name == "ifdef")
+                                        ? blk.TrueBlock
+                                        : blk.FalseBlock
                                     , file_cache, depth
                                 ))
                                 {
@@ -360,10 +356,10 @@ internal class FileWalker
                     }
                     break;
                 case Command cmd:
-                    switch (cmd.name)
+                    switch (cmd.Name)
                     {
                         case "pragma":
-                            switch (cmd.value.Trim())
+                            switch (cmd.Value.Trim())
                             {
                                 case "once":
                                     var path_string = path;
@@ -377,26 +373,26 @@ internal class FileWalker
                                     }
                                     break;
                                 default:
-                                    print.Error($"unhandled pragma argument: {cmd.value}");
+                                    print.Error($"unhandled pragma argument: {cmd.Value}");
                                     break;
                             }
                             break;
                         case "define":
-                            var (key, value) = F.SplitIdentifier(cmd.value);
+                            var (key, value) = F.SplitIdentifier(cmd.Value);
                             defines.Add(key, value.Trim());
                             break;
                         case "undef":
-                            if (defines.Remove(cmd.value.Trim()) == false)
+                            if (defines.Remove(cmd.Value.Trim()) == false)
                             {
-                                print.Error($"{cmd.value} was not defined");
+                                print.Error($"{cmd.Value} was not defined");
                             }
                             break;
                         case "include":
-                            var include_name = cmd.value.Trim('"', '<', '>', ' ');
-                            var sub_file = F.ResolvePath(directories, include_name, path, cmd.value.Trim().StartsWith('\"'));
+                            var include_name = cmd.Value.Trim('"', '<', '>', ' ');
+                            var sub_file = F.ResolvePath(directories, include_name, path, cmd.Value.Trim().StartsWith('\"'));
                             if (sub_file != null)
                             {
-                                add_include(sub_file);
+                                AddInclude(sub_file);
                                 if (false == walk_rec(print, directories, included_file_cache, sub_file, defines, file_cache, depth + 1))
                                 {
                                     return false;
@@ -404,14 +400,14 @@ internal class FileWalker
                             }
                             else
                             {
-                                add_missing(path, include_name);
+                                AddMissing(include_name);
                             }
                             break;
                         case "error":
                             // nop
                             break;
                         default:
-                            throw new Exception($"Unhandled statement {cmd.name}");
+                            throw new Exception($"Unhandled statement {cmd.Name}");
                     }
                     break;
             }
@@ -433,7 +429,7 @@ internal static class F
         {
             if (line.EndsWith('\\'))
             {
-                var without = line[..(line.Length - 1)];
+                var without = line[..^1];
                 last_line = last_line ?? "" + without;
             }
             else if (last_line != null)
@@ -453,7 +449,7 @@ internal static class F
         }
     }
 
-    internal static List<Line> RemoveCppComments(List<string> lines)
+    internal static List<TextLine> RemoveCppComments(List<string> lines)
     {
         var cs = new CommentStripper();
         foreach (var line in lines)
@@ -467,7 +463,7 @@ internal static class F
 
         cs.Complete();
 
-        return cs.ret;
+        return cs.Result;
     }
 
     private static bool IsIfStart(string name)
@@ -494,7 +490,7 @@ internal static class F
             if (IsIfStart(command.Command))
             {
                 var group = new Block(command.Command, command.Arguments);
-                GroupCommands(path, print, group.true_block, commands, depth + 1);
+                GroupCommands(path, print, group.TrueBlock, commands, depth + 1);
                 while (PeekName(commands) == "elif")
                 {
                     var next = commands.Next();
@@ -503,9 +499,9 @@ internal static class F
                     var elif_args = next.Arguments;
                     var block = new List<Statement>();
                     GroupCommands(path, print, block, commands, depth + 1);
-                    group.elifs.Add
+                    group.ElseIfs.Add
                     (
-                        new Elif
+                        new ElseIf
                         (
                             condition: elif_args,
                             block
@@ -515,7 +511,7 @@ internal static class F
                 if (PeekName(commands) == "else")
                 {
                     commands.Skip();
-                    GroupCommands(path, print, group.false_block, commands, depth + 1);
+                    GroupCommands(path, print, group.FalseBlock, commands, depth + 1);
                 }
                 if (PeekName(commands) == "endif")
                 {
@@ -601,13 +597,13 @@ internal static class F
         }
     }
 
-    internal static IEnumerable<PreProcessor> ParseToStatements(IEnumerable<Line> lines)
+    internal static IEnumerable<PreProcessor> ParseToStatements(IEnumerable<TextLine> lines)
     {
         foreach (var line in lines)
         {
-            if (line.text.StartsWith('#'))
+            if (line.Text.StartsWith('#'))
             {
-                var li = line.text[1..].TrimStart();
+                var li = line.Text[1..].TrimStart();
                 var (command, arguments) = SplitIdentifier(li);
 
                 yield return new
@@ -615,7 +611,7 @@ internal static class F
                     (
                         command,
                         arguments,
-                        Line: line.line
+                        Line: line.Line
                     );
             }
         }
@@ -630,9 +626,9 @@ internal static class F
     }
 
 
-    internal static void HandleLines(Printer print, string fileName, ListAction action)
+    internal static void HandleLines(Printer print, string file_name, ListAction action)
     {
-        var source_lines = File.ReadLines(fileName);
+        var source_lines = File.ReadLines(file_name);
         var joined_lines = JoinCppLines(source_lines);
         var trim_lines = joined_lines.Select(str => str.TrimStart()).ToList();
         var lines = RemoveCppComments(trim_lines);
@@ -641,7 +637,7 @@ internal static class F
             case ListAction.Lines:
                 foreach (var line in lines)
                 {
-                    Printer.Info(line.text);
+                    Printer.Info(line.Text);
                 }
                 break;
             case ListAction.Statements:
@@ -656,7 +652,7 @@ internal static class F
             case ListAction.Blocks:
                 {
                     var statements = ParseToStatements(lines).ToList();
-                    var blocks = ParseToBlocks(fileName, print, statements);
+                    var blocks = ParseToBlocks(file_name, print, statements);
                     foreach (var block in blocks)
                     {
                         Printer.Info($"{block}");
@@ -697,7 +693,8 @@ internal static class F
 
 
 
-    internal static int HandleFiles(Printer print, string? ccpath, List<string> sources, int mostCommonCount, bool printDebugInfo)
+    internal static int HandleFiles(
+        Printer print, string? ccpath, List<string> sources, int most_common_count)
     {
         // var ccpath = args.GetPathToCompileCommandsOrNull(print);
         if (ccpath == null) { return -1; }
@@ -713,7 +710,7 @@ internal static class F
         {
             if (File.Exists(file))
             {
-                if (false == walker.walk(print, file, file_cache))
+                if (false == walker.Walk(print, file, file_cache))
                 {
                     return -1;
                 }
@@ -721,22 +718,22 @@ internal static class F
             else
             {
                 var f = new DirectoryInfo(file).FullName;
-                if (false == walker.walk(print, f, file_cache))
+                if (false == walker.Walk(print, f, file_cache))
                 {
                     return -1;
                 }
             }
         }
 
-        var stats = walker.stats;
+        var stats = walker.Stats;
 
-        Printer.Info($"Top {mostCommonCount} includes are:");
+        Printer.Info($"Top {most_common_count} includes are:");
 
-        foreach (var (file, count) in stats.includes.MostCommon().Take(mostCommonCount))
+        foreach (var (file, count) in stats.Includes.MostCommon().Take(most_common_count))
         {
             var d = Path.GetRelativePath(Environment.CurrentDirectory, file);
-            var times = count / (double)stats.file_count;
-            Printer.Info($" - {d} {times:.2}x ({count}/{stats.file_count})");
+            var times = count / (double)stats.FileCount;
+            Printer.Info($" - {d} {times:.2}x ({count}/{stats.FileCount})");
         }
 
         return 0;

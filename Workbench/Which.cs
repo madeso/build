@@ -6,11 +6,11 @@ public static class Which
 {
     // todo(Gustav): test this
 
-    public static string? Find(string binaryArg)
+    public static string? Find(string executable)
     {
-        var binary = Core.IsWindows() && Path.GetExtension(binaryArg) != ".exe"
-            ? Path.ChangeExtension(binaryArg.Trim(), "exe")
-            : binaryArg.Trim()
+        var binary = Core.IsWindows() && Path.GetExtension(executable) != ".exe"
+            ? Path.ChangeExtension(executable.Trim(), "exe")
+            : executable.Trim()
             ;
         return GetPaths()
             .Select(p => Path.Join(p, binary))

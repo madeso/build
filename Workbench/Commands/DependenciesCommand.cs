@@ -80,15 +80,15 @@ internal sealed class ListCallgraph : Command<ListCallgraph.Arg>
 
         [Description("Cluster on ...?")]
         [CommandOption("--cluster-on")]
-        public ClusterCallgraphOn? ClusterOn { get; init; }
+        public ClusterCallGraphOn? ClusterOn { get; init; }
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         return CommonExecute.WithPrinter(printer =>
             {
-                Dependencies.WriteCallgraphToGraphviz(printer, arg.DoxygenXml, arg.NamespaceFilter, arg.OutputFile,
-                    arg.ClusterOn ?? ClusterCallgraphOn.None);
+                Dependencies.WriteCallGraphToGraphviz(arg.DoxygenXml, arg.OutputFile,
+                    arg.ClusterOn ?? ClusterCallGraphOn.None);
                 return 0;
             }
         );

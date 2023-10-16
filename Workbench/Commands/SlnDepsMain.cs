@@ -25,11 +25,11 @@ internal class SharedArguments : WithSolutionArguments
     [CommandOption("--target")]
     [Description("the target")]
     [DefaultValue("")]
-    public string target { get; set; } = string.Empty;
+    public string Target { get; set; } = string.Empty;
 
     [Description("projects to exclude")]
     [CommandOption("--exclude")]
-    public string[] exclude { get; set; } = Array.Empty<string>();
+    public string[] Exclude { get; set; } = Array.Empty<string>();
 
     [CommandOption("--cmake")]
     [Description("exclude cmake generated projects")]
@@ -37,21 +37,21 @@ internal class SharedArguments : WithSolutionArguments
 
     [Description("projects to exclude (pattern")]
     [CommandOption("--exclude-pattern")]
-    public string[] contains { get; set; } = Array.Empty<string>();
+    public string[] Contains { get; set; } = Array.Empty<string>();
 
     [CommandOption("--simplify")]
     [Description("simplify output")]
     [DefaultValue(false)]
-    public bool simplify { get; set; } = false;
+    public bool Simplify { get; set; } = false;
 
     [CommandOption("--reverse")]
     [Description("reverse arrows")]
     [DefaultValue(false)]
-    public bool reverse { get; set; } = false;
+    public bool Reverse { get; set; } = false;
 
     internal F.ExclusionList MakeExclusionList()
     {
-        return new F.ExclusionList(exclude, contains, Cmake);
+        return new F.ExclusionList(Exclude, Contains, Cmake);
     }
 }
 
@@ -64,18 +64,18 @@ internal sealed class GenerateCommand : Command<GenerateCommand.Arg>
         [CommandOption("--style")]
         [Description("the style")]
         [DefaultValue("")]
-        public string style {get; set;} = string.Empty;
+        public string Style {get; set;} = string.Empty;
 
         [CommandOption("--format")]
         [Description("the format")]
         [DefaultValue("")]
-        public string format { get; set; } = string.Empty;
+        public string Format { get; set; } = string.Empty;
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
         return CommonExecute.WithPrinter(printer =>
-            F.handle_generate(printer, args.target, args.format, args.MakeExclusionList(), args.simplify, args.reverse, args.Solution, args.style)
+            F.handle_generate(printer, args.Target, args.Format, args.MakeExclusionList(), args.Simplify, args.Reverse, args.Solution, args.Style)
         );
     }
 }
@@ -90,7 +90,7 @@ internal sealed class WriteCommand : Command<WriteCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
         return CommonExecute.WithPrinter(printer =>
-            F.WriteCommand(printer, args.MakeExclusionList(), args.target, args.simplify, args.reverse, args.Solution)
+            F.WriteCommand(printer, args.MakeExclusionList(), args.Target, args.Simplify, args.Reverse, args.Solution)
         );
     }
 }
@@ -105,7 +105,7 @@ internal sealed class SourceCommand : Command<SourceCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
         return CommonExecute.WithPrinter(printer =>
-            F.SourceCommand(printer, args.MakeExclusionList(), args.simplify, args.reverse, args.Solution)
+            F.SourceCommand(printer, args.MakeExclusionList(), args.Simplify, args.Reverse, args.Solution)
         );
     }
 }

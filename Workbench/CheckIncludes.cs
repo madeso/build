@@ -14,20 +14,19 @@ public readonly struct IncludeData
 {
     public List<List<OptionalRegex>> IncludeDirectories { get; }
 
-    private static IEnumerable<OptionalRegex> StringsToRegex(TextReplacer replacer, IEnumerable<string> includes, Printer print)
-    {
-        return includes.Select
+    private static IEnumerable<OptionalRegex> StringsToRegex(TextReplacer replacer, IEnumerable<string> includes, Printer print) =>
+        includes.Select
         (
             (Func<string, OptionalRegex>)(regex =>
             {
-                var regexSource = replacer.Replace(regex);
-                if (regexSource != regex)
+                var regex_source = replacer.Replace(regex);
+                if (regex_source != regex)
                 {
                     return new OptionalRegexDynamic(regex);
                 }
                 else
                 {
-                    switch (CompileRegex(regexSource))
+                    switch (CompileRegex(regex_source))
                     {
                         case RegexOrErr.Value re:
                             return new OptionalRegexStatic(re.Regex);
@@ -42,13 +41,12 @@ public readonly struct IncludeData
                 }
             })
         );
-    }
 
-    internal static RegexOrErr CompileRegex(string regexSource)
+    internal static RegexOrErr CompileRegex(string regex_source)
     {
         try
         {
-            return new RegexOrErr.Value(new Regex(regexSource, RegexOptions.Compiled));
+            return new RegexOrErr.Value(new Regex(regex_source, RegexOptions.Compiled));
         }
         catch (ArgumentException err)
         {
@@ -59,19 +57,17 @@ public readonly struct IncludeData
     public IncludeData(IEnumerable<List<string>> includes, Printer print)
     {
         var replacer = IncludeTools.CreateReplacer("file_stem");
-        IncludeDirectories = includes.Select(singleInclude => StringsToRegex(replacer, singleInclude, print).ToList()).ToList();
+        IncludeDirectories = includes
+            .Select(single_include => StringsToRegex(replacer, single_include, print).ToList())
+            .ToList();
     }
 
     private static IncludeData? LoadFromDirectoryOrNull(Printer print)
-    {
-        return ConfigFile.LoadOrNull<CheckIncludesFile, IncludeData>(
+        => ConfigFile.LoadOrNull<CheckIncludesFile, IncludeData>(
             print, CheckIncludesFile.GetBuildDataPath(), loaded => new IncludeData(loaded.IncludeDirectories, print));
-    }
 
     public static IncludeData? LoadOrNull(Printer print)
-    {
-        return LoadFromDirectoryOrNull(print);
-    }
+        => LoadFromDirectoryOrNull(print);
 }
 
 
@@ -82,22 +78,22 @@ public interface OptionalRegex
 
 public class OptionalRegexDynamic : OptionalRegex
 {
-    private readonly string _regex;
+    private readonly string regex;
 
     public OptionalRegexDynamic(string regex)
     {
-        _regex = regex;
+        this.regex = regex;
     }
 
     public Regex? GetRegex(Printer print, TextReplacer replacer)
     {
-        var regexSource = replacer.Replace(_regex);
-        switch (IncludeData.CompileRegex(regexSource))
+        var regex_source = replacer.Replace(regex);
+        switch (IncludeData.CompileRegex(regex_source))
         {
             case RegexOrErr.Value re:
                 return re.Regex;
             case RegexOrErr.Error error:
-                print.Error($"{_regex} -> {regexSource} is invalid regex: {error.Message}");
+                print.Error($"{regex} -> {regex_source} is invalid regex: {error.Message}");
                 return null;
             default:
                 throw new ArgumentException("invalid state");
@@ -107,31 +103,31 @@ public class OptionalRegexDynamic : OptionalRegex
 
 public class OptionalRegexStatic : OptionalRegex
 {
-    private readonly Regex _regex;
+    private readonly Regex regex;
 
     public OptionalRegexStatic(Regex regex)
     {
-        _regex = regex;
+        this.regex = regex;
     }
 
     public Regex? GetRegex(Printer print, TextReplacer replacer)
     {
-        return _regex;
+        return regex;
     }
 }
 
 public class OptionalRegexFailed : OptionalRegex
 {
-    private readonly string _error;
+    private readonly string error;
 
     public OptionalRegexFailed(string error)
     {
-        _error = error;
+        this.error = error;
     }
 
     public Regex? GetRegex(Printer print, TextReplacer replacer)
     {
-        print.Error(_error);
+        print.Error(error);
         return null;
     }
 }
@@ -147,9 +143,9 @@ public class Include : IComparable<Include>
     public int LineClass { get; }
     public string Line { get; }
 
-    public Include(int lineClass, string line)
+    public Include(int line_class, string line)
     {
-        LineClass = lineClass;
+        LineClass = line_class;
         Line = line;
     }
 
@@ -186,31 +182,34 @@ public static class IncludeTools
         Printer.Warning($"{filename}({line}): warning CHK3030: {message}");
     }
 
-    private static void PrintMessage(MessageType messageType, Printer print, string filename, int line, string message)
+    private static void PrintMessage(MessageType message_type, Printer print, string filename, int line, string message)
     {
-        switch (messageType)
+        switch (message_type)
         {
             case MessageType.Error: PrintError(print, filename, line, message); break;
             case MessageType.Warning: PrintWarning(print, filename, line, message); break;
         }
     }
 
-    public static TextReplacer CreateReplacer(string fileStem)
+    // file_stem
+    // fileStem
+
+    public static TextReplacer CreateReplacer(string file_stem)
     {
         var replacer = new TextReplacer();
-        replacer.Add("{file_stem}", fileStem);
+        replacer.Add("{file_stem}", file_stem);
         return replacer;
     }
 
 
     private static int? ClassifySingleLine
     (
-        HashSet<string> missingFiles,
+        HashSet<string> missing_files,
         Printer print,
         IncludeData data,
         string line,
         string filename,
-        int lineNumber
+        int line_number
     )
     {
         var replacer = CreateReplacer(Path.GetFileNameWithoutExtension(filename));
@@ -230,10 +229,10 @@ public static class IncludeTools
             }
         }
 
-        if (missingFiles.Contains(line) == false)
+        if (missing_files.Contains(line) == false)
         {
-            missingFiles.Add(line);
-            PrintError(print, filename, lineNumber, $"{line} is a invalid header");
+            missing_files.Add(line);
+            PrintError(print, filename, line_number, $"{line} is a invalid header");
         }
 
         return null;
@@ -242,7 +241,25 @@ public static class IncludeTools
 
     private static string GetTextAfterInclude(string line)
     {
-        static string GetTextAfterQuote(string line)
+        var angle = line.IndexOf('>');
+        if (angle == -1)
+        {
+            return get_text_after_quote(line);
+        }
+
+        var start_quote = line.IndexOf('"');
+
+        if (start_quote != -1)
+        {
+            if (start_quote < angle)
+            {
+                return get_text_after_quote(line);
+            }
+        }
+
+        return line[(angle + 1)..];
+
+        static string get_text_after_quote(string line)
         {
             var start_quote = line.IndexOf('"');
             if (start_quote == -1) { return ""; }
@@ -252,24 +269,6 @@ public static class IncludeTools
 
             return line[(end_quote + 1)..];
         }
-
-        var angle = line.IndexOf('>');
-        if (angle == -1)
-        {
-            return GetTextAfterQuote(line);
-        }
-
-        var start_quote = line.IndexOf('"');
-
-        if (start_quote != -1)
-        {
-            if (start_quote < angle)
-            {
-                return GetTextAfterQuote(line);
-            }
-        }
-
-        return line[(angle + 1)..];
     }
 
 
@@ -295,11 +294,11 @@ public static class IncludeTools
 
             if (line.StartsWith("#include") == false) { continue; }
 
-            if (r.firstLineIndex == null)
+            if (r.FirstLineIndex == null)
             {
-                r.firstLineIndex = line_num;
+                r.FirstLineIndex = line_num;
             }
-            r.lastLineIndex = line_num;
+            r.LastLineIndex = line_num;
 
             var l = line.TrimEnd();
             var line_class = ClassifySingleLine(missing_files, print, data, l, filename, line_num);
@@ -330,22 +329,22 @@ public static class IncludeTools
         ClassifiedFile f,
         Printer print,
         string filename,
-        bool printFirstErrorOnly
+        bool print_first_error_only
     )
     {
-        if (f.firstLineIndex == null || f.lastLineIndex == null)
+        if (f.FirstLineIndex == null || f.LastLineIndex == null)
         {
             return true;
         }
 
         var ok = true;
 
-        var first_line_found = f.firstLineIndex.Value;
-        var last_line_found = f.lastLineIndex.Value;
+        var first_line_found = f.FirstLineIndex.Value;
+        var last_line_found = f.LastLineIndex.Value;
 
         for (var line_num = first_line_found; line_num < last_line_found; line_num += 1)
         {
-            var print_this_error = (ok, printFirstErrorOnly) switch
+            var print_this_error = (ok, printFirstErrorOnly: print_first_error_only) switch
             {
                 // this is not the first error AND we only want to print the first error
                 (false, true) => false,
@@ -436,7 +435,7 @@ public static class IncludeTools
 
     private static bool RunFile
     (
-        HashSet<string> missingFiles,
+        HashSet<string> missing_files,
         Printer print,
         IncludeData data,
         bool verbose,
@@ -465,7 +464,7 @@ public static class IncludeTools
         var classified = ClassifyFile
         (
             lines,
-            missingFiles,
+            missing_files,
             print,
             data,
             filename,
@@ -473,11 +472,6 @@ public static class IncludeTools
             print_include_order_error_for_include,
             command_is_fix ? MessageType.Warning : MessageType.Error
         );
-        if (classified == null)
-        {
-            // file contains unclassified header
-            return false;
-        }
 
         if (classified.HasInvalidOrder == false)
         {
@@ -485,10 +479,10 @@ public static class IncludeTools
             return true;
         }
 
-        if (classified.firstLineIndex == null || classified.lastLineIndex == null) { throw new Exception("bug!"); }
+        if (classified.FirstLineIndex == null || classified.LastLineIndex == null) { throw new Exception("bug!"); }
         // if the include order is invalid, that means there needs to be a include and we know the start and end of it
-        var firstLine = classified.firstLineIndex.Value;
-        var lastLine = classified.lastLineIndex.Value;
+        var first_line = classified.FirstLineIndex.Value;
+        var last_line = classified.LastLineIndex.Value;
 
         if (!(command_is_fix || command_is_check || command_is_list_unfixable))
         {
@@ -496,14 +490,14 @@ public static class IncludeTools
             return true;
         }
 
-        bool printFirstErrorOnly = command switch
+        var print_first_error_only = command switch
         {
             CheckAction.Fix => true,
-            CheckAction.ListUnfixable p => p.printFirstErrorOnly,
+            CheckAction.ListUnfixable p => p.PrintFirstErrorOnly,
             _ => false // don't care, shouldn't be possible
         };
 
-        if (CanFixAndPrintErrors(lines, classified, print, filename, printFirstErrorOnly) == false && command_is_fix)
+        if (CanFixAndPrintErrors(lines, classified, print, filename, print_first_error_only) == false && command_is_fix)
         {
             // can't fix this file... error out
             return false;
@@ -514,26 +508,26 @@ public static class IncludeTools
             return true;
         }
 
-        var sortedIncludeLines = GenerateSuggestedIncludeLinesFromSortedIncludes(classified.Includes).ToArray();
+        var sorted_include_lines = GenerateSuggestedIncludeLinesFromSortedIncludes(classified.Includes).ToArray();
 
         switch (command)
         {
             case CheckAction.Fix nop:
-                var fileData = compose_new_file_content(firstLine, lastLine, sortedIncludeLines, lines);
+                var file_data = compose_new_file_content(first_line, last_line, sorted_include_lines, lines);
 
-                if (nop.nop)
+                if (nop.Nop)
                 {
                     Printer.Info($"Will write the following to {filename}");
-                    print_lines(print, fileData);
+                    print_lines(print, file_data);
                 }
                 else
                 {
-                    File.WriteAllLines(filename, fileData);
+                    File.WriteAllLines(filename, file_data);
                 }
                 break;
             default:
                 Printer.Info("I think the correct order would be:");
-                print_lines(print, sortedIncludeLines);
+                print_lines(print, sorted_include_lines);
                 break;
         }
 
@@ -548,20 +542,20 @@ public static class IncludeTools
         CheckAction command
     )
     {
-        var errorCount = 0;
-        var fileCount = 0;
-        var fileError = 0;
+        var error_count = 0;
+        var file_count = 0;
+        var file_error = 0;
 
-        var missingFiles = new HashSet<string>();
+        var missing_files = new HashSet<string>();
 
         foreach (var filename in args.Files)
         {
-            fileCount += 1;
-            var storedError = errorCount;
+            file_count += 1;
+            var stored_error = error_count;
 
             var ok = RunFile
             (
-                missingFiles,
+                missing_files,
                 print,
                 data,
                 args.UseVerboseOutput,
@@ -571,23 +565,23 @@ public static class IncludeTools
 
             if (ok == false)
             {
-                errorCount += 1;
+                error_count += 1;
             }
 
-            if (errorCount != storedError)
+            if (error_count != stored_error)
             {
-                fileError += 1;
+                file_error += 1;
             }
         }
 
         if (args.PrintStatusAtTheEnd)
         {
-            Printer.Info($"Files parsed: {fileCount}");
-            Printer.Info($"Files errored: {fileError}");
-            Printer.Info($"Errors found: {errorCount}");
+            Printer.Info($"Files parsed: {file_count}");
+            Printer.Info($"Files errored: {file_error}");
+            Printer.Info($"Errors found: {error_count}");
         }
 
-        return errorCount;
+        return error_count;
     }
 
     public static int HandleInit(Printer print, bool overwrite)
@@ -602,8 +596,8 @@ public static class IncludeTools
 
 public class ClassifiedFile
 {
-    public int? firstLineIndex { get; set; }
-    public int? lastLineIndex { get; set; }
+    public int? FirstLineIndex { get; set; }
+    public int? LastLineIndex { get; set; }
     public List<Include> Includes { get; } = new();
     public bool HasInvalidOrder { get; set; } = false;
 }
@@ -612,8 +606,8 @@ public class ClassifiedFile
 public abstract record CheckAction
 {
     public record MissingPatterns() : CheckAction;
-    public record ListUnfixable(bool printFirstErrorOnly) : CheckAction;
+    public record ListUnfixable(bool PrintFirstErrorOnly) : CheckAction;
     public record Check() : CheckAction;
-    public record Fix(bool nop) : CheckAction;
+    public record Fix(bool Nop) : CheckAction;
 }
 

@@ -25,8 +25,8 @@ internal class ProcessExitWithOutput
     {
         if (ExitCode != 0)
         {
-            var outputString = string.Join('\n', Output.Select(x => x.Line));
-            throw new Exception($"{CommandLine} has exit code {ExitCode}:\n{outputString}");
+            var output_string = string.Join('\n', Output.Select(x => x.Line));
+            throw new Exception($"{CommandLine} has exit code {ExitCode}:\n{output_string}");
         }
 
         return Output;
@@ -70,7 +70,8 @@ internal class ProcessExitWithOutput
 
 public class ProcessBuilder
 {
-    internal ProcessExit RunWithCallback(IEnumerable<string>? input, Action<string> onStdout, Action<string> onStdErr, Action<string, Exception> onFail)
+    internal ProcessExit RunWithCallback(
+        IEnumerable<string>? input, Action<string> on_stdout, Action<string> on_stderr, Action<string, Exception> on_fail)
     {
         // Prepare the process to run
         ProcessStartInfo start = new()
@@ -92,8 +93,8 @@ public class ProcessBuilder
 
         var proc = new Process { StartInfo = start };
 
-        proc.OutputDataReceived += (sender, e) => { if (e.Data != null) { onStdout(e.Data); } };
-        proc.ErrorDataReceived += (sender, e) => { if (e.Data != null) { onStdErr(e.Data); } };
+        proc.OutputDataReceived += (sender, e) => { if (e.Data != null) { on_stdout(e.Data); } };
+        proc.ErrorDataReceived += (sender, e) => { if (e.Data != null) { on_stderr(e.Data); } };
 
         try
         {
@@ -116,7 +117,7 @@ public class ProcessBuilder
         }
         catch (Win32Exception err)
         {
-            onFail($"Failed to run {ToString()}", err);
+            on_fail($"Failed to run {ToString()}", err);
             return new(ToString(), -42);
         }
     }
@@ -204,29 +205,29 @@ public class ProcessBuilder
         {
             foreach (string arg in args)
             {
-                var enclosedInApo = arg.LastIndexOfAny(
+                var enclosed_in_apo = arg.LastIndexOfAny(
                     new[] { ' ', '\t', '|', '@', '^', '<', '>', '&' }) >= 0;
-                var wasApo = enclosedInApo;
-                var subResult = "";
+                var was_apo = enclosed_in_apo;
+                var sub_result = "";
                 for (int i = arg.Length - 1; i >= 0; i--)
                 {
                     switch (arg[i])
                     {
                         case '"':
-                            subResult = @"\""" + subResult;
-                            wasApo = true;
+                            sub_result = @"\""" + sub_result;
+                            was_apo = true;
                             break;
                         case '\\':
-                            subResult = (wasApo ? @"\\" : @"\") + subResult;
+                            sub_result = (was_apo ? @"\\" : @"\") + sub_result;
                             break;
                         default:
-                            subResult = arg[i] + subResult;
-                            wasApo = false;
+                            sub_result = arg[i] + sub_result;
+                            was_apo = false;
                             break;
                     }
                 }
                 result += (result.Length > 0 ? " " : "")
-                    + (enclosedInApo ? "\"" + subResult + "\"" : subResult);
+                    + (enclosed_in_apo ? "\"" + sub_result + "\"" : sub_result);
             }
         }
 

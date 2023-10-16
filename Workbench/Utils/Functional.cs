@@ -24,29 +24,29 @@ internal static class Functional
     public static IEnumerable<(T?, T?)> ZipLongest<T>(this IEnumerable<T> left, IEnumerable<T> right)
         where T : class
     {
-        using var leftEnumerator = left.GetEnumerator();
-        using var rightEnumerator = right.GetEnumerator();
+        using var left_enumerator = left.GetEnumerator();
+        using var right_enumerator = right.GetEnumerator();
 
-        var hasLeft = leftEnumerator.MoveNext();
-        var hasRight = rightEnumerator.MoveNext();
+        var has_left = left_enumerator.MoveNext();
+        var has_right = right_enumerator.MoveNext();
 
-        while (hasLeft || hasRight)
+        while (has_left || has_right)
         {
-            if (hasLeft && hasRight)
+            if (has_left && has_right)
             {
-                yield return new (leftEnumerator.Current, rightEnumerator.Current);
+                yield return new (left_enumerator.Current, right_enumerator.Current);
             }
-            else if (hasLeft)
+            else if (has_left)
             {
-                yield return new (leftEnumerator.Current, null);
+                yield return new (left_enumerator.Current, null);
             }
-            else if (hasRight)
+            else if (has_right)
             {
-                yield return new (null, rightEnumerator.Current);
+                yield return new (null, right_enumerator.Current);
             }
 
-            hasLeft = leftEnumerator.MoveNext();
-            hasRight = rightEnumerator.MoveNext();
+            has_left = left_enumerator.MoveNext();
+            has_right = right_enumerator.MoveNext();
         }
     }
 }

@@ -49,8 +49,8 @@ internal static class FileUtil
     public static bool IsTranslationUnit(string path)
         => IsTranslationUnitExtension(Path.GetExtension(path));
 
-    public static bool FileHasAnyExtension(string filePath, string[] extensions)
-        => extensions.Contains(Path.GetExtension(filePath));
+    public static bool FileHasAnyExtension(string file_path, string[] extensions)
+        => extensions.Contains(Path.GetExtension(file_path));
 
     public static IEnumerable<string> ListFilesRecursively(IEnumerable<DirectoryInfo> paths, string[] extensions)
         => paths.SelectMany(p => ListFilesRecursively(p, extensions));
@@ -82,7 +82,7 @@ internal static class FileUtil
 
     public static IEnumerable<string> ListAllFiles(string root)
         => PitchforkFolders
-            .Select(relativeDir => new DirectoryInfo(Path.Join(root, relativeDir)).FullName)
+            .Select(relative_dir => new DirectoryInfo(Path.Join(root, relative_dir)).FullName)
             .Where(Directory.Exists)
             .SelectMany(dir => ListFilesRecursively(dir, HeaderAndSourceFiles)
                 .Where(x => new FileInfo(x).Name.StartsWith("pch.") == false))
@@ -92,35 +92,35 @@ internal static class FileUtil
      => Path.GetRelativePath(root, file)
          .Split(Path.DirectorySeparatorChar, 2)[0];
 
-    public static IEnumerable<FileInfo> IterateFiles(DirectoryInfo root, bool includeHidden, bool recursive)
+    public static IEnumerable<FileInfo> IterateFiles(DirectoryInfo root, bool include_hidden, bool recursive)
     {
-        var searchOptions = new EnumerationOptions
+        var search_options = new EnumerationOptions
         {
-            AttributesToSkip = includeHidden
+            AttributesToSkip = include_hidden
                 ? FileAttributes.Hidden | FileAttributes.System
                 : FileAttributes.System
         };
 
-        return SubIterateFiles(root, searchOptions, recursive);
+        return sub_iterate_files(root, search_options, recursive);
 
-        static IEnumerable<FileInfo> SubIterateFiles(DirectoryInfo root, EnumerationOptions searchOptions,
-            bool includeDirectories)
+        static IEnumerable<FileInfo> sub_iterate_files(
+            DirectoryInfo root, EnumerationOptions search_options, bool include_directories)
         {
-            foreach (var f in root.GetFiles("*", searchOptions))
+            foreach (var f in root.GetFiles("*", search_options))
             {
                 yield return f;
             }
 
-            if (includeDirectories)
+            if (include_directories)
             {
-                var files = root.GetDirectories("*", searchOptions)
+                var files = root.GetDirectories("*", search_options)
                         .Where(d => d.Name switch
                         {
                             ".git" => false,
                             "node_modules" => false,
                             _ => true,
                         })
-                        .SelectMany(d => SubIterateFiles(d, searchOptions, true))
+                        .SelectMany(d => sub_iterate_files(d, search_options, true))
                     ;
                 foreach (var f in files)
                 {

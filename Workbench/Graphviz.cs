@@ -125,20 +125,20 @@ public class Graphviz
 
     public Node AddNodeWithId(string display, Shape shape, string id)
     {
-        var newNode = new Node(id, display, shape, cluster: null);
-        id_to_node.Add(id, newNode);
-        nodes.Add(newNode);
-        return newNode;
+        var new_node = new Node(id, display, shape, cluster: null);
+        id_to_node.Add(id, new_node);
+        nodes.Add(new_node);
+        return new_node;
     }
 
     public string GetUniqueId(string display)
     {
         var id = ConvertIntoSafeId(display, "node");
-        var baseId = id;
+        var base_id = id;
         var index = 2;
         while (id_to_node.ContainsKey(id) == true)
         {
-            id = $"{baseId}_{index}";
+            id = $"{base_id}_{index}";
             index += 1;
         }
         return id;
@@ -150,34 +150,34 @@ public class Graphviz
         return AddNodeWithId(display, shape, id);
     }
 
-    private static string ConvertIntoSafeId(string a, string defaultName)
+    private static string ConvertIntoSafeId(string a, string default_name)
     {
-        var suggestedId = a.ToLower().Trim().Replace(" ", "").Replace("::", "_");
+        var suggested_id = a.ToLower().Trim().Replace(" ", "").Replace("::", "_");
 
-        var cleanedId = string.Empty;
+        var cleaned_id = string.Empty;
         var first = true;
-        foreach (var c in suggestedId)
+        foreach (var c in suggested_id)
         {
             if (first && char.IsLetter(c) || c == '_')
             {
-                cleanedId += c;
+                cleaned_id += c;
             }
             else if (char.IsLetter(c) || char.IsNumber(c) || c == '_')
             {
-                cleanedId += c;
+                cleaned_id += c;
             }
 
             first = false;
         }
 
-        if (cleanedId.Length == 0)
+        if (cleaned_id.Length == 0)
         {
-            return defaultName;
+            return default_name;
         }
 
-        if(cleanedId == "node") { return "_" + cleanedId; }
+        if(cleaned_id == "node") { return "_" + cleaned_id; }
 
-        return cleanedId;
+        return cleaned_id;
     }
 
     public Node? GetNodeFromId(string id)
@@ -222,7 +222,7 @@ public class Graphviz
         return ret;
     }
 
-    public IEnumerable<string> WriteHtml(string file, bool useMaxWidth = false)
+    public IEnumerable<string> WriteHtml(string file, bool use_max_width = false)
     {
         var svg = WriteSvg();
 
@@ -231,7 +231,7 @@ public class Graphviz
 
         yield return "<head>";
 
-        if(useMaxWidth)
+        if(use_max_width)
         { 
             yield return "<style>";
             yield return "html, body, .container, svg {";
@@ -305,9 +305,9 @@ public class Graphviz
             yield return "digraph G";
             yield return "{";
 
-            foreach (var groupedNodes in nodes.GroupBy(x => x.Cluster).Select(x => x.ToList()))
+            foreach (var grouped_nodes in nodes.GroupBy(x => x.Cluster).Select(x => x.ToList()))
             {
-                var cluster = groupedNodes.FirstOrDefault()?.Cluster;
+                var cluster = grouped_nodes.FirstOrDefault()?.Cluster;
                 var indent = string.Empty;
                 if (cluster != null)
                 {
@@ -317,7 +317,7 @@ public class Graphviz
                     yield return $"    {indent}color=blue;";
                 }
 
-                foreach (var n in groupedNodes)
+                foreach (var n in grouped_nodes)
                 {
                     yield return $"    {indent}{n.Id} [label=\"{Escape(n.Display)}\" shape={ShapeToString(n.Shape)}];";
                 }
@@ -402,10 +402,10 @@ public class Graphviz
         return r;
     }
 
-    private IEnumerable<Node> GetAllDependenciesForNode(Node thisNode)
+    private IEnumerable<Node> GetAllDependenciesForNode(Node this_node)
     {
         return edges
-                .Where(e => e.From == thisNode)
+                .Where(e => e.From == this_node)
                 .Select(e => e.To)
             ;
     }

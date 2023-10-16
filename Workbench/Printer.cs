@@ -6,27 +6,27 @@ using Workbench.Utils;
 
 public class Printer
 {
-    private int _errorCount = 0;
+    private int error_count = 0;
     private readonly List<string> errors = new();
 
     // print a "pretty" header to the terminal
-    public static void Header(string headerText) { HeaderWithCustomChar(headerText, "-"); }
+    public static void Header(string header_text) { HeaderWithCustomChar(header_text, "-"); }
 
-    private static void HeaderWithCustomChar(string projectName, string headerCharacter)
+    private static void HeaderWithCustomChar(string project_name, string header_character)
     {
         var header_size = 65;
         var header_spacing = 1;
         var header_start = 3;
 
         var spacing_string = " ".Repeat(header_spacing);
-        var header_string = headerCharacter.Repeat(header_size);
+        var header_string = header_character.Repeat(header_size);
 
-        var project = $"{spacing_string}{projectName}{spacing_string}";
-        var start = headerCharacter.Repeat(header_start);
+        var project = $"{spacing_string}{project_name}{spacing_string}";
+        var start = header_character.Repeat(header_start);
 
         var left = header_size - (project.Length + header_start);
         var right =
-            left > 1 ? headerCharacter.Repeat(left)
+            left > 1 ? header_character.Repeat(left)
             : ""
             ;
 
@@ -47,7 +47,7 @@ public class Printer
 
     public void Error(string text)
     {
-        _errorCount += 1;
+        error_count += 1;
         errors.Add(text);
         AnsiConsole.MarkupLineInterpolated($"[red]ERROR: {text}[/]");
     }
@@ -55,10 +55,10 @@ public class Printer
     internal void Error(string file, string error)
     {
         var text = $"{file}: {error}";
-        _errorCount += 1;
+        error_count += 1;
         errors.Add(text);
         var message = $"{file}: ERROR: {error}";
-        if(IsConnectedToConsole())
+        if(is_connected_to_console())
         {
             AnsiConsole.MarkupLineInterpolated($"[red]{message}[/]");
         }
@@ -67,7 +67,7 @@ public class Printer
             Console.WriteLine(message);
         }
 
-        static bool IsConnectedToConsole()
+        static bool is_connected_to_console()
         {
             try
             {
@@ -103,22 +103,22 @@ public class Printer
 
     // print files and folder recursivly
     public static void PrintDirectoryStructure(string root) {
-        PrintRecursive(root, "");
+        print_recursive(root, "");
 
-        static void PrintRecursive(string root, string start)
+        static void print_recursive(string root, string start)
         {
             var ident = " ".Repeat(4);
 
             var paths = new DirectoryInfo(root);
-            foreach (var filePath in paths.EnumerateDirectories())
+            foreach (var file_path in paths.EnumerateDirectories())
             {
-                AnsiConsole.MarkupLineInterpolated($"{start}{filePath.Name}/");
-                PrintRecursive(filePath.FullName, $"{start}{ident}");
+                AnsiConsole.MarkupLineInterpolated($"{start}{file_path.Name}/");
+                print_recursive(file_path.FullName, $"{start}{ident}");
             }
 
-            foreach (var filePath in paths.EnumerateFiles())
+            foreach (var file_path in paths.EnumerateFiles())
             {
-                AnsiConsole.MarkupLineInterpolated($"{start}{filePath.Name}");
+                AnsiConsole.MarkupLineInterpolated($"{start}{file_path.Name}");
             }
         }
     }
@@ -126,9 +126,9 @@ public class Printer
 
     public void PrintErrorCount()
     {
-        if (_errorCount > 0)
+        if (error_count > 0)
         {
-            AnsiConsole.MarkupLineInterpolated($"Errors detected: ({_errorCount})");
+            AnsiConsole.MarkupLineInterpolated($"Errors detected: ({error_count})");
         }
     }
 
@@ -145,9 +145,9 @@ public class Printer
         }
     }
 
-    internal static string ToFileString(string fileName, int line)
+    internal static string ToFileString(string file_name, int line)
     {
-        return $"{fileName}({line})";
+        return $"{file_name}({line})";
     }
 }
 

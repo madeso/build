@@ -21,9 +21,9 @@ internal class Html
         Begin(title, false);
     }
 
-    private void Begin(string title, bool useJoin)
+    private void Begin(string title, bool use_join)
     {
-        var divClass = useJoin ? "body" : "body_single";
+        var div_class = use_join ? "body" : "body_single";
         Buffer +=
             $@"
 <!DOCTYPE html>
@@ -48,7 +48,7 @@ internal class Html
 <div id=""content"">
 
 <h1>{title}</h1>
-<div id=""{divClass}"">
+<div id=""{div_class}"">
 ";
     }
 
@@ -99,9 +99,9 @@ internal class Html
     }
 
 
-    internal static string GetSafeInspectFilename(string path, string extWithDot)
+    internal static string GetSafeInspectFilename(string path, string ext_with_dot)
     {
-        return $"inspect_{GetSafeString(path)}{extWithDot}";
+        return $"inspect_{GetSafeString(path)}{ext_with_dot}";
     }
 
     public static string GetSafeInspectFilenameHtml(string path)
@@ -143,7 +143,7 @@ internal class Html
 
     public static void WriteCssFile(string root)
     {
-        File.WriteAllText(GetPathToCssFile(root), CssSource);
+        File.WriteAllText(GetPathToCssFile(root), CSS_SOURCE);
     }
 
     internal void WriteToFile(string path)
@@ -151,7 +151,7 @@ internal class Html
         File.WriteAllText(path, Buffer);
     }
 
-    private const string CssSource = @"
+    private const string CSS_SOURCE = @"
 
 /* Reset */
 

@@ -4,27 +4,27 @@ namespace Workbench.Utils;
 
 public class StringListCombiner
 {
-    public StringListCombiner(string separator, string finalSeparator, string empty)
+    public StringListCombiner(string separator, string final_separator, string empty)
     {
-        _separator = separator;
-        _finalSeparator = finalSeparator;
-        _empty = empty;
+        this.separator = separator;
+        this.final_separator = final_separator;
+        this.empty = empty;
     }
 
 
-    public StringListCombiner(string separator, string finalSeparator)
+    public StringListCombiner(string separator, string final_separator)
     {
-        _separator = separator;
-        _finalSeparator = finalSeparator;
-        _empty = "";
+        this.separator = separator;
+        this.final_separator = final_separator;
+        empty = "";
     }
 
 
     public StringListCombiner(string separator)
     {
-        _separator = separator;
-        _finalSeparator = separator;
-        _empty = "";
+        this.separator = separator;
+        final_separator = separator;
+        empty = "";
     }
 
 
@@ -36,7 +36,7 @@ public class StringListCombiner
 
     public string Combine(string[] strings)
     {
-        if (strings.Length == 0) return _empty;
+        if (strings.Length == 0) return empty;
         
         StringBuilder builder = new();
         for (var index = 0; index < strings.Length; ++index)
@@ -48,14 +48,14 @@ public class StringListCombiner
             if (strings.Length == index + 1) continue;
 
             builder.Append(strings.Length == index + 2
-                    ? _finalSeparator
-                    : _separator
+                    ? final_separator
+                    : separator
                 );
         }
         return builder.ToString();
     }
 
-    private readonly string _separator;
-    private readonly string _finalSeparator;
-    private readonly string _empty;
+    private readonly string separator;
+    private readonly string final_separator;
+    private readonly string empty;
 }

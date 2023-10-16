@@ -30,24 +30,24 @@ static class F
             return name.ToLowerInvariant().Trim();
         }
 
-        private static IEnumerable<string> Exclude(IEnumerable<string> argsExclude, bool cmake)
+        private static IEnumerable<string> Exclude(IEnumerable<string> exclude, bool cmake)
         {
             if (cmake)
             {
-                return argsExclude.Concat(new string[] {
+                return exclude.Concat(new string[] {
                         "ZERO_CHECK", "RUN_TESTS", "NightlyMemoryCheck", "ALL_BUILD",
                         "Continuous", "Experimental", "Nightly",
                     });
             }
             else
             {
-                return argsExclude;
+                return exclude;
             }
         }
 
-        internal bool ShouldExclude(string displayName)
+        internal bool ShouldExclude(string display_name)
         {
-            var name = Transform(displayName);
+            var name = Transform(display_name);
             if (explicits.Contains(name))
             {
                 return true;
@@ -62,19 +62,19 @@ static class F
         }
     }
 
-    private const string GraphvizExtensionNoDot = "gv";
+    private const string GRAPHVIZ_EXTENSION_NO_DOT = "gv";
 
     // ======================================================================================================================
     // logic
     // ======================================================================================================================
 
-    private static void RunGraphviz(Printer printer, string targetFile, string imageFormat, string graphvizLayout)
+    private static void RunGraphviz(Printer printer, string target_file, string image_format, string graphviz_layout)
     {
         var cmdline = new ProcessBuilder(
             "dot",
-            targetFile + ".graphviz", "-T" + imageFormat,
-            "-K" + graphvizLayout,
-            "-O" + targetFile + "." + imageFormat
+            target_file + ".graphviz", "-T" + image_format,
+            "-K" + graphviz_layout,
+            "-O" + target_file + "." + image_format
         );
         Printer.Info($"Running graphviz {cmdline}");
         cmdline.RunAndPrintOutput(printer);
@@ -92,53 +92,53 @@ static class F
     // Handlers
     // ======================================================================================================================
 
-    public static int handle_generate(Printer printer, string argsTarget,
-            string argsFormat,
+    public static int handle_generate(Printer printer, string target,
+            string format,
             ExclusionList exclude,
             bool simplify,
-            bool reverseArrows,
-            string pathToSolutionFile,
-            string argsStyle)
+            bool reverse_arrows,
+            string path_to_solution_file,
+            string layout_name)
     {
-        var solution = SolutionParser.ParseVisualStudio(printer, pathToSolutionFile);
+        var solution = SolutionParser.ParseVisualStudio(printer, path_to_solution_file);
 
         solution.RemoveProjects(p => exclude.ShouldExclude(p.Name));
 
-        var gv = solution.MakeGraphviz(reverseArrows);
+        var gv = solution.MakeGraphviz(reverse_arrows);
 
         if (simplify)
         {
             gv.Simplify();
         }
 
-        var imageFormat = GetValueOrDefault(argsFormat, "svg");
-        var graphvizLayout = GetValueOrDefault(argsStyle, "dot");
-        var targetFile = GetValueOrDefault(argsTarget, ChangeExtension(pathToSolutionFile, GraphvizExtensionNoDot));
+        var image_format = GetValueOrDefault(format, "svg");
+        var graphviz_layout = GetValueOrDefault(layout_name, "dot");
+        var target_file = GetValueOrDefault(target, ChangeExtension(path_to_solution_file, GRAPHVIZ_EXTENSION_NO_DOT));
 
-        gv.WriteFile(targetFile);
+        gv.WriteFile(target_file);
 
-        RunGraphviz(printer, targetFile, imageFormat, graphvizLayout);
+        RunGraphviz(printer, target_file, image_format, graphviz_layout);
 
         return 0;
     }
 
-    private static string ChangeExtension(string file, string newExtension)
+    private static string ChangeExtension(string file, string new_extension)
     {
         var dir = new FileInfo(file).Directory?.FullName!;
         var name = Path.GetFileNameWithoutExtension(file);
-        return Path.Join(dir, $"{name}.{newExtension}");
+        return Path.Join(dir, $"{name}.{new_extension}");
     }
 
     public static int SourceCommand(Printer printer, ExclusionList exclude,
             bool simplify,
-            bool reverseArrows,
-            string pathToSolutionFile)
+            bool reverse_arrows,
+            string path_to_solution_file)
     {
-        var solution = SolutionParser.ParseVisualStudio(printer, pathToSolutionFile);
+        var solution = SolutionParser.ParseVisualStudio(printer, path_to_solution_file);
 
         solution.RemoveProjects(p => exclude.ShouldExclude(p.Name));
 
-        var gv = solution.MakeGraphviz(reverseArrows);
+        var gv = solution.MakeGraphviz(reverse_arrows);
 
         if (simplify)
         {
@@ -153,34 +153,33 @@ static class F
         return 0;
     }
 
-    public static int WriteCommand(Printer printer, ExclusionList exclude, string targetFileOrEmpty,
-            bool simplify,
-            bool reverseArrows,
-            string pathToSolutionFile)
+    public static int WriteCommand(
+        Printer printer, ExclusionList exclude, string target_file_or_empty, bool simplify,
+            bool reverse_arrows, string path_to_solution_file)
     {
-        var solution = SolutionParser.ParseVisualStudio(printer, pathToSolutionFile);
+        var solution = SolutionParser.ParseVisualStudio(printer, path_to_solution_file);
 
         solution.RemoveProjects(p => exclude.ShouldExclude(p.Name));
 
-        var gv = solution.MakeGraphviz(reverseArrows);
+        var gv = solution.MakeGraphviz(reverse_arrows);
 
         if (simplify)
         {
             gv.Simplify();
         }
 
-        var targetFile = GetValueOrDefault(targetFileOrEmpty, ChangeExtension(pathToSolutionFile, GraphvizExtensionNoDot));
+        var target_file = GetValueOrDefault(target_file_or_empty, ChangeExtension(path_to_solution_file, GRAPHVIZ_EXTENSION_NO_DOT));
 
-        gv.WriteFile(targetFile);
+        gv.WriteFile(target_file);
 
-        Printer.Info($"Wrote {targetFile}");
+        Printer.Info($"Wrote {target_file}");
 
         return 0;
     }
 
-    public static int ListCommand(Printer printer, string solutionPath)
+    public static int ListCommand(Printer printer, string solution_path)
     {
-        var solution = SolutionParser.ParseVisualStudio(printer, solutionPath);
+        var solution = SolutionParser.ParseVisualStudio(printer, solution_path);
         foreach (var project in solution.Projects)
         {
             Printer.Info(project.Name);

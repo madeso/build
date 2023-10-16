@@ -76,11 +76,11 @@ internal static class XmlExtensions
             : $"{element.Name}[{id}]";
     }
 
-    public static string PathOf(this XmlElement rootElement)
+    public static string PathOf(this XmlElement root_element)
     {
         var result = "";
 
-        var iterator = rootElement;
+        var iterator = root_element;
         while (iterator != null)
         {
             result = iterator.NameOf() + "/" + result;
@@ -90,12 +90,12 @@ internal static class XmlExtensions
         return result;
     }
 
-    public static IEnumerable<XmlElement> ElementsNamed(this XmlNode root, string childName)
+    public static IEnumerable<XmlElement> ElementsNamed(this XmlNode root, string child_name)
         => root.Elements()
-            .Where(el => el.Name == childName);
+            .Where(el => el.Name == child_name);
 
-    public static IEnumerable<XmlElement> ElementsNamed(this IEnumerable<XmlNode> nodes, string childName)
-        => nodes.SelectMany(x => x.ElementsNamed(childName));
+    public static IEnumerable<XmlElement> ElementsNamed(this IEnumerable<XmlNode> nodes, string child_name)
+        => nodes.SelectMany(x => x.ElementsNamed(child_name));
 
     public static string GetFirstText(this XmlNode node)
         => node.GetFirstTextOrNull()
@@ -135,10 +135,10 @@ internal static class XmlExtensions
 
         if (element.ChildNodes.Count > 1) throw new Exception("too many text elements");
 
-        var firstChild = element.FirstChild;
-        if (firstChild == null) return null;
+        var first_child = element.FirstChild;
+        if (first_child == null) return null;
 
-        return GetSmartTextOrNull(firstChild);
+        return GetSmartTextOrNull(first_child);
     }
 
     public static string GetTextOfSubElement(this XmlNode node, string name)
@@ -160,19 +160,18 @@ internal static class XmlExtensions
         => root.GetAttributeEnumOrNull<TEnum>(name)
            ?? throw new Exception("missing required enum");
 
-    public static IEnumerable<T> MapChildren<T>(this XmlNode root,
-        Func<string, T> fromString,
-        Func<XmlElement, T> fromElement)
+    public static IEnumerable<T> MapChildren<T>(
+        this XmlNode root, Func<string, T> from_string, Func<XmlElement, T> from_element)
     {
         foreach (var node in root.ChildNodes)
         {
             switch (node)
             {
                 case XmlElement el:
-                    yield return fromElement(el);
+                    yield return from_element(el);
                     break;
                 case XmlText text:
-                    yield return fromString(text.Value!);
+                    yield return from_string(text.Value!);
                     break;
             }
         }

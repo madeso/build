@@ -42,11 +42,11 @@ public class UserInput
 
     public void Decorate(Printer printer, string root)
     {
-        DecorateThis(printer, root, ProjectDirectories, "Project directories", f => Directory.Exists(f) || File.Exists(f));
-        DecorateThis(printer, root, IncludeDirectories, "Include directories", Directory.Exists);
+        decorate_this(printer, root, ProjectDirectories, "Project directories", f => Directory.Exists(f) || File.Exists(f));
+        decorate_this(printer, root, IncludeDirectories, "Include directories", Directory.Exists);
         return;
 
-        static void DecorateThis(Printer printer, string root, List<string> d, string name, Func<string, bool> exists)
+        static void decorate_this(Printer printer, string root, List<string> d, string name, Func<string, bool> exists)
         {
             var missing = d.Where(d => Path.IsPathFullyQualified(d) == false || exists(d) == false).ToImmutableHashSet();
             var changes = missing
@@ -110,12 +110,12 @@ public class SourceFile
     public List<string> AbsoluteIncludes { get; set; } // change to a hash set?
     public bool IsTouched { get; set; }
 
-    public SourceFile(int numberOfLines, List<string> localIncludes, List<string> systemIncludes, bool isPrecompiled)
+    public SourceFile(int number_of_lines, List<string> local_includes, List<string> system_includes, bool is_precompiled)
     {
-        LocalIncludes = localIncludes;
-        SystemIncludes = systemIncludes;
-        NumberOfLines = numberOfLines;
-        IsPrecompiled = isPrecompiled;
+        LocalIncludes = local_includes;
+        SystemIncludes = system_includes;
+        NumberOfLines = number_of_lines;
+        IsPrecompiled = is_precompiled;
 
         AbsoluteIncludes = new List<string>();
         IsTouched = false;

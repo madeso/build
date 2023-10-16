@@ -48,12 +48,12 @@ public class ColCounter<T>
 
     internal void Max(ColCounter<T> rhs)
     {
-        foreach (var (key, rhsValue) in rhs.data)
+        foreach (var (key, rhs_value) in rhs.data)
         {
             Set(key,
-                data.TryGetValue(key, out var selfValue)
-                    ? Math.Max(selfValue, rhsValue)
-                    : rhsValue
+                data.TryGetValue(key, out var self_value)
+                    ? Math.Max(self_value, rhs_value)
+                    : rhs_value
                 );
         }
     }

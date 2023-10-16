@@ -19,23 +19,25 @@ public class Dependencies
 {
     const string NO_NAMESPACE = "|";
 
-    internal static void WriteToGraphviz(Printer printer, string doxygenXml, string namespaceName, string outputFile, ImmutableHashSet<string> ignoredClasses, bool includeFunctions, bool addArguments, bool addMembers, bool clusterNamespce)
+    internal static void WriteToGraphviz(Printer printer, string doxygen_xml, string namespace_name,
+        string output_file, ImmutableHashSet<string> ignored_classes, bool include_functions, bool add_arguments,
+        bool add_members, bool cluster_namespace)
     {
         Printer.Info("Parsing doxygen XML...");
-        var dox = Doxygen.Doxygen.ParseIndex(doxygenXml);
-        var rootNamespace = namespaceName == NO_NAMESPACE ? null : DoxygenUtils.FindNamespace(dox, namespaceName);
+        var dox = Doxygen.Doxygen.ParseIndex(doxygen_xml);
+        var root_namespace = namespace_name == NO_NAMESPACE ? null : DoxygenUtils.FindNamespace(dox, namespace_name);
 
-        if (namespaceName != NO_NAMESPACE && rootNamespace == null)
+        if (namespace_name != NO_NAMESPACE && root_namespace == null)
         {
-            printer.Error($"Unknown namespace {namespaceName}");
+            printer.Error($"Unknown namespace {namespace_name}");
             return;
         }
 
         Printer.Info("Working...");
         var namespaces = (
-                rootNamespace == null
+                root_namespace == null
                 ? DoxygenUtils.AllNamespaces(dox)
-                : DoxygenUtils.IterateAllNamespaces(dox, rootNamespace)
+                : DoxygenUtils.IterateAllNamespaces(dox, root_namespace)
             ).ToImmutableArray();
 
         var g = new Graphviz();
@@ -46,12 +48,12 @@ public class Dependencies
         {
             foreach(var k in DoxygenUtils.IterateClassesInNamespace(dox, ns))
             {
-                if(ignoredClasses.Contains(k.CompoundName))
+                if(ignored_classes.Contains(k.CompoundName))
                 {
                     continue;
                 }
 
-                var name = clusterNamespce
+                var name = cluster_namespace
                     ? k.CompoundName.Split(":", StringSplitOptions.RemoveEmptyEntries).Last()
                     : k.CompoundName;
 
@@ -65,7 +67,7 @@ public class Dependencies
         Printer.Info("Adding typedefs...");
         foreach (var k in namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Typedef)))
         {
-            if (ignoredClasses.Contains(k.Name))
+            if (ignored_classes.Contains(k.Name))
             {
                 continue;
             }
@@ -73,92 +75,94 @@ public class Dependencies
             var node = g.AddNode(k.Name, Shape.Box);
             classes!.Add(k.Id, node);
 
-            var existingRefs = new HashSet<string>();
-            AddTypeLink(g, classes, () => node, existingRefs, k.Type);
+            var existing_refs = new HashSet<string>();
+            AddTypeLink(g, classes, () => node, existing_refs, k.Type);
         }
 
         Printer.Info("Adding members for class...");
         foreach (var klass in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
         {
-            if(false == classes.TryGetValue(klass.Id, out var graphvizKlass))
+            if(false == classes.TryGetValue(klass.Id, out var graphviz_klass))
             {
                 continue;
             }
 
-            var existingRefs = new HashSet<string>();
+            var existing_refs = new HashSet<string>();
 
-            // add inheritence
+            // add inheritance
             foreach(var r in klass.BaseCompoundRefs)
             {
-                if(r.refid == null) continue;
-                AddReference(r.refid, g, classes, () => graphvizKlass, existingRefs);
+                if(r.RefId == null) continue;
+                AddReference(r.RefId, g, classes, () => graphviz_klass, existing_refs);
             }
 
-            if(!addMembers) { continue; }
+            if(!add_members) { continue; }
 
             foreach (var member in DoxygenUtils.AllMembersForAClass(klass))
             {
-                if(includeFunctions == false && member.Kind == DoxMemberKind.Function)
+                if(include_functions == false && member.Kind == DoxMemberKind.Function)
                 {
                     continue;
                 }
 
-                if (addArguments)
+                if (add_arguments)
                 {
                     foreach (var p in member.Param)
                     {
-                        AddTypeLink(g, classes, () => graphvizKlass, existingRefs, p.type);
+                        AddTypeLink(g, classes, () => graphviz_klass, existing_refs, p.Type);
                     }
                 }
 
                 // return value for a function or the type of the member
-                AddTypeLink(g, classes, () => graphvizKlass, existingRefs, member?.Type);
+                AddTypeLink(g, classes, () => graphviz_klass, existing_refs, member?.Type);
             }
         }
 
-        if(includeFunctions)
+        if(include_functions)
         {
             Printer.Info("Adding functions...");
             foreach (var func in namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Func)))
             {
-                var existingRefs = new HashSet<string>();
+                var existing_refs = new HashSet<string>();
 
-                Graphviz.Node? funcNode = null;
-                Graphviz.Node getFuncNode()
+                Graphviz.Node? func_node = null;
+
+                if(add_arguments) foreach (var p in func.Param)
                 {
-                    if(funcNode == null)
+                    AddTypeLink(g, classes, get_func_node, existing_refs, p.Type);
+                }
+
+                AddTypeLink(g, classes, get_func_node, existing_refs, func.Type);
+                continue;
+
+                Graphviz.Node get_func_node()
+                {
+                    if(func_node == null)
                     {
-                        funcNode = g.AddNode($"{func.Name}{func.Argsstring}", Shape.Ellipse);
+                        func_node = g.AddNode($"{func.Name}{func.ArgsString}", Shape.Ellipse);
                     }
-                    return funcNode;
+                    return func_node;
                 }
-
-                if(addArguments) foreach (var p in func.Param)
-                {
-                    AddTypeLink(g, classes, getFuncNode, existingRefs, p.type);
-                }
-
-                AddTypeLink(g, classes, getFuncNode, existingRefs, func.Type);
             }
         }
 
-        g.SmartWriteFile(outputFile);
+        g.SmartWriteFile(output_file);
     }
 
-    internal static void PrintLists(Printer printer, string doxygenXml, string namespaceName)
+    internal static void PrintLists(Printer printer, string doxygen_xml, string namespace_name)
     {
         Printer.Info("Parsing doxygen XML...");
-        var dox = Doxygen.Doxygen.ParseIndex(doxygenXml);
-        var rootNamespace = DoxygenUtils.FindNamespace(dox, namespaceName);
+        var dox = Doxygen.Doxygen.ParseIndex(doxygen_xml);
+        var root_namespace = DoxygenUtils.FindNamespace(dox, namespace_name);
 
-        if (rootNamespace == null)
+        if (root_namespace == null)
         {
-            printer.Error($"Unknown namespace {namespaceName}");
+            printer.Error($"Unknown namespace {namespace_name}");
             return;
         }
 
         Printer.Info("Working...");
-        var namespaces = DoxygenUtils.IterateAllNamespaces(dox, rootNamespace).ToImmutableArray();
+        var namespaces = DoxygenUtils.IterateAllNamespaces(dox, root_namespace).ToImmutableArray();
 
         foreach (var k in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
         {
@@ -172,44 +176,44 @@ public class Dependencies
 
         foreach (var func in namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Func)))
         {
-            AnsiConsole.MarkupLineInterpolated($"Func {func.Name}{func.Argsstring}");
+            AnsiConsole.MarkupLineInterpolated($"Func {func.Name}{func.ArgsString}");
         }
     }
 
-    private static void AddTypeLink(Graphviz g, Dictionary<string, Graphviz.Node> validTypes,
-        Func<Graphviz.Node> parentFunc, HashSet<string> existingRefs, linkedTextType? type)
+    private static void AddTypeLink(Graphviz g, Dictionary<string, Graphviz.Node> valid_types,
+        Func<Graphviz.Node> parent_func, HashSet<string> existing_refs, LinkedTextType? type)
     {
         if(type == null) { return; }
 
         Graphviz.Node? parent = null;
         foreach (var node in type.Nodes)
         {
-            var re = node as linkedTextType.Ref;
+            var re = node as LinkedTextType.Ref;
             if (re == null) continue;
 
-            AddReference(re.Value.refid, g, validTypes, () =>
+            AddReference(re.Value.RefId, g, valid_types, () =>
                 {
                     if(parent != null) return parent;
-                    parent = parentFunc();
+                    parent = parent_func();
                     return parent;
-                }, existingRefs);
+                }, existing_refs);
         }
     }
 
-    private static void AddReference(string id, Graphviz g, Dictionary<string, Graphviz.Node> validTypes,
-        Func<Graphviz.Node> parentFunc, HashSet<string> existingRefs)
+    private static void AddReference(string id, Graphviz g, Dictionary<string, Graphviz.Node> valid_types,
+        Func<Graphviz.Node> parent_func, HashSet<string> existing_refs)
     {
-        if (existingRefs.Contains(id)) return;
-        existingRefs.Add(id);
+        if (existing_refs.Contains(id)) return;
+        existing_refs.Add(id);
 
-        if (false == validTypes.TryGetValue(id, out var linkedKlass)) return;
+        if (false == valid_types.TryGetValue(id, out var linked_klass)) return;
 
-        g.AddEdge(parentFunc(), linkedKlass);
+        g.AddEdge(parent_func(), linked_klass);
     }
 
-    [TypeConverter(typeof(EnumTypeConverter<ClusterCallgraphOn>))]
-    [JsonConverter(typeof(EnumJsonConverter<ClusterCallgraphOn>))]
-    public enum ClusterCallgraphOn
+    [TypeConverter(typeof(EnumTypeConverter<ClusterCallGraphOn>))]
+    [JsonConverter(typeof(EnumJsonConverter<ClusterCallGraphOn>))]
+    public enum ClusterCallGraphOn
     {
         [EnumString("none")]
         None,
@@ -221,19 +225,19 @@ public class Dependencies
         Namespace
     }
 
-    private record Method(CompoundDef? Klass, memberdefType Function);
-    internal static void WriteCallgraphToGraphviz(Printer printer, string doxygenXml, string namespaceFilter, string outputFile, ClusterCallgraphOn clusterOn)
+    private record Method(CompoundDef? Klass, MemberDefinitionType Function);
+    internal static void WriteCallGraphToGraphviz(string doxygen_xml, string output_file, ClusterCallGraphOn cluster_on)
     {
         // todo(Gustav): option to remove namespace prefixes
 
         Printer.Info("Parsing doxygen XML...");
-        var dox = Doxygen.Doxygen.ParseIndex(doxygenXml);
+        var dox = Doxygen.Doxygen.ParseIndex(doxygen_xml);
         
         Printer.Info("Collecting functions...");
         var namespaces = DoxygenUtils.AllNamespaces(dox).ToImmutableArray();
 
         
-        var memberFunctions = namespaces
+        var member_functions = namespaces
             .SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns))
             .SelectMany(klass => DoxygenUtils.AllMembersForAClass(klass)
                 .Select(fun => new Method(klass, fun))
@@ -242,50 +246,50 @@ public class Dependencies
             .Where(mem => mem.Function.Kind == DoxMemberKind.Function
                         || mem.Function.Kind == DoxMemberKind.Property)
             ;
-        var freeFunctions =
+        var free_functions =
             namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Func))
             .Where(fun => fun.Kind == DoxMemberKind.Function
                         || fun.Kind == DoxMemberKind.Property)
             .Select(fun => new Method(null, fun));
 
-        var allFunctions = memberFunctions.Concat(freeFunctions).ToImmutableArray();
+        var all_functions = member_functions.Concat(free_functions).ToImmutableArray();
 
 
         Printer.Info("Adding functions...");
         var g = new Graphviz();
         var functions = new Dictionary<string, Graphviz.Node>();
-        foreach (var func in allFunctions)
+        foreach (var func in all_functions)
         {
-            var baseName = $"{func.Function.Name}{func.Function.Argsstring}";
-            if(clusterOn != ClusterCallgraphOn.Class && func.Klass != null)
+            var base_name = $"{func.Function.Name}{func.Function.ArgsString}";
+            if(cluster_on != ClusterCallGraphOn.Class && func.Klass != null)
             {
-                baseName = $"{func.Klass.CompoundName}.{baseName}";
+                base_name = $"{func.Klass.CompoundName}.{base_name}";
             }
-            functions.Add(func.Function.Id, g.AddNodeWithId(baseName, FuncToShape(func), func.Function.Id));
+            functions.Add(func.Function.Id, g.AddNodeWithId(base_name, func_to_shape(func), func.Function.Id));
         }
 
-        switch(clusterOn)
+        switch(cluster_on)
         {
-            case ClusterCallgraphOn.Class:
+            case ClusterCallGraphOn.Class:
                 foreach(var klass in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
                 {
                     var cluster = g.FindOrCreateCluster(klass.Id, klass.CompoundName);
                     foreach(var fun in DoxygenUtils.AllMembersForAClass(klass)
                         .Where(mem => mem.Kind == DoxMemberKind.Function))
                     {
-                        if (false == functions.TryGetValue(fun.Id, out var funNode))
+                        if (false == functions.TryGetValue(fun.Id, out var fun_node))
                         {
                             continue;
                         }
 
-                        funNode.Cluster = cluster;
+                        fun_node.Cluster = cluster;
                     }
                 }
                 break;
-            case ClusterCallgraphOn.Namespace:
-                foreach(var fun in allFunctions)
+            case ClusterCallGraphOn.Namespace:
+                foreach(var fun in all_functions)
                 {
-                    if (false == functions.TryGetValue(fun.Function.Id, out var funNode))
+                    if (false == functions.TryGetValue(fun.Function.Id, out var fun_node))
                     {
                         continue;
                     }
@@ -301,7 +305,7 @@ public class Dependencies
         }
         
         Printer.Info("Adding links...");
-        foreach (var fun in allFunctions)
+        foreach (var fun in all_functions)
         {
             if(false == functions.TryGetValue(fun.Function.Id, out var src))
             {
@@ -310,7 +314,7 @@ public class Dependencies
 
             foreach(var r in fun.Function.References)
             {
-                if (false == functions.TryGetValue(r.refid, out var dst))
+                if (false == functions.TryGetValue(r.RefId, out var dst))
                 {
                     continue;
                 }
@@ -318,10 +322,10 @@ public class Dependencies
             }
         }
 
-        Printer.Info("Wrtitng graph...");
-        g.SmartWriteFile(outputFile);
+        Printer.Info("Writing graph...");
+        g.SmartWriteFile(output_file);
 
-        static Shape FuncToShape(Method func) => func.Function.Prot switch
+        static Shape func_to_shape(Method func) => func.Function.Protection switch
         {
             DoxProtectionKind.Public => Shape.Ellipse,
             DoxProtectionKind.Protected => Shape.Diamond,

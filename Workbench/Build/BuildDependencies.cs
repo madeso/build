@@ -65,17 +65,17 @@ public static class BuildDependencies
 
 internal class DependencySdl2 : BuildDependency
 {
-    private readonly string _rootFolder;
-    private readonly string _buildFolder;
-    private readonly string _url;
-    private readonly string _folderName;
+    private readonly string root_folder;
+    private readonly string build_folder;
+    private readonly string url;
+    private readonly string folder_name;
 
-    public DependencySdl2(BuildData data, string zipFile, string folderName)
+    public DependencySdl2(BuildData data, string url_to_zip_file, string folder_name)
     {
-        _rootFolder = Path.Combine(data.DependencyDirectory, folderName);
-        _buildFolder = Path.Combine(_rootFolder, "cmake-build");
-        _url = zipFile;
-        _folderName = folderName;
+        root_folder = Path.Combine(data.DependencyDirectory, folder_name);
+        build_folder = Path.Combine(root_folder, "cmake-build");
+        url = url_to_zip_file;
+        this.folder_name = folder_name;
     }
 
     public string GetName()
@@ -85,8 +85,8 @@ internal class DependencySdl2 : BuildDependency
 
     public void AddCmakeArguments(CMake.CMake cmake)
     {
-        cmake.AddArgument("SDL2_HINT_ROOT", _rootFolder);
-        cmake.AddArgument("SDL2_HINT_BUILD", _buildFolder);
+        cmake.AddArgument("SDL2_HINT_ROOT", root_folder);
+        cmake.AddArgument("SDL2_HINT_BUILD", build_folder);
     }
 
     public void Install(BuildEnvironment env, Printer print, BuildData data)
@@ -95,33 +95,33 @@ internal class DependencySdl2 : BuildDependency
 
         Printer.Header("Installing dependency sdl2");
 
-        var zipFile = Path.Join(data.DependencyDirectory, $"{_folderName}.zip");
+        var zip_file = Path.Join(data.DependencyDirectory, $"{folder_name}.zip");
 
-        if (false == File.Exists(zipFile))
+        if (false == File.Exists(zip_file))
         {
-            Core.VerifyDirectoryExists(print, _rootFolder);
+            Core.VerifyDirectoryExists(print, root_folder);
             Core.VerifyDirectoryExists(print, data.DependencyDirectory);
             Printer.Info("downloading sdl2");
-            Core.DownloadFileIfMissing(print, _url, zipFile);
+            Core.DownloadFileIfMissing(print, url, zip_file);
         }
         else
         {
             Printer.Info("SDL2 zip file exist, not downloading again...");
         }
 
-        if (false == File.Exists(Path.Join(_rootFolder, "INSTALL.txt")))
+        if (false == File.Exists(Path.Join(root_folder, "INSTALL.txt")))
         {
-            Core.ExtractZip(zipFile, _rootFolder);
-            Core.MoveFiles(print, Path.Join(_rootFolder, _folderName), _rootFolder);
+            Core.ExtractZip(zip_file, root_folder);
+            Core.MoveFiles(print, Path.Join(root_folder, folder_name), root_folder);
         }
         else
         {
             Printer.Info("SDL2 is unzipped, not unzipping again");
         }
 
-        if (false == File.Exists(Path.Join(_buildFolder, "SDL2.sln")))
+        if (false == File.Exists(Path.Join(build_folder, "SDL2.sln")))
         {
-            var project = new CMake.CMake(_buildFolder, _rootFolder, generator);
+            var project = new CMake.CMake(build_folder, root_folder, generator);
             // project.make_static_library()
             // this is defined by the standard library so don't add it
             // generates '__ftol2_sse already defined' errors
@@ -139,8 +139,8 @@ internal class DependencySdl2 : BuildDependency
 
     public IEnumerable<string> GetStatus()
     {
-        yield return $"Root: {_rootFolder}";
-        yield return $"Build: {_buildFolder}";
+        yield return $"Root: {root_folder}";
+        yield return $"Build: {build_folder}";
     }
 }
 
@@ -149,11 +149,11 @@ internal class DependencySdl2 : BuildDependency
 
 internal class DependencyPython : BuildDependency
 {
-    private readonly string? _pathToPythonExe;
+    private readonly string? path_to_python_exe;
 
     internal DependencyPython()
     {
-        _pathToPythonExe = Environment.GetEnvironmentVariable("PYTHON");
+        path_to_python_exe = Environment.GetEnvironmentVariable("PYTHON");
     }
 
     public string GetName()
@@ -163,10 +163,10 @@ internal class DependencyPython : BuildDependency
 
     public void AddCmakeArguments(CMake.CMake cmake)
     {
-        if (_pathToPythonExe == null) { return; }
+        if (path_to_python_exe == null) { return; }
 
-        var pythonExe = Path.Join(_pathToPythonExe, "python.exe");
-        cmake.AddArgument("PYTHON_EXECUTABLE:FILEPATH", pythonExe);
+        var python_exe = Path.Join(path_to_python_exe, "python.exe");
+        cmake.AddArgument("PYTHON_EXECUTABLE:FILEPATH", python_exe);
     }
 
     public void Install(BuildEnvironment env, Printer print, BuildData data)
@@ -175,9 +175,9 @@ internal class DependencyPython : BuildDependency
 
     public IEnumerable<string> GetStatus()
     {
-        if (_pathToPythonExe != null)
+        if (path_to_python_exe != null)
         {
-            yield return $"PYTHON: {_pathToPythonExe}";
+            yield return $"PYTHON: {path_to_python_exe}";
         }
         else
         {
@@ -189,15 +189,15 @@ internal class DependencyPython : BuildDependency
 
 internal class DependencyAssimp : BuildDependency
 {
-    private readonly string _dependencyFolder;
-    private readonly string _installFolder;
-    private readonly bool _useStaticBuild;
+    private readonly string dependency_folder;
+    private readonly string install_folder;
+    private readonly bool use_static_build;
 
-    public DependencyAssimp(BuildData data, bool useStaticBuild)
+    public DependencyAssimp(BuildData data, bool use_static_build)
     {
-        _dependencyFolder = Path.Join(data.DependencyDirectory, "assimp");
-        _installFolder = Path.Join(_dependencyFolder, "cmake-install");
-        this._useStaticBuild = useStaticBuild;
+        dependency_folder = Path.Join(data.DependencyDirectory, "assimp");
+        install_folder = Path.Join(dependency_folder, "cmake-install");
+        this.use_static_build = use_static_build;
     }
 
     public string GetName()
@@ -207,37 +207,37 @@ internal class DependencyAssimp : BuildDependency
 
     public void AddCmakeArguments(CMake.CMake cmake)
     {
-        cmake.AddArgument("ASSIMP_ROOT_DIR", _installFolder);
+        cmake.AddArgument("ASSIMP_ROOT_DIR", install_folder);
     }
 
     public void Install(BuildEnvironment env, Printer print, BuildData data)
     {
-        const string url = "https://github.com/assimp/assimp/archive/v5.0.1.zip";
+        const string URL = "https://github.com/assimp/assimp/archive/v5.0.1.zip";
 
         var generator = env.CreateCmakeGenerator();
 
         Printer.Header("Installing dependency assimp");
-        var zipFile = Path.Join(data.DependencyDirectory, "assimp.zip");
-        if (false == Directory.Exists(_dependencyFolder))
+        var zip_file = Path.Join(data.DependencyDirectory, "assimp.zip");
+        if (false == Directory.Exists(dependency_folder))
         {
-            Core.VerifyDirectoryExists(print, _dependencyFolder);
+            Core.VerifyDirectoryExists(print, dependency_folder);
             Core.VerifyDirectoryExists(print, data.DependencyDirectory);
             Printer.Info("downloading assimp");
-            Core.DownloadFileIfMissing(print, url, zipFile);
+            Core.DownloadFileIfMissing(print, URL, zip_file);
             Printer.Info("extracting assimp");
-            Core.ExtractZip(zipFile, _dependencyFolder);
-            var build = Path.Join(_dependencyFolder, "cmake-build");
-            Core.MoveFiles(print, Path.Join(_dependencyFolder, "assimp-5.0.1"), _dependencyFolder);
+            Core.ExtractZip(zip_file, dependency_folder);
+            var build = Path.Join(dependency_folder, "cmake-build");
+            Core.MoveFiles(print, Path.Join(dependency_folder, "assimp-5.0.1"), dependency_folder);
 
-            var project = new CMake.CMake(build, _dependencyFolder, generator);
+            var project = new CMake.CMake(build, dependency_folder, generator);
             project.AddArgument("ASSIMP_BUILD_X3D_IMPORTER", "0");
-            if (_useStaticBuild)
+            if (use_static_build)
             {
                 project.MakeStaticLibrary();
             }
-            Printer.Info($"Installing cmake to {_installFolder}");
-            project.SetInstallFolder(_installFolder);
-            Core.VerifyDirectoryExists(print, _installFolder);
+            Printer.Info($"Installing cmake to {install_folder}");
+            project.SetInstallFolder(install_folder);
+            Core.VerifyDirectoryExists(print, install_folder);
 
             project.Configure(print);
             project.Build(print, CMake.Config.Release);
@@ -253,8 +253,8 @@ internal class DependencyAssimp : BuildDependency
 
     public IEnumerable<string> GetStatus()
     {
-        yield return $"Root: {_dependencyFolder}";
-        yield return $"Install: {_installFolder}";
+        yield return $"Root: {dependency_folder}";
+        yield return $"Install: {install_folder}";
     }
 }
 
@@ -265,17 +265,17 @@ internal static class BuildUtils
 {
     private static IEnumerable<string> ListProjectsInSolution(string path)
     {
-        var directoryName = new DirectoryInfo(path).Name;
-        var projectLine = new Regex("""Project\("[^"]+"\) = "[^"]+", "([^"]+)" """.TrimEnd()); // possible to end a rawy string literal with a quote?
+        var directory_name = new DirectoryInfo(path).Name;
+        var project_line = new Regex("""Project\("[^"]+"\) = "[^"]+", "([^"]+)" """.TrimEnd()); // possible to end a rawy string literal with a quote?
         // with open(path) as sln
         {
             foreach (var line in File.ReadAllLines(path))
             {
                 // Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "richtext", "wx_richtext.vcxproj", "{7FB0902D-8579-5DCE-B883-DAF66A885005}"
-                var projectMatch = projectLine.Match(line);
-                if (projectMatch.Success)
+                var project_match = project_line.Match(line);
+                if (project_match.Success)
                 {
-                    yield return Path.Join(directoryName, projectMatch.Groups[1].Value);
+                    yield return Path.Join(directory_name, project_match.Groups[1].Value);
                 }
             }
         }
@@ -304,16 +304,16 @@ internal static class BuildUtils
     }
 
 
-    private static void MakeSingleProject64(Printer print, string projectPath, TextReplacer rep)
+    private static void MakeSingleProject64(Printer print, string project_path, TextReplacer rep)
     {
-        if (!Path.Exists(projectPath))
+        if (!Path.Exists(project_path))
         {
-            print.Error("missing " + projectPath);
+            print.Error("missing " + project_path);
             return;
         }
 
-        var lines = File.ReadLines(projectPath).Select(line => rep.Replace(line.TrimEnd()));
-        File.WriteAllLines(projectPath, lines.ToArray());
+        var lines = File.ReadLines(project_path).Select(line => rep.Replace(line.TrimEnd()));
+        File.WriteAllLines(project_path, lines.ToArray());
     }
 
 
@@ -334,21 +334,16 @@ internal static class BuildUtils
     }
 
 
-    private static void MakeSolution64(string solutionPath)
+    private static void MakeSolution64(string solution_path)
     {
         var rep = new TextReplacer();
         rep.Add("Win32", "x64");
 
-        var lines = new List<string>();
+        var lines = File.ReadLines(solution_path)
+            .Select(line => rep.Replace(line.TrimEnd()))
+            ;
 
-        //with open(solution_path) as slnlines
-        foreach (var line in File.ReadLines(solutionPath))
-        {
-            var newLine = rep.Replace(line.TrimEnd());
-            lines.Add(newLine);
-        }
-
-        File.WriteAllLines(solutionPath, lines.ToArray());
+        File.WriteAllLines(solution_path, lines.ToArray());
     }
 
 
@@ -421,17 +416,17 @@ internal static class BuildUtils
 
 internal class DependencyWxWidgets : BuildDependency
 {
-    private readonly string _rootFolder;
-    private readonly string _buildFolder;
-    private readonly string _url;
-    private readonly string _folderName;
+    private readonly string root_folder;
+    private readonly string build_folder;
+    private readonly string url;
+    private readonly string folder_name;
 
-    public DependencyWxWidgets(BuildData data, string zipFile, string folderName)
+    public DependencyWxWidgets(BuildData data, string url_to_zip_file, string folder_name)
     {
-        _rootFolder = Path.Combine(data.DependencyDirectory, folderName);
-        _buildFolder = Path.Combine(_rootFolder, "cmake-build");
-        _url = zipFile;
-        _folderName = folderName;
+        root_folder = Path.Combine(data.DependencyDirectory, folder_name);
+        build_folder = Path.Combine(root_folder, "cmake-build");
+        url = url_to_zip_file;
+        this.folder_name = folder_name;
     }
 
     public string GetName()
@@ -442,8 +437,8 @@ internal class DependencyWxWidgets : BuildDependency
     public void AddCmakeArguments(CMake.CMake cmake)
     {
         // if these differs it clears the lib dir... but also one is required to use / on windows... wtf!
-        cmake.AddArgument("WX_ROOT_DIR", _rootFolder.Replace('\\', '/'));
-        cmake.AddArgument("wxWidgets_ROOT_DIR", _rootFolder);
+        cmake.AddArgument("WX_ROOT_DIR", root_folder.Replace('\\', '/'));
+        cmake.AddArgument("wxWidgets_ROOT_DIR", root_folder);
         cmake.AddArgument("wxWidgets_CONFIGURATION", "mswu");
 
         cmake.AddArgument("wxWidgets_USE_REL_AND_DBG", "ON"); // require both debug and release
@@ -457,7 +452,7 @@ internal class DependencyWxWidgets : BuildDependency
 
     // todo(Gustav): switch this when building 32 bit
     private string GetLibraryFolder()
-        => Path.Join(_buildFolder, "lib", "vc_x64_lib");
+        => Path.Join(build_folder, "lib", "vc_x64_lib");
 
     public void Install(BuildEnvironment env, Printer print, BuildData data)
     {
@@ -465,42 +460,42 @@ internal class DependencyWxWidgets : BuildDependency
 
         Printer.Header("Installing dependency wxwidgets");
 
-        var zipFile = Path.Join(data.DependencyDirectory, $"{_folderName}.zip");
+        var zip_file = Path.Join(data.DependencyDirectory, $"{folder_name}.zip");
 
-        if (false == File.Exists(zipFile))
+        if (false == File.Exists(zip_file))
         {
-            Core.VerifyDirectoryExists(print, _rootFolder);
+            Core.VerifyDirectoryExists(print, root_folder);
             Core.VerifyDirectoryExists(print, data.DependencyDirectory);
             Printer.Info("downloading wxwidgets");
-            Core.DownloadFileIfMissing(print, _url, zipFile);
+            Core.DownloadFileIfMissing(print, url, zip_file);
         }
         else
         {
             Printer.Info("wxWidgets zip file exist, not downloading again...");
         }
 
-        if (false == File.Exists(Path.Join(_rootFolder, "CMakeLists.txt")))
+        if (false == File.Exists(Path.Join(root_folder, "CMakeLists.txt")))
         {
-            Core.ExtractZip(zipFile, _rootFolder);
+            Core.ExtractZip(zip_file, root_folder);
         }
         else
         {
             Printer.Info("wxWidgets is unzipped, not unzipping again");
         }
 
-        var buildDbg = false == File.Exists(Path.Join(GetLibraryFolder(), "wxzlibd.lib"));
-        var buildRel = false == File.Exists(Path.Join(GetLibraryFolder(), "wxzlib.lib"));
+        var build_dbg = false == File.Exists(Path.Join(GetLibraryFolder(), "wxzlibd.lib"));
+        var build_rel = false == File.Exists(Path.Join(GetLibraryFolder(), "wxzlib.lib"));
         
-        if (buildDbg || buildRel)
+        if (build_dbg || build_rel)
         {
-            var project = ConfigProject(print, _rootFolder, _buildFolder, generator);
-            if(buildDbg)
+            var project = ConfigProject(print, root_folder, build_folder, generator);
+            if(build_dbg)
             {
                 Printer.Info("building debug wxWidgets");
                 project.Build(print, CMake.Config.Debug);
             }
 
-            if(buildRel)
+            if(build_rel)
             {
                 Printer.Info("building release wxWidgets");
                 project.Build(print, CMake.Config.Release);
@@ -523,7 +518,7 @@ internal class DependencyWxWidgets : BuildDependency
 
     public IEnumerable<string> GetStatus()
     {
-        yield return $"Root: {_rootFolder}";
-        yield return $"Build: {_buildFolder}";
+        yield return $"Root: {root_folder}";
+        yield return $"Build: {build_folder}";
     }
 }

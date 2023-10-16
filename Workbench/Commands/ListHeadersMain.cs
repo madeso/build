@@ -54,7 +54,7 @@ internal sealed class FilesCommand : Command<FilesCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return CommonExecute.WithPrinter(print => F.HandleFiles(print, arg.GetPathToCompileCommandsOrNull(print), arg.Sources, arg.MostCommonCount, arg.PrintDebugInfo));
+        return CommonExecute.WithPrinter(print => F.HandleFiles(print, arg.GetPathToCompileCommandsOrNull(print), arg.Sources, arg.MostCommonCount));
     }
 }
 

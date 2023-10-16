@@ -16,16 +16,16 @@ internal class CheckNames
         return file.AcceptedTypes.Contains(name);
     }
     
-    private bool IsValidMethodName(string name, bool isCpp)
+    private bool IsValidMethodName(string name, bool is_cpp)
     {
-        if (isCpp)
+        if (is_cpp)
         {
             if(name.StartsWith("operator\"")) { return true; }
-            if (AcceptedCppNames.Contains(name)) { return true; }
+            if (accepted_cpp_names.Contains(name)) { return true; }
         }
         return file.AcceptedFunctions.Contains(name);
     }
-    private static readonly HashSet<string> AcceptedCppNames = new()
+    private static readonly HashSet<string> accepted_cpp_names = new()
     {
         "operator+",
         "operator-",
@@ -56,8 +56,8 @@ internal class CheckNames
     private static bool NoValidNames(string name) => false;
 
 
-    int namesChecked = 0;
-    int errorsDetected = 0;
+    int names_checked = 0;
+    int errors_detected = 0;
     private readonly Printer printer;
 
     public CheckNames(Printer printer, CheckNamesFile file)
@@ -68,15 +68,16 @@ internal class CheckNames
         string cwd = Environment.CurrentDirectory;
     }
 
-    internal bool CheckName(string name, locationType? loc, Func<string, bool> checkCase, Func<string, bool> validName, string source)
+    internal bool CheckName(string name, LocationType? loc, Func<string, bool> check_case,
+        Func<string, bool> valid_name, string source)
     {
         // doxygen hack
         if (name.StartsWith('@')) { return true; }
 
-        namesChecked += 1;
-        if(validName(name)) { return true; }
+        names_checked += 1;
+        if(valid_name(name)) { return true; }
 
-        if (checkCase(name) == false)
+        if (check_case(name) == false)
         {
             ReportError(loc, $"{name} is a invalid name for {source}");
             return false;
@@ -86,28 +87,28 @@ internal class CheckNames
     }
 
     readonly List<Fail> fails = new();
-    record Fail(locationType Location, string ErrorMessage);
+    record Fail(LocationType Location, string ErrorMessage);
 
-    private void ReportError(locationType? loc, string error)
+    private void ReportError(LocationType? loc, string error)
     {
-        if (loc == null || loc.file == "[generated]") { return; }
+        if (loc == null || loc.File == "[generated]") { return; }
 
-        errorsDetected += 1;
+        errors_detected += 1;
         fails.Add(new(loc, error));
     }
 
     private void PrintErrors(string root)
     {
         foreach (var f in fails
-            .OrderBy(x => x.Location.file)
-            .ThenByDescending(x => x.Location!.line)
+            .OrderBy(x => x.Location.File)
+            .ThenByDescending(x => x.Location!.Line)
             )
         {
             printer.Error(DoxygenUtils.LocationToString(f.Location, root), f.ErrorMessage);
         }
     }
 
-    internal static int Run(Printer printer, string doxygenXml, string root)
+    internal static int Run(Printer printer, string doxygen_xml, string root)
     {
         var file = CheckNamesFile.LoadFromDirectoryOrNull(printer);
         if (file == null)
@@ -115,7 +116,7 @@ internal class CheckNames
             return -1;
         }
 
-        var parsed = Doxygen.Doxygen.ParseIndex(doxygenXml);
+        var parsed = Doxygen.Doxygen.ParseIndex(doxygen_xml);
 
         CheckNames runner = new(printer, file);
         foreach (var k in DoxygenUtils.AllClasses(parsed))
@@ -123,12 +124,12 @@ internal class CheckNames
             runner.CheckClass(k);
         }
 
-        foreach(var k in parsed.compounds.Where(x => x.kind == CompoundKind.File))
+        foreach(var k in parsed.Compounds.Where(x => x.Kind == CompoundKind.File))
         {
             runner.CheckFile(k);
         }
 
-        foreach (var k in parsed.compounds.Where(x => x.kind == CompoundKind.Namespace))
+        foreach (var k in parsed.Compounds.Where(x => x.Kind == CompoundKind.Namespace))
         {
             runner.CheckNamespace(k);
         }
@@ -136,9 +137,9 @@ internal class CheckNames
         runner.PrintErrors(root);
         runner.WriteFunctionMatchLog();
 
-        AnsiConsole.MarkupLineInterpolated($"Found [red]{runner.errorsDetected}[/] issues in [blue]{runner.namesChecked}[/] names");
+        AnsiConsole.MarkupLineInterpolated($"Found [red]{runner.errors_detected}[/] issues in [blue]{runner.names_checked}[/] names");
 
-        return runner.errorsDetected > 0 ? -1 : 0;
+        return runner.errors_detected > 0 ? -1 : 0;
     }
 
     private void WriteFunctionMatchLog()
@@ -174,7 +175,7 @@ internal class CheckNames
     {
         foreach (var d in k.DoxygenFile.FirstCompound.SectionDefs)
         {
-            foreach (var m in d.memberdef)
+            foreach (var m in d.MemberDef)
             {
                 switch (m.Kind)
                 {
@@ -192,7 +193,7 @@ internal class CheckNames
                         break;
                     case DoxMemberKind.Function:
                         CheckFunction(m);
-                        CheckFunctionName(k.DoxygenFile.FirstCompound, m, isFunction: true);
+                        CheckFunctionName(k.DoxygenFile.FirstCompound, m, is_function: true);
                         break;
                     default:
                         throw new Exception("Unhandled type");
@@ -212,32 +213,32 @@ internal class CheckNames
         counts[name] = value;
     }
 
-    private void CheckFunctionName(CompoundDef c, memberdefType mem, bool isFunction)
+    private void CheckFunctionName(CompoundDef c, MemberDefinitionType mem, bool is_function)
     {
-        var source = isFunction ? "function" : "method";
+        var source = is_function ? "function" : "method";
         
         if (IsValidMethodName(mem.Name, c.Language == DoxLanguage.Cpp))
         {
             return;
         }
 
-        var memName = RemoveTemplateArguments(mem.Name);
+        var member_name = RemoveTemplateArguments(mem.Name);
 
-        if (false == CheckName(memName, mem.Location, CaseMatch.IsLowerSnakeCase, _ => true, source))
+        if (false == CheckName(member_name, mem.Location, CaseMatch.IsLowerSnakeCase, _ => true, source))
         {
             return;
         }
 
-        if (mem.Location != null && file.IgnoredFiles.Contains(mem.Location.file))
+        if (mem.Location != null && file.IgnoredFiles.Contains(mem.Location.File))
         {
             return;
         }
 
-        var entries = memName.Split('_', StringSplitOptions.TrimEntries)
+        var entries = member_name.Split('_', StringSplitOptions.TrimEntries)
             .SkipWhile(file.KnownFunctionPrefixes.Contains)
             .ToArray()
             ;
-        var firstName = entries[0].ToLower()
+        var first_name = entries[0].ToLower()
             // for a name get360 the verb should be just get
             .TrimEnd("0123456789".ToCharArray());
 
@@ -245,23 +246,23 @@ internal class CheckNames
         {
             bool add = true;
 
-            if(file.KnownFunctionVerbs.Contains(firstName) == false)
+            if(file.KnownFunctionVerbs.Contains(first_name) == false)
             {
-                if (file.BadFunctionVerbs.TryGetValue(firstName, out var suggestedReplacements))
+                if (file.BadFunctionVerbs.TryGetValue(first_name, out var suggested_replacements))
                 {
-                    var message = StringListCombiner.EnglishOr().Combine(suggestedReplacements);
-                    var are = suggestedReplacements.Length ==1 ? "is" : "are";
-                    this.ReportError(mem.Location, $"{firstName} is not a recomended verb for {memName}: suggestions {are}: {message}");
+                    var message = StringListCombiner.EnglishOr().Combine(suggested_replacements);
+                    var are = suggested_replacements.Length ==1 ? "is" : "are";
+                    this.ReportError(mem.Location, $"{first_name} is not a recomended verb for {member_name}: suggestions {are}: {message}");
                 }
                 else
                 {
-                    this.ReportError(mem.Location, $"{firstName} is not a known verb for {memName}");
+                    this.ReportError(mem.Location, $"{first_name} is not a known verb for {member_name}");
                 }
             }
 
             if(add)
             {
-                AddCount(firstName);
+                AddCount(first_name);
             }
         }
     }
@@ -270,9 +271,9 @@ internal class CheckNames
     {
         if(c.Templateparamlist != null)
         {
-            CheckTemplateArguments(c.Location!, c.Templateparamlist.param);
+            CheckTemplateArguments(c.Location!, c.Templateparamlist.Params);
         }
-        foreach (var mem in c.SectionDefs.SelectMany(x => x.memberdef))
+        foreach (var mem in c.SectionDefs.SelectMany(x => x.MemberDef))
         {
             switch (mem.Kind)
             {
@@ -293,7 +294,7 @@ internal class CheckNames
                     if (DoxygenUtils.IsConstructorOrDestructor(mem) == false &&
                         DoxygenUtils.IsFunctionOverride(mem) == false)
                     {
-                        CheckFunctionName(c, mem, isFunction: false);
+                        CheckFunctionName(c, mem, is_function: false);
                     }
                     break;
                 case DoxMemberKind.Friend:
@@ -323,38 +324,38 @@ internal class CheckNames
         return name.Split("::", StringSplitOptions.RemoveEmptyEntries).Last().Trim();
     }
 
-    private void CheckFunction(memberdefType mem)
+    private void CheckFunction(MemberDefinitionType mem)
     {
-        if (mem.Templateparamlist != null && mem.Location != null)
+        if (mem.TemplateParamList != null && mem.Location != null)
         {
-            CheckTemplateArguments(mem.Location, mem.Templateparamlist.param);
+            CheckTemplateArguments(mem.Location, mem.TemplateParamList.Params);
         }
     }
 
-    private void CheckEnum(memberdefType mem)
+    private void CheckEnum(MemberDefinitionType mem)
     {
         CheckName(mem.Name, mem.Location, CaseMatch.IsCamelCase, NoValidNames, "enum");
-        foreach(var e in mem.Enumvalue)
+        foreach(var e in mem.EnumValues)
         {
-            CheckName(e.name, mem.Location, CaseMatch.IsLowerSnakeCase, NoValidNames, "enum value");
+            CheckName(e.Name, mem.Location, CaseMatch.IsLowerSnakeCase, NoValidNames, "enum value");
         }
     }
 
-    private void CheckTypedef(memberdefType mem)
+    private void CheckTypedef(MemberDefinitionType mem)
     {
         CheckName(mem.Name, mem.Location, CaseMatch.IsCamelCase, NoValidNames, "typedef");
     }
 
-    private void CheckDefine(memberdefType mem)
+    private void CheckDefine(MemberDefinitionType mem)
     {
         CheckName(mem.Name, mem.Location, CaseMatch.IsCamelCase, NoValidNames, "define");
     }
 
-    private void CheckTemplateArguments(locationType location, paramType[] pp)
+    private void CheckTemplateArguments(LocationType location, ParamType[] pp)
     {
         foreach (var t in pp)
         {
-            var val = t.type!.ToString();
+            var val = t.Type!.ToString();
             // foreach (var n in t.type!.Nodes)
             {
                 //if (n is linkedTextType.Text text)
@@ -371,17 +372,17 @@ internal class CheckNames
         }
     }
 
-    private void CheckTemplateParamName(locationType location, string templateName)
+    private void CheckTemplateParamName(LocationType location, string template_name)
     {
         // the name is a single char and it's uppercase it's valid
-        if (templateName.Length == 1 && templateName[0] == templateName.ToUpper()[0]) { return; }
+        if (template_name.Length == 1 && template_name[0] == template_name.ToUpper()[0]) { return; }
 
         // otherwise it must follow the "template name"
-        CheckName(templateName, location, CaseMatch.IsTemplateName, ValidTypeNames, "template param");
+        CheckName(template_name, location, CaseMatch.IsTemplateName, ValidTypeNames, "template param");
 
-        if(templateName.EndsWith("Function") || templateName.EndsWith("Fun"))
+        if(template_name.EndsWith("Function") || template_name.EndsWith("Fun"))
         {
-            ReportError(location, $"End template arguments representing functions with Func instead of Function or Fun for {templateName}");
+            ReportError(location, $"End template arguments representing functions with Func instead of Function or Fun for {template_name}");
         }
     }
 

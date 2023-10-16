@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Workbench.CMake;
-using Workbench.Tools;
 using static Workbench.CheckIncludes.CheckAction;
 
 namespace Workbench.Commands.ToolsCommands;
@@ -41,21 +40,21 @@ internal sealed class LineCountCommand : Command<LineCountCommand.Arg>
 
         [CommandOption("--each")]
         [DefaultValue(1)]
-        public int each { get; set; } = 1;
+        public int Each { get; set; } = 1;
 
         [CommandOption("--show")]
         [DefaultValue(false)]
-        public bool show { get; set; } = false;
+        public bool Show { get; set; } = false;
 
         [CommandOption("--include-empty")]
         [DefaultValue(true)]
-        public bool discard_empty { get; set; } = true;
+        public bool DiscardEmpty { get; set; } = true;
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => F.HandleLineCountCommand(print, settings.Files,
-            settings.each, settings.show, settings.discard_empty));
+        return CommonExecute.WithPrinter(print => Tools.HandleLineCountCommand(print, settings.Files,
+            settings.Each, settings.Show, settings.DiscardEmpty));
     }
 }
 
@@ -73,36 +72,36 @@ internal sealed class IncludeListCommand : Command<IncludeListCommand.Arg>
 
         [CommandOption("--print")]
         [DefaultValue(false)]
-        public bool print_files { get; set; } = false;
+        public bool PrintFiles { get; set; } = false;
 
         [CommandOption("--print-stats")]
         [DefaultValue(false)]
-        public bool print_stats { get; set; } = false;
+        public bool PrintStats { get; set; } = false;
 
         [CommandOption("--print-max")]
         [DefaultValue(false)]
-        public bool print_max { get; set; } = false;
+        public bool PrintMax { get; set; } = false;
 
         [CommandOption("--no-list")]
         [DefaultValue(true)]
-        public bool print_list { get; set; } = true;
+        public bool PrintList { get; set; } = true;
 
         [CommandOption("--count")]
         [DefaultValue(2)]
         [Description("only print.Info includes that are more or equal to <count>")]
-        public int count { get; set; } = 2;
+        public int Count { get; set; } = 2;
         
 
         [CommandOption("--limit")]
         [Description("limit search to theese files and folders")]
-        public string[] limit { get; set; } = Array.Empty<string> ();
+        public string[] Limit { get; set; } = Array.Empty<string> ();
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => F.HandleListCommand(print, settings.GetPathToCompileCommandsOrNull(print),
-            settings.Files, settings.print_files, settings.print_stats, settings.print_max,
-            settings.print_list, settings.count, settings.limit));
+        return CommonExecute.WithPrinter(print => Tools.HandleListCommand(print, settings.GetPathToCompileCommandsOrNull(print),
+            settings.Files, settings.PrintFiles, settings.PrintStats, settings.PrintMax,
+            settings.PrintList, settings.Count, settings.Limit));
     }
 }
 
@@ -120,24 +119,24 @@ internal sealed class IncludeGraphvizCommand : Command<IncludeGraphvizCommand.Ar
 
         [CommandOption("--limit")]
         [Description("limit search to theese files and folders")]
-        public string[] limit { get; set; } = Array.Empty<string> ();
+        public string[] Limit { get; set; } = Array.Empty<string> ();
 
         [CommandOption("--group")]
         [Description("group output")]
         [DefaultValue(false)]
-        public bool group { get; set; } = false;
+        public bool Group { get; set; } = false;
 
         [CommandOption("--cluster")]
         [Description("group output into clusters")]
         [DefaultValue(false)]
-        public bool cluster { get; set; } = false;
+        public bool Cluster { get; set; } = false;
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return CommonExecute.WithPrinter(print =>
-            F.HandleGraphvizCommand(print, settings.GetPathToCompileCommandsOrNull(print),
-                settings.Files, settings.limit, settings.group, settings.cluster));
+            Tools.HandleGraphvizCommand(print, settings.GetPathToCompileCommandsOrNull(print),
+                settings.Files, settings.Limit, settings.Group, settings.Cluster));
     }
 }
 
@@ -156,25 +155,25 @@ internal sealed class ListIndentsCommand : Command<ListIndentsCommand.Arg>
         [CommandOption("--each")]
         [Description("group counts")]
         [DefaultValue(1)]
-        public int each { get; set;} = 0;
+        public int Each { get; set;} = 0;
 
         [CommandOption("--show")]
         [Description("include files in list")]
-        public bool show { get; set; } = false;
+        public bool Show { get; set; } = false;
 
         [CommandOption("--hist")]
         [Description("show simple histogram")]
-        public bool hist { get; set; } = false;
+        public bool DisplayHistogram { get; set; } = false;
 
         [CommandOption("--include-empty")]
         [DefaultValue(true)]
-        public bool discard_empty { get; set; } = true;
+        public bool DiscardEmpty { get; set; } = true;
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return CommonExecute.WithPrinter(print =>
-            F.HandleListIndents(print, settings.Files, settings.each, settings.show, settings.hist, settings.discard_empty));
+            Tools.HandleListIndents(print, settings.Files, settings.Each, settings.Show, settings.DisplayHistogram, settings.DiscardEmpty));
     }
 }
 
@@ -193,7 +192,7 @@ internal sealed class MissingPragmaOnceCommand : Command<MissingPragmaOnceComman
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => F.MissingIncludeGuardsCommand(print, settings.Files));
+        return CommonExecute.WithPrinter(print => Tools.MissingIncludeGuardsCommand(print, settings.Files));
     }
 }
 
@@ -221,7 +220,7 @@ internal sealed class MissingInCmakeCommand : Command<MissingInCmakeCommand.Arg>
                 return -1;
             }
 
-            return F.HandleMissingInCmakeCommand(print, settings.Files, CMake.CmakeTools.FindBuildOrNone(settings, print), cmake);
+            return Tools.HandleMissingInCmakeCommand(print, settings.Files, CMake.CmakeTools.FindBuildOrNone(settings, print), cmake);
         });
     }
 }
@@ -250,7 +249,7 @@ internal sealed class ListNoProjectFoldersCommand : Command<ListNoProjectFolders
                 return -1;
             }
 
-            return F.HandleListNoProjectFolderCommand(print, settings.Files, settings.GetPathToCompileCommandsOrNull(print), cmake);
+            return Tools.HandleListNoProjectFolderCommand(print, settings.Files, settings.GetPathToCompileCommandsOrNull(print), cmake);
         });
     }
 }
@@ -270,7 +269,7 @@ internal sealed class CheckFilesCommand : Command<CheckFilesCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => F.HandleCheckFilesCommand(print, settings.Files));
+        return CommonExecute.WithPrinter(print => Tools.HandleCheckFilesCommand(print, settings.Files));
     }
 }
 

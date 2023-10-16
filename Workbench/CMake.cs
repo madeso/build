@@ -8,41 +8,41 @@ namespace Workbench.CMake;
 
 internal static class CmakeTools
 {
-    private const string CmakeCacheFile = "CMakeCache.txt";
+    private const string CMAKE_CACHE_FILE = "CMakeCache.txt";
 
     private static Found FindInstallationInRegistry(Printer printer)
     {
-        const string registrySource = "registry";
+        const string REGISTRY_SOURCE = "registry";
 
-        var installDir = Registry.Hklm(@"SOFTWARE\Kitware\CMake", "InstallDir");
-        if (installDir == null) { return new Found(null, registrySource); }
+        var install_dir = Registry.Hklm(@"SOFTWARE\Kitware\CMake", "InstallDir");
+        if (install_dir == null) { return new Found(null, REGISTRY_SOURCE); }
 
-        var path = Path.Join(installDir, "bin", "cmake.exe");
+        var path = Path.Join(install_dir, "bin", "cmake.exe");
         if (File.Exists(path) == false)
         {
             printer.Error($"Found path to cmake in registry ({path}) but it didn't exist");
-            return new Found(null, registrySource);
+            return new Found(null, REGISTRY_SOURCE);
         }
 
-        return new Found(path, registrySource);
+        return new Found(path, REGISTRY_SOURCE);
     }
 
 
     private static Found FindInstallationInPath(Printer printer)
     {
-        const string pathSource = "path";
+        const string PATH_SOURCE = "path";
         var path = Which.Find("cmake");
         if (path == null)
         {
-            return new Found(null, pathSource);
+            return new Found(null, PATH_SOURCE);
         }
 
         if (File.Exists(path) == false)
         {
             printer.Error($"Found path to cmake in path ({path}) but it didn't exist");
-            return new Found(null, pathSource);
+            return new Found(null, PATH_SOURCE);
         }
-        return new Found(path, pathSource);
+        return new Found(path, PATH_SOURCE);
     }
 
 
@@ -63,13 +63,13 @@ internal static class CmakeTools
     {
         var source = "current dir";
 
-        var buildRoot = new DirectoryInfo(Environment.CurrentDirectory).FullName;
-        if (new FileInfo(Path.Join(buildRoot, CmakeCacheFile)).Exists == false)
+        var build_root = new DirectoryInfo(Environment.CurrentDirectory).FullName;
+        if (new FileInfo(Path.Join(build_root, CMAKE_CACHE_FILE)).Exists == false)
         {
             return new Found(null, source);
         }
 
-        return new Found(buildRoot, source);
+        return new Found(build_root, source);
     }
 
     public static Found FindBuildFromCompileCommands(CompileCommandsArguments settings, Printer printer)
@@ -82,7 +82,7 @@ internal static class CmakeTools
     {
         var cwd = Environment.CurrentDirectory;
         var roots = FileUtil.PitchforkBuildFolders(cwd)
-            .Where(root => new FileInfo(Path.Join(root, CmakeCacheFile)).Exists)
+            .Where(root => new FileInfo(Path.Join(root, CMAKE_CACHE_FILE)).Exists)
             .ToImmutableArray();
 
         return roots.Length switch
@@ -166,16 +166,16 @@ public enum Install
 // utility to call cmake commands on a project
 public class CMake
 {
-    public CMake(string buildFolder, string sourceFolder, Generator generator)
+    public CMake(string build_folder, string source_folder, Generator generator)
     {
         this.generator = generator;
-        this.buildFolder = buildFolder;
-        this.sourceFolder = sourceFolder;
+        this.build_folder = build_folder;
+        this.source_folder = source_folder;
     }
 
     private readonly Generator generator;
-    private readonly string buildFolder;
-    private readonly string sourceFolder;
+    private readonly string build_folder;
+    private readonly string source_folder;
     private readonly List<Argument> arguments = new();
 
 
@@ -220,7 +220,7 @@ public class CMake
             command.AddArgument(argument);
         }
 
-        command.AddArgument(sourceFolder);
+        command.AddArgument(source_folder);
         command.AddArgument("-G");
         command.AddArgument(generator.Name);
         if (generator.Arch != null)
@@ -229,8 +229,8 @@ public class CMake
             command.AddArgument(generator.Arch);
         }
 
-        Core.VerifyDirectoryExists(printer, buildFolder);
-        command.WorkingDirectory = buildFolder;
+        Core.VerifyDirectoryExists(printer, build_folder);
+        command.WorkingDirectory = build_folder;
 
         if (Core.IsWindows())
         {
@@ -276,8 +276,8 @@ public class CMake
             _ => throw new NotImplementedException(),
         });
 
-        Core.VerifyDirectoryExists(printer, buildFolder);
-        command.WorkingDirectory = buildFolder;
+        Core.VerifyDirectoryExists(printer, build_folder);
+        command.WorkingDirectory = build_folder;
 
         if (Core.IsWindows())
         {
@@ -316,12 +316,29 @@ public class Trace
     [JsonPropertyName("args")]
     public string[] Args { set; get; } = Array.Empty<string>();
 
-    public static IEnumerable<Trace> TraceDirectory(string cmakeExecutable, string dir)
+    public static IEnumerable<Trace> TraceDirectory(string cmake_executable, string dir)
     {
         List<Trace> lines = new();
         List<string> error = new();
 
-        void OnLine(string src)
+        var stderr = new List<string>();
+        var ret = new ProcessBuilder(cmake_executable, "--trace-expand", "--trace-format=json-v1", "-S", Environment.CurrentDirectory, "-B", dir)
+            .InDirectory(dir)
+            .RunWithCallback(null, on_line, err => { on_line(err); stderr.Add(err); }, (err, ex) => { error.Add(err); error.Add(ex.Message);})
+            .ExitCode
+            ;
+
+        if (ret == 0)
+        {
+            return lines;
+        }
+
+        var stderr_message = string.Join(Environment.NewLine, stderr).Trim();
+        var space = string.IsNullOrEmpty(stderr_message) ? string.Empty : ": ";
+        var error_message = string.Join(Environment.NewLine, error);
+        throw new TraceError($"{stderr_message}{space}{error.Count} -> {error_message}");
+
+        void on_line(string src)
         {
             try
             {
@@ -345,24 +362,6 @@ public class Trace
                 error.Add($"{src}: {ex.Message}");
             }
         }
-
-        var stderr = new List<string>();
-        var ret = new ProcessBuilder(cmakeExecutable, "--trace-expand", "--trace-format=json-v1", "-S", Environment.CurrentDirectory, "-B", dir)
-            .InDirectory(dir)
-            .RunWithCallback(null, OnLine, err => { OnLine(err); stderr.Add(err); }, (err, ex) => { error.Add(err); error.Add(ex.Message);})
-            .ExitCode
-            ;
-
-        if (ret == 0)
-        {
-            return lines;
-        }
-
-        var stderrMessage = string.Join(Environment.NewLine, stderr).Trim();
-        var space = string.IsNullOrEmpty(stderrMessage) ? string.Empty : ": ";
-        var errorMessage = string.Join(Environment.NewLine, error);
-        throw new TraceError($"{stderrMessage}{space}{error.Count} -> {errorMessage}");
-
     }
 
     
@@ -376,13 +375,13 @@ public class Trace
         return ListFilesInArgs("WIN32", "MACOSX_BUNDLE");
     }
 
-    private IEnumerable<string> ListFilesInArgs(params string[] argumentsToIgnore)
+    private IEnumerable<string> ListFilesInArgs(params string[] arguments_to_ignore)
     {
         var folder = new FileInfo(File!).Directory?.FullName!;
 
         return Args
                 .Skip(1) // name of library/app
-                .SkipWhile(argumentsToIgnore.Contains)
+                .SkipWhile(arguments_to_ignore.Contains)
                 .SelectMany(a => a.Split(';'))
                 .Select(f => new FileInfo(Path.Join(folder, f)).FullName)
             ;
@@ -400,7 +399,7 @@ internal class TraceError : Exception
     {
     }
 
-    public TraceError(string? message, Exception? innerException) : base(message, innerException)
+    public TraceError(string? message, Exception? inner_exception) : base(message, inner_exception)
     {
     }
 

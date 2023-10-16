@@ -10,13 +10,13 @@ public static class Reflect
     public static IEnumerable<KeyValuePair<TData, TMember>>
         PublicStaticValuesOf<TContainer, TMember, TData>(Resolvers<TData> resolvers)
     {
-        var containerType = typeof(TContainer);
-        var memberType = typeof(TMember);
+        var container_type = typeof(TContainer);
+        var member_type = typeof(TMember);
 
-        foreach (var member in containerType
+        foreach (var member in container_type
                      .GetFields(BindingFlags.Public | BindingFlags.Static))
         {
-            if (member.FieldType != memberType)
+            if (member.FieldType != member_type)
             {
                 continue;
             }
@@ -26,10 +26,10 @@ public static class Reflect
             yield return new KeyValuePair<TData, TMember>(resolvers.Member(member), (TMember)val);
         }
 
-        foreach (var property in containerType
+        foreach (var property in container_type
                      .GetProperties(BindingFlags.Public | BindingFlags.Static))
         {
-            if (property.DeclaringType != memberType)
+            if (property.DeclaringType != member_type)
             {
                 continue;
             }
@@ -49,11 +49,11 @@ public static class Reflect
     {
         return new Resolvers<TAttribute>
             (
-                mem => GetAttribute(mem.GetCustomAttributes()),
-                prop => GetAttribute(prop.GetCustomAttributes())
+                mem => get_attribute(mem.GetCustomAttributes()),
+                prop => get_attribute(prop.GetCustomAttributes())
             );
 
-        static TAttribute GetAttribute(IEnumerable<Attribute> attributes)
+        static TAttribute get_attribute(IEnumerable<Attribute> attributes)
         {
             foreach (var attribute in attributes)
             {

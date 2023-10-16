@@ -22,8 +22,8 @@ public static class FileExtensions
         return new FileInfo(Path.Join(dir.FullName, file));
     }
 
-    public static bool HasFile(this DirectoryInfo buildFolder, string x)
+    public static bool HasFile(this DirectoryInfo build_folder, string x)
     {
-        return Path.GetRelativePath(buildFolder.FullName, x).StartsWith("..") == false;
+        return Path.GetRelativePath(build_folder.FullName, x).StartsWith("..") == false;
     }
 }

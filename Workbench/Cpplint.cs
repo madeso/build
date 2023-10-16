@@ -46,17 +46,17 @@ public static class Cpplint
     public static int HandleRun(Printer printer, string root)
     {
         var files = FileUtil.ListAllFiles(root);
-        var hasErrors = false;
+        var has_errors = false;
         foreach(var f in files)
         {
             var e = run_file(printer, f);
             if(e != null)
             {
-                hasErrors = true;
+                has_errors = true;
             }
         }
 
-        if(hasErrors)
+        if(has_errors)
         {
             return -1;
         }

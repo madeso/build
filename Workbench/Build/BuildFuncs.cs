@@ -100,18 +100,18 @@ internal static class F
         Printer.Info($"  Root: {data.RootDirectory}");
         Printer.Info($"  Build: {data.ProjectDirectory}");
         Printer.Info($"  Dependencies: {data.DependencyDirectory}");
-        const string indent = "    ";
+        const string INDENT = "    ";
         if (data.Dependencies.Count > 0)
         {
             Printer.Info("");
         }
         foreach (var dep in data.Dependencies)
         {
-            Printer.Info($"{indent}{dep.GetName()}");
+            Printer.Info($"{INDENT}{dep.GetName()}");
             var lines = dep.GetStatus();
             foreach (var line in lines)
             {
-                Printer.Info($"{indent}{indent}{line}");
+                Printer.Info($"{INDENT}{INDENT}{line}");
             }
         }
 

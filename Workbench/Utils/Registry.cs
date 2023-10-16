@@ -4,7 +4,7 @@ namespace Workbench.Utils;
 
 public static class Registry
 {
-    public static string? Hklm(string keyName, string valueName)
+    public static string? Hklm(string key_name, string value_name)
     {
         if (Core.IsWindows() == false)
         {
@@ -13,13 +13,13 @@ public static class Registry
 
         var root = Microsoft.Win32.Registry.LocalMachine;
 
-        var key = root.OpenSubKey(keyName);
+        var key = root.OpenSubKey(key_name);
         if (key == null) { return null; }
 
-        var kind = key.GetValueKind(valueName);
+        var kind = key.GetValueKind(value_name);
         if (kind != Microsoft.Win32.RegistryValueKind.String) { return null; }
 
-        var value = key.GetValue(valueName);
+        var value = key.GetValue(value_name);
         if (value == null) { return null; }
 
         return value.ToString();
