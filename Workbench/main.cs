@@ -30,6 +30,7 @@ internal class Program
             Commands.Hero.Main.Configure(config, "hero");
             Commands.CppLint.Main.Configure(config, "cpplint");
             Commands.Tools.Main.Configure(config, "tools");
+            Commands.LineCount.Main.Configure(config, "line-count");
             Commands.SlnDeps.Main.Configure(config, "slndeps");
             Commands.CodeCity.Main.Configure(config, "code-city");
             Commands.CheckOrderInFile.Main.Configure(config, "order-in-file");

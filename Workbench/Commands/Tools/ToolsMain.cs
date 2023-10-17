@@ -1,7 +1,9 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using Spectre.Console;
 using Spectre.Console.Cli;
 using Workbench.CMake;
+using Workbench.Utils;
 
 namespace Workbench.Commands.Tools;
 
@@ -12,9 +14,9 @@ wb tools check-missing-in-cmake
 wb tools check-missing-in-cmake libs
 wb tools check-missing-in-cmake libs apps
 
-wb tools list-no-project-folders libs apps
-wb tools list-no-project-folders libs apps external
-wb tools list-no-project-folders libs apps external tools data
+wb tools check-no-project-folders libs apps
+wb tools check-no-project-folders libs apps external
+wb tools check-no-project-folders libs apps external tools data
 
 wb tools check-missing-pragma-once libs apps
 wb tools check-missing-pragma-once libs apps
@@ -29,49 +31,17 @@ internal class Main
         config.AddBranch(name, cmake =>
         {
             cmake.SetDescription("various smaller tools for investigating code health and getting statistics");
-            cmake.AddCommand<LineCountCommand>("line-count");
-
+            
             cmake.AddCommand<IncludeListCommand>("include-list");
             cmake.AddCommand<IncludeGraphvizCommand>("include-gv");
 
-            cmake.AddCommand<MissingPragmaOnceCommand>("check-missing-pragma-once");
-            cmake.AddCommand<MissingInCmakeCommand>("check-missing-in-cmake");
-            cmake.AddCommand<ListNoProjectFoldersCommand>("list-no-project-folders");
+            cmake.AddCommand<CheckForMissingPragmaOnceCommand>("check-missing-pragma-once");
+            cmake.AddCommand<CheckForMissingInCmakeCommand>("check-missing-in-cmake");
+            cmake.AddCommand<CheckForNoProjectFoldersCommand>("check-no-project-folders");
             cmake.AddCommand<CheckFileNamesCommand>("check-file-names");
         });
     }
 }
-
-
-[Description("list line counts")]
-internal sealed class LineCountCommand : Command<LineCountCommand.Arg>
-{
-    public sealed class Arg : CommandSettings
-    {
-        [Description("File to read")]
-        [CommandArgument(0, "<input files>")]
-        public string[] Files { get; set; } = Array.Empty<string>();
-
-        [CommandOption("--each")]
-        [DefaultValue(1)]
-        public int Each { get; set; } = 1;
-
-        [CommandOption("--show")]
-        [DefaultValue(false)]
-        public bool Show { get; set; } = false;
-
-        [CommandOption("--include-empty")]
-        [DefaultValue(true)]
-        public bool DiscardEmpty { get; set; } = true;
-    }
-
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
-    {
-        return CommonExecute.WithPrinter(print => Tools.HandleLineCountCommand(print, settings.Files,
-            settings.Each, settings.Show, settings.DiscardEmpty));
-    }
-}
-
 
 
 
@@ -158,7 +128,7 @@ internal sealed class IncludeGraphvizCommand : Command<IncludeGraphvizCommand.Ar
 
 
 [Description("find headers with missing include guards")]
-internal sealed class MissingPragmaOnceCommand : Command<MissingPragmaOnceCommand.Arg>
+internal sealed class CheckForMissingPragmaOnceCommand : Command<CheckForMissingPragmaOnceCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -177,7 +147,7 @@ internal sealed class MissingPragmaOnceCommand : Command<MissingPragmaOnceComman
 
 
 [Description("find files that exists on disk but are missing in cmake")]
-internal sealed class MissingInCmakeCommand : Command<MissingInCmakeCommand.Arg>
+internal sealed class CheckForMissingInCmakeCommand : Command<CheckForMissingInCmakeCommand.Arg>
 {
     public sealed class Arg : CompileCommandsArguments
     {
@@ -206,7 +176,7 @@ internal sealed class MissingInCmakeCommand : Command<MissingInCmakeCommand.Arg>
 
 
 [Description("find projects that have not set the solution folder")]
-internal sealed class ListNoProjectFoldersCommand : Command<ListNoProjectFoldersCommand.Arg>
+internal sealed class CheckForNoProjectFoldersCommand : Command<CheckForNoProjectFoldersCommand.Arg>
 {
     public sealed class Arg : CompileCommandsArguments
     {

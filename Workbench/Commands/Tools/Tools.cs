@@ -230,29 +230,6 @@ internal static class Tools
     }
 
 
-    private static IEnumerable<string> FileReadLines(string path, bool discard_empty)
-    {
-        var lines = File.ReadLines(path);
-
-        if (!discard_empty)
-        {
-            return lines;
-        }
-
-        return lines
-            .Where(line => string.IsNullOrWhiteSpace(line) == false)
-            ;
-
-    }
-
-
-    private static int GetLineCount(string path, bool discard_empty)
-    {
-        return FileReadLines(path, discard_empty)
-            .Count();
-    }
-
-
     private static bool ContainsPragmaOnce(string path)
     {
         return File.ReadLines(path)
@@ -464,9 +441,12 @@ internal static class Tools
             }
             AnsiConsole.WriteLine("");
         }
+
+
         AnsiConsole.WriteLine($"Found missing: {total_missing} projects in {missing_files} files");
         PrintMostCommon(print, project_folders, 10);
 
+        // todo(Gustav): return error when things are missing
         return 0;
     }
 
@@ -505,49 +485,6 @@ internal static class Tools
         }
 
         AnsiConsole.WriteLine($"Found {count} files not referenced in cmake");
-        return 0;
-    }
-
-    public static int HandleLineCountCommand(Printer print, string[] args_files,
-        int each,
-        bool args_show,
-        bool args_discard_empty)
-    {
-        var stats = new Dictionary<int, List<string>>();
-        var file_count = 0;
-
-        foreach (var file in FileUtil.ListFilesRecursively(args_files, FileUtil.HeaderAndSourceFiles))
-        {
-            file_count += 1;
-
-            var count = GetLineCount(file, args_discard_empty);
-
-            var index = each <= 1 ? count : count - count % each;
-            if (stats.TryGetValue(index, out var data_values))
-            {
-                data_values.Add(file);
-            }
-            else
-            {
-                stats.Add(index, new List<string> { file });
-            }
-        }
-
-        AnsiConsole.WriteLine($"Found {file_count} files.");
-        foreach (var (count, files) in stats.OrderBy(x => x.Key))
-        {
-            var c = files.Count;
-            var count_str = each <= 1 ? $"{count}" : $"{count}-{count + each - 1}";
-            if (args_show && c < 3)
-            {
-                AnsiConsole.WriteLine($"{count_str}: {files}");
-            }
-            else
-            {
-                AnsiConsole.WriteLine($"{count_str}: {c}");
-            }
-        }
-
         return 0;
     }
 
