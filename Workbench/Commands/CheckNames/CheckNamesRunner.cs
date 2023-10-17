@@ -84,16 +84,14 @@ internal class CheckNamesRunner
     private static bool NoValidNames(string name) => false;
 
 
-    int names_checked = 0;
-    int errors_detected = 0;
+    private int names_checked = 0;
+    private int errors_detected = 0;
     private readonly Printer printer;
 
     public CheckNamesRunner(Printer printer, CheckNamesFile file)
     {
         this.printer = printer;
         this.file = file;
-
-        string cwd = Environment.CurrentDirectory;
     }
 
     internal bool CheckName(string name, LocationType? loc, Func<string, bool> check_case,
@@ -354,7 +352,7 @@ internal class CheckNamesRunner
 
     private void CheckFunction(MemberDefinitionType mem)
     {
-        if (mem.TemplateParamList != null && mem.Location != null)
+        if (mem is { TemplateParamList: not null, Location: not null })
         {
             CheckTemplateArguments(mem.Location, mem.TemplateParamList.Params);
         }
@@ -391,7 +389,7 @@ internal class CheckNamesRunner
                     //var val = text.Value;
                     // if (val == "typename..." || val == "typename") { continue; }
                     var cmds = val.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (cmds.Length == 2 && cmds[0] == "typename")
+                    if (cmds is ["typename", _])
                     {
                         CheckTemplateParamName(location, cmds[1]);
                     }

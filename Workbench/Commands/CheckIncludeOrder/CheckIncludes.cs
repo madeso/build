@@ -291,10 +291,7 @@ public static class IncludeTools
 
             if (line.StartsWith("#include") == false) { continue; }
 
-            if (r.FirstLineIndex == null)
-            {
-                r.FirstLineIndex = line_num;
-            }
+            r.FirstLineIndex ??= line_num;
             r.LastLineIndex = line_num;
 
             var l = line.TrimEnd();
@@ -385,10 +382,7 @@ public static class IncludeTools
         int? current_class = null;
         foreach (var i in includes)
         {
-            if (current_class == null)
-            {
-                current_class = i.LineClass;
-            }
+            current_class ??= i.LineClass;
 
             if (current_class.Value != i.LineClass)
             {

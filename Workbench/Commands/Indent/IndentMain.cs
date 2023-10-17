@@ -98,7 +98,7 @@ internal sealed class ListIndentsCommand : Command<ListIndentsCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print =>
+        return Printer.PrintErrorsAtExit(print =>
             IndentFunctions.HandleListIndents(settings.Files, settings.Each, settings.Show, settings.DisplayHistogram, settings.DiscardEmpty));
     }
 }

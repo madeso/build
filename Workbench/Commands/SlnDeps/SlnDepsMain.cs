@@ -66,7 +66,7 @@ internal sealed class GenerateCommand : Command<GenerateCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
-        return CommonExecute.WithPrinter(printer =>
+        return Printer.PrintErrorsAtExit(printer =>
             SlnDepsFunctions.HandleGenerate(printer, args.Target, args.Format, args.MakeExclusionList(), args.Simplify, args.Reverse, args.Solution, args.Style)
         );
     }
@@ -81,7 +81,7 @@ internal sealed class WriteCommand : Command<WriteCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
-        return CommonExecute.WithPrinter(printer =>
+        return Printer.PrintErrorsAtExit(printer =>
             SlnDepsFunctions.WriteCommand(printer, args.MakeExclusionList(), args.Target, args.Simplify, args.Reverse, args.Solution)
         );
     }
@@ -96,7 +96,7 @@ internal sealed class SourceCommand : Command<SourceCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
-        return CommonExecute.WithPrinter(printer =>
+        return Printer.PrintErrorsAtExit(printer =>
             SlnDepsFunctions.SourceCommand(printer, args.MakeExclusionList(), args.Simplify, args.Reverse, args.Solution)
         );
     }
@@ -111,7 +111,7 @@ internal sealed class ListCommand : Command<ListCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
-        return CommonExecute.WithPrinter(printer => SlnDepsFunctions.ListCommand(printer, args.Solution));
+        return Printer.PrintErrorsAtExit(printer => SlnDepsFunctions.ListCommand(printer, args.Solution));
     }
 }
 

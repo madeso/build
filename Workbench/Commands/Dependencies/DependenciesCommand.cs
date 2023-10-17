@@ -46,7 +46,7 @@ internal sealed class ListGraphvizCommand : Command<ListGraphvizCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return CommonExecute.WithPrinter(printer =>
+        return Printer.PrintErrorsAtExit(printer =>
             {
                 Dependencies.WriteToGraphviz(printer, arg.DoxygenXml, arg.NamespaceFilter, arg.OutputFile,
                     arg.IgnoredClasses.ToImmutableHashSet(),
@@ -85,7 +85,7 @@ internal sealed class ListCallGraph : Command<ListCallGraph.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return CommonExecute.WithPrinter(printer =>
+        return Printer.PrintErrorsAtExit(printer =>
             {
                 Dependencies.WriteCallGraphToGraphviz(arg.DoxygenXml, arg.OutputFile,
                     arg.ClusterOn ?? Dependencies.ClusterCallGraphOn.None);
@@ -111,7 +111,7 @@ internal sealed class PrintCommand : Command<PrintCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return CommonExecute.WithPrinter(printer =>
+        return Printer.PrintErrorsAtExit(printer =>
             {
                 Dependencies.PrintLists(printer, arg.DoxygenXml, arg.NamespaceFilter);
                 return 0;

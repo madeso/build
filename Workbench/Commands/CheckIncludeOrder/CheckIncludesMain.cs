@@ -8,7 +8,7 @@ public static class CheckIncludesCommonExecute
 {
     public static int WithLoadedIncludeData(Func<Printer, IncludeData, int> callback)
     {
-        return CommonExecute.WithPrinter(print =>
+        return Printer.PrintErrorsAtExit(print =>
         {
             var data = IncludeData.LoadOrNull(print);
             if (data == null)
@@ -75,10 +75,7 @@ internal sealed class InitCommand : Command<InitCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print =>
-        {
-            return IncludeTools.HandleInit(print, settings.Overwrite);
-        });
+        return Printer.PrintErrorsAtExit(print => IncludeTools.HandleInit(print, settings.Overwrite));
     }
 }
 

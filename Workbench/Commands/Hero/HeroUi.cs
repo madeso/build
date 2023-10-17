@@ -292,7 +292,7 @@ internal static class Ui
 }
 
 
-internal static class uiFacade
+internal static class UiFacade
 {
     internal static int HandleNewHero(string project_file, bool overwrite, Printer print)
     {

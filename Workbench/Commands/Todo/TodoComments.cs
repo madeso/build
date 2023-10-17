@@ -1,8 +1,7 @@
-using Spectre.Console;
 using System.Text.RegularExpressions;
 using Workbench.Utils;
 
-namespace Workbench;
+namespace Workbench.Commands.Todo;
 
 internal record TodoInFile(FileInfo File, int Line, string Todo);
 

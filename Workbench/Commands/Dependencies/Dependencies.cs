@@ -119,21 +119,20 @@ public static class Dependencies
 
                 Graphviz.Node? func_node = null;
 
-                if (add_arguments) foreach (var p in func.Param)
+                if (add_arguments) 
+                {
+                    foreach (var p in func.Param)
                     {
                         AddTypeLink(g, classes, get_func_node, existing_refs, p.Type);
                     }
+                }
 
                 AddTypeLink(g, classes, get_func_node, existing_refs, func.Type);
                 continue;
 
                 Graphviz.Node get_func_node()
                 {
-                    if (func_node == null)
-                    {
-                        func_node = g.AddNode($"{func.Name}{func.ArgsString}", Shape.Ellipse);
-                    }
-                    return func_node;
+                    return func_node ??= g.AddNode($"{func.Name}{func.ArgsString}", Shape.Ellipse);
                 }
             }
         }

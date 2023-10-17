@@ -26,7 +26,7 @@ internal sealed class CheckForMissingPragmaOnceCommand : Command<CheckForMissing
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => CheckForMissingPragmaOnce(settings.Files));
+        return Printer.PrintErrorsAtExit(print => CheckForMissingPragmaOnce(settings.Files));
     }
 
     public static int CheckForMissingPragmaOnce(string[] files)

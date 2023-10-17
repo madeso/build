@@ -43,7 +43,7 @@ internal sealed class LinesCommand : Command<LinesCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter
+        return Printer.PrintErrorsAtExit
             (
                 print => { ListHeaderFunctions.HandleLines(print, settings.FileName, settings.Action); return 0; }
             );
@@ -66,7 +66,7 @@ internal sealed class FilesCommand : Command<FilesCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return CommonExecute.WithPrinter(print => ListHeaderFunctions.HandleFiles(print, arg.GetPathToCompileCommandsOrNull(print), arg.Sources, arg.MostCommonCount));
+        return Printer.PrintErrorsAtExit(print => ListHeaderFunctions.HandleFiles(print, arg.GetPathToCompileCommandsOrNull(print), arg.Sources, arg.MostCommonCount));
     }
 }
 
@@ -109,7 +109,7 @@ internal sealed class IncludeListCommand : Command<IncludeListCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => Includes.HandleListIncludesCommand(print, settings.GetPathToCompileCommandsOrNull(print),
+        return Printer.PrintErrorsAtExit(print => Includes.HandleListIncludesCommand(print, settings.GetPathToCompileCommandsOrNull(print),
             settings.Files, settings.PrintFiles, settings.PrintStats, settings.PrintMax,
             settings.PrintList, settings.Count, settings.Limit));
     }
@@ -144,7 +144,7 @@ internal sealed class IncludeGraphvizCommand : Command<IncludeGraphvizCommand.Ar
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print =>
+        return Printer.PrintErrorsAtExit(print =>
             Includes.HandleIncludeGraphvizCommand(print, settings.GetPathToCompileCommandsOrNull(print),
                 settings.Files, settings.Limit, settings.Group, settings.Cluster));
     }

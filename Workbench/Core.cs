@@ -7,25 +7,6 @@ namespace Workbench;
 
 public static class Core
 {
-    public static IEnumerable<string> ListAllFiles(string root_directory)
-    {
-        var dirs = new Queue<string>();
-        dirs.Enqueue(root_directory);
-
-        while (dirs.Count > 0)
-        {
-            var dir = new DirectoryInfo(dirs.Dequeue());
-            foreach (var di in dir.GetDirectories())
-            {
-                dirs.Enqueue(di.FullName);
-            }
-            foreach (var f in dir.GetFiles())
-            {
-                yield return f.FullName;
-            }
-        }
-    }
-
     public static bool IsWindows()
     {
         return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);

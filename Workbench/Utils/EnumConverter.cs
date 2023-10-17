@@ -151,8 +151,8 @@ internal class EnumTypeConverter<T> : TypeConverter
     public override object? ConvertTo(
         ITypeDescriptorContext? context, CultureInfo? culture, object? value, Type destination_type)
     {
-        return destination_type == typeof(string) && value != null && value is T
-            ? ReflectedValues<T>.Converter.EnumToString((T)value)
+        return destination_type == typeof(string) && value is T enum_value
+            ? ReflectedValues<T>.Converter.EnumToString(enum_value)
             : base.ConvertTo(context, culture, value, destination_type);
     }
 }

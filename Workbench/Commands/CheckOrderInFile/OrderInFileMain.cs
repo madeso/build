@@ -16,7 +16,7 @@ internal sealed class OrderInFileCommand : Command<OrderInFileCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return CommonExecute.WithPrinter(printer => OrderInFile.Run(printer, arg.DoxygenXml, Environment.CurrentDirectory));
+        return Printer.PrintErrorsAtExit(printer => OrderInFile.Run(printer, arg.DoxygenXml, Environment.CurrentDirectory));
     }
 }
 
@@ -35,7 +35,7 @@ internal sealed class ClassifyClass : Command<ClassifyClass.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return CommonExecute.WithPrinter(printer => OrderInFile.ClassifyClass(arg.DoxygenXml, arg.ClassName));
+        return Printer.PrintErrorsAtExit(printer => OrderInFile.ClassifyClass(arg.DoxygenXml, arg.ClassName));
     }
 }
 

@@ -431,7 +431,7 @@ internal static class ListHeaderFunctions
             if (line.EndsWith('\\'))
             {
                 var without = line[..^1];
-                last_line = last_line ?? "" + without;
+                last_line ??= "" + without;
             }
             else if (last_line != null)
             {

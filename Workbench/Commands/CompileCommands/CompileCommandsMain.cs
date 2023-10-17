@@ -13,7 +13,7 @@ internal sealed class FilesCommand : Command<FilesCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter
+        return Printer.PrintErrorsAtExit
             (
                 print =>
                 {
@@ -39,7 +39,7 @@ internal sealed class IncludesCommand : Command<IncludesCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter
+        return Printer.PrintErrorsAtExit
             (
                 print =>
                 {
@@ -72,7 +72,7 @@ internal sealed class DefinesCommand : Command<DefinesCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter
+        return Printer.PrintErrorsAtExit
             (
                 print =>
                 {

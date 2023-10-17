@@ -19,7 +19,7 @@ internal sealed class TraceCommand : Command<TraceCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(printer => {
+        return Printer.PrintErrorsAtExit(printer => {
             var cmake = CmakeTools.FindInstallationOrNull(printer);
 
             if (cmake == null)
@@ -88,7 +88,7 @@ internal sealed class DotCommand : Command<DotCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(printer => {
+        return Printer.PrintErrorsAtExit(printer => {
             var cmake = CmakeTools.FindInstallationOrNull(printer);
 
             if(cmake == null)

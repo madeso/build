@@ -20,7 +20,7 @@ internal sealed class WriteCodeCity : Command<WriteCodeCity.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return CommonExecute.WithPrinter(printer =>
+        return Printer.PrintErrorsAtExit(printer =>
             {
                 var cubes = Facade.Collect(printer, arg.DoxygenXml);
                 File.WriteAllLines(arg.OutputFile, Facade.HtmlLines("CodeCity", cubes));

@@ -40,7 +40,7 @@ internal sealed class CatDirCommand : Command<CatDirCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return CommonExecute.WithPrinter(print =>
+        return Printer.PrintErrorsAtExit(print =>
         {
             var dir = new DirectoryInfo(arg.Dir);
             foreach (var file in FileUtil.IterateFiles(dir, false, true)
@@ -70,7 +70,7 @@ internal sealed class CatCommand : Command<CatCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print =>
+        return Printer.PrintErrorsAtExit(print =>
         {
             if (File.Exists(settings.Path))
             {
@@ -101,7 +101,7 @@ internal sealed class LsCommand : Command<LsCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print =>
+        return Printer.PrintErrorsAtExit(print =>
         {
             print_recursive(settings.Path, "");
             return 0;

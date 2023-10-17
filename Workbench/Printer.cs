@@ -89,5 +89,13 @@ public class Printer
     {
         return $"{file_name}({line})";
     }
+
+    public static int PrintErrorsAtExit(Func<Printer, int> callback)
+    {
+        var printer = new Printer();
+        var ret = callback(printer);
+        printer.PrintErrorCount();
+        return ret;
+    }
 }
 

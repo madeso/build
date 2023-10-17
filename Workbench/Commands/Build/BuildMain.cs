@@ -34,10 +34,7 @@ internal sealed class InitCommand : Command<InitCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print =>
-        {
-            return BuildFacade.HandleInit(print, settings.Overwrite);
-        });
+        return Printer.PrintErrorsAtExit(print => BuildFacade.HandleInit(print, settings.Overwrite));
     }
 }
 
@@ -80,10 +77,7 @@ internal sealed class CmakeCommand : Command<CmakeCommand.Arg>
     {
         return BuildFacade.HandleGenericBuild(
             settings,
-            (printer, env, data) =>
-            {
-                return BuildFacade.HandleCmake(settings.Nop, printer, env, data);
-            });
+            (printer, env, data) => BuildFacade.HandleCmake(settings.Nop, printer, env, data));
     }
 }
 

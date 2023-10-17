@@ -225,14 +225,7 @@ internal static class IndentFunctions
         {
             foreach (var (label, start, files) in all_sorted)
             {
-                if (args_show)
-                {
-                    AnsiConsole.WriteLine($"{label}: {files}");
-                }
-                else
-                {
-                    AnsiConsole.WriteLine($"{label}: {files.Count}");
-                }
+                AnsiConsole.WriteLine($"{label}: {(args_show ? files : files.Count)}");
             }
         }
 

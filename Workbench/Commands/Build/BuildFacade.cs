@@ -121,7 +121,7 @@ internal static class BuildFacade
 
     public static int WithLoadedBuildData(Func<Printer, BuildData, int> callback)
     {
-        return CommonExecute.WithPrinter(print =>
+        return Printer.PrintErrorsAtExit(print =>
         {
             var data = BuildData.LoadOrNull(print);
             if (data == null)

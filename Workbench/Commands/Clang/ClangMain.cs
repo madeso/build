@@ -35,7 +35,7 @@ internal sealed class ListCommand : Command<ListCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => ClangFacade.HandleTidyListFilesCommand(print, settings.Sort));
+        return Printer.PrintErrorsAtExit(print => ClangFacade.HandleTidyListFilesCommand(print, settings.Sort));
     }
 }
 
@@ -90,7 +90,7 @@ internal sealed class TidyCommand : Command<TidyCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => ClangFacade.HandleRunClangTidyCommand(
+        return Printer.PrintErrorsAtExit(print => ClangFacade.HandleRunClangTidyCommand(
             print,
             settings.ClangTidy,
             settings.Force,
@@ -115,7 +115,7 @@ internal sealed class FormatCommand : Command<FormatCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => ClangFacade.HandleClangFormatCommand(print, settings.Nop));
+        return Printer.PrintErrorsAtExit(print => ClangFacade.HandleClangFormatCommand(print, settings.Nop));
     }
 }
 
