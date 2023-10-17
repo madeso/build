@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
+using Spectre.Console;
 
 namespace Workbench;
 
@@ -41,11 +42,11 @@ public static class Core
     {
         if (Directory.Exists(dir))
         {
-            Printer.Info($"Dir exist, not creating {dir}");
+            AnsiConsole.WriteLine($"Dir exist, not creating {dir}");
         }
         else
         {
-            Printer.Info($"Not a directory, creating {dir}");
+            AnsiConsole.WriteLine($"Not a directory, creating {dir}");
             try
             {
                 Directory.CreateDirectory(dir);
@@ -72,11 +73,11 @@ public static class Core
     {
         if (File.Exists(dest))
         {
-            Printer.Info($"Already downloaded {dest}");
+            AnsiConsole.WriteLine($"Already downloaded {dest}");
         }
         else
         {
-            Printer.Info($"Downloading {dest}");
+            AnsiConsole.WriteLine($"Downloading {dest}");
             download_file(print, url, dest);
         }
 

@@ -1,6 +1,3 @@
-using System.Net.Http.Headers;
-using System.Xml.Linq;
-using Workbench.Doxygen.Compound;
 using Workbench.Utils;
 
 namespace Workbench;

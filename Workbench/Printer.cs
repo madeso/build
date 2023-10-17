@@ -7,37 +7,29 @@ using Workbench.Utils;
 public class Printer
 {
     private int error_count = 0;
-    private readonly List<string> errors = new();
 
     // print a "pretty" header to the terminal
-    public static void Header(string header_text) { HeaderWithCustomChar(header_text, "-"); }
-
-    private static void HeaderWithCustomChar(string project_name, string header_character)
+    public static void Header(string header_text)
     {
-        var header_size = 65;
-        var header_spacing = 1;
-        var header_start = 3;
+        const int HEADER_SIZE = 65;
+        const int HEADER_SPACING = 1;
+        const int HEADER_START = 3;
 
-        var spacing_string = " ".Repeat(header_spacing);
-        var header_string = header_character.Repeat(header_size);
+        var spacing_string = " ".Repeat(HEADER_SPACING);
+        var header_string = "-".Repeat(HEADER_SIZE);
 
-        var project = $"{spacing_string}{project_name}{spacing_string}";
-        var start = header_character.Repeat(header_start);
+        var project = $"{spacing_string}{header_text}{spacing_string}";
+        var start = "-".Repeat(HEADER_START);
 
-        var left = header_size - (project.Length + header_start);
+        var left = HEADER_SIZE - (project.Length + HEADER_START);
         var right =
-            left > 1 ? header_character.Repeat(left)
-            : ""
+                left > 1 ? "-".Repeat(left)
+                    : ""
             ;
 
         AnsiConsole.MarkupLineInterpolated($"{header_string}");
         AnsiConsole.MarkupLineInterpolated($"{start}{project}{right}");
         AnsiConsole.MarkupLineInterpolated($"{header_string}");
-    }
-
-    public static void Info(string text)
-    {
-        AnsiConsole.MarkupLineInterpolated($"{text}");
     }
 
     public static void Line()
@@ -47,18 +39,18 @@ public class Printer
 
     public void Error(string text)
     {
-        error_count += 1;
-        errors.Add(text);
-        AnsiConsole.MarkupLineInterpolated($"[red]ERROR: {text}[/]");
+        AddError($"ERROR: {text}");
     }
 
     internal void Error(string file, string error)
     {
-        var text = $"{file}: {error}";
+        AddError($"{file}: ERROR: {error}");
+    }
+
+    private void AddError(string message)
+    {
         error_count += 1;
-        errors.Add(text);
-        var message = $"{file}: ERROR: {error}";
-        if(is_connected_to_console())
+        if (is_connected_to_console())
         {
             AnsiConsole.MarkupLineInterpolated($"[red]{message}[/]");
         }
@@ -73,7 +65,7 @@ public class Printer
             {
                 return Console.WindowWidth > 0;
             }
-            catch(IOException)
+            catch (IOException)
             {
                 return false;
             }
@@ -85,63 +77,11 @@ public class Printer
         AnsiConsole.MarkupLineInterpolated($"WARNING: {text}");
     }
 
-    public static void PrintContentsOfFile(string path)
-    {
-        if (File.Exists(path))
-        {
-            AnsiConsole.MarkupLineInterpolated($"{path}>");
-            foreach (var line in File.ReadAllLines(path))
-            {
-                AnsiConsole.MarkupLineInterpolated($"---->{line}");
-            }
-        }
-        else
-        {
-            AnsiConsole.MarkupLineInterpolated($"Failed to open '{path}'");
-        }
-    }
-
-    // print files and folder recursivly
-    public static void PrintDirectoryStructure(string root) {
-        print_recursive(root, "");
-
-        static void print_recursive(string root, string start)
-        {
-            var ident = " ".Repeat(4);
-
-            var paths = new DirectoryInfo(root);
-            foreach (var file_path in paths.EnumerateDirectories())
-            {
-                AnsiConsole.MarkupLineInterpolated($"{start}{file_path.Name}/");
-                print_recursive(file_path.FullName, $"{start}{ident}");
-            }
-
-            foreach (var file_path in paths.EnumerateFiles())
-            {
-                AnsiConsole.MarkupLineInterpolated($"{start}{file_path.Name}");
-            }
-        }
-    }
-    
-
     public void PrintErrorCount()
     {
         if (error_count > 0)
         {
             AnsiConsole.MarkupLineInterpolated($"Errors detected: ({error_count})");
-        }
-    }
-
-    internal void PrintStatus(ProcessExit pe)
-    {
-        var message = $"{pe.CommandLine} exited with {pe.ExitCode}";
-        if(pe.ExitCode == 0)
-        {
-            Info(message);
-        }
-        else
-        {
-            Error(message);
         }
     }
 

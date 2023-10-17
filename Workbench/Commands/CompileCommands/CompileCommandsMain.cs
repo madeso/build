@@ -1,7 +1,8 @@
-using Spectre.Console.Cli;
 using System.Diagnostics.CodeAnalysis;
+using Spectre.Console;
+using Spectre.Console.Cli;
 
-namespace Workbench.Commands.CompileCommandsCommands;
+namespace Workbench.Commands.CompileCommands;
 
 
 internal sealed class FilesCommand : Command<FilesCommand.Arg>
@@ -22,7 +23,7 @@ internal sealed class FilesCommand : Command<FilesCommand.Arg>
                     var commands = CompileCommand.LoadCompileCommandsOrNull(print, path);
                     if (commands == null) { return -1; }
 
-                    Printer.Info($"{commands}");
+                    AnsiConsole.WriteLine($"{commands}");
                     return 0;
                 }
             );
@@ -50,11 +51,11 @@ internal sealed class IncludesCommand : Command<IncludesCommand.Arg>
 
                     foreach (var (file, command) in commands)
                     {
-                        Printer.Info($"{file}");
+                        AnsiConsole.WriteLine($"{file}");
                         var dirs = command.GetRelativeIncludes();
                         foreach (var d in dirs)
                         {
-                            Printer.Info($"    {d}");
+                            AnsiConsole.WriteLine($"    {d}");
                         }
                     }
                     return 0;
@@ -83,11 +84,11 @@ internal sealed class DefinesCommand : Command<DefinesCommand.Arg>
 
                     foreach (var (file, command) in commands)
                     {
-                        Printer.Info($"{file}");
-                        var defs = command.GetDefines();
-                        foreach (var (k, v) in defs)
+                        AnsiConsole.WriteLine($"{file}");
+                        var defines = command.GetDefines();
+                        foreach (var (k, v) in defines)
                         {
-                            Printer.Info($"    {k} = {v}");
+                            AnsiConsole.WriteLine($"    {k} = {v}");
                         }
                     }
                     return 0;

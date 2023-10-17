@@ -1,9 +1,8 @@
-﻿using Spectre.Console.Cli;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using Workbench.Build;
+using Spectre.Console.Cli;
 
-namespace Workbench.Commands.BuildCommands;
+namespace Workbench.Commands.Build;
 
 
 internal class Main
@@ -37,7 +36,7 @@ internal sealed class InitCommand : Command<InitCommand.Arg>
     {
         return CommonExecute.WithPrinter(print =>
         {
-            return F.HandleInit(print, settings.Overwrite);
+            return BuildFacade.HandleInit(print, settings.Overwrite);
         });
     }
 }
@@ -50,7 +49,7 @@ internal sealed class StatusCommand : Command<StatusCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithLoadedBuildData(F.HandleBuildStatus);
+        return BuildFacade.WithLoadedBuildData(BuildFacade.HandleBuildStatus);
     }
 }
 
@@ -62,7 +61,7 @@ internal sealed class InstallCommand : Command<InstallCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return F.HandleGenericBuild(settings, F.HandleInstall);
+        return BuildFacade.HandleGenericBuild(settings, BuildFacade.HandleInstall);
     }
 }
 
@@ -79,11 +78,11 @@ internal sealed class CmakeCommand : Command<CmakeCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return F.HandleGenericBuild(
+        return BuildFacade.HandleGenericBuild(
             settings,
             (printer, env, data) =>
             {
-                return F.HandleCmake(settings.Nop, printer, env, data);
+                return BuildFacade.HandleCmake(settings.Nop, printer, env, data);
             });
     }
 }
@@ -97,7 +96,7 @@ internal sealed class DevCommand : Command<DevCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return F.HandleGenericBuild(settings, F.HandleDev);
+        return BuildFacade.HandleGenericBuild(settings, BuildFacade.HandleDev);
     }
 }
 
@@ -110,6 +109,6 @@ internal sealed class BuildCommand : Command<BuildCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return F.HandleGenericBuild(settings, F.HandleBuild);
+        return BuildFacade.HandleGenericBuild(settings, BuildFacade.HandleBuild);
     }
 }

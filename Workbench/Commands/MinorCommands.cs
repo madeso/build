@@ -1,6 +1,7 @@
 using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using Spectre.Console;
 using Workbench.Utils;
 
 namespace Workbench.Commands;
@@ -46,11 +47,11 @@ internal sealed class CatDirCommand : Command<CatDirCommand.Arg>
                 .Where(file => FileUtil.FileHasAnyExtension(file.FullName, arg.AllSources ? FileUtil.HeaderAndSourceFiles : FileUtil.HeaderFiles))
             )
             {
-                Printer.Info($"File: {file.FullName}");
+                AnsiConsole.WriteLine($"File: {file.FullName}");
                 foreach (var line in File.ReadAllLines(file.FullName))
                 {
                     if (string.IsNullOrWhiteSpace(line)) { continue; }
-                    Printer.Info($"    {line}");
+                    AnsiConsole.WriteLine($"    {line}");
                 }
             }
             return 0;
@@ -71,7 +72,19 @@ internal sealed class CatCommand : Command<CatCommand.Arg>
     {
         return CommonExecute.WithPrinter(print =>
         {
-            Printer.PrintContentsOfFile(settings.Path);
+            if (File.Exists(settings.Path))
+            {
+                AnsiConsole.MarkupLineInterpolated($"{settings.Path}>");
+                foreach (var line in File.ReadAllLines(settings.Path))
+                {
+                    AnsiConsole.MarkupLineInterpolated($"---->{line}");
+                }
+            }
+            else
+            {
+                AnsiConsole.MarkupLineInterpolated($"Failed to open '{settings.Path}'");
+            }
+
             return 0;
         });
     }
@@ -90,8 +103,25 @@ internal sealed class LsCommand : Command<LsCommand.Arg>
     {
         return CommonExecute.WithPrinter(print =>
         {
-            Printer.PrintDirectoryStructure(settings.Path);
+            print_recursive(settings.Path, "");
             return 0;
+
+            static void print_recursive(string root, string start)
+            {
+                var ident = " ".Repeat(4);
+
+                var paths = new DirectoryInfo(root);
+                foreach (var file_path in paths.EnumerateDirectories())
+                {
+                    AnsiConsole.MarkupLineInterpolated($"{start}{file_path.Name}/");
+                    print_recursive(file_path.FullName, $"{start}{ident}");
+                }
+
+                foreach (var file_path in paths.EnumerateFiles())
+                {
+                    AnsiConsole.MarkupLineInterpolated($"{start}{file_path.Name}");
+                }
+            }
         });
     }
 }

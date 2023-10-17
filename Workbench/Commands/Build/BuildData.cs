@@ -1,6 +1,6 @@
 using Workbench.Config;
 
-namespace Workbench.Build;
+namespace Workbench.Commands.Build;
 
 public readonly struct BuildData
 {
@@ -30,7 +30,7 @@ public readonly struct BuildData
 
     public static BuildData? LoadOrNull(Printer print)
     {
-        return ConfigFile.LoadOrNull<BuildFile, BuildData>(print, Config.BuildFile.GetBuildDataPath(),
+        return ConfigFile.LoadOrNull<BuildFile, BuildData>(print, BuildFile.GetBuildDataPath(),
             loaded =>
             {
                 var bd = new BuildData(loaded.Name, Environment.CurrentDirectory, print);

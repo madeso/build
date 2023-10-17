@@ -1,7 +1,8 @@
 using System.Text.RegularExpressions;
+using Spectre.Console;
 using Workbench.Config;
 
-namespace Workbench.Commands.CheckIncludes;
+namespace Workbench.Commands.CheckIncludeOrder;
 
 internal record CommonArgs
 (
@@ -176,9 +177,9 @@ public static class IncludeTools
         print.Error($"{filename}({line}): error CHK3030: {message}");
     }
 
-    private static void PrintWarning(Printer print, string filename, int line, string message)
+    private static void PrintWarning(string filename, int line, string message)
     {
-        Printer.Warning($"{filename}({line}): warning CHK3030: {message}");
+        Printer.Warning($"{Printer.ToFileString(filename, line)}: warning CHK3030: {message}");
     }
 
     private static void PrintMessage(MessageType message_type, Printer print, string filename, int line, string message)
@@ -186,12 +187,9 @@ public static class IncludeTools
         switch (message_type)
         {
             case MessageType.Error: PrintError(print, filename, line, message); break;
-            case MessageType.Warning: PrintWarning(print, filename, line, message); break;
+            case MessageType.Warning: PrintWarning(filename, line, message); break;
         }
     }
-
-    // file_stem
-    // fileStem
 
     public static TextReplacer CreateReplacer(string file_stem)
     {
@@ -314,7 +312,7 @@ public static class IncludeTools
             last_class = line_class.Value;
             if (verbose)
             {
-                Printer.Info($"{line_class.Value} {l}");
+                AnsiConsole.WriteLine($"{line_class.Value} {l}");
             }
         }
 
@@ -421,14 +419,14 @@ public static class IncludeTools
 
     private static void print_lines(Printer print, IEnumerable<string> lines)
     {
-        Printer.Info("*************************************************");
+        AnsiConsole.WriteLine("*************************************************");
         foreach (var line in lines)
         {
-            Printer.Info(line);
+            AnsiConsole.WriteLine(line);
         }
-        Printer.Info("*************************************************");
-        Printer.Info("");
-        Printer.Info("");
+        AnsiConsole.WriteLine("*************************************************");
+        AnsiConsole.WriteLine("");
+        AnsiConsole.WriteLine("");
     }
 
 
@@ -450,7 +448,7 @@ public static class IncludeTools
 
         if (verbose)
         {
-            Printer.Info($"Opening file {filename}");
+            AnsiConsole.WriteLine($"Opening file {filename}");
         }
 
         var lines = Core.ReadFileToLines(filename);
@@ -516,7 +514,7 @@ public static class IncludeTools
 
                 if (nop.Nop)
                 {
-                    Printer.Info($"Will write the following to {filename}");
+                    AnsiConsole.WriteLine($"Will write the following to {filename}");
                     print_lines(print, file_data);
                 }
                 else
@@ -525,7 +523,7 @@ public static class IncludeTools
                 }
                 break;
             default:
-                Printer.Info("I think the correct order would be:");
+                AnsiConsole.WriteLine("I think the correct order would be:");
                 print_lines(print, sorted_include_lines);
                 break;
         }
@@ -575,9 +573,9 @@ public static class IncludeTools
 
         if (args.PrintStatusAtTheEnd)
         {
-            Printer.Info($"Files parsed: {file_count}");
-            Printer.Info($"Files errored: {file_error}");
-            Printer.Info($"Errors found: {error_count}");
+            AnsiConsole.WriteLine($"Files parsed: {file_count}");
+            AnsiConsole.WriteLine($"Files errored: {file_error}");
+            AnsiConsole.WriteLine($"Errors found: {error_count}");
         }
 
         return error_count;

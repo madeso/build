@@ -2,7 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Spectre.Console.Cli;
 
-namespace Workbench.Commands.CheckIncludes;
+namespace Workbench.Commands.CheckIncludeOrder;
 
 public static class CheckIncludesCommonExecute
 {

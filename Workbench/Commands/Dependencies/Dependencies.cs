@@ -15,7 +15,7 @@ public static class Dependencies
         string output_file, ImmutableHashSet<string> ignored_classes, bool include_functions, bool add_arguments,
         bool add_members, bool cluster_namespace)
     {
-        Printer.Info("Parsing doxygen XML...");
+        AnsiConsole.WriteLine("Parsing doxygen XML...");
         var dox = Doxygen.Doxygen.ParseIndex(doxygen_xml);
         var root_namespace = namespace_name == NO_NAMESPACE ? null : DoxygenUtils.FindNamespace(dox, namespace_name);
 
@@ -25,7 +25,7 @@ public static class Dependencies
             return;
         }
 
-        Printer.Info("Working...");
+        AnsiConsole.WriteLine("Working...");
         var namespaces = (
                 root_namespace == null
                 ? DoxygenUtils.AllNamespaces(dox)
@@ -35,7 +35,7 @@ public static class Dependencies
         var g = new Graphviz();
         var classes = new Dictionary<string, Graphviz.Node>();
 
-        Printer.Info("Adding classes...");
+        AnsiConsole.WriteLine("Adding classes...");
         foreach (var ns in namespaces)
         {
             foreach (var k in DoxygenUtils.IterateClassesInNamespace(dox, ns))
@@ -56,7 +56,7 @@ public static class Dependencies
             }
         }
 
-        Printer.Info("Adding typedefs...");
+        AnsiConsole.WriteLine("Adding typedefs...");
         foreach (var k in namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Typedef)))
         {
             if (ignored_classes.Contains(k.Name))
@@ -71,7 +71,7 @@ public static class Dependencies
             AddTypeLink(g, classes, () => node, existing_refs, k.Type);
         }
 
-        Printer.Info("Adding members for class...");
+        AnsiConsole.WriteLine("Adding members for class...");
         foreach (var klass in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
         {
             if (false == classes.TryGetValue(klass.Id, out var graphviz_klass))
@@ -112,7 +112,7 @@ public static class Dependencies
 
         if (include_functions)
         {
-            Printer.Info("Adding functions...");
+            AnsiConsole.WriteLine("Adding functions...");
             foreach (var func in namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Func)))
             {
                 var existing_refs = new HashSet<string>();
@@ -143,7 +143,7 @@ public static class Dependencies
 
     internal static void PrintLists(Printer printer, string doxygen_xml, string namespace_name)
     {
-        Printer.Info("Parsing doxygen XML...");
+        AnsiConsole.WriteLine("Parsing doxygen XML...");
         var dox = Doxygen.Doxygen.ParseIndex(doxygen_xml);
         var root_namespace = DoxygenUtils.FindNamespace(dox, namespace_name);
 
@@ -153,7 +153,7 @@ public static class Dependencies
             return;
         }
 
-        Printer.Info("Working...");
+        AnsiConsole.WriteLine("Working...");
         var namespaces = DoxygenUtils.IterateAllNamespaces(dox, root_namespace).ToImmutableArray();
 
         foreach (var k in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
@@ -222,10 +222,10 @@ public static class Dependencies
     {
         // todo(Gustav): option to remove namespace prefixes
 
-        Printer.Info("Parsing doxygen XML...");
+        AnsiConsole.WriteLine("Parsing doxygen XML...");
         var dox = Doxygen.Doxygen.ParseIndex(doxygen_xml);
 
-        Printer.Info("Collecting functions...");
+        AnsiConsole.WriteLine("Collecting functions...");
         var namespaces = DoxygenUtils.AllNamespaces(dox).ToImmutableArray();
 
 
@@ -247,7 +247,7 @@ public static class Dependencies
         var all_functions = member_functions.Concat(free_functions).ToImmutableArray();
 
 
-        Printer.Info("Adding functions...");
+        AnsiConsole.WriteLine("Adding functions...");
         var g = new Graphviz();
         var functions = new Dictionary<string, Graphviz.Node>();
         foreach (var func in all_functions)
@@ -296,7 +296,7 @@ public static class Dependencies
                 break;
         }
 
-        Printer.Info("Adding links...");
+        AnsiConsole.WriteLine("Adding links...");
         foreach (var fun in all_functions)
         {
             if (false == functions.TryGetValue(fun.Function.Id, out var src))
@@ -314,7 +314,7 @@ public static class Dependencies
             }
         }
 
-        Printer.Info("Writing graph...");
+        AnsiConsole.WriteLine("Writing graph...");
         g.SmartWriteFile(output_file);
 
         static Shape func_to_shape(Method func) => func.Function.Protection switch

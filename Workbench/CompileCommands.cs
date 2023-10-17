@@ -12,8 +12,8 @@ public class CompileCommand
 
     public CompileCommand(string directory, string command)
     {
-        this.Directory = directory;
-        this.Command = command;
+        Directory = directory;
+        Command = command;
     }
 
     public IEnumerable<string> GetRelativeIncludes()
@@ -49,6 +49,18 @@ public class CompileCommand
         return r;
     }
 
+    internal class CompileCommandJson
+    {
+        [JsonPropertyName("file")]
+        public string File = "";
+
+        [JsonPropertyName("directory")]
+        public string Directory = "";
+
+        [JsonPropertyName("command")]
+        public string Command = "";
+    }
+
     internal static Dictionary<string, CompileCommand>? LoadCompileCommandsOrNull(Printer printer, string path)
     {
         var content = File.ReadAllText(path);
@@ -75,17 +87,7 @@ public class CompileCommand
     ;
 }
 
-internal class CompileCommandJson
-{
-    [JsonPropertyName("file")]
-    public string File = "";
 
-    [JsonPropertyName("directory")]
-    public string Directory = "";
-
-    [JsonPropertyName("command")]
-    public string Command = "";
-}
 
 
 internal class CompileCommandsArguments : CommandSettings

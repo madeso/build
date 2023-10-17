@@ -9,6 +9,6 @@ internal class CheckIncludesFile
 
     public static string GetBuildDataPath()
     {
-        return Path.Join(Environment.CurrentDirectory, FileNames.Includes);
+        return Path.Join(Environment.CurrentDirectory, FileNames.CheckIncludes);
     }
 }

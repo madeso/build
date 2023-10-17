@@ -6,6 +6,7 @@
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using Spectre.Console;
 using Workbench.Utils;
 
 namespace Workbench.Commands.ListHeaders;
@@ -244,7 +245,7 @@ internal class FileWalker
         Dictionary<string, List<Statement>> file_cache
     )
     {
-        Printer.Info($"Parsing {path}");
+        AnsiConsole.WriteLine($"Parsing {path}");
         Stats.FileCount += 1;
 
         if (commands.TryGetValue(path, out var cc) == false)
@@ -637,7 +638,7 @@ internal static class ListHeaderFunctions
             case ListAction.Lines:
                 foreach (var line in lines)
                 {
-                    Printer.Info(line.Text);
+                    AnsiConsole.WriteLine(line.Text);
                 }
                 break;
             case ListAction.Statements:
@@ -645,7 +646,7 @@ internal static class ListHeaderFunctions
                     var statements = ParseToStatements(lines).ToList();
                     foreach (var statement in statements)
                     {
-                        Printer.Info($"{statement}");
+                        AnsiConsole.WriteLine($"{statement}");
                     }
                 }
                 break;
@@ -655,7 +656,7 @@ internal static class ListHeaderFunctions
                     var blocks = ParseToBlocks(file_name, print, statements);
                     foreach (var block in blocks)
                     {
-                        Printer.Info($"{block}");
+                        AnsiConsole.WriteLine($"{block}");
                     }
                 }
                 break;
@@ -696,7 +697,6 @@ internal static class ListHeaderFunctions
     internal static int HandleFiles(
         Printer print, string? ccpath, List<string> sources, int most_common_count)
     {
-        // var ccpath = args.GetPathToCompileCommandsOrNull(print);
         if (ccpath == null) { return -1; }
 
         var commands = CompileCommand.LoadCompileCommandsOrNull(print, ccpath);
@@ -727,13 +727,13 @@ internal static class ListHeaderFunctions
 
         var stats = walker.Stats;
 
-        Printer.Info($"Top {most_common_count} includes are:");
+        AnsiConsole.WriteLine($"Top {most_common_count} includes are:");
 
         foreach (var (file, count) in stats.Includes.MostCommon().Take(most_common_count))
         {
             var d = Path.GetRelativePath(Environment.CurrentDirectory, file);
             var times = count / (double)stats.FileCount;
-            Printer.Info($" - {d} {times:.2}x ({count}/{stats.FileCount})");
+            AnsiConsole.WriteLine($" - {d} {times:.2}x ({count}/{stats.FileCount})");
         }
 
         return 0;

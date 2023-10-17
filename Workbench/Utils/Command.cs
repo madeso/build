@@ -1,3 +1,5 @@
+using Spectre.Console;
+
 namespace Workbench.Utils;
 
 using System.Collections.Generic;
@@ -42,7 +44,7 @@ internal class ProcessExitWithOutput
             }
             else
             {
-                Printer.Info(line.Line);
+                AnsiConsole.WriteLine(line.Line);
             }
         }
 
@@ -51,7 +53,7 @@ internal class ProcessExitWithOutput
 
     public ProcessExitWithOutput PrintStatus(Printer print)
     {
-        Printer.Info($"Return value: {ExitCode}");
+        AnsiConsole.WriteLine($"Return value: {ExitCode}");
         if (ExitCode != 0)
         {
             print.Error($"Failed to run command: {CommandLine}");
@@ -242,11 +244,20 @@ public class ProcessBuilder
 
     internal void RunAndPrintOutput(Printer printer)
     {
-        printer.PrintStatus(RunWithCallback(null, Printer.Info, err => printer.Error(err),
+        var pe = RunWithCallback(null, AnsiConsole.WriteLine, printer.Error,
             (mess, ex) => {
-                    printer.Error(mess);
-                    printer.Error(ex.Message);
-                }
-            ));
+                printer.Error(mess);
+                printer.Error(ex.Message);
+            }
+        );
+        var message = $"{pe.CommandLine} exited with {pe.ExitCode}";
+        if(pe.ExitCode == 0)
+        {
+            AnsiConsole.WriteLine(message);
+        }
+        else
+        {
+            printer.Error(message);
+        }
     }
 }

@@ -1,3 +1,4 @@
+using Spectre.Console;
 using Workbench.Utils;
 
 namespace Workbench.Commands.CppLint;
@@ -9,7 +10,7 @@ public static class Cpplint
         var files = FileUtil.ListAllFiles(root);
         foreach (var f in files)
         {
-            Printer.Info(f);
+            AnsiConsole.WriteLine(f);
         }
 
         return 0;
@@ -20,9 +21,9 @@ public static class Cpplint
     {
         Printer.Line();
         printer.Error(path);
-        Printer.Info(stdout);
+        AnsiConsole.WriteLine(stdout);
         Printer.Line();
-        Printer.Info("");
+        AnsiConsole.WriteLine("");
     }
 
     private record LintError(string File, string[] Error);
@@ -37,7 +38,7 @@ public static class Cpplint
         }
         else
         {
-            Printer.Info(path);
+            AnsiConsole.WriteLine(path);
         }
         return null;
     }

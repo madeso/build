@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
+using Spectre.Console;
 
-namespace Workbench.Hero.Data;
+namespace Workbench.Commands.Hero;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Project
@@ -10,7 +11,7 @@ public record OutputFolders(string InputRoot, string OutputDirectory);
 
 public class UserInput
 {
-    public List<string> ProjectDirectories { get; set; }= new();
+    public List<string> ProjectDirectories { get; set; } = new();
     public List<string> IncludeDirectories { get; set; } = new();
     public List<string> PrecompiledHeaders { get; set; } = new();
 
@@ -51,24 +52,24 @@ public class UserInput
             var missing = d.Where(d => Path.IsPathFullyQualified(d) == false || exists(d) == false).ToImmutableHashSet();
             var changes = missing
                 .Select(d => new { Src = d, Dst = Path.Join(root, d) })
-                .Select(d => new { Src = d.Src, Dst = d.Dst, Exist = exists(d.Dst) })
+                .Select(d => new { d.Src, d.Dst, Exist = exists(d.Dst) })
                 .ToImmutableArray()
                 ;
 
             foreach (var x in changes.Where(x => x.Exist == true))
             {
-                Printer.Info($"{x.Src} does not exist in {name}, but was replaced with {x.Dst}");
+                AnsiConsole.WriteLine($"{x.Src} does not exist in {name}, but was replaced with {x.Dst}");
             }
 
             foreach (var x in changes.Where(x => x.Exist == false))
             {
-                Printer.Info($"{x.Src} was removed from {name} since it doesn't exist and the replacement {x.Dst} was found");
+                AnsiConsole.WriteLine($"{x.Src} was removed from {name} since it doesn't exist and the replacement {x.Dst} was found");
             }
 
             d.RemoveAll(missing.Contains);
             foreach (var f in d)
             {
-                Printer.Info($"{f} was kept in {name}");
+                AnsiConsole.WriteLine($"{f} was kept in {name}");
             }
             d.AddRange(changes.Where(x => x.Exist).Select(x => x.Dst));
         }
@@ -77,8 +78,8 @@ public class UserInput
 
 public class Project
 {
-    public ImmutableArray<string> ScanDirectories {get;}
-    public ImmutableArray<string> IncludeDirectories {get;}
+    public ImmutableArray<string> ScanDirectories { get; }
+    public ImmutableArray<string> IncludeDirectories { get; }
     public ImmutableArray<string> PrecompiledHeaders { get; }
     public Dictionary<string, SourceFile> ScannedFiles { get; } = new();
     // public DateTime LastScan,

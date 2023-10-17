@@ -1,3 +1,5 @@
+using Spectre.Console;
+
 namespace Workbench.Config;
 
 internal static class ConfigFile
@@ -45,7 +47,7 @@ internal static class ConfigFile
         }
 
         File.WriteAllText(path, content);
-        Printer.Info($"Wrote {path}");
+        AnsiConsole.WriteLine($"Wrote {path}");
         return 0;
     }
 }

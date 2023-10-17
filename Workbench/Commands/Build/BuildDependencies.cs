@@ -1,10 +1,11 @@
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using Spectre.Console;
 using Workbench.CMake;
 using Workbench.Utils;
 
-namespace Workbench.Build;
+namespace Workbench.Commands.Build;
 
 [TypeConverter(typeof(EnumTypeConverter<DependencyName>))]
 [JsonConverter(typeof(EnumJsonConverter<DependencyName>))]
@@ -37,7 +38,7 @@ public interface BuildDependency
     string GetName();
 
     // add arguments to the main cmake
-    void AddCmakeArguments(CMake.CMakeProject cmake);
+    void AddCmakeArguments(CMakeProject cmake);
 
     // install the dependency
     public void Install(BuildEnvironment env, Printer print, BuildData data);
@@ -57,7 +58,7 @@ public static class BuildDependencies
             DependencyName.Python => new DependencyPython(),
             DependencyName.Assimp => new DependencyAssimp(data, false),
             DependencyName.AssimpStatic => new DependencyAssimp(data, true),
-            DependencyName.WxWidgets=> new DependencyWxWidgets(data, "https://github.com/wxWidgets/wxWidgets/releases/download/v3.2.2.1/wxWidgets-3.2.2.1.zip", "wxWidgets-3-2-2-1"),
+            DependencyName.WxWidgets => new DependencyWxWidgets(data, "https://github.com/wxWidgets/wxWidgets/releases/download/v3.2.2.1/wxWidgets-3.2.2.1.zip", "wxWidgets-3-2-2-1"),
             _ => throw new Exception($"invalid name: {name}"),
         };
     }
@@ -83,7 +84,7 @@ internal class DependencySdl2 : BuildDependency
         return "sdl2";
     }
 
-    public void AddCmakeArguments(CMake.CMakeProject cmake)
+    public void AddCmakeArguments(CMakeProject cmake)
     {
         cmake.AddArgument("SDL2_HINT_ROOT", root_folder);
         cmake.AddArgument("SDL2_HINT_BUILD", build_folder);
@@ -101,12 +102,12 @@ internal class DependencySdl2 : BuildDependency
         {
             Core.VerifyDirectoryExists(print, root_folder);
             Core.VerifyDirectoryExists(print, data.DependencyDirectory);
-            Printer.Info("downloading sdl2");
+            AnsiConsole.WriteLine("downloading sdl2");
             Core.DownloadFileIfMissing(print, url, zip_file);
         }
         else
         {
-            Printer.Info("SDL2 zip file exist, not downloading again...");
+            AnsiConsole.WriteLine("SDL2 zip file exist, not downloading again...");
         }
 
         if (false == File.Exists(Path.Join(root_folder, "INSTALL.txt")))
@@ -116,12 +117,12 @@ internal class DependencySdl2 : BuildDependency
         }
         else
         {
-            Printer.Info("SDL2 is unzipped, not unzipping again");
+            AnsiConsole.WriteLine("SDL2 is unzipped, not unzipping again");
         }
 
         if (false == File.Exists(Path.Join(build_folder, "SDL2.sln")))
         {
-            var project = new CMake.CMakeProject(build_folder, root_folder, generator);
+            var project = new CMakeProject(build_folder, root_folder, generator);
             // project.make_static_library()
             // this is defined by the standard library so don't add it
             // generates '__ftol2_sse already defined' errors
@@ -133,7 +134,7 @@ internal class DependencySdl2 : BuildDependency
         }
         else
         {
-            Printer.Info("SDL2 build exist, not building again...");
+            AnsiConsole.WriteLine("SDL2 build exist, not building again...");
         }
     }
 
@@ -161,7 +162,7 @@ internal class DependencyPython : BuildDependency
         return "python";
     }
 
-    public void AddCmakeArguments(CMake.CMakeProject cmake)
+    public void AddCmakeArguments(CMakeProject cmake)
     {
         if (path_to_python_exe == null) { return; }
 
@@ -205,7 +206,7 @@ internal class DependencyAssimp : BuildDependency
         return "assimp";
     }
 
-    public void AddCmakeArguments(CMake.CMakeProject cmake)
+    public void AddCmakeArguments(CMakeProject cmake)
     {
         cmake.AddArgument("ASSIMP_ROOT_DIR", install_folder);
     }
@@ -222,32 +223,32 @@ internal class DependencyAssimp : BuildDependency
         {
             Core.VerifyDirectoryExists(print, dependency_folder);
             Core.VerifyDirectoryExists(print, data.DependencyDirectory);
-            Printer.Info("downloading assimp");
+            AnsiConsole.WriteLine("downloading assimp");
             Core.DownloadFileIfMissing(print, URL, zip_file);
-            Printer.Info("extracting assimp");
+            AnsiConsole.WriteLine("extracting assimp");
             Core.ExtractZip(zip_file, dependency_folder);
             var build = Path.Join(dependency_folder, "cmake-build");
             Core.MoveFiles(print, Path.Join(dependency_folder, "assimp-5.0.1"), dependency_folder);
 
-            var project = new CMake.CMakeProject(build, dependency_folder, generator);
+            var project = new CMakeProject(build, dependency_folder, generator);
             project.AddArgument("ASSIMP_BUILD_X3D_IMPORTER", "0");
             if (use_static_build)
             {
                 project.MakeStaticLibrary();
             }
-            Printer.Info($"Installing cmake to {install_folder}");
+            AnsiConsole.WriteLine($"Installing cmake to {install_folder}");
             project.SetInstallFolder(install_folder);
             Core.VerifyDirectoryExists(print, install_folder);
 
             project.Configure(print);
             project.Build(print, CMake.Config.Release);
 
-            Printer.Info("Installing assimp");
+            AnsiConsole.WriteLine("Installing assimp");
             project.Install(print, CMake.Config.Release);
         }
         else
         {
-            Printer.Info("Assimp build exist, not building again...");
+            AnsiConsole.WriteLine("Assimp build exist, not building again...");
         }
     }
 
@@ -392,13 +393,13 @@ internal static class BuildUtils
             var mrelease = mtrelease.Match(line);
             if (mdebug.Success)
             {
-                Printer.Info($"in {path} changed to static debug");
+                AnsiConsole.WriteLine($"in {path} changed to static debug");
                 var spaces = mdebug.Groups[1].Value;
                 lines.Add($"{spaces}<RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>");
             }
             else if (mrelease.Success)
             {
-                Printer.Info($"in {path} changed to static release");
+                AnsiConsole.WriteLine($"in {path} changed to static release");
                 var spaces = mrelease.Groups[1].Value;
                 lines.Add($"{spaces}<RuntimeLibrary>MultiThreaded</RuntimeLibrary>");
             }
@@ -434,7 +435,7 @@ internal class DependencyWxWidgets : BuildDependency
         return "wxWidgets";
     }
 
-    public void AddCmakeArguments(CMake.CMakeProject cmake)
+    public void AddCmakeArguments(CMakeProject cmake)
     {
         // if these differs it clears the lib dir... but also one is required to use / on windows... wtf!
         cmake.AddArgument("WX_ROOT_DIR", root_folder.Replace('\\', '/'));
@@ -466,12 +467,12 @@ internal class DependencyWxWidgets : BuildDependency
         {
             Core.VerifyDirectoryExists(print, root_folder);
             Core.VerifyDirectoryExists(print, data.DependencyDirectory);
-            Printer.Info("downloading wxwidgets");
+            AnsiConsole.WriteLine("downloading wxwidgets");
             Core.DownloadFileIfMissing(print, url, zip_file);
         }
         else
         {
-            Printer.Info("wxWidgets zip file exist, not downloading again...");
+            AnsiConsole.WriteLine("wxWidgets zip file exist, not downloading again...");
         }
 
         if (false == File.Exists(Path.Join(root_folder, "CMakeLists.txt")))
@@ -480,36 +481,36 @@ internal class DependencyWxWidgets : BuildDependency
         }
         else
         {
-            Printer.Info("wxWidgets is unzipped, not unzipping again");
+            AnsiConsole.WriteLine("wxWidgets is unzipped, not unzipping again");
         }
 
         var build_dbg = false == File.Exists(Path.Join(GetLibraryFolder(), "wxzlibd.lib"));
         var build_rel = false == File.Exists(Path.Join(GetLibraryFolder(), "wxzlib.lib"));
-        
+
         if (build_dbg || build_rel)
         {
             var project = ConfigProject(print, root_folder, build_folder, generator);
-            if(build_dbg)
+            if (build_dbg)
             {
-                Printer.Info("building debug wxWidgets");
+                AnsiConsole.WriteLine("building debug wxWidgets");
                 project.Build(print, CMake.Config.Debug);
             }
 
-            if(build_rel)
+            if (build_rel)
             {
-                Printer.Info("building release wxWidgets");
+                AnsiConsole.WriteLine("building release wxWidgets");
                 project.Build(print, CMake.Config.Release);
             }
         }
         else
         {
-            Printer.Info("wxWidgets build exist, not building again...");
+            AnsiConsole.WriteLine("wxWidgets build exist, not building again...");
         }
     }
 
-    private static CMake.CMakeProject ConfigProject(Printer print, string root, string build, Generator generator)
+    private static CMakeProject ConfigProject(Printer print, string root, string build, Generator generator)
     {
-        var project = new CMake.CMakeProject(build, root, generator);
+        var project = new CMakeProject(build, root, generator);
         project.AddArgument("LIBC", "ON");
         project.AddArgument("wxBUILD_SHARED", "OFF");
         project.Configure(print);

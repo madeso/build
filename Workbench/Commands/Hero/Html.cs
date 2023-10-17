@@ -1,6 +1,6 @@
 using Workbench.Utils;
 
-namespace Workbench.Hero;
+namespace Workbench.Commands.Hero;
 
 internal class Html
 {

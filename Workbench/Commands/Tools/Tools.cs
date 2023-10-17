@@ -195,7 +195,7 @@ internal static class Tools
             {
                 if (print_files)
                 {
-                    Printer.Info(resolved);
+                    AnsiConsole.WriteLine(resolved);
                 }
                 counter.AddOne(resolved);
                 Work(print, resolved, include_directories, counter, print_files, limit);
@@ -204,7 +204,7 @@ internal static class Tools
             {
                 if (print_files)
                 {
-                    Printer.Info($"Unable to find {include}");
+                    AnsiConsole.WriteLine($"Unable to find {include}");
                 }
                 counter.AddOne(include);
             }
@@ -216,7 +216,7 @@ internal static class Tools
     {
         foreach (var (file, count) in counter.MostCommon().Take(most_common_count))
         {
-            Printer.Info($"{file}: {count}");
+            AnsiConsole.WriteLine($"{file}: {count}");
         }
     }
 
@@ -300,11 +300,11 @@ internal static class Tools
                 continue;
             }
 
-            Printer.Info(file);
+            AnsiConsole.WriteLine(file);
             count += 1;
         }
 
-        Printer.Info($"Found {count} in {total_files} files.");
+        AnsiConsole.WriteLine($"Found {count} in {total_files} files.");
         return 0;
     }
 
@@ -350,7 +350,7 @@ internal static class Tools
                 x.Value
             ))
             .ToImmutableArray();
-        Printer.Info($"Found {found_files} files.");
+        AnsiConsole.WriteLine($"Found {found_files} files.");
 
         if (args_hist)
         {
@@ -370,11 +370,11 @@ internal static class Tools
             {
                 if (args_show)
                 {
-                    Printer.Info($"{label}: {files}");
+                    AnsiConsole.WriteLine($"{label}: {files}");
                 }
                 else
                 {
-                    Printer.Info($"{label}: {files.Count}");
+                    AnsiConsole.WriteLine($"{label}: {files.Count}");
                 }
             }
         }
@@ -431,28 +431,28 @@ internal static class Tools
 
         if (print_max)
         {
-            Printer.Info("");
-            Printer.Info("");
-            Printer.Info("10 top number of includes for a translation unit");
+            AnsiConsole.WriteLine("");
+            AnsiConsole.WriteLine("");
+            AnsiConsole.WriteLine("10 top number of includes for a translation unit");
             PrintMostCommon(print, max_counter, 10);
         }
 
         if (print_list)
         {
-            Printer.Info("");
-            Printer.Info("");
-            Printer.Info("Number of includes per translation unit");
+            AnsiConsole.WriteLine("");
+            AnsiConsole.WriteLine("");
+            AnsiConsole.WriteLine("Number of includes per translation unit");
             foreach (var (file, count) in total_counter.Items.OrderBy(x => x.Key))
             {
                 if (count >= args_count)
                 {
-                    Printer.Info($"{file} included in {count}/{number_of_translation_units}");
+                    AnsiConsole.WriteLine($"{file} included in {count}/{number_of_translation_units}");
                 }
             }
         }
 
-        Printer.Info("");
-        Printer.Info("");
+        AnsiConsole.WriteLine("");
+        AnsiConsole.WriteLine("");
 
         return 0;
     }
@@ -486,7 +486,7 @@ internal static class Tools
 
         foreach (var line in gv.GetLines(args_group || cluster_output, cluster_output))
         {
-            Printer.Info(line);
+            AnsiConsole.WriteLine(line);
         }
 
         return 0;
@@ -548,18 +548,18 @@ internal static class Tools
         foreach (var g in grouped)
         {
             missing_files += 1;
-            Printer.Info(Path.GetRelativePath(Environment.CurrentDirectory, g.cmake_file));
+            AnsiConsole.WriteLine(Path.GetRelativePath(Environment.CurrentDirectory, g.cmake_file));
             foreach (var f in g.sorted_files)
             {
-                Printer.Info($"    {f}");
+                AnsiConsole.WriteLine($"    {f}");
             }
             if (g.sorted_files.Length > 1)
             {
-                Printer.Info($"    = {g.sorted_files.Length} projects");
+                AnsiConsole.WriteLine($"    = {g.sorted_files.Length} projects");
             }
-            Printer.Info("");
+            AnsiConsole.WriteLine("");
         }
-        Printer.Info($"Found missing: {total_missing} projects in {missing_files} files");
+        AnsiConsole.WriteLine($"Found missing: {total_missing} projects in {missing_files} files");
         PrintMostCommon(print, project_folders, 10);
 
         return 0;
@@ -594,12 +594,12 @@ internal static class Tools
             var resolved = new FileInfo(file).FullName;
             if (paths.Contains(resolved) == false)
             {
-                Printer.Info(resolved);
+                AnsiConsole.WriteLine(resolved);
                 count += 1;
             }
         }
 
-        Printer.Info($"Found {count} files not referenced in cmake");
+        AnsiConsole.WriteLine($"Found {count} files not referenced in cmake");
         return 0;
     }
 
@@ -628,18 +628,18 @@ internal static class Tools
             }
         }
 
-        Printer.Info($"Found {file_count} files.");
+        AnsiConsole.WriteLine($"Found {file_count} files.");
         foreach (var (count, files) in stats.OrderBy(x => x.Key))
         {
             var c = files.Count;
             var count_str = each <= 1 ? $"{count}" : $"{count}-{count + each - 1}";
             if (args_show && c < 3)
             {
-                Printer.Info($"{count_str}: {files}");
+                AnsiConsole.WriteLine($"{count_str}: {files}");
             }
             else
             {
-                Printer.Info($"{count_str}: {c}");
+                AnsiConsole.WriteLine($"{count_str}: {c}");
             }
         }
 
@@ -662,7 +662,7 @@ internal static class Tools
             }
         }
 
-        Printer.Info($"Found {errors} errors in {files} files.");
+        AnsiConsole.WriteLine($"Found {errors} errors in {files} files.");
 
         return errors > 0 ? -1 : 0;
     }

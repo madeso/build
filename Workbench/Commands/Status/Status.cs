@@ -1,3 +1,4 @@
+using Spectre.Console;
 using Workbench.CMake;
 
 namespace Workbench.Commands.Status;
@@ -9,7 +10,7 @@ internal static class Status
         print_found_list(printer, "cmake", CmakeTools.ListAllInstallations(printer).ToList());
 
         var root = Environment.CurrentDirectory;
-        Printer.Info($"Root: {root}");
+        AnsiConsole.WriteLine($"Root: {root}");
 
         var project_build_folder = CompileCommand.FindBuildRootOrNull(root);
         if (project_build_folder == null)
@@ -18,22 +19,22 @@ internal static class Status
         }
         else
         {
-            Printer.Info($"Project build folder: {project_build_folder}");
+            AnsiConsole.WriteLine($"Project build folder: {project_build_folder}");
         }
 
         var ccs = cc.GetPathToCompileCommandsOrNull(printer);
         if (ccs != null)
         {
-            Printer.Info($"Compile commands: {ccs}");
+            AnsiConsole.WriteLine($"Compile commands: {ccs}");
         }
 
         static void print_found_list(Printer printer, string name, List<Found> list)
         {
             var found = Found.GetFirstValueOrNull(list) ?? "<None>";
-            Printer.Info($"{name}: {found}");
+            AnsiConsole.WriteLine($"{name}: {found}");
             foreach (var f in list)
             {
-                Printer.Info($"    {f}");
+                AnsiConsole.WriteLine($"    {f}");
             }
         }
     }

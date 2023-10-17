@@ -1,5 +1,6 @@
 using Spectre.Console;
 using System.Text.RegularExpressions;
+using Workbench.Config;
 using Workbench.Utils;
 
 namespace Workbench.Commands.Clang;
@@ -284,7 +285,7 @@ internal static class ClangFacade
         var classes = new ColCounter<string>();
         if (false == short_list && only.Length == 0)
         {
-            Printer.Info($"took {time_taken:.2f}s");
+            AnsiConsole.WriteLine($"took {time_taken:.2f}s");
         }
         stats.Add(printable_file, time_taken);
         var print_empty = false;
@@ -331,7 +332,7 @@ internal static class ClangFacade
                 {
                     if (false == hidden && print_empty)
                     {
-                        Printer.Info("");
+                        AnsiConsole.WriteLine("");
                         print_empty = false;
                     }
                 }
@@ -340,7 +341,7 @@ internal static class ClangFacade
                     if (false == hidden)
                     {
                         print_empty = true;
-                        Printer.Info(line);
+                        AnsiConsole.WriteLine(line);
                     }
                 }
             }
@@ -348,7 +349,7 @@ internal static class ClangFacade
         if (false == short_list && only.Length == 0)
         {
             PrintWarningCounter(printer, classes, printable_file);
-            Printer.Info("");
+            AnsiConsole.WriteLine("");
         }
         return (warnings, classes);
     }
@@ -356,10 +357,10 @@ internal static class ClangFacade
     // print warning counter to the console
     private static void PrintWarningCounter(Printer print, ColCounter<string> project_counter, string project)
     {
-        Printer.Info($"{project_counter.TotalCount()} warnings in {project}.");
+        AnsiConsole.WriteLine($"{project_counter.TotalCount()} warnings in {project}.");
         foreach (var (file, count) in project_counter.MostCommon().Take(10))
         {
-            Printer.Info($"{file} at {count}");
+            AnsiConsole.WriteLine($"{file} at {count}");
         }
     }
 
@@ -409,16 +410,16 @@ internal static class ClangFacade
                 Printer.Header(project);
                 foreach (var file in source_files)
                 {
-                    Printer.Info(file);
+                    AnsiConsole.WriteLine(file);
                 }
-                Printer.Info("");
+                AnsiConsole.WriteLine("");
             }
         }
         else
         {
             foreach (var file in files)
             {
-                Printer.Info(file);
+                AnsiConsole.WriteLine(file);
             }
         }
 
@@ -444,7 +445,7 @@ internal static class ClangFacade
         }
 
         WriteTidyFileToDisk(root);
-        Printer.Info($"using clang-tidy: {tidy_path}");
+        AnsiConsole.WriteLine($"using clang-tidy: {tidy_path}");
 
         var total_counter = new ColCounter<string>();
         var total_classes = new ColCounter<string>();
@@ -506,8 +507,8 @@ internal static class ClangFacade
                 if (args_only.Length == 0)
                 {
                     PrintWarningCounter(printer, project_counter, project);
-                    Printer.Info("");
-                    Printer.Info("");
+                    AnsiConsole.WriteLine("");
+                    AnsiConsole.WriteLine("");
                 }
             }
         }
@@ -516,23 +517,23 @@ internal static class ClangFacade
         {
             Printer.Header("TIDY REPORT");
             PrintWarningCounter(printer, total_counter, "total");
-            Printer.Info("");
+            AnsiConsole.WriteLine("");
             PrintWarningCounter(printer, total_classes, "classes");
-            Printer.Info("");
+            AnsiConsole.WriteLine("");
             Printer.Line();
-            Printer.Info("");
+            AnsiConsole.WriteLine("");
             foreach (var (k, v) in warnings_per_file)
             {
-                Printer.Info($"{k}:");
+                AnsiConsole.WriteLine($"{k}:");
                 foreach (var f in v)
                 {
-                    Printer.Info($"  {f}");
+                    AnsiConsole.WriteLine($"  {f}");
                 }
-                Printer.Info("");
+                AnsiConsole.WriteLine("");
             }
 
             Printer.Line();
-            Printer.Info("");
+            AnsiConsole.WriteLine("");
             stats.Print();
         }
 
@@ -565,7 +566,7 @@ internal static class ClangFacade
             Printer.Header(project);
             foreach (var file in source_files)
             {
-                Printer.Info(Path.GetRelativePath(file, root));
+                AnsiConsole.WriteLine(Path.GetRelativePath(file, root));
                 if (nop != false)
                 {
                     continue;
@@ -578,7 +579,7 @@ internal static class ClangFacade
                     return -1;
                 }
             }
-            Printer.Info("");
+            AnsiConsole.WriteLine("");
         }
 
         return 0;

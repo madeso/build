@@ -1,7 +1,7 @@
-using Workbench.Hero.Data;
+using Spectre.Console;
 using Workbench.Utils;
 
-namespace Workbench.Hero;
+namespace Workbench.Commands.Hero;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // MainForm
@@ -10,11 +10,11 @@ namespace Workbench.Hero;
 internal static class Ui
 {
 
-    public static void ScanAndGenerateHtml(Printer printer, Data.UserInput input, Data.OutputFolders root)
+    public static void ScanAndGenerateHtml(Printer printer, UserInput input, OutputFolders root)
     {
-        var project = new Data.Project(input);
-        var scanner = new Parser.Scanner();
-        var feedback = new Parser.ProgressFeedback(printer);
+        var project = new Project(input);
+        var scanner = new Scanner();
+        var feedback = new ProgressFeedback(printer);
         scanner.Rescan(project, feedback);
         var f = new UniqueFiles();
         AddFiles(f, project);
@@ -23,19 +23,19 @@ internal static class Ui
 
     private static void AddFiles(UniqueFiles unique_files, Project project)
     {
-        foreach(var k in project.ScannedFiles.Keys)
+        foreach (var k in project.ScannedFiles.Keys)
         {
             unique_files.Add(k);
         }
     }
 
     public static void ScanAndGenerateDot(
-        Printer printer, Data.UserInput input, Data.OutputFolders root, bool simplify_graphviz, bool only_headers,
+        Printer printer, UserInput input, OutputFolders root, bool simplify_graphviz, bool only_headers,
         string[] exclude, bool cluster)
     {
-        var project = new Data.Project(input);
-        var scanner = new Parser.Scanner();
-        var feedback = new Parser.ProgressFeedback(printer);
+        var project = new Project(input);
+        var scanner = new Scanner();
+        var feedback = new ProgressFeedback(printer);
         scanner.Rescan(project, feedback);
         var f = new UniqueFiles();
         AddFiles(f, project);
@@ -52,7 +52,7 @@ internal static class Ui
         return list.Select(p => new FileInfo(p)).Any(pp => ff.FullName == pp.FullName);
     }
 
-    private static bool ExcludeFile(string file, Data.UserInput input, bool only_headers, IEnumerable<string> exclude)
+    private static bool ExcludeFile(string file, UserInput input, bool only_headers, IEnumerable<string> exclude)
     {
         if (FileIsInFileList(file, input.ProjectDirectories))
         {
@@ -74,21 +74,21 @@ internal static class Ui
     }
 
     private static void GenerateDot(
-        string? common, Data.OutputFolders root, Data.Project project, Parser.Scanner scanner,
-        bool simplify_graphviz, bool only_headers, string[] exclude, Data.UserInput input, bool cluster)
+        string? common, OutputFolders root, Project project, Scanner scanner,
+        bool simplify_graphviz, bool only_headers, string[] exclude, UserInput input, bool cluster)
     {
-        var analytics = Parser.Analytics.Analyze(project);
+        var analytics = Analytics.Analyze(project);
         var gv = new Graphviz();
 
         foreach (var file in project.ScannedFiles.Keys)
         {
             if (ExcludeFile(file, input, only_headers, exclude))
             {
-                Printer.Info($"{file} rejected due to non-header");
+                AnsiConsole.WriteLine($"{file} rejected due to non-header");
                 continue;
             }
 
-            Printer.Info($"{file} added as a node");
+            AnsiConsole.WriteLine($"{file} added as a node");
             var display_name = Html.GetFilename(common, root.InputRoot, file);
             var node_id = Html.GetSafeInspectFilenameWithoutHtml(file);
             var added_node = gv.AddNodeWithId(display_name, Shape.Box, node_id);
@@ -105,7 +105,7 @@ internal static class Ui
         {
             if (ExcludeFile(file, input, only_headers, exclude))
             {
-                Printer.Info($"{file} rejected due to non-header");
+                AnsiConsole.WriteLine($"{file} rejected due to non-header");
                 continue;
             }
 
@@ -120,7 +120,7 @@ internal static class Ui
             {
                 if (ExcludeFile(s, input, only_headers, exclude))
                 {
-                    Printer.Info($"{s} rejected due to non-header");
+                    AnsiConsole.WriteLine($"{s} rejected due to non-header");
                     continue;
                 }
 
@@ -146,7 +146,7 @@ internal static class Ui
         gv.WriteFile(root.OutputDirectory);
     }
 
-    private static void GenerateReport(string? common, Data.OutputFolders root, Data.Project project, Parser.Scanner scanner)
+    private static void GenerateReport(string? common, OutputFolders root, Project project, Scanner scanner)
     {
         {
             var html = new Html();
@@ -189,9 +189,9 @@ internal static class Ui
             html.WriteToFile(path);
         }
 
-        var analytics = Parser.Analytics.Analyze(project);
+        var analytics = Analytics.Analyze(project);
         Html.WriteCssFile(root.OutputDirectory);
-        Parser.Report.GenerateIndexPage(common, root, project, analytics);
+        Report.GenerateIndexPage(common, root, project, analytics);
 
         foreach (var f in project.ScannedFiles.Keys)
         {
@@ -203,12 +203,12 @@ internal static class Ui
     (
         string? common,
         Html html,
-        Data.OutputFolders root,
-        Parser.Analytics analytics,
+        OutputFolders root,
+        Analytics analytics,
         IEnumerable<string> included,
         string klass,
         string header,
-        Func<Parser.ItemAnalytics, int> length_fun
+        Func<ItemAnalytics, int> length_fun
     )
     {
         html.PushString($"<div id=\"{klass}\">\n");
@@ -229,7 +229,7 @@ internal static class Ui
         html.PushString("</div>\n");
     }
 
-    private static void write_inspection_page(string? common, Data.OutputFolders root, string file, Data.Project project, Parser.Analytics analytics)
+    private static void write_inspection_page(string? common, OutputFolders root, string file, Project project, Analytics analytics)
     {
         var html = new Html();
 
@@ -292,7 +292,7 @@ internal static class Ui
 }
 
 
-internal static class F
+internal static class uiFacade
 {
     internal static int HandleNewHero(string project_file, bool overwrite, Printer print)
     {
@@ -301,7 +301,7 @@ internal static class F
             print.Error($"{project_file} already exists.");
             return -1;
         }
-        var input = new Data.UserInput();
+        var input = new UserInput();
         input.IncludeDirectories.Add("list of relative or absolute directories");
         input.ProjectDirectories.Add("list of relative or absolute source directories (or files)");
         input.PrecompiledHeaders.Add("list of relative pchs, if there are any");
@@ -313,7 +313,7 @@ internal static class F
 
     internal static int HandleRunHeroHtml(string project_file, string output_directory, Printer print)
     {
-        var input = Data.UserInput.LoadFromFile(print, project_file);
+        var input = UserInput.LoadFromFile(print, project_file);
         if (input == null)
         {
             return -1;
@@ -333,7 +333,7 @@ internal static class F
         string project_file, string output_file, bool simplify_graphviz, bool only_headers, bool cluster,
         string[] exclude, Printer print)
     {
-        var input = Data.UserInput.LoadFromFile(print, project_file);
+        var input = UserInput.LoadFromFile(print, project_file);
         if (input == null)
         {
             return -1;

@@ -76,7 +76,7 @@ static class SlnDepsFunctions
             "-K" + graphviz_layout,
             "-O" + target_file + "." + image_format
         );
-        Printer.Info($"Running graphviz {cmdline}");
+        AnsiConsole.WriteLine($"Running graphviz {cmdline}");
         cmdline.RunAndPrintOutput(printer);
     }
 
@@ -92,7 +92,7 @@ static class SlnDepsFunctions
     // Handlers
     // ======================================================================================================================
 
-    public static int handle_generate(Printer printer, string target,
+    public static int HandleGenerate(Printer printer, string target,
             string format,
             ExclusionList exclude,
             bool simplify,
@@ -100,7 +100,7 @@ static class SlnDepsFunctions
             string path_to_solution_file,
             string layout_name)
     {
-        var solution = SolutionParser.ParseVisualStudio(printer, path_to_solution_file);
+        var solution = Solution.Parse.VisualStudio(printer, path_to_solution_file);
 
         solution.RemoveProjects(p => exclude.ShouldExclude(p.Name));
 
@@ -134,7 +134,7 @@ static class SlnDepsFunctions
             bool reverse_arrows,
             string path_to_solution_file)
     {
-        var solution = SolutionParser.ParseVisualStudio(printer, path_to_solution_file);
+        var solution = Solution.Parse.VisualStudio(printer, path_to_solution_file);
 
         solution.RemoveProjects(p => exclude.ShouldExclude(p.Name));
 
@@ -147,7 +147,7 @@ static class SlnDepsFunctions
 
         foreach (var line in gv.Lines)
         {
-            Printer.Info(line);
+            AnsiConsole.WriteLine(line);
         }
 
         return 0;
@@ -157,7 +157,7 @@ static class SlnDepsFunctions
         Printer printer, ExclusionList exclude, string target_file_or_empty, bool simplify,
             bool reverse_arrows, string path_to_solution_file)
     {
-        var solution = SolutionParser.ParseVisualStudio(printer, path_to_solution_file);
+        var solution = Solution.Parse.VisualStudio(printer, path_to_solution_file);
 
         solution.RemoveProjects(p => exclude.ShouldExclude(p.Name));
 
@@ -172,20 +172,20 @@ static class SlnDepsFunctions
 
         gv.WriteFile(target_file);
 
-        Printer.Info($"Wrote {target_file}");
+        AnsiConsole.WriteLine($"Wrote {target_file}");
 
         return 0;
     }
 
     public static int ListCommand(Printer printer, string solution_path)
     {
-        var solution = SolutionParser.ParseVisualStudio(printer, solution_path);
+        var solution = Solution.Parse.VisualStudio(printer, solution_path);
         foreach (var project in solution.Projects)
         {
-            Printer.Info(project.Name);
+            AnsiConsole.WriteLine(project.Name);
         }
 
-        Printer.Info("");
+        AnsiConsole.WriteLine("");
 
         return 0;
     }

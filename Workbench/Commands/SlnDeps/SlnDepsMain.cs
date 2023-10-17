@@ -67,7 +67,7 @@ internal sealed class GenerateCommand : Command<GenerateCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
         return CommonExecute.WithPrinter(printer =>
-            SlnDepsFunctions.handle_generate(printer, args.Target, args.Format, args.MakeExclusionList(), args.Simplify, args.Reverse, args.Solution, args.Style)
+            SlnDepsFunctions.HandleGenerate(printer, args.Target, args.Format, args.MakeExclusionList(), args.Simplify, args.Reverse, args.Solution, args.Style)
         );
     }
 }

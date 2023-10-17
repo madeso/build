@@ -1,11 +1,11 @@
-using Spectre.Console;
-using Spectre.Console.Cli;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using Spectre.Console;
+using Spectre.Console.Cli;
 using Workbench.CMake;
 
-namespace Workbench.Commands.CmakeCommands;
+namespace Workbench.Commands.Cmake;
 
 
 internal sealed class TraceCommand : Command<TraceCommand.Arg>
@@ -24,7 +24,7 @@ internal sealed class TraceCommand : Command<TraceCommand.Arg>
 
             if (cmake == null)
             {
-                printer.Error("Faield to find cmake");
+                printer.Error("Failed to find cmake");
                 return -1;
             }
 
@@ -93,7 +93,7 @@ internal sealed class DotCommand : Command<DotCommand.Arg>
 
             if(cmake == null)
             {
-                printer.Error("Faield to find cmake");
+                printer.Error("Failed to find cmake");
                 return -1;
             }
 
@@ -104,7 +104,7 @@ internal sealed class DotCommand : Command<DotCommand.Arg>
                 var ignores = settings.NamesToIgnore.ToImmutableHashSet();
                 AnsiConsole.MarkupLineInterpolated($"Ignoring [red]{ignores.Count}[/] projects.");
                 var lines = Trace.TraceDirectory(cmake, settings.File);
-                var solution = SolutionParser.ParseCmake(lines);
+                var solution = Solution.Parse.CMake(lines);
 
                 if (settings.RemoveInterface)
                 {

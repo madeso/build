@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Spectre.Console;
 using Workbench.Utils;
 
 namespace Workbench.CMake;
@@ -216,7 +217,7 @@ public class CMakeProject
         var command = new ProcessBuilder(cmake);
         foreach (var argument in arguments.Select(arg => arg.FormatForCmakeArgument()))
         {
-            Printer.Info($"Setting CMake argument for config: {argument}");
+            AnsiConsole.WriteLine($"Setting CMake argument for config: {argument}");
             command.AddArgument(argument);
         }
 
@@ -236,7 +237,7 @@ public class CMakeProject
         {
             if (nop)
             {
-                Printer.Info($"Configuring cmake: {command}");
+                AnsiConsole.WriteLine($"Configuring cmake: {command}");
             }
             else
             {
@@ -245,7 +246,7 @@ public class CMakeProject
         }
         else
         {
-            Printer.Info($"Configuring cmake: {command}");
+            AnsiConsole.WriteLine($"Configuring cmake: {command}");
         }
     }
 
@@ -285,7 +286,7 @@ public class CMakeProject
         }
         else
         {
-            Printer.Info($"Found path to cmake in path ({command}) but it didn't exist");
+            AnsiConsole.WriteLine($"Found path to cmake in path ({command}) but it didn't exist");
         }
     }
 

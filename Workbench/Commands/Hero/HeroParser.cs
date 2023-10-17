@@ -1,8 +1,9 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
+using Spectre.Console;
 using Workbench.Utils;
 
-namespace Workbench.Hero.Parser;
+namespace Workbench.Commands.Hero;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Parser
@@ -141,7 +142,7 @@ public class Result
 
 
 
-internal static class F
+internal static class ParserFacade
 {
     internal static string canonicalize_or_default(string p)
     {
@@ -149,7 +150,7 @@ internal static class F
         return new FileInfo(p).FullName;
     }
 
-    internal static void touch_file(Data.Project project, string abs)
+    internal static void touch_file(Project project, string abs)
     {
         if (project.ScannedFiles.TryGetValue(abs, out var file))
         {
@@ -179,7 +180,7 @@ public class Analytics
 {
     public readonly Dictionary<string, ItemAnalytics> FileToData = new();
 
-    public static Analytics Analyze(Data.Project project)
+    public static Analytics Analyze(Project project)
     {
         var analytics = new Analytics();
         foreach (var file in project.ScannedFiles.Keys)
@@ -205,7 +206,7 @@ public class Analytics
         }
     }
 
-    private void Analyze(string path, Data.Project project)
+    private void Analyze(string path, Project project)
     {
         if (FileToData.TryGetValue(path, out var analytics))
         {
@@ -294,7 +295,7 @@ public static class Report
     }
 
     private static void AddFileTable(
-        string? common, Html sb, Data.OutputFolders root, string id, string header, IEnumerable<PathCount> count_list)
+        string? common, Html sb, OutputFolders root, string id, string header, IEnumerable<PathCount> count_list)
     {
         sb.PushString($"<div id=\"{id}\">\n");
         sb.PushString($"<a name=\"{id}\"></a>");
@@ -315,7 +316,7 @@ public static class Report
         => Path.Join(root, "index.html");
 
 
-    public static void GenerateIndexPage(string? common, Data.OutputFolders root, Data.Project project, Analytics analytics)
+    public static void GenerateIndexPage(string? common, OutputFolders root, Project project, Analytics analytics)
     {
         var sb = new Html();
 
@@ -394,12 +395,12 @@ public class ProgressFeedback
 
     public void UpdateTitle(string new_title)
     {
-        Printer.Info($"{new_title}");
+        AnsiConsole.WriteLine($"{new_title}");
     }
 
     public void UpdateMessage(string new_message)
     {
-        Printer.Info($"  {new_message}");
+        AnsiConsole.WriteLine($"  {new_message}");
     }
 
     public void UpdateCount(int new_count)
@@ -418,13 +419,13 @@ public class Scanner
     private readonly HashSet<string> file_queue = new();
     private readonly List<string> scan_queue = new();
     private readonly Dictionary<string, string> system_includes = new();
-    
+
     public readonly List<string> Errors = new();
     public readonly Dictionary<string, List<string>> NotFoundOrigins = new();
     public readonly ColCounter<string> MissingExt = new();
 
 
-    public void Rescan(Data.Project project, ProgressFeedback feedback)
+    public void Rescan(Project project, ProgressFeedback feedback)
     {
         feedback.UpdateTitle("Scanning precompiled header...");
         foreach (var sf in project.ScannedFiles.Values)
@@ -523,7 +524,7 @@ public class Scanner
             var ext = Path.GetExtension(file);
             if (FileUtil.IsTranslationUnitExtension(ext))
             {
-                AddToQueue(file, F.canonicalize_or_default(file));
+                AddToQueue(file, ParserFacade.canonicalize_or_default(file));
             }
             else
             {
@@ -544,9 +545,9 @@ public class Scanner
         scan_queue.Add(inc);
     }
 
-    private void ScanFile(Data.Project project, string p)
+    private void ScanFile(Project project, string p)
     {
-        var path = F.canonicalize_or_default(p);
+        var path = ParserFacade.canonicalize_or_default(p);
         // todo(Gustav): add last scan feature!!!
         if (project.ScannedFiles.TryGetValue(path, out var scanned_file)) // && project.LastScan > path.LastWriteTime && !this.is_scanning_pch
         {
@@ -556,7 +557,7 @@ public class Scanner
         else
         {
             var parsed = Result.ParseFile(path, Errors);
-            var source_file = new Data.SourceFile
+            var source_file = new SourceFile
             (
                 number_of_lines: parsed.NumberOfLines,
                 local_includes: parsed.LocalIncludes,
@@ -568,7 +569,7 @@ public class Scanner
         }
     }
 
-    private void PleaseScanFile(Data.Project project, string path, Data.SourceFile sf)
+    private void PleaseScanFile(Project project, string path, SourceFile sf)
     {
         sf.IsTouched = true;
         sf.AbsoluteIncludes.Clear();
@@ -581,11 +582,11 @@ public class Scanner
         foreach (var s in sf.LocalIncludes)
         {
             var inc = Path.Join(local_dir, s);
-            var abs = F.canonicalize_or_default(inc);
+            var abs = ParserFacade.canonicalize_or_default(inc);
             // found a header that's part of PCH during regular scan: ignore it
             if (!is_scanning_pch && project.ScannedFiles.ContainsKey(abs) && project.ScannedFiles[abs].IsPrecompiled)
             {
-                F.touch_file(project, abs);
+                ParserFacade.touch_file(project, abs);
                 continue;
             }
             if (!Path.Exists(inc))
@@ -607,7 +608,7 @@ public class Scanner
                 // found a header that's part of PCH during regular scan: ignore it
                 if (!is_scanning_pch && project.ScannedFiles.ContainsKey(system_include) && project.ScannedFiles[system_include].IsPrecompiled)
                 {
-                    F.touch_file(project, system_include);
+                    ParserFacade.touch_file(project, system_include);
                     continue;
                 }
                 sf.AbsoluteIncludes.Add(system_include);
@@ -620,13 +621,13 @@ public class Scanner
 
                 if (found_path != null)
                 {
-                    var canonicalized = F.canonicalize_or_default(found_path);
+                    var canonicalized = ParserFacade.canonicalize_or_default(found_path);
                     // found a header that's part of PCH during regular scan: ignore it
                     if (!is_scanning_pch
                         && project.ScannedFiles.TryGetValue(canonicalized, out var scanned_file)
                         && scanned_file.IsPrecompiled)
                     {
-                        F.touch_file(project, canonicalized);
+                        ParserFacade.touch_file(project, canonicalized);
                         continue;
                     }
 

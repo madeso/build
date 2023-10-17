@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 using Spectre.Console.Cli;
 using Workbench.Utils;
 
-namespace Workbench.Build;
+namespace Workbench.Commands.Build;
 
 [TypeConverter(typeof(EnumTypeConverter<Compiler>))]
 [JsonConverter(typeof(EnumJsonConverter<Compiler>))]

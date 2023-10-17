@@ -1,5 +1,6 @@
 using StbRectPackSharp;
 using System.Collections.Immutable;
+using Spectre.Console;
 using Workbench.Doxygen.Compound;
 
 namespace Workbench.Commands.CodeCity;
@@ -60,10 +61,10 @@ internal class Facade
         const float CLASS_SIZE_MOD = 1;
         const float CLASS_HEIGHT_MOD = 1;
 
-        Printer.Info("Parsing doxygen XML...");
+        AnsiConsole.WriteLine("Parsing doxygen XML...");
         var dox = Doxygen.Doxygen.ParseIndex(doxygen_xml);
 
-        Printer.Info("Collecting functions...");
+        AnsiConsole.WriteLine("Collecting functions...");
         var namespaces = DoxygenUtils.AllNamespaces(dox).ToImmutableArray();
 
         var all_namespaces_in_namespaces = namespaces

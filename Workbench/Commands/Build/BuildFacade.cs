@@ -1,11 +1,12 @@
+using Spectre.Console;
 using Workbench.Config;
 using Workbench.Utils;
 
-namespace Workbench.Build;
+namespace Workbench.Commands.Build;
 
 
 
-internal static class F
+internal static class BuildFacade
 {
     public static int HandleInit(Printer print, bool overwrite)
     {
@@ -89,38 +90,55 @@ internal static class F
         var env = BuildFunctions.LoadFromFileOrCreateEmpty(data.GetPathToSettingsFile(), printer);
 
         Printer.Header(data.Name);
-        Printer.Info($"Project: {data.Name}");
-        Printer.Info($"Dependencies: {data.Dependencies.Count}");
-        Printer.Info("Environment:");
-        Printer.Info($"  Compiler: {EnumTools.GetString(env.Compiler) ?? "missing"}");
-        Printer.Info($"  Platform: {EnumTools.GetString(env.Platform) ?? "missing"}");
-        Printer.Info("");
-        Printer.Info("Folders:");
-        Printer.Info($"  Data: {data.GetPathToSettingsFile()}");
-        Printer.Info($"  Root: {data.RootDirectory}");
-        Printer.Info($"  Build: {data.ProjectDirectory}");
-        Printer.Info($"  Dependencies: {data.DependencyDirectory}");
+        AnsiConsole.WriteLine($"Project: {data.Name}");
+        AnsiConsole.WriteLine($"Dependencies: {data.Dependencies.Count}");
+        AnsiConsole.WriteLine("Environment:");
+        AnsiConsole.WriteLine($"  Compiler: {EnumTools.GetString(env.Compiler) ?? "missing"}");
+        AnsiConsole.WriteLine($"  Platform: {EnumTools.GetString(env.Platform) ?? "missing"}");
+        AnsiConsole.WriteLine("");
+        AnsiConsole.WriteLine("Folders:");
+        AnsiConsole.WriteLine($"  Data: {data.GetPathToSettingsFile()}");
+        AnsiConsole.WriteLine($"  Root: {data.RootDirectory}");
+        AnsiConsole.WriteLine($"  Build: {data.ProjectDirectory}");
+        AnsiConsole.WriteLine($"  Dependencies: {data.DependencyDirectory}");
         const string INDENT = "    ";
         if (data.Dependencies.Count > 0)
         {
-            Printer.Info("");
+            AnsiConsole.WriteLine("");
         }
         foreach (var dep in data.Dependencies)
         {
-            Printer.Info($"{INDENT}{dep.GetName()}");
+            AnsiConsole.WriteLine($"{INDENT}{dep.GetName()}");
             var lines = dep.GetStatus();
             foreach (var line in lines)
             {
-                Printer.Info($"{INDENT}{INDENT}{line}");
+                AnsiConsole.WriteLine($"{INDENT}{INDENT}{line}");
             }
         }
 
         return 0;
     }
 
+    public static int WithLoadedBuildData(Func<Printer, BuildData, int> callback)
+    {
+        return CommonExecute.WithPrinter(print =>
+        {
+            var data = BuildData.LoadOrNull(print);
+            if (data == null)
+            {
+                print.Error("Unable to load the data");
+                return -1;
+            }
+            else
+            {
+                return callback(print, data.Value);
+            }
+        });
+    }
+
     internal static int HandleGenericBuild(EnvironmentArgument args, Func<Printer, BuildEnvironment, BuildData, int> callback)
     {
-        return CommonExecute.WithLoadedBuildData((printer, data) =>
+        return WithLoadedBuildData((printer, data) =>
         {
             var env = BuildFunctions.LoadFromFileOrCreateEmpty(data.GetPathToSettingsFile(), printer);
             env.UpdateFromArguments(printer, args);

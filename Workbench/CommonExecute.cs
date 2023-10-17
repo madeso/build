@@ -1,5 +1,3 @@
-using Workbench.Build;
-
 namespace Workbench;
 
 public static class CommonExecute
@@ -10,22 +8,5 @@ public static class CommonExecute
         var ret = callback(printer);
         printer.PrintErrorCount();
         return ret;
-    }
-
-    public static int WithLoadedBuildData(Func<Printer, BuildData, int> callback)
-    {
-        return WithPrinter(print =>
-        {
-            var data = BuildData.LoadOrNull(print);
-            if (data == null)
-            {
-                print.Error("Unable to load the data");
-                return -1;
-            }
-            else
-            {
-                return callback(print, data.Value);
-            }
-        });
     }
 }
