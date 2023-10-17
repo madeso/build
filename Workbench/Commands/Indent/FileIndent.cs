@@ -133,6 +133,111 @@ internal static class IndentFunctions
 
         return indent;
     }
+
+    private static IEnumerable<string> FileReadLines(string path, bool discard_empty)
+    {
+        var lines = File.ReadLines(path);
+
+        if (!discard_empty)
+        {
+            return lines;
+        }
+
+        return lines
+                .Where(line => string.IsNullOrWhiteSpace(line) == false)
+            ;
+
+    }
+
+
+    private static IEnumerable<int> GetAllIndent(string path, bool discard_empty)
+    {
+        return FileReadLines(path, discard_empty)
+                .Select(line => line.Length - line.TrimStart().Length)
+            ;
+    }
+
+
+    private static int GetMaxIndent(string path, bool discard_empty)
+    {
+        return GetAllIndent(path, discard_empty)
+            .DefaultIfEmpty(-1)
+            .Max();
+    }
+
+    public static int HandleListIndents(string[] args_files, int each, bool args_show,
+        bool args_hist, bool discard_empty)
+    {
+        var stats = new Dictionary<int, List<string>>();
+        var found_files = 0;
+
+        foreach (var file in FileUtil.ListFilesRecursively(args_files, FileUtil.HeaderAndSourceFiles))
+        {
+            found_files += 1;
+
+            var counts = !args_hist
+                    ? new[] { GetMaxIndent(file, discard_empty) }
+                    : GetAllIndent(file, discard_empty)
+                        .Order()
+                        .Distinct()
+                        .ToArray()
+                ;
+
+            foreach (var count in counts)
+            {
+                var index = each <= 1
+                        ? count
+                        : count - count % each
+                    ;
+                if (stats.TryGetValue(index, out var values))
+                {
+                    values.Add(file);
+                }
+                else
+                {
+                    stats.Add(index, new List<string> { file });
+                }
+            }
+        }
+
+        var all_sorted = stats.OrderBy(x => x.Key)
+            .Select(x => (
+                each <= 1 ? $"{x.Key}" : $"{x.Key}-{x.Key + each - 1}",
+                x.Key,
+                x.Value
+            ))
+            .ToImmutableArray();
+        AnsiConsole.WriteLine($"Found {found_files} files.");
+
+        if (args_hist)
+        {
+            var chart = new BarChart()
+                .Width(60)
+                .Label("[green bold underline]Number of files / indentation[/]")
+                .CenterLabel();
+            foreach (var (label, start, files) in all_sorted)
+            {
+                chart.AddItem(label, files.Count, Color.Green);
+            }
+            AnsiConsole.Write(chart);
+        }
+        else
+        {
+            foreach (var (label, start, files) in all_sorted)
+            {
+                if (args_show)
+                {
+                    AnsiConsole.WriteLine($"{label}: {files}");
+                }
+                else
+                {
+                    AnsiConsole.WriteLine($"{label}: {files.Count}");
+                }
+            }
+        }
+
+        return 0;
+    }
 }
 
 internal class LineIndent

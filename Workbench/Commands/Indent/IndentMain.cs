@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Spectre.Console;
 using Spectre.Console.Cli;
+using Workbench.Commands.Tools;
 using Workbench.Utils;
 
 namespace Workbench.Commands.Indent;
@@ -68,10 +69,50 @@ internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
     }
 }
 
+
+[Description("list the files with the maximum indents")]
+internal sealed class ListIndentsCommand : Command<ListIndentsCommand.Arg>
+{
+    public sealed class Arg : CommandSettings
+    {
+        [Description("File to read")]
+        [CommandArgument(0, "<input files>")]
+        public string[] Files { get; set; } = Array.Empty<string>();
+
+        [CommandOption("--each")]
+        [Description("group counts")]
+        [DefaultValue(1)]
+        public int Each { get; set;} = 0;
+
+        [CommandOption("--show")]
+        [Description("include files in list")]
+        public bool Show { get; set; } = false;
+
+        [CommandOption("--hist")]
+        [Description("show simple histogram")]
+        public bool DisplayHistogram { get; set; } = false;
+
+        [CommandOption("--include-empty")]
+        [DefaultValue(true)]
+        public bool DiscardEmpty { get; set; } = true;
+    }
+
+    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    {
+        return CommonExecute.WithPrinter(print =>
+            IndentFunctions.HandleListIndents(settings.Files, settings.Each, settings.Show, settings.DisplayHistogram, settings.DiscardEmpty));
+    }
+}
+
 public static class Main
 {
     public static void Configure(IConfigurator config, string name)
     {
-        config.AddCommand<IndentationCommand>(name).WithDescription("Gets the max indentation level for source files");
+        config.AddBranch(name, cmake =>
+        {
+            cmake.SetDescription("Indent commands that should be merged to a single");
+            cmake.AddCommand<IndentationCommand>("root").WithDescription("Gets the max indentation level for source files");
+            cmake.AddCommand<ListIndentsCommand>("tools");
+        });
     }
 }

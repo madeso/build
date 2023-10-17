@@ -47,7 +47,7 @@ internal static class CmakeTools
     }
 
 
-    public static IEnumerable<Found> ListAllInstallations(Printer printer)
+    public static IEnumerable<Found> FindAllInstallations(Printer printer)
     {
         yield return FindInstallationInRegistry(printer);
         yield return FindInstallationInPath(printer);
@@ -56,7 +56,7 @@ internal static class CmakeTools
 
     public static string? FindInstallationOrNull(Printer printer)
     {
-        return Found.GetFirstValueOrNull(ListAllInstallations(printer));
+        return Found.GetFirstValueOrNull(FindAllInstallations(printer));
     }
 
 

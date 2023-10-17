@@ -47,7 +47,6 @@ internal class Main
             cmake.AddCommand<LineCountCommand>("line-count");
             cmake.AddCommand<IncludeListCommand>("include-list");
             cmake.AddCommand<IncludeGraphvizCommand>("include-gv");
-            cmake.AddCommand<ListIndentsCommand>("list-indents");
             cmake.AddCommand<MissingPragmaOnceCommand>("missing-pragma-once");
             cmake.AddCommand<MissingInCmakeCommand>("missing-in-cmake");
             cmake.AddCommand<ListNoProjectFoldersCommand>("list-no-project-folders");
@@ -165,43 +164,6 @@ internal sealed class IncludeGraphvizCommand : Command<IncludeGraphvizCommand.Ar
         return CommonExecute.WithPrinter(print =>
             Tools.HandleGraphvizCommand(print, settings.GetPathToCompileCommandsOrNull(print),
                 settings.Files, settings.Limit, settings.Group, settings.Cluster));
-    }
-}
-
-
-
-
-[Description("list the files with the maximum indents")]
-internal sealed class ListIndentsCommand : Command<ListIndentsCommand.Arg>
-{
-    public sealed class Arg : CommandSettings
-    {
-        [Description("File to read")]
-        [CommandArgument(0, "<input files>")]
-        public string[] Files { get; set; } = Array.Empty<string>();
-
-        [CommandOption("--each")]
-        [Description("group counts")]
-        [DefaultValue(1)]
-        public int Each { get; set;} = 0;
-
-        [CommandOption("--show")]
-        [Description("include files in list")]
-        public bool Show { get; set; } = false;
-
-        [CommandOption("--hist")]
-        [Description("show simple histogram")]
-        public bool DisplayHistogram { get; set; } = false;
-
-        [CommandOption("--include-empty")]
-        [DefaultValue(true)]
-        public bool DiscardEmpty { get; set; } = true;
-    }
-
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
-    {
-        return CommonExecute.WithPrinter(print =>
-            Tools.HandleListIndents(print, settings.Files, settings.Each, settings.Show, settings.DisplayHistogram, settings.DiscardEmpty));
     }
 }
 
