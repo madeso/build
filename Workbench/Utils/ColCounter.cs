@@ -1,3 +1,5 @@
+using Spectre.Console;
+
 namespace Workbench.Utils;
 
 public class ColCounter<T>
@@ -74,4 +76,16 @@ public class ColCounter<T>
         }
     }
 
+}
+
+
+public static class ColCounterExtensions
+{
+    public static void PrintMostCommon(this ColCounter<string> counter, int most_common_count)
+    {
+        foreach (var (file, count) in counter.MostCommon().Take(most_common_count))
+        {
+            AnsiConsole.WriteLine($"{file}: {count}");
+        }
+    }
 }

@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 using Spectre.Console;
 using Workbench.Utils;
 
-namespace Workbench.Commands.ListHeaders;
+namespace Workbench.Commands.Headers;
 
 [TypeConverter(typeof(EnumTypeConverter<ListAction>))]
 [JsonConverter(typeof(EnumJsonConverter<ListAction>))]

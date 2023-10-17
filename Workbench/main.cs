@@ -25,7 +25,7 @@ internal class Program
             Commands.Git.Main.Configure(config, "git");
             Commands.CompileCommands.Main.Configure(config, "compile-commands");
             Commands.CheckIncludeOrder.Main.Configure(config, "check-includes");
-            Commands.ListHeaders.Main.Configure(config, "list-headers");
+            Commands.Headers.Main.Configure(config, "headers");
             Commands.Clang.Main.Configure(config, "clang");
             Commands.Hero.Main.Configure(config, "hero");
             Commands.CppLint.Main.Configure(config, "cpplint");

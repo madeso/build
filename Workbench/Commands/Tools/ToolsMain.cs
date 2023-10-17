@@ -31,9 +31,6 @@ internal class Main
         config.AddBranch(name, cmake =>
         {
             cmake.SetDescription("various smaller tools for investigating code health and getting statistics");
-            
-            cmake.AddCommand<IncludeListCommand>("include-list");
-            cmake.AddCommand<IncludeGraphvizCommand>("include-gv");
 
             cmake.AddCommand<CheckForMissingPragmaOnceCommand>("check-missing-pragma-once");
             cmake.AddCommand<CheckForMissingInCmakeCommand>("check-missing-in-cmake");
@@ -43,86 +40,6 @@ internal class Main
     }
 }
 
-
-
-[Description("list headers from files")]
-internal sealed class IncludeListCommand : Command<IncludeListCommand.Arg>
-{
-    public sealed class Arg : CompileCommandsArguments
-    {
-        [Description("File to read")]
-        [CommandArgument(0, "<input files>")]
-        public string[] Files { get; set; } = Array.Empty<string>();
-
-        [CommandOption("--print")]
-        [DefaultValue(false)]
-        public bool PrintFiles { get; set; } = false;
-
-        [CommandOption("--print-stats")]
-        [DefaultValue(false)]
-        public bool PrintStats { get; set; } = false;
-
-        [CommandOption("--print-max")]
-        [DefaultValue(false)]
-        public bool PrintMax { get; set; } = false;
-
-        [CommandOption("--no-list")]
-        [DefaultValue(true)]
-        public bool PrintList { get; set; } = true;
-
-        [CommandOption("--count")]
-        [DefaultValue(2)]
-        [Description("only print.Info includes that are more or equal to <count>")]
-        public int Count { get; set; } = 2;
-        
-
-        [CommandOption("--limit")]
-        [Description("limit search to theese files and folders")]
-        public string[] Limit { get; set; } = Array.Empty<string> ();
-    }
-
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
-    {
-        return CommonExecute.WithPrinter(print => Tools.HandleListIncludesCommand(print, settings.GetPathToCompileCommandsOrNull(print),
-            settings.Files, settings.PrintFiles, settings.PrintStats, settings.PrintMax,
-            settings.PrintList, settings.Count, settings.Limit));
-    }
-}
-
-
-
-
-[Description("generate a graphviz of the includes")]
-internal sealed class IncludeGraphvizCommand : Command<IncludeGraphvizCommand.Arg>
-{
-    public sealed class Arg : CompileCommandsArguments
-    {
-        [Description("File to read")]
-        [CommandArgument(0, "<input files>")]
-        public string[] Files { get; set; } = Array.Empty<string>();
-
-        [CommandOption("--limit")]
-        [Description("limit search to theese files and folders")]
-        public string[] Limit { get; set; } = Array.Empty<string> ();
-
-        [CommandOption("--group")]
-        [Description("group output")]
-        [DefaultValue(false)]
-        public bool Group { get; set; } = false;
-
-        [CommandOption("--cluster")]
-        [Description("group output into clusters")]
-        [DefaultValue(false)]
-        public bool Cluster { get; set; } = false;
-    }
-
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
-    {
-        return CommonExecute.WithPrinter(print =>
-            Tools.HandleIncludeGraphvizCommand(print, settings.GetPathToCompileCommandsOrNull(print),
-                settings.Files, settings.Limit, settings.Group, settings.Cluster));
-    }
-}
 
 
 
