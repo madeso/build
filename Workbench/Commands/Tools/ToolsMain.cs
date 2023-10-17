@@ -226,7 +226,13 @@ internal sealed class ListNoProjectFoldersCommand : Command<ListNoProjectFolders
                 return -1;
             }
 
-            return Tools.HandleListNoProjectFolderCommand(print, settings.Files, settings.GetPathToCompileCommandsOrNull(print), cmake);
+            var build_root = CmakeTools.FindBuildOrNone(settings, print);
+            if (build_root == null)
+            {
+                return -1;
+            }
+
+            return Tools.HandleListNoProjectFolderCommand(print, settings.Files, build_root, cmake);
         });
     }
 }

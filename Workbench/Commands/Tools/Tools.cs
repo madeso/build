@@ -403,14 +403,9 @@ internal static class Tools
     }
 
     public static int HandleListNoProjectFolderCommand(
-        Printer print, string[] args_files, string? compile_commands_arg, string cmake)
+        Printer print, string[] args_files, string build_root, string cmake)
     {
-        if (compile_commands_arg == null) { return -1; }
-
         var bases = args_files.Select(FileUtil.RealPath).ToImmutableArray();
-
-        var build_root = new FileInfo(compile_commands_arg).Directory?.FullName;
-        if (build_root == null) { return -1; }
 
         var projects = new HashSet<string>();
         var projects_with_folders = new HashSet<string>();
