@@ -32,7 +32,7 @@ internal class Program
             Commands.Tools.Main.Configure(config, "tools");
             Commands.SlnDeps.Main.Configure(config, "slndeps");
             Commands.CodeCity.Main.Configure(config, "code-city");
-            Commands.OrderInFile.Main.Configure(config, "order-in-file");
+            Commands.CheckOrderInFile.Main.Configure(config, "order-in-file");
             Commands.CheckNames.Main.Configure(config, "check-names");
             Commands.Todo.Main.Configure(config, "todo");
             Commands.Dependencies.Main.Configure(config, "deps");

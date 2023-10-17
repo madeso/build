@@ -44,11 +44,6 @@ internal sealed class FilesCommand : Command<FilesCommand.Arg>
         [CommandOption("--count")]
         [DefaultValue(10)]
         public int MostCommonCount { get; set; }
-
-        [Description("print debug info")]
-        [CommandOption("--debug")]
-        [DefaultValue(false)]
-        public bool PrintDebugInfo { get; set; }
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)

@@ -2,7 +2,7 @@ using Spectre.Console;
 using Workbench.Doxygen.Compound;
 using static Workbench.Doxygen.Compound.LinkedTextType;
 
-namespace Workbench.Commands.OrderInFile;
+namespace Workbench.Commands.CheckOrderInFile;
 
 internal static class OrderInFile
 {

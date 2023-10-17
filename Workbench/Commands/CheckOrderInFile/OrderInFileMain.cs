@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Spectre.Console.Cli;
 
-namespace Workbench.Commands.OrderInFile;
+namespace Workbench.Commands.CheckOrderInFile;
 
 
 internal sealed class OrderInFileCommand : Command<OrderInFileCommand.Arg>

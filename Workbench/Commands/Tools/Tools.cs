@@ -13,7 +13,7 @@ namespace Workbench.Commands.Tools;
 
 internal static class Tools
 {
-    private static IEnumerable<string> GetGetIncludeDirectories(string path, IReadOnlyDictionary<string, CompileCommand> cc)
+    private static IEnumerable<string> GetIncludeDirectories(string path, IReadOnlyDictionary<string, CompileCommand> cc)
     {
         var c = cc[path];
         foreach (var relative_include in c.GetRelativeIncludes())
@@ -179,7 +179,7 @@ internal static class Tools
     }
 
 
-    private static void Work(Printer print, string
+    private static void Work(string
             real_file, ImmutableArray<string> include_directories,
         ColCounter<string> counter, bool print_files, ImmutableArray<string> limit)
     {
@@ -198,7 +198,7 @@ internal static class Tools
                     AnsiConsole.WriteLine(resolved);
                 }
                 counter.AddOne(resolved);
-                Work(print, resolved, include_directories, counter, print_files, limit);
+                Work(resolved, include_directories, counter, print_files, limit);
             }
             else
             {
@@ -295,7 +295,7 @@ internal static class Tools
     private static ImmutableArray<string> CompleteLimitArg(IEnumerable<string> args_limit)
         => args_limit.Select(x => new DirectoryInfo(x).FullName).ToImmutableArray();
 
-    public static int HandleListCommand(Printer print, string? compile_commands_arg,
+    public static int HandleListIncludesCommand(Printer print, string? compile_commands_arg,
         string[] args_files,
         bool args_print_files,
         bool args_print_stats,
@@ -327,8 +327,8 @@ internal static class Tools
             var file_counter = new ColCounter<string>();
             if (compile_commands.ContainsKey(translation_unit))
             {
-                var include_directories = GetGetIncludeDirectories(translation_unit, compile_commands).ToImmutableArray();
-                Work(print, translation_unit, include_directories, file_counter, args_print_files, limit);
+                var include_directories = GetIncludeDirectories(translation_unit, compile_commands).ToImmutableArray();
+                Work(translation_unit, include_directories, file_counter, args_print_files, limit);
             }
 
             if (args_print_stats)
@@ -367,7 +367,7 @@ internal static class Tools
         return 0;
     }
 
-    public static int HandleGraphvizCommand(Printer print, string? compile_commands_arg,
+    public static int HandleIncludeGraphvizCommand(Printer print, string? compile_commands_arg,
         string[] args_files,
         string[] args_limit,
         bool args_group,
@@ -389,7 +389,7 @@ internal static class Tools
         {
             if (compile_commands.ContainsKey(translation_unit))
             {
-                var include_directories = GetGetIncludeDirectories(translation_unit, compile_commands).ToImmutableArray();
+                var include_directories = GetIncludeDirectories(translation_unit, compile_commands).ToImmutableArray();
                 gv_work(translation_unit, "TU", include_directories, gv, limit, Environment.CurrentDirectory);
             }
         }

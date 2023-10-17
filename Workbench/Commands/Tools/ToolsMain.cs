@@ -8,31 +8,16 @@ namespace Workbench.Commands.Tools;
 /*
 
 Previous commands for refactoring info:
-wb tools missing-in-cmake
-wb tools missing-in-cmake libs
-wb tools missing-in-cmake libs apps
+wb tools check-missing-in-cmake
+wb tools check-missing-in-cmake libs
+wb tools check-missing-in-cmake libs apps
 
 wb tools list-no-project-folders libs apps
 wb tools list-no-project-folders libs apps external
 wb tools list-no-project-folders libs apps external tools data
 
-wb tools list-indents libs --each
-wb tools list-indents libs --each 3
-wb tools list-indents libs --each 2
-wb tools list-indents libs --each 5
-wb tools list-indents --include-empty
-wb tools list-indents --show
-wb tools list-indents libs --include-empty
-wb tools list-indents libs
-wb tools list-indents libs --hist
-wb tools list-indents libs --hist --list
-wb tools list-indents libs --hist --show
-wb tools list-indents libs --show
-wb tools list-indents libs --hist --show --each 4
-wb tools list-indents libs apps --hist --each 4
-
-wb tools missing-pragma-once libs apps
-wb tools missing-pragma-once libs apps
+wb tools check-missing-pragma-once libs apps
+wb tools check-missing-pragma-once libs apps
 
 */
 
@@ -45,12 +30,14 @@ internal class Main
         {
             cmake.SetDescription("various smaller tools for investigating code health and getting statistics");
             cmake.AddCommand<LineCountCommand>("line-count");
+
             cmake.AddCommand<IncludeListCommand>("include-list");
             cmake.AddCommand<IncludeGraphvizCommand>("include-gv");
-            cmake.AddCommand<MissingPragmaOnceCommand>("missing-pragma-once");
-            cmake.AddCommand<MissingInCmakeCommand>("missing-in-cmake");
+
+            cmake.AddCommand<MissingPragmaOnceCommand>("check-missing-pragma-once");
+            cmake.AddCommand<MissingInCmakeCommand>("check-missing-in-cmake");
             cmake.AddCommand<ListNoProjectFoldersCommand>("list-no-project-folders");
-            cmake.AddCommand<CheckFilesCommand>("check-files");
+            cmake.AddCommand<CheckFileNamesCommand>("check-file-names");
         });
     }
 }
@@ -126,7 +113,7 @@ internal sealed class IncludeListCommand : Command<IncludeListCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => Tools.HandleListCommand(print, settings.GetPathToCompileCommandsOrNull(print),
+        return CommonExecute.WithPrinter(print => Tools.HandleListIncludesCommand(print, settings.GetPathToCompileCommandsOrNull(print),
             settings.Files, settings.PrintFiles, settings.PrintStats, settings.PrintMax,
             settings.PrintList, settings.Count, settings.Limit));
     }
@@ -162,7 +149,7 @@ internal sealed class IncludeGraphvizCommand : Command<IncludeGraphvizCommand.Ar
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return CommonExecute.WithPrinter(print =>
-            Tools.HandleGraphvizCommand(print, settings.GetPathToCompileCommandsOrNull(print),
+            Tools.HandleIncludeGraphvizCommand(print, settings.GetPathToCompileCommandsOrNull(print),
                 settings.Files, settings.Limit, settings.Group, settings.Cluster));
     }
 }
@@ -189,7 +176,7 @@ internal sealed class MissingPragmaOnceCommand : Command<MissingPragmaOnceComman
 
 
 
-[Description("find files that existis on disk but missing in cmake")]
+[Description("find files that exists on disk but are missing in cmake")]
 internal sealed class MissingInCmakeCommand : Command<MissingInCmakeCommand.Arg>
 {
     public sealed class Arg : CompileCommandsArguments
@@ -248,7 +235,7 @@ internal sealed class ListNoProjectFoldersCommand : Command<ListNoProjectFolders
 
 
 [Description("find files that doesn't match the name style")]
-internal sealed class CheckFilesCommand : Command<CheckFilesCommand.Arg>
+internal sealed class CheckFileNamesCommand : Command<CheckFileNamesCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
