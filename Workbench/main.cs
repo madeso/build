@@ -29,12 +29,17 @@ internal class Program
             Commands.Clang.Main.Configure(config, "clang");
             Commands.Hero.Main.Configure(config, "hero");
             Commands.CppLint.Main.Configure(config, "cpplint");
-            Commands.Tools.Main.Configure(config, "tools");
+
+            Commands.CheckForMissingPragmaOnce.Main.Configure(config, "check-missing-pragma-once");
+            Commands.CheckForMissingInCmake.Main.Configure(config, "check-missing-in-cmake");
+            Commands.CheckForNoProjectFolders.Main.Configure(config, "check-no-project-folders");
+            Commands.CheckFileNames.Main.Configure(config, "check-file-names");
+            Commands.CheckOrderInFile.Main.Configure(config, "order-in-file");
+            Commands.CheckNames.Main.Configure(config, "check-names");
+
             Commands.LineCount.Main.Configure(config, "line-count");
             Commands.SlnDeps.Main.Configure(config, "slndeps");
             Commands.CodeCity.Main.Configure(config, "code-city");
-            Commands.CheckOrderInFile.Main.Configure(config, "order-in-file");
-            Commands.CheckNames.Main.Configure(config, "check-names");
             Commands.Todo.Main.Configure(config, "todo");
             Commands.Dependencies.Main.Configure(config, "deps");
         });

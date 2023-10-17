@@ -157,4 +157,7 @@ internal static class FileUtil
 
         return rel;
     }
+
+    public static bool FileIsInFolder(string file, string folder)
+        => new FileInfo(file).FullName.StartsWith(new DirectoryInfo(folder).FullName);
 }
