@@ -5,6 +5,37 @@ using Workbench.CMake;
 
 namespace Workbench.Commands.Tools;
 
+/*
+
+Previous commands for refactoring info:
+wb tools missing-in-cmake
+wb tools missing-in-cmake libs
+wb tools missing-in-cmake libs apps
+
+wb tools list-no-project-folders libs apps
+wb tools list-no-project-folders libs apps external
+wb tools list-no-project-folders libs apps external tools data
+
+wb tools list-indents libs --each
+wb tools list-indents libs --each 3
+wb tools list-indents libs --each 2
+wb tools list-indents libs --each 5
+wb tools list-indents --include-empty
+wb tools list-indents --show
+wb tools list-indents libs --include-empty
+wb tools list-indents libs
+wb tools list-indents libs --hist
+wb tools list-indents libs --hist --list
+wb tools list-indents libs --hist --show
+wb tools list-indents libs --show
+wb tools list-indents libs --hist --show --each 4
+wb tools list-indents libs apps --hist --each 4
+
+wb tools missing-pragma-once libs apps
+wb tools missing-pragma-once libs apps
+
+*/
+
 
 internal class Main
 {
