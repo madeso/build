@@ -1,10 +1,10 @@
-using Spectre.Console;
-using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using Spectre.Console;
+using Spectre.Console.Cli;
 using Workbench.Utils;
 
-namespace Workbench.Commands.TodoCommands;
+namespace Workbench.Commands.Todo;
 
 
 internal class Main

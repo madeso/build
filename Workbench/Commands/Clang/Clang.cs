@@ -2,7 +2,7 @@ using Spectre.Console;
 using System.Text.RegularExpressions;
 using Workbench.Utils;
 
-namespace Workbench.Clang;
+namespace Workbench.Commands.Clang;
 
 
 internal class Store
@@ -55,7 +55,7 @@ internal class NamePrinter
     }
 }
 
-internal static class F
+internal static class ClangFacade
 {
     private static string GetPathToStore(string build_folder)
     {

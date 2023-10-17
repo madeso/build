@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using Workbench.Config;
 
-namespace Workbench.CheckIncludes;
+namespace Workbench.Commands.CheckIncludes;
 
 internal record CommonArgs
 (
@@ -69,7 +69,6 @@ public readonly struct IncludeData
     public static IncludeData? LoadOrNull(Printer print)
         => LoadFromDirectoryOrNull(print);
 }
-
 
 public interface OptionalRegex
 {
@@ -214,7 +213,7 @@ public static class IncludeTools
     {
         var replacer = CreateReplacer(Path.GetFileNameWithoutExtension(filename));
 
-        foreach (var (index, included_regex_group) in data.IncludeDirectories.Select(((value, i) => (i, value))))
+        foreach (var (index, included_regex_group) in data.IncludeDirectories.Select((value, i) => (i, value)))
         {
             foreach (var included_regex in included_regex_group)
             {

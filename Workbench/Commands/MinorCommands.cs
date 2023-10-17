@@ -1,8 +1,6 @@
 using Spectre.Console.Cli;
-using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using Workbench.ListHeaders;
 using Workbench.Utils;
 
 namespace Workbench.Commands;

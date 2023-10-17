@@ -1,10 +1,9 @@
-using Spectre.Console.Cli;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using static Workbench.Dependencies;
+using Spectre.Console.Cli;
 
-namespace Workbench.Commands.DependenciesCommands;
+namespace Workbench.Commands.Dependencies;
 
 
 internal sealed class ListGraphvizCommand : Command<ListGraphvizCommand.Arg>
@@ -80,7 +79,7 @@ internal sealed class ListCallgraph : Command<ListCallgraph.Arg>
 
         [Description("Cluster on ...?")]
         [CommandOption("--cluster-on")]
-        public ClusterCallGraphOn? ClusterOn { get; init; }
+        public Dependencies.ClusterCallGraphOn? ClusterOn { get; init; }
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
@@ -88,7 +87,7 @@ internal sealed class ListCallgraph : Command<ListCallgraph.Arg>
         return CommonExecute.WithPrinter(printer =>
             {
                 Dependencies.WriteCallGraphToGraphviz(arg.DoxygenXml, arg.OutputFile,
-                    arg.ClusterOn ?? ClusterCallGraphOn.None);
+                    arg.ClusterOn ?? Dependencies.ClusterCallGraphOn.None);
                 return 0;
             }
         );

@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 using Spectre.Console;
 using Workbench.Utils;
 
-namespace Workbench;
+namespace Workbench.Commands.Tools;
 
 
 // todo(Gustav):
@@ -104,10 +104,10 @@ internal static class Tools
             yield return "digraph G";
             yield return "{";
             var grouped = group
-                ? this.nodes.GroupBy(x => GetGroup(x.Value),
+                ? nodes.GroupBy(x => GetGroup(x.Value),
                         (group_name, items) => new GroupedItems(group_name, items.ToArray()))
                     .ToArray()
-                : new GroupedItems[] { new("", this.nodes.ToArray()) }
+                : new GroupedItems[] { new("", nodes.ToArray()) }
                 ;
             foreach (var (group_title, items) in grouped)
             {
@@ -132,7 +132,7 @@ internal static class Tools
                 }
             }
             yield return "";
-            foreach (var (code, count) in this.links.Items)
+            foreach (var (code, count) in links.Items)
             {
                 yield return $"{code} [label=\"{count}\"];";
             }
@@ -145,11 +145,11 @@ internal static class Tools
         {
             var from_node = CalculateIdentifier(source, name);
             var to_node = CalculateIdentifier(resolved, null);
-            this.links.AddOne($"{from_node} -> {to_node}");
+            links.AddOne($"{from_node} -> {to_node}");
 
             // probably will calc more than once but who cares?
-            this.nodes[from_node] = CalculateDisplay(source, name, root);
-            this.nodes[to_node] = CalculateDisplay(resolved, null, root);
+            nodes[from_node] = CalculateDisplay(source, name, root);
+            nodes[to_node] = CalculateDisplay(resolved, null, root);
         }
     }
 
@@ -179,7 +179,7 @@ internal static class Tools
     }
 
 
-    private static void Work(Printer print, string 
+    private static void Work(Printer print, string
             real_file, ImmutableArray<string> include_directories,
         ColCounter<string> counter, bool print_files, ImmutableArray<string> limit)
     {
@@ -330,7 +330,7 @@ internal static class Tools
             {
                 var index = each <= 1
                         ? count
-                        : count - (count % each)
+                        : count - count % each
                     ;
                 if (stats.TryGetValue(index, out var values))
                 {
@@ -617,7 +617,7 @@ internal static class Tools
 
             var count = GetLineCount(file, args_discard_empty);
 
-            var index = each <= 1 ? count : count - (count % each);
+            var index = each <= 1 ? count : count - count % each;
             if (stats.TryGetValue(index, out var data_values))
             {
                 data_values.Add(file);

@@ -1,4 +1,3 @@
-using Spectre.Console;
 using StbRectPackSharp;
 using System.Collections.Immutable;
 using Workbench.Doxygen.Compound;

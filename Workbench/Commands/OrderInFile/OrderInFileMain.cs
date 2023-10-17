@@ -1,8 +1,8 @@
-using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using Spectre.Console.Cli;
 
-namespace Workbench.Commands.OrderInFileCommands;
+namespace Workbench.Commands.OrderInFile;
 
 
 internal sealed class OrderInFileCommand : Command<OrderInFileCommand.Arg>

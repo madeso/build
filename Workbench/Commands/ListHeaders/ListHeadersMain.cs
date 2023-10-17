@@ -1,9 +1,8 @@
-using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using Workbench.ListHeaders;
+using Spectre.Console.Cli;
 
-namespace Workbench.Commands.ListHeadersCommands;
+namespace Workbench.Commands.ListHeaders;
 
 
 
@@ -28,7 +27,7 @@ internal sealed class LinesCommand : Command<LinesCommand.Arg>
     {
         return CommonExecute.WithPrinter
             (
-                print => { F.HandleLines(print, settings.FileName, settings.Action); return 0; }
+                print => { ListHeaderFunctions.HandleLines(print, settings.FileName, settings.Action); return 0; }
             );
     }
 }
@@ -54,7 +53,7 @@ internal sealed class FilesCommand : Command<FilesCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return CommonExecute.WithPrinter(print => F.HandleFiles(print, arg.GetPathToCompileCommandsOrNull(print), arg.Sources, arg.MostCommonCount));
+        return CommonExecute.WithPrinter(print => ListHeaderFunctions.HandleFiles(print, arg.GetPathToCompileCommandsOrNull(print), arg.Sources, arg.MostCommonCount));
     }
 }
 

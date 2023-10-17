@@ -1,10 +1,28 @@
-﻿using Spectre.Console.Cli;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using Workbench.CheckIncludes;
+using Spectre.Console.Cli;
 
-namespace Workbench.Commands.CheckIncludesCommands;
+namespace Workbench.Commands.CheckIncludes;
 
+public static class CheckIncludesCommonExecute
+{
+    public static int WithLoadedIncludeData(Func<Printer, IncludeData, int> callback)
+    {
+        return CommonExecute.WithPrinter(print =>
+        {
+            var data = IncludeData.LoadOrNull(print);
+            if (data == null)
+            {
+                print.Error("Unable to load the data");
+                return -1;
+            }
+            else
+            {
+                return callback(print, data.Value);
+            }
+        });
+    }
+}
 
 internal class SharedArguments : CommandSettings
 {
@@ -73,7 +91,7 @@ internal sealed class MissingPatternsCommand : Command<MissingPatternsCommand.Ar
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithLoadedIncludeData
+        return CheckIncludesCommonExecute.WithLoadedIncludeData
             (
                 (print, data) => IncludeTools.CommonMain(settings.ToCommon(), print, data, new CheckAction.MissingPatterns())
             );
@@ -93,7 +111,7 @@ internal sealed class ListUnfixableCommand : Command<ListUnfixableCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithLoadedIncludeData
+        return CheckIncludesCommonExecute.WithLoadedIncludeData
             (
                 (print, data) => IncludeTools.CommonMain(settings.ToCommon(), print, data, new CheckAction.ListUnfixable(settings.PrintAllErrors == false))
             );
@@ -109,7 +127,7 @@ internal sealed class CheckCommand : Command<CheckCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithLoadedIncludeData
+        return CheckIncludesCommonExecute.WithLoadedIncludeData
             (
                 (print, data) => IncludeTools.CommonMain(settings.ToCommon(), print, data, new CheckAction.Check())
             );
@@ -129,7 +147,7 @@ internal sealed class FixCommand : Command<FixCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithLoadedIncludeData
+        return CheckIncludesCommonExecute.WithLoadedIncludeData
             (
                 (print, data) => IncludeTools.CommonMain(settings.ToCommon(), print, data, new CheckAction.Fix(settings.WriteToFile == false))
             );

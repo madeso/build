@@ -1,9 +1,8 @@
-using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using Workbench.Clang;
+using Spectre.Console.Cli;
 
-namespace Workbench.Commands.ClangCommands;
+namespace Workbench.Commands.Clang;
 
 
 
@@ -19,7 +18,7 @@ internal sealed class MakeCommand : Command<MakeCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        F.HandleMakeTidyCommand(settings.Nop);
+        ClangFacade.HandleMakeTidyCommand(settings.Nop);
         return 0;
     }
 }
@@ -36,7 +35,7 @@ internal sealed class ListCommand : Command<ListCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => F.HandleTidyListFilesCommand(print, settings.Sort));
+        return CommonExecute.WithPrinter(print => ClangFacade.HandleTidyListFilesCommand(print, settings.Sort));
     }
 }
 
@@ -91,7 +90,7 @@ internal sealed class TidyCommand : Command<TidyCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => F.HandleRunClangTidyCommand(
+        return CommonExecute.WithPrinter(print => ClangFacade.HandleRunClangTidyCommand(
             print,
             settings.ClangTidy,
             settings.Force,
@@ -116,7 +115,7 @@ internal sealed class FormatCommand : Command<FormatCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CommonExecute.WithPrinter(print => F.HandleClangFormatCommand(print, settings.Nop));
+        return CommonExecute.WithPrinter(print => ClangFacade.HandleClangFormatCommand(print, settings.Nop));
     }
 }
 

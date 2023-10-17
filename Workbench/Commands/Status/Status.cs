@@ -1,22 +1,12 @@
 using Workbench.CMake;
 
-namespace Workbench;
+namespace Workbench.Commands.Status;
 
 internal static class Status
 {
-    private static void PrintFoundList(Printer printer, string name, List<Found> list)
-    {
-        var found = Found.GetFirstValueOrNull(list) ?? "<None>";
-        Printer.Info($"{name}: {found}");
-        foreach (var f in list)
-        {
-            Printer.Info($"    {f}");
-        }
-    }
-
     internal static void HandleStatus(Printer printer, CompileCommandsArguments cc)
     {
-        PrintFoundList(printer, "cmake", CmakeTools.ListAllInstallations(printer).ToList());
+        print_found_list(printer, "cmake", CmakeTools.ListAllInstallations(printer).ToList());
 
         var root = Environment.CurrentDirectory;
         Printer.Info($"Root: {root}");
@@ -35,6 +25,16 @@ internal static class Status
         if (ccs != null)
         {
             Printer.Info($"Compile commands: {ccs}");
+        }
+
+        static void print_found_list(Printer printer, string name, List<Found> list)
+        {
+            var found = Found.GetFirstValueOrNull(list) ?? "<None>";
+            Printer.Info($"{name}: {found}");
+            foreach (var f in list)
+            {
+                Printer.Info($"    {f}");
+            }
         }
     }
 }

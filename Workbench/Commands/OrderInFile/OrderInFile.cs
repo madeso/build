@@ -2,7 +2,7 @@ using Spectre.Console;
 using Workbench.Doxygen.Compound;
 using static Workbench.Doxygen.Compound.LinkedTextType;
 
-namespace Workbench;
+namespace Workbench.Commands.OrderInFile;
 
 internal static class OrderInFile
 {
@@ -24,7 +24,7 @@ internal static class OrderInFile
             AnsiConsole.MarkupLineInterpolated($"[blue]{k.CompoundName}[/]");
             matches += 1;
 
-            foreach(var member in DoxygenUtils.AllMembersForAClass(k))
+            foreach (var member in DoxygenUtils.AllMembersForAClass(k))
             {
                 AnsiConsole.MarkupLineInterpolated($"{DoxygenUtils.MemberToString(member)} - {Classify(k, member).Name}");
             }
@@ -52,7 +52,7 @@ internal static class OrderInFile
             }
         }
 
-        foreach(var f in fails
+        foreach (var f in fails
             .OrderBy(x => x.Class.Location!.File)
             .ThenByDescending(x => x.Class.Location!.Line)
             )
@@ -177,14 +177,14 @@ internal static class OrderInFile
 
     private static NamedOrder SubClassify(CompoundDef k, MemberDefinitionType m)
     {
-        if(m.ArgsString?.EndsWith("=delete") ?? false)
+        if (m.ArgsString?.EndsWith("=delete") ?? false)
         {
             return deleted;
         }
 
         if (m.ArgsString?.EndsWith("=default") ?? false)
         {
-            if(DoxygenUtils.IsConstructorOrDestructor(m) && m.Param.Length == 0)
+            if (DoxygenUtils.IsConstructorOrDestructor(m) && m.Param.Length == 0)
             {
                 // empty constructors and destructors are not-default even when they are defaulted
                 return constructors;
@@ -200,7 +200,7 @@ internal static class OrderInFile
             return operators;
         }
 
-        if(m.Virtual != null && m.Virtual != DoxVirtualKind.NonVirtual)
+        if (m.Virtual != null && m.Virtual != DoxVirtualKind.NonVirtual)
         {
             if (DoxygenUtils.IsFunctionOverride(m))
             {
@@ -264,7 +264,7 @@ internal static class OrderInFile
             return vars;
         }
 
-        if(m.Kind == DoxMemberKind.Typedef)
+        if (m.Kind == DoxMemberKind.Typedef)
         {
             return typedefs;
         }
@@ -274,7 +274,7 @@ internal static class OrderInFile
             return enums;
         }
 
-        if(m.Kind == DoxMemberKind.Friend)
+        if (m.Kind == DoxMemberKind.Friend)
         {
             return friends;
         }

@@ -2,7 +2,7 @@ using Spectre.Console;
 using System.Collections.Immutable;
 using Workbench.Utils;
 
-namespace Workbench.Indent;
+namespace Workbench.Commands.Indent;
 
 
 internal class FileIndent
@@ -53,13 +53,13 @@ internal class IndentInformation
     }
 }
 
-internal static class F
+internal static class IndentFunctions
 {
     public static IEnumerable<MaxIndentation> GroupExtensionsWithMaxIndent(
         int tab_width, bool enable_javadoc_hack, IEnumerable<FileInfo> files)
         => files
             .Where(x => FileUtil.ClassifySourceOrNull(x) != null)
-            .Select(x => new IndentInformation(file: x, info: F.CollectIndentInformation(x, tab_width, enable_javadoc_hack), group: FileUtil.ClassifySourceOrNull(x)!))
+            .Select(x => new IndentInformation(file: x, info: CollectIndentInformation(x, tab_width, enable_javadoc_hack), group: FileUtil.ClassifySourceOrNull(x)!))
             .GroupBy(x => x.Group, (group, items) => new MaxIndentation
             (
                 type: group,
@@ -84,7 +84,7 @@ internal static class F
         }
 
         var indentations = lines
-            .Select(line => F.IndentationForLine(line, tab_width, enable_javadoc_hack))
+            .Select(line => IndentationForLine(line, tab_width, enable_javadoc_hack))
             .Zip(Functional.Integers(1))
             .Select(x => new LineIndent { Indentation = x.First, Line = x.Second })
             .ToImmutableArray()
@@ -112,22 +112,22 @@ internal static class F
                     indent += tab_width;
                     break;
                 default:
-                {
-                    if (enable_javadoc_hack && c == '*')
                     {
-                        // assume javadoc comment
-                        if (indent % 2 == 1)
+                        if (enable_javadoc_hack && c == '*')
                         {
-                            return indent -= 1;
-                        }
+                            // assume javadoc comment
+                            if (indent % 2 == 1)
+                            {
+                                return indent -= 1;
+                            }
 
-                        return indent;
+                            return indent;
+                        }
+                        else
+                        {
+                            return indent;
+                        }
                     }
-                    else
-                    {
-                        return indent;
-                    }
-                }
             }
         }
 

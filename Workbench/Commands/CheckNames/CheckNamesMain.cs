@@ -1,9 +1,8 @@
-using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using Workbench.Config;
+using Spectre.Console.Cli;
 
-namespace Workbench.Commands.CheckNamesCommands;
+namespace Workbench.Commands.CheckNames;
 
 
 internal sealed class CheckCommand : Command<CheckCommand.Arg>
@@ -19,7 +18,7 @@ internal sealed class CheckCommand : Command<CheckCommand.Arg>
     {
         return CommonExecute.WithPrinter(printer =>
         {
-            return CheckNames.Run(printer, arg.DoxygenXml, Environment.CurrentDirectory);
+            return CheckNamesRunner.Run(printer, arg.DoxygenXml, Environment.CurrentDirectory);
         });
     }
 }
@@ -38,7 +37,7 @@ internal sealed class InitCommand : Command<InitCommand.Arg>
     {
         return CommonExecute.WithPrinter(print =>
         {
-            return CheckNames.HandleInit(print, settings.Overwrite);
+            return CheckNamesRunner.HandleInit(print, settings.Overwrite);
         });
     }
 }

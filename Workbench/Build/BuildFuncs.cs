@@ -48,9 +48,9 @@ internal static class F
     }
 
     // generate the ride project
-    internal static CMake.CMake GenerateCmakeProject(BuildEnvironment build, BuildData data)
+    internal static CMake.CMakeProject GenerateCmakeProject(BuildEnvironment build, BuildData data)
     {
-        var project = new CMake.CMake(data.ProjectDirectory, data.RootDirectory, build.CreateCmakeGenerator());
+        var project = new CMake.CMakeProject(data.ProjectDirectory, data.RootDirectory, build.CreateCmakeGenerator());
 
         foreach (var dep in data.Dependencies)
         {

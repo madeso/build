@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Workbench.Utils;
 
-namespace Workbench.ListHeaders;
+namespace Workbench.Commands.ListHeaders;
 
 [TypeConverter(typeof(EnumTypeConverter<ListAction>))]
 [JsonConverter(typeof(EnumJsonConverter<ListAction>))]
@@ -172,8 +172,8 @@ internal interface Statement
 
 internal class Command : Statement
 {
-    public string Name {get;}
-    public string Value {get;}
+    public string Name { get; }
+    public string Value { get; }
 
     public Command(string name, string value)
     {
@@ -196,8 +196,8 @@ internal class ElseIf
 
 internal class Block : Statement
 {
-    public string Name{ get; }
-    public string Condition{ get; }
+    public string Name { get; }
+    public string Condition { get; }
     public List<Statement> TrueBlock { get; } = new();
     public List<Statement> FalseBlock { get; } = new();
     public List<ElseIf> ElseIfs { get; } = new();
@@ -264,11 +264,11 @@ internal class FileWalker
     private List<Statement>? parse_file_to_blocks(string path, Printer print)
     {
         var source_lines = File.ReadAllLines(path);
-        var joined_lines = F.JoinCppLines(source_lines);
+        var joined_lines = ListHeaderFunctions.JoinCppLines(source_lines);
         var trim_lines = joined_lines.Select(str => str.TrimStart()).ToList();
-        var lines = F.RemoveCppComments(trim_lines);
-        var statements = F.ParseToStatements(lines);
-        var b = F.ParseToBlocks(path, print, statements.ToList());
+        var lines = ListHeaderFunctions.RemoveCppComments(trim_lines);
+        var statements = ListHeaderFunctions.ParseToStatements(lines);
+        var b = ListHeaderFunctions.ParseToBlocks(path, print, statements.ToList());
         return b;
     }
 
@@ -326,10 +326,10 @@ internal class FileWalker
                     {
                         case "ifdef":
                         case "ifndef":
-                            var key = F.SplitIdentifier(blk.Condition).Item1;
+                            var key = ListHeaderFunctions.SplitIdentifier(blk.Condition).Item1;
 
                             static bool ifdef(bool t, bool f)
-                            { return f && t || (!f && !t); }
+                            { return f && t || !f && !t; }
 
                             if (blk.ElseIfs.Count > 0)
                             {
@@ -378,7 +378,7 @@ internal class FileWalker
                             }
                             break;
                         case "define":
-                            var (key, value) = F.SplitIdentifier(cmd.Value);
+                            var (key, value) = ListHeaderFunctions.SplitIdentifier(cmd.Value);
                             defines.Add(key, value.Trim());
                             break;
                         case "undef":
@@ -389,7 +389,7 @@ internal class FileWalker
                             break;
                         case "include":
                             var include_name = cmd.Value.Trim('"', '<', '>', ' ');
-                            var sub_file = F.ResolvePath(directories, include_name, path, cmd.Value.Trim().StartsWith('\"'));
+                            var sub_file = ListHeaderFunctions.ResolvePath(directories, include_name, path, cmd.Value.Trim().StartsWith('\"'));
                             if (sub_file != null)
                             {
                                 AddInclude(sub_file);
@@ -419,7 +419,7 @@ internal class FileWalker
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 
-internal static class F
+internal static class ListHeaderFunctions
 {
     internal static IEnumerable<string> JoinCppLines(IEnumerable<string> lines)
     {

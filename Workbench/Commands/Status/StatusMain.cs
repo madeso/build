@@ -1,7 +1,7 @@
-using Spectre.Console.Cli;
 using System.Diagnostics.CodeAnalysis;
+using Spectre.Console.Cli;
 
-namespace Workbench.Commands.StatusCommands;
+namespace Workbench.Commands.Status;
 
 public static class Main
 {

@@ -1,13 +1,13 @@
 using Workbench.Utils;
 
-namespace Workbench;
+namespace Workbench.Commands.CppLint;
 
 public static class Cpplint
 {
     public static int HandleList(Printer print, string root)
     {
         var files = FileUtil.ListAllFiles(root);
-        foreach(var f in files)
+        foreach (var f in files)
         {
             Printer.Info(f);
         }
@@ -30,9 +30,9 @@ public static class Cpplint
     static LintError? run_file(Printer printer, string path)
     {
         var ret = new ProcessBuilder("cpplint", path).RunAndGetOutput();
-        if(ret.ExitCode != 0)
+        if (ret.ExitCode != 0)
         {
-            PrintError(printer, path, string.Join("\n", ret.Output.Select(x=>x.Line)));
+            PrintError(printer, path, string.Join("\n", ret.Output.Select(x => x.Line)));
             return new LintError(path, ret.Output.Select(x => x.Line).ToArray());
         }
         else
@@ -47,16 +47,16 @@ public static class Cpplint
     {
         var files = FileUtil.ListAllFiles(root);
         var has_errors = false;
-        foreach(var f in files)
+        foreach (var f in files)
         {
             var e = run_file(printer, f);
-            if(e != null)
+            if (e != null)
             {
                 has_errors = true;
             }
         }
 
-        if(has_errors)
+        if (has_errors)
         {
             return -1;
         }

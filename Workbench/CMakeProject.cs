@@ -164,9 +164,9 @@ public enum Install
 }
 
 // utility to call cmake commands on a project
-public class CMake
+public class CMakeProject
 {
-    public CMake(string build_folder, string source_folder, Generator generator)
+    public CMakeProject(string build_folder, string source_folder, Generator generator)
     {
         this.generator = generator;
         this.build_folder = build_folder;

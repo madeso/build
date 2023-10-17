@@ -1,12 +1,11 @@
-using Spectre.Console;
-using Spectre.Console.Cli;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using Workbench.Indent;
+using Spectre.Console;
+using Spectre.Console.Cli;
 using Workbench.Utils;
 
-namespace Workbench.Commands.IndentCommands;
+namespace Workbench.Commands.Indent;
 
 internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
 {
@@ -50,7 +49,7 @@ internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
         var files = FileUtil.IterateFiles(dir, settings.IncludeHidden, settings.Recursive)
             .ToImmutableArray();
 
-        var grouped = F.GroupExtensionsWithMaxIndent(settings.TabWidth, settings.EnableJavadocHack, files);
+        var grouped = IndentFunctions.GroupExtensionsWithMaxIndent(settings.TabWidth, settings.EnableJavadocHack, files);
         foreach (var f in grouped)
         {
             AnsiConsole.MarkupLineInterpolated($"Max ident [red]{f.MaxIdent.Info.Max}[/] ([red]{f.MaxIdent.Info.MaxLevel}[/]) for [blue]{f.Type}[/] in [blue]{f.MaxIdent.File}[/] ({f.MaxIdent.Info.MaxLine})");
@@ -58,7 +57,7 @@ internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
 
         if (settings.PrintUnused)
         {
-            var unhandled = F.ListUnhandledExtensions(files);
+            var unhandled = IndentFunctions.ListUnhandledExtensions(files);
             foreach (var x in unhandled)
             {
                 AnsiConsole.MarkupLineInterpolated($"[green]{x.Extension}[/] - [blue]{x.Count}[/]");

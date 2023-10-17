@@ -1,21 +1,13 @@
 using Spectre.Console;
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel;
-using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 using Workbench.Doxygen.Compound;
-using Workbench.Doxygen.Index;
 using Workbench.Utils;
 
-namespace Workbench;
+namespace Workbench.Commands.Dependencies;
 
-public class Dependencies
+public static class Dependencies
 {
     const string NO_NAMESPACE = "|";
 
@@ -46,9 +38,9 @@ public class Dependencies
         Printer.Info("Adding classes...");
         foreach (var ns in namespaces)
         {
-            foreach(var k in DoxygenUtils.IterateClassesInNamespace(dox, ns))
+            foreach (var k in DoxygenUtils.IterateClassesInNamespace(dox, ns))
             {
-                if(ignored_classes.Contains(k.CompoundName))
+                if (ignored_classes.Contains(k.CompoundName))
                 {
                     continue;
                 }
@@ -82,7 +74,7 @@ public class Dependencies
         Printer.Info("Adding members for class...");
         foreach (var klass in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
         {
-            if(false == classes.TryGetValue(klass.Id, out var graphviz_klass))
+            if (false == classes.TryGetValue(klass.Id, out var graphviz_klass))
             {
                 continue;
             }
@@ -90,17 +82,17 @@ public class Dependencies
             var existing_refs = new HashSet<string>();
 
             // add inheritance
-            foreach(var r in klass.BaseCompoundRefs)
+            foreach (var r in klass.BaseCompoundRefs)
             {
-                if(r.RefId == null) continue;
+                if (r.RefId == null) continue;
                 AddReference(r.RefId, g, classes, () => graphviz_klass, existing_refs);
             }
 
-            if(!add_members) { continue; }
+            if (!add_members) { continue; }
 
             foreach (var member in DoxygenUtils.AllMembersForAClass(klass))
             {
-                if(include_functions == false && member.Kind == DoxMemberKind.Function)
+                if (include_functions == false && member.Kind == DoxMemberKind.Function)
                 {
                     continue;
                 }
@@ -118,7 +110,7 @@ public class Dependencies
             }
         }
 
-        if(include_functions)
+        if (include_functions)
         {
             Printer.Info("Adding functions...");
             foreach (var func in namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Func)))
@@ -127,17 +119,17 @@ public class Dependencies
 
                 Graphviz.Node? func_node = null;
 
-                if(add_arguments) foreach (var p in func.Param)
-                {
-                    AddTypeLink(g, classes, get_func_node, existing_refs, p.Type);
-                }
+                if (add_arguments) foreach (var p in func.Param)
+                    {
+                        AddTypeLink(g, classes, get_func_node, existing_refs, p.Type);
+                    }
 
                 AddTypeLink(g, classes, get_func_node, existing_refs, func.Type);
                 continue;
 
                 Graphviz.Node get_func_node()
                 {
-                    if(func_node == null)
+                    if (func_node == null)
                     {
                         func_node = g.AddNode($"{func.Name}{func.ArgsString}", Shape.Ellipse);
                     }
@@ -183,7 +175,7 @@ public class Dependencies
     private static void AddTypeLink(Graphviz g, Dictionary<string, Graphviz.Node> valid_types,
         Func<Graphviz.Node> parent_func, HashSet<string> existing_refs, LinkedTextType? type)
     {
-        if(type == null) { return; }
+        if (type == null) { return; }
 
         Graphviz.Node? parent = null;
         foreach (var node in type.Nodes)
@@ -193,7 +185,7 @@ public class Dependencies
 
             AddReference(re.Value.RefId, g, valid_types, () =>
                 {
-                    if(parent != null) return parent;
+                    if (parent != null) return parent;
                     parent = parent_func();
                     return parent;
                 }, existing_refs);
@@ -232,11 +224,11 @@ public class Dependencies
 
         Printer.Info("Parsing doxygen XML...");
         var dox = Doxygen.Doxygen.ParseIndex(doxygen_xml);
-        
+
         Printer.Info("Collecting functions...");
         var namespaces = DoxygenUtils.AllNamespaces(dox).ToImmutableArray();
 
-        
+
         var member_functions = namespaces
             .SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns))
             .SelectMany(klass => DoxygenUtils.AllMembersForAClass(klass)
@@ -261,20 +253,20 @@ public class Dependencies
         foreach (var func in all_functions)
         {
             var base_name = $"{func.Function.Name}{func.Function.ArgsString}";
-            if(cluster_on != ClusterCallGraphOn.Class && func.Klass != null)
+            if (cluster_on != ClusterCallGraphOn.Class && func.Klass != null)
             {
                 base_name = $"{func.Klass.CompoundName}.{base_name}";
             }
             functions.Add(func.Function.Id, g.AddNodeWithId(base_name, func_to_shape(func), func.Function.Id));
         }
 
-        switch(cluster_on)
+        switch (cluster_on)
         {
             case ClusterCallGraphOn.Class:
-                foreach(var klass in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
+                foreach (var klass in namespaces.SelectMany(ns => DoxygenUtils.IterateClassesInNamespace(dox, ns)))
                 {
                     var cluster = g.FindOrCreateCluster(klass.Id, klass.CompoundName);
-                    foreach(var fun in DoxygenUtils.AllMembersForAClass(klass)
+                    foreach (var fun in DoxygenUtils.AllMembersForAClass(klass)
                         .Where(mem => mem.Kind == DoxMemberKind.Function))
                     {
                         if (false == functions.TryGetValue(fun.Id, out var fun_node))
@@ -287,7 +279,7 @@ public class Dependencies
                 }
                 break;
             case ClusterCallGraphOn.Namespace:
-                foreach(var fun in all_functions)
+                foreach (var fun in all_functions)
                 {
                     if (false == functions.TryGetValue(fun.Function.Id, out var fun_node))
                     {
@@ -303,16 +295,16 @@ public class Dependencies
                 }
                 break;
         }
-        
+
         Printer.Info("Adding links...");
         foreach (var fun in all_functions)
         {
-            if(false == functions.TryGetValue(fun.Function.Id, out var src))
+            if (false == functions.TryGetValue(fun.Function.Id, out var src))
             {
                 continue;
             }
 
-            foreach(var r in fun.Function.References)
+            foreach (var r in fun.Function.References)
             {
                 if (false == functions.TryGetValue(r.RefId, out var dst))
                 {

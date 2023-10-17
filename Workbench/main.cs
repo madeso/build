@@ -18,23 +18,23 @@ internal class Program
             Commands.MinorCommands.ConfigureCat(config, "cat");
             Commands.MinorCommands.ConfigureCatDir(config, "cat-dir");
 
-            Commands.StatusCommands.Main.ConfigureStatus(config, "status");
+            Commands.Status.Main.ConfigureStatus(config, "status");
             Commands.BuildCommands.Main.Configure(config, "build");
-            Commands.IndentCommands.Main.Configure(config, "indent");
+            Commands.Indent.Main.Configure(config, "indent");
             Commands.CmakeCommands.Main.Configure(config, "cmake");
             Commands.GitCommands.Main.Configure(config, "git");
             Commands.CompileCommandsCommands.Main.Configure(config, "compile-commands");
-            Commands.CheckIncludesCommands.Main.Configure(config, "check-includes");
-            Commands.ListHeadersCommands.Main.Configure(config, "list-headers");
-            Commands.ClangCommands.Main.Configure(config, "clang");
+            Commands.CheckIncludes.Main.Configure(config, "check-includes");
+            Commands.ListHeaders.Main.Configure(config, "list-headers");
+            Commands.Clang.Main.Configure(config, "clang");
             Commands.HeroCommands.Main.Configure(config, "hero");
-            Commands.CppLintCommands.Main.Configure(config, "cpplint");
-            Commands.ToolsCommands.Main.Configure(config, "tools");
-            Commands.SlnDepsCommands.Main.Configure(config, "slndeps");
-            Commands.OrderInFileCommands.Main.Configure(config, "order-in-file");
-            Commands.CheckNamesCommands.Main.Configure(config, "check-names");
-            Commands.TodoCommands.Main.Configure(config, "todo");
-            Commands.DependenciesCommands.Main.Configure(config, "deps");
+            Commands.CppLint.Main.Configure(config, "cpplint");
+            Commands.Tools.Main.Configure(config, "tools");
+            Commands.SlnDeps.Main.Configure(config, "slndeps");
+            Commands.OrderInFile.Main.Configure(config, "order-in-file");
+            Commands.CheckNames.Main.Configure(config, "check-names");
+            Commands.Todo.Main.Configure(config, "todo");
+            Commands.Dependencies.Main.Configure(config, "deps");
         });
         return app.Run(args);
     }

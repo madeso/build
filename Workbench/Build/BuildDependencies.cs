@@ -37,7 +37,7 @@ public interface BuildDependency
     string GetName();
 
     // add arguments to the main cmake
-    void AddCmakeArguments(CMake.CMake cmake);
+    void AddCmakeArguments(CMake.CMakeProject cmake);
 
     // install the dependency
     public void Install(BuildEnvironment env, Printer print, BuildData data);
@@ -83,7 +83,7 @@ internal class DependencySdl2 : BuildDependency
         return "sdl2";
     }
 
-    public void AddCmakeArguments(CMake.CMake cmake)
+    public void AddCmakeArguments(CMake.CMakeProject cmake)
     {
         cmake.AddArgument("SDL2_HINT_ROOT", root_folder);
         cmake.AddArgument("SDL2_HINT_BUILD", build_folder);
@@ -121,7 +121,7 @@ internal class DependencySdl2 : BuildDependency
 
         if (false == File.Exists(Path.Join(build_folder, "SDL2.sln")))
         {
-            var project = new CMake.CMake(build_folder, root_folder, generator);
+            var project = new CMake.CMakeProject(build_folder, root_folder, generator);
             // project.make_static_library()
             // this is defined by the standard library so don't add it
             // generates '__ftol2_sse already defined' errors
@@ -161,7 +161,7 @@ internal class DependencyPython : BuildDependency
         return "python";
     }
 
-    public void AddCmakeArguments(CMake.CMake cmake)
+    public void AddCmakeArguments(CMake.CMakeProject cmake)
     {
         if (path_to_python_exe == null) { return; }
 
@@ -205,7 +205,7 @@ internal class DependencyAssimp : BuildDependency
         return "assimp";
     }
 
-    public void AddCmakeArguments(CMake.CMake cmake)
+    public void AddCmakeArguments(CMake.CMakeProject cmake)
     {
         cmake.AddArgument("ASSIMP_ROOT_DIR", install_folder);
     }
@@ -229,7 +229,7 @@ internal class DependencyAssimp : BuildDependency
             var build = Path.Join(dependency_folder, "cmake-build");
             Core.MoveFiles(print, Path.Join(dependency_folder, "assimp-5.0.1"), dependency_folder);
 
-            var project = new CMake.CMake(build, dependency_folder, generator);
+            var project = new CMake.CMakeProject(build, dependency_folder, generator);
             project.AddArgument("ASSIMP_BUILD_X3D_IMPORTER", "0");
             if (use_static_build)
             {
@@ -434,7 +434,7 @@ internal class DependencyWxWidgets : BuildDependency
         return "wxWidgets";
     }
 
-    public void AddCmakeArguments(CMake.CMake cmake)
+    public void AddCmakeArguments(CMake.CMakeProject cmake)
     {
         // if these differs it clears the lib dir... but also one is required to use / on windows... wtf!
         cmake.AddArgument("WX_ROOT_DIR", root_folder.Replace('\\', '/'));
@@ -507,9 +507,9 @@ internal class DependencyWxWidgets : BuildDependency
         }
     }
 
-    private static CMake.CMake ConfigProject(Printer print, string root, string build, Generator generator)
+    private static CMake.CMakeProject ConfigProject(Printer print, string root, string build, Generator generator)
     {
-        var project = new CMake.CMake(build, root, generator);
+        var project = new CMake.CMakeProject(build, root, generator);
         project.AddArgument("LIBC", "ON");
         project.AddArgument("wxBUILD_SHARED", "OFF");
         project.Configure(print);

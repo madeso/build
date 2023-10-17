@@ -1,12 +1,9 @@
-using Spectre.Console.Cli;
-using System;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
+using Spectre.Console.Cli;
 using Workbench.CMake;
-using static Workbench.CheckIncludes.CheckAction;
 
-namespace Workbench.Commands.ToolsCommands;
+namespace Workbench.Commands.Tools;
 
 
 internal class Main

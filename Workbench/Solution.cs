@@ -17,7 +17,7 @@ public class Solution
     private readonly Dictionary<Guid, List<Guid>> is_used_by = new();
 
     private List<Guid> Uses(Project p) => uses.TryGetValue(p.Guid, out var ret) ? ret : new(); // app uses lib
-    private List<Guid> IsUsedBy(Project p) => this.is_used_by.TryGetValue(p.Guid, out var ret) ? ret : new(); // lib is used by app
+    private List<Guid> IsUsedBy(Project p) => is_used_by.TryGetValue(p.Guid, out var ret) ? ret : new(); // lib is used by app
 
     public IEnumerable<Project> Projects => projects.Values;
 
@@ -55,7 +55,7 @@ public class Solution
         Graphviz gv = new();
 
         Dictionary<string, Graphviz.Node> nodes = new();
-        foreach (var p in this.projects.Values)
+        foreach (var p in projects.Values)
         {
             var node_shape = p.Type switch
             {
@@ -67,7 +67,7 @@ public class Solution
             nodes.Add(p.Name, gv.AddNode(p.Name, node_shape));
         }
 
-        foreach (var p in this.projects.Values)
+        foreach (var p in projects.Values)
         {
             foreach (var to in p.Uses)
             {
@@ -89,13 +89,13 @@ public class Solution
 
     public int RemoveProjects(Func<Project, bool> predicate)
     {
-        var guids = this.projects.Values.Where(predicate).Select(p => p.Guid).ToImmutableHashSet();
+        var guids = projects.Values.Where(predicate).Select(p => p.Guid).ToImmutableHashSet();
         
         foreach(var g in guids)
         {
-            this.projects.Remove(g);
-            this.uses.Remove(g);
-            this.is_used_by.Remove(g);
+            projects.Remove(g);
+            uses.Remove(g);
+            is_used_by.Remove(g);
 
             foreach(var u in uses.Values)
             {
@@ -114,7 +114,7 @@ public class Solution
     public Project AddProject(ProjectType type, string name)
     {
         var project = new Project(this, type, name, Guid.NewGuid());
-        this.projects.Add(project.Guid, project);
+        projects.Add(project.Guid, project);
         return project;
     }
 
@@ -140,15 +140,15 @@ public class Solution
 
 internal class SolutionParser
 {
-    record Dependency(Solution.Project From, string To);
-    record LoadProject(Solution.Project Project, string File);
+    record Dependency(Project From, string To);
+    record LoadProject(Project Project, string File);
 
-    public static Solution ParseCmake(IEnumerable<CMake.Trace> lines)
+    public static Solution ParseCmake(IEnumerable<Trace> lines)
     {
         Solution solution = new();
 
         // maps name or alias to a project
-        Dictionary<string, Solution.Project> name_or_alias_mapping = new();
+        Dictionary<string, Project> name_or_alias_mapping = new();
 
         List<Dependency> dependencies = new();
 
@@ -195,16 +195,16 @@ internal class SolutionParser
                 return;
             }
 
-            var lib_type = Solution.ProjectType.Static;
+            var lib_type = ProjectType.Static;
 
             if (line.Args.Contains("SHARED"))
             {
-                lib_type = Solution.ProjectType.Shared;
+                lib_type = ProjectType.Shared;
             }
 
             if (line.Args.Contains("INTERFACE"))
             {
-                lib_type = Solution.ProjectType.Interface;
+                lib_type = ProjectType.Interface;
             }
 
             var p = solution.AddProject(lib_type, lib);
@@ -231,7 +231,7 @@ internal class SolutionParser
         void add_executable(Trace line)
         {
             var app = line.Args[0];
-            var p = solution.AddProject(Solution.ProjectType.Executable, app);
+            var p = solution.AddProject(ProjectType.Executable, app);
             name_or_alias_mapping.Add(app, p);
         }
     }
@@ -242,7 +242,7 @@ internal class SolutionParser
     {
         var solution = new Solution();
 
-        Dictionary<string, Solution.Project> projects = new();
+        Dictionary<string, Project> projects = new();
         List<Dependency> dependencies = new();
         List<LoadProject> loads = new();
 
@@ -270,7 +270,7 @@ internal class SolutionParser
                     var relative_path = data[1].Trim().Trim('\"').Trim();
                     var project_guid = data[2].Trim().Trim('\"').Trim();
                     // todo(Gustav): reuse guid?
-                    current_project = solution.AddProject(Solution.ProjectType.Unknown, name);
+                    current_project = solution.AddProject(ProjectType.Unknown, name);
                     loads.Add(new(current_project, Path.Join(solution_dir, relative_path)));
                     projects[project_guid.ToLowerInvariant()] = current_project;
                 }

@@ -4,10 +4,10 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using Workbench.Utils;
 
-namespace Workbench.SlnDeps;
+namespace Workbench.Commands.SlnDeps;
 
 
-static class F
+static class SlnDepsFunctions
 {
 
     // ======================================================================================================================
@@ -21,7 +21,7 @@ static class F
 
         public ExclusionList(IEnumerable<string> exclude, IEnumerable<string> contains, bool cmake)
         {
-            this.explicits = Exclude(exclude, cmake).Select(Transform).ToImmutableHashSet();
+            explicits = Exclude(exclude, cmake).Select(Transform).ToImmutableHashSet();
             this.contains = contains.ToImmutableArray();
         }
 

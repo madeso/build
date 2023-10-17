@@ -1,16 +1,8 @@
-﻿using Spectre.Console.Cli;
-using Spectre.Console;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Spectre.Console.Cli;
 
-using Workbench.SlnDeps;
-
-namespace Workbench.Commands.SlnDepsCommands;
+namespace Workbench.Commands.SlnDeps;
 
 
 internal class WithSolutionArguments : CommandSettings
@@ -49,9 +41,9 @@ internal class SharedArguments : WithSolutionArguments
     [DefaultValue(false)]
     public bool Reverse { get; set; } = false;
 
-    internal F.ExclusionList MakeExclusionList()
+    internal SlnDepsFunctions.ExclusionList MakeExclusionList()
     {
-        return new F.ExclusionList(Exclude, Contains, Cmake);
+        return new SlnDepsFunctions.ExclusionList(Exclude, Contains, Cmake);
     }
 }
 
@@ -75,7 +67,7 @@ internal sealed class GenerateCommand : Command<GenerateCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
         return CommonExecute.WithPrinter(printer =>
-            F.handle_generate(printer, args.Target, args.Format, args.MakeExclusionList(), args.Simplify, args.Reverse, args.Solution, args.Style)
+            SlnDepsFunctions.handle_generate(printer, args.Target, args.Format, args.MakeExclusionList(), args.Simplify, args.Reverse, args.Solution, args.Style)
         );
     }
 }
@@ -90,7 +82,7 @@ internal sealed class WriteCommand : Command<WriteCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
         return CommonExecute.WithPrinter(printer =>
-            F.WriteCommand(printer, args.MakeExclusionList(), args.Target, args.Simplify, args.Reverse, args.Solution)
+            SlnDepsFunctions.WriteCommand(printer, args.MakeExclusionList(), args.Target, args.Simplify, args.Reverse, args.Solution)
         );
     }
 }
@@ -105,7 +97,7 @@ internal sealed class SourceCommand : Command<SourceCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
         return CommonExecute.WithPrinter(printer =>
-            F.SourceCommand(printer, args.MakeExclusionList(), args.Simplify, args.Reverse, args.Solution)
+            SlnDepsFunctions.SourceCommand(printer, args.MakeExclusionList(), args.Simplify, args.Reverse, args.Solution)
         );
     }
 }
@@ -119,7 +111,7 @@ internal sealed class ListCommand : Command<ListCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
-        return CommonExecute.WithPrinter(printer => F.ListCommand(printer, args.Solution));
+        return CommonExecute.WithPrinter(printer => SlnDepsFunctions.ListCommand(printer, args.Solution));
     }
 }
 
