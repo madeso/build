@@ -421,7 +421,7 @@ internal static class Tools
                 if ((new[] { "add_library", "add_executable" }).Contains(cmd.Cmd.ToLowerInvariant()))
                 {
                     var project_name = cmd.Args[0];
-                    if (cmd.Args[1] != "INTERFACE")
+                    if (cmd.Args.Length<=1 || cmd.Args[1] != "INTERFACE")
                     { // skip interface libraries
                         projects.Add(project_name);
                         files[project_name] = cmd.File;
