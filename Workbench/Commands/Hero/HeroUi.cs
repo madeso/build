@@ -14,7 +14,7 @@ internal static class Ui
     {
         var project = new Project(input);
         var scanner = new Scanner();
-        var feedback = new ProgressFeedback(printer);
+        var feedback = new ProgressFeedback();
         scanner.Rescan(project, feedback);
         var f = new UniqueFiles();
         AddFiles(f, project);
@@ -35,7 +35,7 @@ internal static class Ui
     {
         var project = new Project(input);
         var scanner = new Scanner();
-        var feedback = new ProgressFeedback(printer);
+        var feedback = new ProgressFeedback();
         scanner.Rescan(project, feedback);
         var f = new UniqueFiles();
         AddFiles(f, project);

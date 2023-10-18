@@ -59,10 +59,10 @@ public static class Core
         else
         {
             AnsiConsole.WriteLine($"Downloading {dest}");
-            download_file(print, url, dest);
+            download_file(url, dest);
         }
 
-        static void download_file(Printer print, string url, string dest)
+        static void download_file(string url, string dest)
         {
             using var client = new HttpClient();
             using var s = client.GetStreamAsync(url);

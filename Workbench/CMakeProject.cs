@@ -264,7 +264,7 @@ public class CMakeProject
         command.AddArgument("--build");
         command.AddArgument(".");
 
-        if (install == Workbench.CMake.Install.Yes)
+        if (install == CMake.Install.Yes)
         {
             command.AddArgument("--target");
             command.AddArgument("install");
@@ -293,13 +293,13 @@ public class CMakeProject
     // build cmake project
     public void Build(Printer printer, Config config)
     {
-        RunBuildCommand(printer, Workbench.CMake.Install.No, config);
+        RunBuildCommand(printer, CMake.Install.No, config);
     }
 
     // install cmake project
     public void Install(Printer printer, Config config)
     {
-        RunBuildCommand(printer, Workbench.CMake.Install.Yes, config);
+        RunBuildCommand(printer, CMake.Install.Yes, config);
     }
 }
 

@@ -40,9 +40,8 @@ internal static class DoxygenUtils
 
         // exclude "constexpr" return values
         var rets = ret.Where(node => !(node is LinkedTextType.Text text && is_keyword(text))).ToArray();
-        var ret_count = rets.Count();
+        var ret_count = rets.Length;
 
-        // Console.WriteLine($"ret detection: {m.Name} -- {retCount}: {ret}");
         return ret_count == 0;
 
         static bool is_keyword(LinkedTextType.Text text)

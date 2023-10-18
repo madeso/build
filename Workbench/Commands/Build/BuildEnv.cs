@@ -58,13 +58,6 @@ public class BuildEnvironment
         return BuildFunctions.CreateCmakeGenerator(Compiler.Value, Platform.Value);
     }
 
-    internal string CreateMsBuildPlatform()
-    {
-        if (Compiler == null) { throw new ArgumentNullException(nameof(Compiler)); }
-        if (Platform == null) { throw new ArgumentNullException(nameof(Platform)); }
-        return BuildFunctions.CreateMsBuildPlatform(Compiler.Value, Platform.Value);
-    }
-
     // validate the build environment
     public bool Validate(Printer printer)
     {
@@ -198,15 +191,6 @@ public static class BuildFunctions
                 new CMake.Generator("Visual Studio 16 2019", GetCmakeArchitectureArgument(platform)),
             Compiler.VisualStudio2022 =>
                 new CMake.Generator("Visual Studio 17 2022", GetCmakeArchitectureArgument(platform)),
-            _ => throw new Exception("Invalid compiler"),
-        };
-
-    internal static string CreateMsBuildPlatform(Compiler compiler, Platform platform)
-        => platform switch
-        {
-            Platform.Win32 => "Win32",
-            Platform.X64 => "\x64",
-            Platform.Auto => throw new Exception("Invalid setting..."),
             _ => throw new Exception("Invalid compiler"),
         };
 

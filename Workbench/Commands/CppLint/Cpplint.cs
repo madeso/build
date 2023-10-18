@@ -17,53 +17,29 @@ public static class Cpplint
     }
 
 
-    private static void PrintError(Printer printer, string path, string stdout)
-    {
-        Printer.Line();
-        printer.Error(path);
-        AnsiConsole.WriteLine(stdout);
-        Printer.Line();
-        AnsiConsole.WriteLine("");
-    }
-
-    private record LintError(string File, string[] Error);
-
-    static LintError? run_file(Printer printer, string path)
-    {
-        var ret = new ProcessBuilder("cpplint", path).RunAndGetOutput();
-        if (ret.ExitCode != 0)
-        {
-            PrintError(printer, path, string.Join("\n", ret.Output.Select(x => x.Line)));
-            return new LintError(path, ret.Output.Select(x => x.Line).ToArray());
-        }
-        else
-        {
-            AnsiConsole.WriteLine(path);
-        }
-        return null;
-    }
-
-
     public static int HandleRun(Printer printer, string root)
     {
         var files = FileUtil.ListAllFiles(root);
         var has_errors = false;
         foreach (var f in files)
         {
-            var e = run_file(printer, f);
-            if (e != null)
+            var ret = new ProcessBuilder("cpplint", f).RunAndGetOutput();
+            if (ret.ExitCode != 0)
             {
+                var stdout = string.Join("\n", ret.Output.Select(x => x.Line));
+                Printer.Line();
+                printer.Error(f);
+                AnsiConsole.WriteLine(stdout);
+                Printer.Line();
+                AnsiConsole.WriteLine("");
                 has_errors = true;
+            }
+            else
+            {
+                AnsiConsole.WriteLine(f);
             }
         }
 
-        if (has_errors)
-        {
-            return -1;
-        }
-        else
-        {
-            return 0;
-        }
+        return has_errors ? -1 : 0;
     }
 }

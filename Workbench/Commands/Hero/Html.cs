@@ -13,17 +13,6 @@ internal class Html
 
     public void BeginJoin(string title)
     {
-        Begin(title, true);
-    }
-
-    public void BeginNoJoin(string title)
-    {
-        Begin(title, false);
-    }
-
-    private void Begin(string title, bool use_join)
-    {
-        var div_class = use_join ? "body" : "body_single";
         Buffer +=
             $@"
 <!DOCTYPE html>
@@ -48,7 +37,7 @@ internal class Html
 <div id=""content"">
 
 <h1>{title}</h1>
-<div id=""{div_class}"">
+<div id=""body"">
 ";
     }
 

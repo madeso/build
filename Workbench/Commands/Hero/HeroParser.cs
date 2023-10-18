@@ -389,10 +389,6 @@ public static class Report
 
 public class ProgressFeedback
 {
-    public ProgressFeedback(Printer printer)
-    {
-    }
-
     public void UpdateTitle(string new_title)
     {
         AnsiConsole.WriteLine($"{new_title}");

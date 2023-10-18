@@ -191,8 +191,7 @@ internal static class ClangFacade
         return GetLastModificationForFiles(input_files) <= output;
     }
 
-    private static TidyOutput? GetExistingOutputOrNull(Store store, Printer printer, string root,
-        string project_build_folder, string source_file)
+    private static TidyOutput? GetExistingOutputOrNull(Store store, string root, string source_file)
     {
         var root_file = GetPathToClangTidySource(root);
 
@@ -225,7 +224,7 @@ internal static class ClangFacade
     {
         if (false == force)
         {
-            var existing_output = GetExistingOutputOrNull(store, printer, root, project_build_folder, source_file);
+            var existing_output = GetExistingOutputOrNull(store, root, source_file);
             if (existing_output != null)
             {
                 return existing_output;
@@ -272,11 +271,10 @@ internal static class ClangFacade
     {
         name_printer.Print();
         var co = GetExistingOutputOrCallClangTidy(store, printer, root, force, tidy_path, project_build_folder, source_file, fix);
-        return CreateStatisticsAndPrintStatus(printer, stats, short_list, printable_file, only, co);
+        return CreateStatisticsAndPrintStatus(stats, short_list, printable_file, only, co);
     }
 
-    private static (ColCounter<string> warnings, ColCounter<string> classes) CreateStatisticsAndPrintStatus(
-        Printer printer, FileStatistics stats, bool short_list, string printable_file,
+    private static (ColCounter<string> warnings, ColCounter<string> classes) CreateStatisticsAndPrintStatus(FileStatistics stats, bool short_list, string printable_file,
         string[] only, TidyOutput co)
     {
         var output = co.Output;
@@ -348,14 +346,14 @@ internal static class ClangFacade
         }
         if (false == short_list && only.Length == 0)
         {
-            PrintWarningCounter(printer, classes, printable_file);
+            PrintWarningCounter(classes, printable_file);
             AnsiConsole.WriteLine("");
         }
         return (warnings, classes);
     }
 
     // print warning counter to the console
-    private static void PrintWarningCounter(Printer print, ColCounter<string> project_counter, string project)
+    private static void PrintWarningCounter(ColCounter<string> project_counter, string project)
     {
         AnsiConsole.WriteLine($"{project_counter.TotalCount()} warnings in {project}.");
         foreach (var (file, count) in project_counter.MostCommon().Take(10))
@@ -506,7 +504,7 @@ internal static class ClangFacade
             {
                 if (args_only.Length == 0)
                 {
-                    PrintWarningCounter(printer, project_counter, project);
+                    PrintWarningCounter(project_counter, project);
                     AnsiConsole.WriteLine("");
                     AnsiConsole.WriteLine("");
                 }
@@ -516,9 +514,9 @@ internal static class ClangFacade
         if (false == short_args && args_only.Length == 0)
         {
             Printer.Header("TIDY REPORT");
-            PrintWarningCounter(printer, total_counter, "total");
+            PrintWarningCounter(total_counter, "total");
             AnsiConsole.WriteLine("");
-            PrintWarningCounter(printer, total_classes, "classes");
+            PrintWarningCounter(total_classes, "classes");
             AnsiConsole.WriteLine("");
             Printer.Line();
             AnsiConsole.WriteLine("");

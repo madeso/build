@@ -40,22 +40,19 @@ internal sealed class CatDirCommand : Command<CatDirCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return Printer.PrintErrorsAtExit(print =>
+        var dir = new DirectoryInfo(arg.Dir);
+        foreach (var file in FileUtil.IterateFiles(dir, false, true)
+            .Where(file => FileUtil.FileHasAnyExtension(file.FullName, arg.AllSources ? FileUtil.HeaderAndSourceFiles : FileUtil.HeaderFiles))
+        )
         {
-            var dir = new DirectoryInfo(arg.Dir);
-            foreach (var file in FileUtil.IterateFiles(dir, false, true)
-                .Where(file => FileUtil.FileHasAnyExtension(file.FullName, arg.AllSources ? FileUtil.HeaderAndSourceFiles : FileUtil.HeaderFiles))
-            )
+            AnsiConsole.WriteLine($"File: {file.FullName}");
+            foreach (var line in File.ReadAllLines(file.FullName))
             {
-                AnsiConsole.WriteLine($"File: {file.FullName}");
-                foreach (var line in File.ReadAllLines(file.FullName))
-                {
-                    if (string.IsNullOrWhiteSpace(line)) { continue; }
-                    AnsiConsole.WriteLine($"    {line}");
-                }
+                if (string.IsNullOrWhiteSpace(line)) { continue; }
+                AnsiConsole.WriteLine($"    {line}");
             }
-            return 0;
-        });
+        }
+        return 0;
     }
 }
 
@@ -70,23 +67,20 @@ internal sealed class CatCommand : Command<CatCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Printer.PrintErrorsAtExit(print =>
+        if (File.Exists(settings.Path))
         {
-            if (File.Exists(settings.Path))
+            AnsiConsole.MarkupLineInterpolated($"{settings.Path}>");
+            foreach (var line in File.ReadAllLines(settings.Path))
             {
-                AnsiConsole.MarkupLineInterpolated($"{settings.Path}>");
-                foreach (var line in File.ReadAllLines(settings.Path))
-                {
-                    AnsiConsole.MarkupLineInterpolated($"---->{line}");
-                }
+                AnsiConsole.MarkupLineInterpolated($"---->{line}");
             }
-            else
-            {
-                AnsiConsole.MarkupLineInterpolated($"Failed to open '{settings.Path}'");
-            }
+        }
+        else
+        {
+            AnsiConsole.MarkupLineInterpolated($"Failed to open '{settings.Path}'");
+        }
 
-            return 0;
-        });
+        return 0;
     }
 }
 
@@ -101,27 +95,24 @@ internal sealed class LsCommand : Command<LsCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Printer.PrintErrorsAtExit(print =>
+        print_recursive(settings.Path, "");
+        return 0;
+
+        static void print_recursive(string root, string start)
         {
-            print_recursive(settings.Path, "");
-            return 0;
+            var ident = " ".Repeat(4);
 
-            static void print_recursive(string root, string start)
+            var paths = new DirectoryInfo(root);
+            foreach (var file_path in paths.EnumerateDirectories())
             {
-                var ident = " ".Repeat(4);
-
-                var paths = new DirectoryInfo(root);
-                foreach (var file_path in paths.EnumerateDirectories())
-                {
-                    AnsiConsole.MarkupLineInterpolated($"{start}{file_path.Name}/");
-                    print_recursive(file_path.FullName, $"{start}{ident}");
-                }
-
-                foreach (var file_path in paths.EnumerateFiles())
-                {
-                    AnsiConsole.MarkupLineInterpolated($"{start}{file_path.Name}");
-                }
+                AnsiConsole.MarkupLineInterpolated($"{start}{file_path.Name}/");
+                print_recursive(file_path.FullName, $"{start}{ident}");
             }
-        });
+
+            foreach (var file_path in paths.EnumerateFiles())
+            {
+                AnsiConsole.MarkupLineInterpolated($"{start}{file_path.Name}");
+            }
+        }
     }
 }

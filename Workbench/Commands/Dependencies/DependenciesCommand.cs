@@ -85,13 +85,9 @@ internal sealed class ListCallGraph : Command<ListCallGraph.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return Printer.PrintErrorsAtExit(printer =>
-            {
-                Dependencies.WriteCallGraphToGraphviz(arg.DoxygenXml, arg.OutputFile,
-                    arg.ClusterOn ?? Dependencies.ClusterCallGraphOn.None);
-                return 0;
-            }
-        );
+        Dependencies.WriteCallGraphToGraphviz(arg.DoxygenXml, arg.OutputFile,
+            arg.ClusterOn ?? Dependencies.ClusterCallGraphOn.None);
+        return 0;
     }
 }
 

@@ -44,7 +44,7 @@ namespace Workbench.Doxygen.Index
         {
             Compounds = el.ElementsNamed("compound").Select(x => new CompoundType(dir, x)).ToArray();
 
-            this.refidLookup = Compounds.ToImmutableDictionary(c => c.RefId);
+            refidLookup = Compounds.ToImmutableDictionary(c => c.RefId);
         }
     }
 
@@ -136,9 +136,4 @@ namespace Workbench.Doxygen.Index
             };
         }
     }
-
-}
-
-namespace Workbench.Doxygen.Compund
-{
 }

@@ -215,7 +215,7 @@ internal static class IndentFunctions
                 .Width(60)
                 .Label("[green bold underline]Number of files / indentation[/]")
                 .CenterLabel();
-            foreach (var (label, start, files) in all_sorted)
+            foreach (var (label, _, files) in all_sorted)
             {
                 chart.AddItem(label, files.Count, Color.Green);
             }
@@ -223,7 +223,7 @@ internal static class IndentFunctions
         }
         else
         {
-            foreach (var (label, start, files) in all_sorted)
+            foreach (var (label, _, files) in all_sorted)
             {
                 AnsiConsole.WriteLine($"{label}: {(args_show ? files : files.Count)}");
             }

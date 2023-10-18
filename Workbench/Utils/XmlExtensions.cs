@@ -4,9 +4,6 @@ namespace Workbench.Utils;
 
 internal static class XmlExtensions
 {
-    public static bool HasAttribute(this XmlNode element, string search)
-        => element.Attributes?[search] != null;
-
     public static string? GetAttributeStringOrNull(this XmlNode element, string name)
         => element.Attributes?[name]?.Value;
 
@@ -17,10 +14,6 @@ internal static class XmlExtensions
 
         return int.Parse(r);
     }
-
-    public static int GetAttributeInt(this XmlNode element, string name)
-        => element.GetAttributeIntOrNull(name)
-           ?? throw new Exception("missing int");
 
     public static string GetAttributeString(this XmlNode element, string name)
         => element.GetAttributeStringOrNull(name)
@@ -54,40 +47,6 @@ internal static class XmlExtensions
         return el == null
             ? null
             : converter(el);
-    }
-
-    public static T GetFirstElementType<T>(this XmlNode root, string name, Func<XmlElement, T> converter)
-        where T : class
-        => root.GetFirstElementTypeOrNull(name, converter)
-           ?? throw new Exception("Missing required element");
-
-    private static string? GetFirstElementStringOrNull(this XmlNode root, string name)
-        => root.GetFirstElementTypeOrNull(name, GetSmartText);
-
-    private static string GetFirstElementString(this XmlNode root, string name)
-        => root.GetFirstElementStringOrNull(name)
-           ?? throw new Exception("string was null");
-
-    public static string NameOf(this XmlElement element)
-    {
-        var id = element.GetAttributeStringOrNull("id");
-        return id == null
-            ? element.Name
-            : $"{element.Name}[{id}]";
-    }
-
-    public static string PathOf(this XmlElement root_element)
-    {
-        var result = "";
-
-        var iterator = root_element;
-        while (iterator != null)
-        {
-            result = iterator.NameOf() + "/" + result;
-            iterator = iterator.ParentNode as XmlElement;
-        }
-
-        return result;
     }
 
     public static IEnumerable<XmlElement> ElementsNamed(this XmlNode root, string child_name)

@@ -56,7 +56,7 @@ internal sealed class CheckForNoProjectFoldersCommand : Command<CheckForNoProjec
         var files = new Dictionary<string, string>();
         var project_folders = new ColCounter<string>();
 
-        foreach (var cmd in CMake.Trace.TraceDirectory(cmake, build_root))
+        foreach (var cmd in Trace.TraceDirectory(cmake, build_root))
         {
             if (cmd.File == null) { continue; }
 

@@ -41,9 +41,6 @@ public static class Reflect
     }
 
 
-    public static Resolvers<string> NameResolver { get; } = new(mem => mem.Name, prop => prop.Name);
-
-
     public static Resolvers<TAttribute> Attributes<TAttribute>()
         where TAttribute : Attribute
     {

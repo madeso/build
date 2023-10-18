@@ -50,24 +50,6 @@ internal class ProcessExitWithOutput
 
         return this;
     }
-
-    public ProcessExitWithOutput PrintStatus(Printer print)
-    {
-        AnsiConsole.WriteLine($"Return value: {ExitCode}");
-        if (ExitCode != 0)
-        {
-            print.Error($"Failed to run command: {CommandLine}");
-        }
-
-        return this;
-    }
-
-    public ProcessExitWithOutput PrintStatusAndOuput(Printer print)
-    {
-        PrintStatus(print);
-        PrintOutput(print);
-        return this;
-    }
 }
 
 public class ProcessBuilder
@@ -95,8 +77,8 @@ public class ProcessBuilder
 
         var proc = new Process { StartInfo = start };
 
-        proc.OutputDataReceived += (sender, e) => { if (e.Data != null) { on_stdout(e.Data); } };
-        proc.ErrorDataReceived += (sender, e) => { if (e.Data != null) { on_stderr(e.Data); } };
+        proc.OutputDataReceived += (_, e) => { if (e.Data != null) { on_stdout(e.Data); } };
+        proc.ErrorDataReceived += (_, e) => { if (e.Data != null) { on_stderr(e.Data); } };
 
         try
         {

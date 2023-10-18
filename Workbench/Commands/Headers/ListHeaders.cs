@@ -262,7 +262,7 @@ internal class FileWalker
         return walk_rec(print, directories.ToArray(), included_file_cache, path, defines, file_cache, 0);
     }
 
-    private List<Statement>? parse_file_to_blocks(string path, Printer print)
+    private static List<Statement> ParseFileToBlocks(string path, Printer print)
     {
         var source_lines = File.ReadAllLines(path);
         var joined_lines = ListHeaderFunctions.JoinCppLines(source_lines);
@@ -288,18 +288,14 @@ internal class FileWalker
 
         if (FileUtil.IsSource(path))
         {
-            var parsed_blocks = parse_file_to_blocks(path, print);
-            if (parsed_blocks == null)
-            {
-                return false;
-            }
+            var parsed_blocks = ParseFileToBlocks(path, print);
             return BlockRecursive(print, directories, included_file_cache, path, defines, parsed_blocks, file_cache, depth);
         }
 
 
         if (file_cache.TryGetValue(path, out var blocks) == false)
         {
-            blocks = parse_file_to_blocks(path, print) ?? new();
+            blocks = ParseFileToBlocks(path, print);
             file_cache.Add(path, blocks);
         }
 

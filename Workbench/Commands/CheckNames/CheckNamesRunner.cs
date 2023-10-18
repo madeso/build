@@ -278,11 +278,11 @@ internal class CheckNamesRunner
                 {
                     var message = StringListCombiner.EnglishOr().Combine(suggested_replacements);
                     var are = suggested_replacements.Length ==1 ? "is" : "are";
-                    this.ReportError(mem.Location, $"{first_name} is not a recomended verb for {member_name}: suggestions {are}: {message}");
+                    ReportError(mem.Location, $"{first_name} is not a recomended verb for {member_name}: suggestions {are}: {message}");
                 }
                 else
                 {
-                    this.ReportError(mem.Location, $"{first_name} is not a known verb for {member_name}");
+                    ReportError(mem.Location, $"{first_name} is not a known verb for {member_name}");
                 }
             }
 
@@ -303,19 +303,19 @@ internal class CheckNamesRunner
         {
             switch (mem.Kind)
             {
-                case Doxygen.Compound.DoxMemberKind.Define:
+                case DoxMemberKind.Define:
                     CheckDefine(mem);
                     break;
-                case Doxygen.Compound.DoxMemberKind.Typedef:
+                case DoxMemberKind.Typedef:
                     CheckTypedef(mem);
                     break;
-                case Doxygen.Compound.DoxMemberKind.Enum:
+                case DoxMemberKind.Enum:
                     CheckEnum(mem);
                     break;
-                case Doxygen.Compound.DoxMemberKind.Variable:
+                case DoxMemberKind.Variable:
                     CheckName(mem.Name, mem.Location, CaseMatch.IsLowerSnakeCase, NoValidNames, "member variables");
                     break;
-                case Doxygen.Compound.DoxMemberKind.Function:
+                case DoxMemberKind.Function:
                     CheckFunction(mem);
                     if (DoxygenUtils.IsConstructorOrDestructor(mem) == false &&
                         DoxygenUtils.IsFunctionOverride(mem) == false)

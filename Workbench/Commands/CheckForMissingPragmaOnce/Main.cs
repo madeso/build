@@ -26,15 +26,10 @@ internal sealed class CheckForMissingPragmaOnceCommand : Command<CheckForMissing
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Printer.PrintErrorsAtExit(print => CheckForMissingPragmaOnce(settings.Files));
-    }
-
-    public static int CheckForMissingPragmaOnce(string[] files)
-    {
         var count = 0;
         var total_files = 0;
 
-        foreach (var file in FileUtil.ListFilesRecursively(files, FileUtil.HeaderFiles))
+        foreach (var file in FileUtil.ListFilesRecursively(settings.Files, FileUtil.HeaderFiles))
         {
             total_files += 1;
             if (contains_pragma_once(file))

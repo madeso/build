@@ -7,7 +7,7 @@ internal static class Status
 {
     internal static void HandleStatus(Printer printer, CompileCommandsArguments cc)
     {
-        print_found_list(printer, "cmake", CmakeTools.FindAllInstallations(printer).ToList());
+        print_found_list("cmake", CmakeTools.FindAllInstallations(printer).ToList());
 
         var root = Environment.CurrentDirectory;
         AnsiConsole.WriteLine($"Root: {root}");
@@ -28,7 +28,7 @@ internal static class Status
             AnsiConsole.WriteLine($"Compile commands: {ccs}");
         }
 
-        static void print_found_list(Printer printer, string name, List<Found> list)
+        static void print_found_list(string name, List<Found> list)
         {
             var found = Found.GetFirstValueOrNull(list) ?? "<None>";
             AnsiConsole.WriteLine($"{name}: {found}");

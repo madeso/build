@@ -43,11 +43,11 @@ public class UserInput
 
     public void Decorate(Printer printer, string root)
     {
-        decorate_this(printer, root, ProjectDirectories, "Project directories", f => Directory.Exists(f) || File.Exists(f));
-        decorate_this(printer, root, IncludeDirectories, "Include directories", Directory.Exists);
+        decorate_this(root, ProjectDirectories, "Project directories", f => Directory.Exists(f) || File.Exists(f));
+        decorate_this(root, IncludeDirectories, "Include directories", Directory.Exists);
         return;
 
-        static void decorate_this(Printer printer, string root, List<string> d, string name, Func<string, bool> exists)
+        static void decorate_this(string root, List<string> d, string name, Func<string, bool> exists)
         {
             var missing = d.Where(d => Path.IsPathFullyQualified(d) == false || exists(d) == false).ToImmutableHashSet();
             var changes = missing

@@ -11,7 +11,7 @@ public readonly struct BuildData
     public string ProjectDirectory { get; }
     public string DependencyDirectory { get; }
 
-    public BuildData(string name, string root_dir, Printer print)
+    public BuildData(string name, string root_dir)
     {
         Name = name;
         Dependencies = new();
@@ -33,7 +33,7 @@ public readonly struct BuildData
         return ConfigFile.LoadOrNull<BuildFile, BuildData>(print, BuildFile.GetBuildDataPath(),
             loaded =>
             {
-                var bd = new BuildData(loaded.Name, Environment.CurrentDirectory, print);
+                var bd = new BuildData(loaded.Name, Environment.CurrentDirectory);
                 foreach (var dependency_name in loaded.Dependencies)
                 {
                     bd.Dependencies.Add(BuildDependencies.CreateDependency(dependency_name, bd));

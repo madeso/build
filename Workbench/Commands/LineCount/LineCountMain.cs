@@ -42,8 +42,8 @@ internal sealed class LineCountCommand : Command<LineCountCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Printer.PrintErrorsAtExit(print => HandleLineCountCommand(settings.Files,
-            settings.Each, settings.Show, settings.DiscardEmpty));
+        return HandleLineCountCommand(
+            settings.Files, settings.Each, settings.Show, settings.DiscardEmpty);
     }
 
     public static int HandleLineCountCommand(string[] args_files,

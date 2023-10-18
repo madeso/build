@@ -1,6 +1,5 @@
 using Spectre.Console;
 using System.Collections.Immutable;
-using System.Text.RegularExpressions;
 using System.Xml;
 using Workbench.CMake;
 using Workbench.Utils;
@@ -139,8 +138,8 @@ public class Solution
 
     public static class Parse
     {
-        record Dependency(Project From, string To);
-        record LoadProject(Project Project, string File);
+        private record Dependency(Project From, string To);
+        private record LoadProject(Project Project, string File);
 
         public static Solution CMake(IEnumerable<Trace> lines)
         {
@@ -302,8 +301,6 @@ public class Solution
                 document.Load(path_to_project_file);
                 var root_element = document.DocumentElement;
                 if (root_element == null) { printer.Error($"Failed to load {project_relative_path}"); continue; }
-                var namespace_match = Regex.Match("\\{.*\\}", root_element.Name);
-                var xml_namespace = namespace_match.Success ? namespace_match.Groups[0].Value : "";
                 HashSet<string> configurations = new();
                 foreach (var n in root_element.ElementsNamed("VisualStudioProject").ElementsNamed("Configurations").ElementsNamed("Configuration"))
                 {

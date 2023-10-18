@@ -110,7 +110,7 @@ public class OptionalRegexStatic : OptionalRegex
         this.regex = regex;
     }
 
-    public Regex? GetRegex(Printer print, TextReplacer replacer)
+    public Regex GetRegex(Printer print, TextReplacer replacer)
     {
         return regex;
     }
@@ -411,7 +411,7 @@ public static class IncludeTools
         }
     }
 
-    private static void print_lines(Printer print, IEnumerable<string> lines)
+    private static void print_lines(IEnumerable<string> lines)
     {
         AnsiConsole.WriteLine("*************************************************");
         foreach (var line in lines)
@@ -509,7 +509,7 @@ public static class IncludeTools
                 if (nop.Nop)
                 {
                     AnsiConsole.WriteLine($"Will write the following to {filename}");
-                    print_lines(print, file_data);
+                    print_lines(file_data);
                 }
                 else
                 {
@@ -518,7 +518,7 @@ public static class IncludeTools
                 break;
             default:
                 AnsiConsole.WriteLine("I think the correct order would be:");
-                print_lines(print, sorted_include_lines);
+                print_lines(sorted_include_lines);
                 break;
         }
 
@@ -596,9 +596,9 @@ public class ClassifiedFile
 
 public abstract record CheckAction
 {
-    public record MissingPatterns() : CheckAction;
+    public record MissingPatterns : CheckAction;
     public record ListUnfixable(bool PrintFirstErrorOnly) : CheckAction;
-    public record Check() : CheckAction;
+    public record Check : CheckAction;
     public record Fix(bool Nop) : CheckAction;
 }
 

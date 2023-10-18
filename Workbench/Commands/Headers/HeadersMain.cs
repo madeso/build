@@ -35,10 +35,6 @@ internal sealed class LinesCommand : Command<LinesCommand.Arg>
         [Description("The action to perform on the file")]
         [CommandArgument(1, "<action>")]
         public ListAction Action { get; set; } = ListAction.Lines;
-
-        [Description("Git root to use")]
-        [CommandArgument(0, "<git root>")]
-        public string Root { get; set; } = "";
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
