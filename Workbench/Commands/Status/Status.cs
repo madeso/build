@@ -30,7 +30,7 @@ internal static class Status
 
         static void print_found_list(string name, List<Found> list)
         {
-            var found = Found.GetFirstValueOrNull(list) ?? "<None>";
+            var found = list.GetFirstValueOrNull() ?? "<None>";
             AnsiConsole.WriteLine($"{name}: {found}");
             foreach (var f in list)
             {

@@ -52,7 +52,7 @@ namespace Workbench.CMake
 
         public static string? FindInstallationOrNull(Printer printer)
         {
-            return FoundExtensions.GetFirstValueOrNull(FindAllInstallations(printer));
+            return FindAllInstallations(printer).GetFirstValueOrNull();
         }
 
 
@@ -100,7 +100,7 @@ namespace Workbench.CMake
 
         public static string? FindBuildOrNone(CompileCommandsArguments settings, Printer printer)
         {
-            return FoundExtensions.GetFirstValueOrNull(ListAllBuilds(settings, printer));
+            return ListAllBuilds(settings, printer).GetFirstValueOrNull();
         }
     }
 }
