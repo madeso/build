@@ -1,8 +1,6 @@
 using System.Collections.Immutable;
-using Workbench.Doxygen.Compound;
-using Workbench.Doxygen.Index;
 
-namespace Workbench;
+namespace Workbench.Doxygen;
 
 internal static class DoxygenUtils
 {
@@ -25,7 +23,7 @@ internal static class DoxygenUtils
 
     public static string LocationToString(LocationType? loc, string root)
     {
-        if(loc == null)
+        if (loc == null)
         {
             return "<missing location>";
         }

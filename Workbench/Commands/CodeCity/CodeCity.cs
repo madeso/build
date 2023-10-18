@@ -1,7 +1,7 @@
 using StbRectPackSharp;
 using System.Collections.Immutable;
 using Spectre.Console;
-using Workbench.Doxygen.Compound;
+using Workbench.Doxygen;
 
 namespace Workbench.Commands.CodeCity;
 
@@ -84,7 +84,7 @@ internal class Facade
 
         return collect_from_namespace(dox, root_namespaces, root_classes);
 
-        static List<Cube> collect_from_namespace(Doxygen.Index.DoxygenType dox
+        static List<Cube> collect_from_namespace(DoxygenType dox
             , IEnumerable<CompoundDef> namespaces
             , IEnumerable<CompoundDef> classes)
         {
@@ -208,7 +208,7 @@ internal class Facade
             return end.Value - start.Value;
         }
 
-        static int get_namespace_depth(Doxygen.Index.DoxygenType dox, CompoundDef root_namespace)
+        static int get_namespace_depth(DoxygenType dox, CompoundDef root_namespace)
         {
             return DoxygenUtils.IterateNamespacesInNamespace(dox, root_namespace)
                 .Select(nspace => get_namespace_depth(dox, nspace))

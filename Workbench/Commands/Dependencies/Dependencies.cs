@@ -2,7 +2,7 @@ using Spectre.Console;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Text.Json.Serialization;
-using Workbench.Doxygen.Compound;
+using Workbench.Doxygen;
 using Workbench.Utils;
 
 namespace Workbench.Commands.Dependencies;

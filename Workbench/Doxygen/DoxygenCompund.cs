@@ -1,7 +1,7 @@
 using System.Xml;
 using Workbench.Utils;
 
-namespace Workbench.Doxygen.Compound;
+namespace Workbench.Doxygen;
 
 // work in progress doxygen xml compound parser
 
@@ -40,7 +40,7 @@ class ParsedDoxygenFile
     public ParsedDoxygenFile(XmlElement el)
     {
         ListOfDefinitions = el.ElementsNamed("compounddef").Select(x => new CompoundDef(x)).ToArray();
-        if(ListOfDefinitions.Length != 1)
+        if (ListOfDefinitions.Length != 1)
         {
             throw new Exception("Invalid structure");
         }
@@ -291,7 +291,7 @@ class SectiondefType
     public SectiondefType(XmlElement el)
     {
         Header = el.GetTextOfSubElementOrNull("header");
-        Description = el.GetFirstElementTypeOrNull<DescriptionType>("description", x => new DescriptionType(x));
+        Description = el.GetFirstElementTypeOrNull("description", x => new DescriptionType(x));
         MemberDef = el.ElementsNamed("memberdef").Select(x => new MemberDefinitionType(x)).ToArray();
         Kind = el.GetAttributeEnum<DoxSectionKind>("kind");
     }
@@ -608,10 +608,10 @@ class ParamType
     // elements
 
     // missing type... string?
-    public string? Attributes {get;}
-    public string? DeclName {get;}
-    public string? DefName {get;}
-    public string? Array {get; }
+    public string? Attributes { get; }
+    public string? DeclName { get; }
+    public string? DefName { get; }
+    public string? Array { get; }
 
     public LinkedTextType? Type { get; }
     public LinkedTextType? DefaultValue { get; }
