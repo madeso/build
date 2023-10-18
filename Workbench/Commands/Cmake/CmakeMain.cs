@@ -38,7 +38,7 @@ internal sealed class TraceCommand : Command<TraceCommand.Arg>
                     AnsiConsole.MarkupLineInterpolated($"Running [green]{li.Cmd}[/].");
                 }
             }
-            catch (TraceError x)
+            catch (Trace.TraceError x)
             {
                 AnsiConsole.MarkupLineInterpolated($"Error: [red]{x.Message}[/]");
             }
@@ -140,7 +140,7 @@ internal sealed class DotCommand : Command<DotCommand.Arg>
                     File.WriteAllLines(settings.Output, output);
                 }
             }
-            catch (TraceError x)
+            catch (Trace.TraceError x)
             {
                 AnsiConsole.MarkupLineInterpolated($"Error: [red]{x.Message}[/]");
             }
