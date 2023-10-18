@@ -29,14 +29,14 @@ internal sealed class CheckForMissingInCmakeCommand : Command<CheckForMissingInC
     {
         return Printer.PrintErrorsAtExit(print =>
         {
-            var cmake = CmakeTools.FindInstallationOrNull(print);
+            var cmake = FindCMake.FindInstallationOrNull(print);
             if (cmake == null)
             {
                 print.Error("Failed to find cmake");
                 return -1;
             }
 
-            return CheckForMissingInCmake(settings.Files, CmakeTools.FindBuildOrNone(settings, print), cmake);
+            return CheckForMissingInCmake(settings.Files, FindCMake.FindBuildOrNone(settings, print), cmake);
         });
     }
 
@@ -47,7 +47,7 @@ internal sealed class CheckForMissingInCmakeCommand : Command<CheckForMissingInC
 
         var paths = new HashSet<string>();
 
-        foreach (var cmd in Trace.TraceDirectory(cmake, build_root))
+        foreach (var cmd in CMakeTrace.TraceDirectory(cmake, build_root))
         {
             if (bases.Select(b => FileUtil.FileIsInFolder(cmd.File!, b)).Any())
             {

@@ -141,7 +141,7 @@ public class Solution
         private record Dependency(Project From, string To);
         private record LoadProject(Project Project, string File);
 
-        public static Solution CMake(IEnumerable<Trace> lines)
+        public static Solution CMake(IEnumerable<CMakeTrace> lines)
         {
             Solution solution = new();
 
@@ -176,7 +176,7 @@ public class Solution
 
             return solution;
 
-            void add_library(Trace line)
+            void add_library(CMakeTrace line)
             {
                 var lib = line.Args[0];
                 AnsiConsole.MarkupLineInterpolated($"Adding lib {lib}");
@@ -209,7 +209,7 @@ public class Solution
                 name_or_alias_mapping.Add(lib, p);
             }
 
-            void link_library(Trace line)
+            void link_library(CMakeTrace line)
             {
                 var target_name = line.Args[0];
 
@@ -226,7 +226,7 @@ public class Solution
                 }
             }
 
-            void add_executable(Trace line)
+            void add_executable(CMakeTrace line)
             {
                 var app = line.Args[0];
                 var p = solution.AddProject(ProjectType.Executable, app);

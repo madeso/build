@@ -20,7 +20,7 @@ internal sealed class TraceCommand : Command<TraceCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return Printer.PrintErrorsAtExit(printer => {
-            var cmake = CmakeTools.FindInstallationOrNull(printer);
+            var cmake = FindCMake.FindInstallationOrNull(printer);
 
             if (cmake == null)
             {
@@ -32,13 +32,13 @@ internal sealed class TraceCommand : Command<TraceCommand.Arg>
 
             try
             {
-                var lines = Trace.TraceDirectory(cmake, settings.File);
+                var lines = CMakeTrace.TraceDirectory(cmake, settings.File);
                 foreach (var li in lines)
                 {
                     AnsiConsole.MarkupLineInterpolated($"Running [green]{li.Cmd}[/].");
                 }
             }
-            catch (Trace.TraceError x)
+            catch (CMakeTrace.TraceError x)
             {
                 AnsiConsole.MarkupLineInterpolated($"Error: [red]{x.Message}[/]");
             }
@@ -89,7 +89,7 @@ internal sealed class DotCommand : Command<DotCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return Printer.PrintErrorsAtExit(printer => {
-            var cmake = CmakeTools.FindInstallationOrNull(printer);
+            var cmake = FindCMake.FindInstallationOrNull(printer);
 
             if(cmake == null)
             {
@@ -103,7 +103,7 @@ internal sealed class DotCommand : Command<DotCommand.Arg>
             {
                 var ignores = settings.NamesToIgnore.ToImmutableHashSet();
                 AnsiConsole.MarkupLineInterpolated($"Ignoring [red]{ignores.Count}[/] projects.");
-                var lines = Trace.TraceDirectory(cmake, settings.File);
+                var lines = CMakeTrace.TraceDirectory(cmake, settings.File);
                 var solution = Solution.Parse.CMake(lines);
 
                 if (settings.RemoveInterface)
@@ -140,7 +140,7 @@ internal sealed class DotCommand : Command<DotCommand.Arg>
                     File.WriteAllLines(settings.Output, output);
                 }
             }
-            catch (Trace.TraceError x)
+            catch (CMakeTrace.TraceError x)
             {
                 AnsiConsole.MarkupLineInterpolated($"Error: [red]{x.Message}[/]");
             }

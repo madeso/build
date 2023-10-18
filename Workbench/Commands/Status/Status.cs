@@ -7,7 +7,7 @@ internal static class Status
 {
     internal static void HandleStatus(Printer printer, CompileCommandsArguments cc)
     {
-        print_found_list("cmake", CmakeTools.FindAllInstallations(printer).ToList());
+        print_found_list("cmake", FindCMake.FindAllInstallations(printer).ToList());
 
         var root = Environment.CurrentDirectory;
         AnsiConsole.WriteLine($"Root: {root}");
