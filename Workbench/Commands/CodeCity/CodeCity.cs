@@ -1,8 +1,8 @@
 using StbRectPackSharp;
 using System.Collections.Immutable;
 using Spectre.Console;
-using Workbench.Utils;
-using Workbench.Utils.Doxygen;
+using Workbench.Shared;
+using Workbench.Shared.Doxygen;
 
 namespace Workbench.Commands.CodeCity;
 

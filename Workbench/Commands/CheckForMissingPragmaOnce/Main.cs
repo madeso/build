@@ -2,7 +2,7 @@
 using Spectre.Console;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using Workbench.Utils;
+using Workbench.Shared;
 
 namespace Workbench.Commands.CheckForMissingPragmaOnce;
 

@@ -1,7 +1,7 @@
 using Spectre.Console;
-using Workbench.Utils;
-using Workbench.Utils.Doxygen;
-using static Workbench.Utils.Doxygen.LinkedTextType;
+using Workbench.Shared;
+using Workbench.Shared.Doxygen;
+using static Workbench.Shared.Doxygen.LinkedTextType;
 
 namespace Workbench.Commands.CheckOrderInFile;
 

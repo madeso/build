@@ -1,7 +1,7 @@
 using Spectre.Console;
 using System.Text.RegularExpressions;
 using Workbench.Config;
-using Workbench.Utils;
+using Workbench.Shared;
 
 namespace Workbench.Commands.Clang;
 

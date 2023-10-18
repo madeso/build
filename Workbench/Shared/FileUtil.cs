@@ -1,0 +1,163 @@
+namespace Workbench.Shared;
+
+internal static class FileUtil
+{
+    public static readonly string[] HeaderFiles = { "", ".h", ".hpp", ".hxx" };
+    public static readonly string[] SourceFiles = { ".cc", ".cpp", ".cxx", ".inl" };
+    public static readonly string[] HeaderAndSourceFiles = SourceFiles.Concat(HeaderFiles).ToArray();
+    public static readonly string[] PitchforkFolders = { "apps", "libs", "src", "include" };
+
+    public static IEnumerable<string> PitchforkBuildFolders(string root)
+    {
+        var build = new DirectoryInfo(Path.Join(root, "build"));
+        if (!build.Exists)
+        {
+            yield break;
+        }
+
+        yield return build.FullName;
+
+        foreach (var d in build.GetDirectories())
+        {
+            yield return d.FullName;
+        }
+    }
+
+    public static bool IsTranslationUnitExtension(string ext)
+        => ext switch
+        {
+            ".cpp" or ".c" or ".cc" or ".cxx" or ".mm" or ".m" => true,
+            _ => false,
+        };
+
+    internal static bool IsSource(string path)
+        => Path.GetExtension(path) switch
+        {
+            ".cc" or ".cpp" or ".c" => true,
+            _ => false
+        };
+
+    internal static bool IsHeader(string path)
+        => Path.GetExtension(path) switch
+        {
+            "" => true,
+            ".h" => true,
+            ".hpp" => true,
+            _ => false
+        };
+
+    public static bool IsTranslationUnit(string path)
+        => IsTranslationUnitExtension(Path.GetExtension(path));
+
+    public static bool FileHasAnyExtension(string file_path, string[] extensions)
+        => extensions.Contains(Path.GetExtension(file_path));
+
+    public static IEnumerable<string> ListFilesRecursively(IEnumerable<DirectoryInfo> paths, string[] extensions)
+        => paths.SelectMany(p => ListFilesRecursively(p, extensions));
+
+    public static IEnumerable<string> ListFilesRecursively(IEnumerable<string> paths, string[] extensions)
+        => paths.SelectMany(p => ListFilesRecursively(p, extensions));
+
+    public static IEnumerable<string> ListFilesRecursively(DirectoryInfo path, string[] extensions)
+        => ListFilesRecursively(path.FullName, extensions);
+
+    public static IEnumerable<string> ListFilesRecursively(string path, string[] extensions)
+    {
+        if (File.Exists(path))
+        {
+            yield return path;
+        }
+        else
+        {
+            foreach (var f in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+            {
+                bool x = extensions.Length == 0 || FileHasAnyExtension(f, extensions);
+                if (x)
+                {
+                    yield return f;
+                }
+            }
+        }
+    }
+
+    public static IEnumerable<string> ListAllFiles(string root)
+        => PitchforkFolders
+            .Select(relative_dir => new DirectoryInfo(Path.Join(root, relative_dir)).FullName)
+            .Where(Directory.Exists)
+            .SelectMany(dir => ListFilesRecursively(dir, HeaderAndSourceFiles)
+                .Where(x => new FileInfo(x).Name.StartsWith("pch.") == false))
+            ;
+
+    public static string GetFirstFolder(string root, string file)
+     => Path.GetRelativePath(root, file)
+         .Split(Path.DirectorySeparatorChar, 2)[0];
+
+    public static IEnumerable<FileInfo> IterateFiles(DirectoryInfo root, bool include_hidden, bool recursive)
+    {
+        var search_options = new EnumerationOptions
+        {
+            AttributesToSkip = include_hidden
+                ? FileAttributes.Hidden | FileAttributes.System
+                : FileAttributes.System
+        };
+
+        return sub_iterate_files(root, search_options, recursive);
+
+        static IEnumerable<FileInfo> sub_iterate_files(
+            DirectoryInfo root, EnumerationOptions search_options, bool include_directories)
+        {
+            foreach (var f in root.GetFiles("*", search_options))
+            {
+                yield return f;
+            }
+
+            if (include_directories)
+            {
+                var files = root.GetDirectories("*", search_options)
+                        .Where(d => d.Name switch
+                        {
+                            ".git" => false,
+                            "node_modules" => false,
+                            _ => true,
+                        })
+                        .SelectMany(d => sub_iterate_files(d, search_options, true))
+                    ;
+                foreach (var f in files)
+                {
+                    yield return f;
+                }
+            }
+        }
+    }
+
+    public static string? ClassifySourceOrNull(FileInfo f)
+     => f.Extension switch
+     {
+         ".cs" => "c#",
+         ".jsx" => "React",
+         ".ts" or ".js" => "Javascript/typescript",
+         ".cpp" or ".c" or ".h" or ".hpp" => "C/C++",
+         _ => null,
+     };
+
+    public static bool LooksAutoGenerated(IEnumerable<string> lines)
+    => lines
+        .Take(5)
+        .Select(line => line.ToLowerInvariant())
+        .Any(lower => lower.Contains("auto-generated") || lower.Contains("generated by"))
+    ;
+
+    internal static string RealPath(string rel)
+    {
+        var dir = new DirectoryInfo(rel);
+        if (dir.Exists) { return dir.FullName; }
+
+        var file = new FileInfo(rel);
+        if (file.Exists) { return file.FullName; }
+
+        return rel;
+    }
+
+    public static bool FileIsInFolder(string file, string folder)
+        => new FileInfo(file).FullName.StartsWith(new DirectoryInfo(folder).FullName);
+}

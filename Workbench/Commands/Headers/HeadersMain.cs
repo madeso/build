@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Spectre.Console.Cli;
 using Workbench.Commands.CheckIncludeOrder;
-using Workbench.Utils;
+using Workbench.Shared;
 
 namespace Workbench.Commands.Headers;
 

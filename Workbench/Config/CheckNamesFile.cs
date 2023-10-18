@@ -1,5 +1,5 @@
 using System.Text.Json.Serialization;
-using Workbench.Utils;
+using Workbench.Shared;
 
 namespace Workbench.Config;
 

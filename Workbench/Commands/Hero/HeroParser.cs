@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Spectre.Console;
-using Workbench.Utils;
+using Workbench.Shared;
 
 namespace Workbench.Commands.Hero;
 

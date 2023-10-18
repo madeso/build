@@ -1,5 +1,5 @@
 using Spectre.Console;
-using Workbench.Utils;
+using Workbench.Shared;
 
 namespace Workbench.Commands.Hero;
 

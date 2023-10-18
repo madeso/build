@@ -1,8 +1,8 @@
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 using Spectre.Console.Cli;
-using Workbench.Utils;
-using Workbench.Utils.CMake;
+using Workbench.Shared;
+using Workbench.Shared.CMake;
 
 namespace Workbench.Commands.Build;
 
@@ -183,15 +183,15 @@ public static class BuildFunctions
         => compiler switch
         {
             Compiler.VisualStudio2015 => Is64Bit(platform)
-                ? new Utils.CMake.Generator("Visual Studio 14 2015 Win64")
-                : new Utils.CMake.Generator("Visual Studio 14 2015"),
+                ? new Shared.CMake.Generator("Visual Studio 14 2015 Win64")
+                : new Shared.CMake.Generator("Visual Studio 14 2015"),
             Compiler.VisualStudio2017 => Is64Bit(platform)
-                ? new Utils.CMake.Generator("Visual Studio 15 Win64")
-                : new Utils.CMake.Generator("Visual Studio 15"),
+                ? new Shared.CMake.Generator("Visual Studio 15 Win64")
+                : new Shared.CMake.Generator("Visual Studio 15"),
             Compiler.VisualStudio2019 =>
-                new Utils.CMake.Generator("Visual Studio 16 2019", GetCmakeArchitectureArgument(platform)),
+                new Shared.CMake.Generator("Visual Studio 16 2019", GetCmakeArchitectureArgument(platform)),
             Compiler.VisualStudio2022 =>
-                new Utils.CMake.Generator("Visual Studio 17 2022", GetCmakeArchitectureArgument(platform)),
+                new Shared.CMake.Generator("Visual Studio 17 2022", GetCmakeArchitectureArgument(platform)),
             _ => throw new Exception("Invalid compiler"),
         };
 

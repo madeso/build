@@ -3,8 +3,8 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Spectre.Console;
 using Spectre.Console.Cli;
-using Workbench.Utils;
-using Workbench.Utils.CMake;
+using Workbench.Shared;
+using Workbench.Shared.CMake;
 
 namespace Workbench.Commands.Cmake;
 

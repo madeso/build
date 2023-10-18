@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
 using Spectre.Console;
-using Workbench.Utils;
+using Workbench.Shared;
 
 namespace Workbench.Commands.Headers;
 

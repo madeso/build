@@ -1,8 +1,8 @@
 using System.Text.RegularExpressions;
 using Spectre.Console;
 using Workbench.Config;
-using Workbench.Utils;
-using Workbench.Utils.Doxygen;
+using Workbench.Shared;
+using Workbench.Shared.Doxygen;
 
 namespace Workbench.Commands.CheckNames;
 

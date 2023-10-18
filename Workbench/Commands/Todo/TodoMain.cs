@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Spectre.Console;
 using Spectre.Console.Cli;
-using Workbench.Utils;
+using Workbench.Shared;
 
 namespace Workbench.Commands.Todo;
 
@@ -73,7 +73,7 @@ internal sealed class GroupWithTimeCommand : Command<GroupWithTimeCommand.Arg>
 
         // group by file to only run blame once (per file)
         var todo_with_blame = all_todos.GroupBy(todo => todo.File, (file, todos) => {
-                var blames = Utils.Git.Blame(file).ToArray();
+                var blames = Shared.Git.Blame(file).ToArray();
                 return todos.Select(x => new {Todo = x, Blame = blames[x.Line-1] });
             });
 
@@ -99,6 +99,6 @@ internal sealed class GroupWithTimeCommand : Command<GroupWithTimeCommand.Arg>
         return 0;
 
         // use author datetime when sorting
-        static DateTime blame_to_time(Utils.Git.BlameLine b) => b.Author.Time;
+        static DateTime blame_to_time(Shared.Git.BlameLine b) => b.Author.Time;
     }
 }

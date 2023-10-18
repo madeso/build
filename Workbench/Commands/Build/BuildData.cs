@@ -1,5 +1,5 @@
 using Workbench.Config;
-using Workbench.Utils;
+using Workbench.Shared;
 
 namespace Workbench.Commands.Build;
 

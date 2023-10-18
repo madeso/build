@@ -3,8 +3,8 @@ using Spectre.Console;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using Workbench.Utils;
-using Workbench.Utils.CMake;
+using Workbench.Shared;
+using Workbench.Shared.CMake;
 
 namespace Workbench.Commands.CheckForNoProjectFolders;
 

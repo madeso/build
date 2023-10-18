@@ -1,7 +1,7 @@
 using Spectre.Console;
 using Workbench.Config;
-using Workbench.Utils;
-using Workbench.Utils.CMake;
+using Workbench.Shared;
+using Workbench.Shared.CMake;
 
 namespace Workbench.Commands.Build;
 
@@ -30,7 +30,7 @@ internal static class BuildFacade
     internal static int HandleBuild(Printer printer, BuildEnvironment build, BuildData data)
     {
         SaveBuildData(printer, build, data);
-        GenerateCmakeProject(build, data).Build(printer, Utils.CMake.Config.Release);
+        GenerateCmakeProject(build, data).Build(printer, Shared.CMake.Config.Release);
         return 0;
     }
 

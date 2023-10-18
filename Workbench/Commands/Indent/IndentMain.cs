@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Spectre.Console;
 using Spectre.Console.Cli;
-using Workbench.Utils;
+using Workbench.Shared;
 
 namespace Workbench.Commands.Indent;
 
