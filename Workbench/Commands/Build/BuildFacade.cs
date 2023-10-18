@@ -1,6 +1,7 @@
 using Spectre.Console;
 using Workbench.Config;
 using Workbench.Utils;
+using Workbench.Utils.CMake;
 
 namespace Workbench.Commands.Build;
 
@@ -29,7 +30,7 @@ internal static class BuildFacade
     internal static int HandleBuild(Printer printer, BuildEnvironment build, BuildData data)
     {
         SaveBuildData(printer, build, data);
-        GenerateCmakeProject(build, data).Build(printer, CMake.Config.Release);
+        GenerateCmakeProject(build, data).Build(printer, Utils.CMake.Config.Release);
         return 0;
     }
 
@@ -49,9 +50,9 @@ internal static class BuildFacade
     }
 
     // generate the ride project
-    internal static CMake.CMakeProject GenerateCmakeProject(BuildEnvironment build, BuildData data)
+    internal static CMakeProject GenerateCmakeProject(BuildEnvironment build, BuildData data)
     {
-        var project = new CMake.CMakeProject(data.ProjectDirectory, data.RootDirectory, build.CreateCmakeGenerator());
+        var project = new CMakeProject(data.ProjectDirectory, data.RootDirectory, build.CreateCmakeGenerator());
 
         foreach (var dep in data.Dependencies)
         {

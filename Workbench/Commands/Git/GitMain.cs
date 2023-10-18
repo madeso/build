@@ -16,7 +16,7 @@ internal sealed class BlameCommand : Command<BlameCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        foreach(var line in Workbench.Git.Blame(new FileInfo(settings.File)))
+        foreach(var line in Utils.Git.Blame(new FileInfo(settings.File)))
         {
             AnsiConsole.MarkupLineInterpolated($"{line.Author.Name} {line.Author.Time} {line.FinalLineNumber}: {line.Line}");
         }
@@ -36,7 +36,7 @@ internal sealed class StatusCommand : Command<StatusCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         AnsiConsole.MarkupLineInterpolated($"Status for [green]{settings.Root}[/].");
-        var r = Workbench.Git.Status(settings.Root);
+        var r = Utils.Git.Status(settings.Root);
         foreach (var line in r)
         {
             string status = string.Empty;
@@ -51,10 +51,10 @@ internal sealed class StatusCommand : Command<StatusCommand.Arg>
 
             switch (line.Status)
             {
-                case Workbench.Git.GitStatus.Unknown:
+                case Utils.Git.GitStatus.Unknown:
                     AnsiConsole.MarkupLineInterpolated($"Unknown [green]{line.Path}[/] ([blue]{status}[/]).");
                     break;
-                case Workbench.Git.GitStatus.Modified:
+                case Utils.Git.GitStatus.Modified:
                     AnsiConsole.MarkupLineInterpolated($"Modified [blue]{line.Path}[/]  ([blue]{status}[/]).");
                     break;
             }
@@ -80,12 +80,12 @@ internal sealed class RemoveUnknownCommand : Command<RemoveUnknownCommand.Arg>
     private static void WalkDirectory(string dir, bool recursive)
     {
         AnsiConsole.MarkupLineInterpolated($"Removing unknowns from [green]{dir}[/].");
-        var r = Workbench.Git.Status(dir);
+        var r = Utils.Git.Status(dir);
         foreach (var line in r)
         {
             switch (line.Status)
             {
-                case Workbench.Git.GitStatus.Unknown:
+                case Utils.Git.GitStatus.Unknown:
                     if (Directory.Exists(line.Path))
                     {
                         AnsiConsole.MarkupLineInterpolated($"Removing directory [blue]{line.Path}[/].");
@@ -97,7 +97,7 @@ internal sealed class RemoveUnknownCommand : Command<RemoveUnknownCommand.Arg>
                         File.Delete(line.Path);
                     }
                     break;
-                case Workbench.Git.GitStatus.Modified:
+                case Utils.Git.GitStatus.Modified:
                     if (recursive && Directory.Exists(line.Path))
                     {
                         AnsiConsole.MarkupLineInterpolated($"Modified directory [blue]{line.Path}[/] assumed to be submodule.");
@@ -153,7 +153,7 @@ internal sealed class AuthorsCommand : Command<AuthorsCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var authors = new Dictionary<string, State>();
-        foreach (var e in Workbench.Git.Log(Environment.CurrentDirectory))
+        foreach (var e in Utils.Git.Log(Environment.CurrentDirectory))
         {
             var email = e.AuthorEmail;
             var date = e.AuthorDate;

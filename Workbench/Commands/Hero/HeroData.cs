@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Spectre.Console;
+using Workbench.Utils;
 
 namespace Workbench.Commands.Hero;
 

@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Spectre.Console.Cli;
+using Workbench.Utils;
 
 namespace Workbench.Commands.Status;
 

@@ -1,8 +1,8 @@
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 using Spectre.Console;
-using Workbench.CMake;
 using Workbench.Utils;
+using Workbench.Utils.CMake;
 
 namespace Workbench.Commands.Build;
 
@@ -129,7 +129,7 @@ internal class DependencySdl2 : BuildDependency
             project.AddArgument("SDL_STATIC", "ON");
             project.AddArgument("SDL_SHARED", "OFF");
             project.Configure(print);
-            project.Build(print, CMake.Config.Release);
+            project.Build(print, Utils.CMake.Config.Release);
         }
         else
         {
@@ -240,10 +240,10 @@ internal class DependencyAssimp : BuildDependency
             Core.VerifyDirectoryExists(print, install_folder);
 
             project.Configure(print);
-            project.Build(print, CMake.Config.Release);
+            project.Build(print, Utils.CMake.Config.Release);
 
             AnsiConsole.WriteLine("Installing assimp");
-            project.Install(print, CMake.Config.Release);
+            project.Install(print, Utils.CMake.Config.Release);
         }
         else
         {
@@ -336,13 +336,13 @@ internal class DependencyWxWidgets : BuildDependency
             if (build_dbg)
             {
                 AnsiConsole.WriteLine("building debug wxWidgets");
-                project.Build(print, CMake.Config.Debug);
+                project.Build(print, Utils.CMake.Config.Debug);
             }
 
             if (build_rel)
             {
                 AnsiConsole.WriteLine("building release wxWidgets");
-                project.Build(print, CMake.Config.Release);
+                project.Build(print, Utils.CMake.Config.Release);
             }
         }
         else

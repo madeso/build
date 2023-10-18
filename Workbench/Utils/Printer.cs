@@ -1,4 +1,4 @@
-namespace Workbench;
+namespace Workbench.Utils;
 
 using Spectre.Console;
 using System;

@@ -1,6 +1,7 @@
 using Spectre.Console;
-using Workbench.Doxygen;
-using static Workbench.Doxygen.LinkedTextType;
+using Workbench.Utils;
+using Workbench.Utils.Doxygen;
+using static Workbench.Utils.Doxygen.LinkedTextType;
 
 namespace Workbench.Commands.CheckOrderInFile;
 
@@ -8,7 +9,7 @@ internal static class OrderInFile
 {
     internal static int ClassifyClass(string file, string class_name)
     {
-        var parsed = Doxygen.Doxygen.ParseIndex(file);
+        var parsed = Doxygen.ParseIndex(file);
 
         var total = 0;
         var matches = 0;
@@ -37,7 +38,7 @@ internal static class OrderInFile
 
     public static int Run(Printer printer, string file, string root)
     {
-        var parsed = Doxygen.Doxygen.ParseIndex(file);
+        var parsed = Doxygen.ParseIndex(file);
 
         var checks = 0;
         var fails = new List<CheckError>();

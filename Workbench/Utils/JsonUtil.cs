@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Workbench;
+namespace Workbench.Utils;
 
 public static class JsonUtil
 {
@@ -34,6 +34,6 @@ public static class JsonUtil
 
     internal static string Write<T>(T self)
     {
-        return JsonSerializer.Serialize<T>(self, json_options);
+        return JsonSerializer.Serialize(self, json_options);
     }
 }

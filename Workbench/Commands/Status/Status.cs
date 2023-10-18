@@ -1,5 +1,6 @@
 using Spectre.Console;
-using Workbench.CMake;
+using Workbench.Utils;
+using Workbench.Utils.CMake;
 
 namespace Workbench.Commands.Status;
 

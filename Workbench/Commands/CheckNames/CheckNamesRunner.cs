@@ -1,8 +1,8 @@
 using System.Text.RegularExpressions;
 using Spectre.Console;
 using Workbench.Config;
-using Workbench.Doxygen;
 using Workbench.Utils;
+using Workbench.Utils.Doxygen;
 
 namespace Workbench.Commands.CheckNames;
 
@@ -141,7 +141,7 @@ internal class CheckNamesRunner
             return -1;
         }
 
-        var parsed = Doxygen.Doxygen.ParseIndex(doxygen_xml);
+        var parsed = Doxygen.ParseIndex(doxygen_xml);
 
         CheckNamesRunner runner = new(printer, file);
         foreach (var k in DoxygenUtils.AllClasses(parsed))

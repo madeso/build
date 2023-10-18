@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
-using Workbench.Utils;
 
-namespace Workbench;
+namespace Workbench.Utils;
 
 public enum Shape
 {
@@ -109,7 +108,7 @@ public class Graphviz
     public Cluster FindOrCreateCluster(string id, string display)
     {
         var c = clusters.GetValueOrDefault(id);
-        if(c != null)
+        if (c != null)
         {
             return c;
         }
@@ -175,7 +174,7 @@ public class Graphviz
             return default_name;
         }
 
-        if(cleaned_id == "node") { return "_" + cleaned_id; }
+        if (cleaned_id == "node") { return "_" + cleaned_id; }
 
         return cleaned_id;
     }
@@ -206,15 +205,15 @@ public class Graphviz
         );
         var output = cmdline.RunAndGetOutput(Lines);
 
-        if(output.ExitCode != 0)
+        if (output.ExitCode != 0)
         {
             Console.WriteLine($"Non zero return from calling dot: {output.ExitCode}");
-            foreach(var err in output.Output.Where(x => x.IsError))
+            foreach (var err in output.Output.Where(x => x.IsError))
             {
                 Console.WriteLine(err.Line);
             }
         }
-        
+
         var ret = output.Output
             .Where(x => x.IsError == false)
             .Select(x => x.Line).ToArray();
@@ -231,8 +230,8 @@ public class Graphviz
 
         yield return "<head>";
 
-        if(use_max_width)
-        { 
+        if (use_max_width)
+        {
             yield return "<style>";
             yield return "html, body, .container, svg {";
             yield return "  width: 100%;";
@@ -242,7 +241,7 @@ public class Graphviz
             yield return "}";
             yield return "</style>";
         }
-        yield return $"<title>{ Path.GetFileNameWithoutExtension(file) }</title>";
+        yield return $"<title>{Path.GetFileNameWithoutExtension(file)}</title>";
         yield return "<script src=\"https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js\"></script>";
         yield return "</head>";
 
@@ -281,7 +280,7 @@ public class Graphviz
 
     public void SmartWriteFile(string path)
     {
-        switch(Path.GetExtension(path))
+        switch (Path.GetExtension(path))
         {
             case "":
             case ".gv":

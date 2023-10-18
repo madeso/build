@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
+using Workbench.Utils;
 
-namespace Workbench.Doxygen;
+namespace Workbench.Utils.Doxygen;
 
 internal static class DoxygenUtils
 {

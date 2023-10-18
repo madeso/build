@@ -5,7 +5,6 @@ namespace Workbench.Utils;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using Workbench;
 
 internal record ProcessExit(string CommandLine, int ExitCode);
 internal record OutputLine(string Line, bool IsError);

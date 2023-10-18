@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Workbench.Utils;
 
-namespace Workbench.CMake
+namespace Workbench.Utils.CMake
 {
     public class CMakeTrace
     {
@@ -27,7 +27,7 @@ namespace Workbench.CMake
             var stderr = new List<string>();
             var ret = new ProcessBuilder(cmake_executable, "--trace-expand", "--trace-format=json-v1", "-S", Environment.CurrentDirectory, "-B", dir)
                     .InDirectory(dir)
-                    .RunWithCallback(null, on_line, err => { on_line(err); stderr.Add(err); }, (err, ex) => { error.Add(err); error.Add(ex.Message);})
+                    .RunWithCallback(null, on_line, err => { on_line(err); stderr.Add(err); }, (err, ex) => { error.Add(err); error.Add(ex.Message); })
                     .ExitCode
                 ;
 
@@ -67,7 +67,7 @@ namespace Workbench.CMake
             }
         }
 
-    
+
         public IEnumerable<string> ListFilesInCmakeLibrary()
         {
             return ListFilesInArgs("STATIC");

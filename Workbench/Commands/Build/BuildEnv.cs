@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Text.Json.Serialization;
 using Spectre.Console.Cli;
 using Workbench.Utils;
+using Workbench.Utils.CMake;
 
 namespace Workbench.Commands.Build;
 
@@ -51,7 +52,7 @@ public class BuildEnvironment
         return new BuildEnvironment();
     }
 
-    public CMake.Generator CreateCmakeGenerator()
+    public Generator CreateCmakeGenerator()
     {
         if (Compiler == null) { throw new ArgumentNullException(nameof(Compiler)); }
         if (Platform == null) { throw new ArgumentNullException(nameof(Platform)); }
@@ -178,19 +179,19 @@ public static class BuildFunctions
     }
 
     // gets the visual studio cmake generator argument for the compiler and platform
-    internal static CMake.Generator CreateCmakeGenerator(Compiler compiler, Platform platform)
+    internal static Generator CreateCmakeGenerator(Compiler compiler, Platform platform)
         => compiler switch
         {
             Compiler.VisualStudio2015 => Is64Bit(platform)
-                ? new CMake.Generator("Visual Studio 14 2015 Win64")
-                : new CMake.Generator("Visual Studio 14 2015"),
+                ? new Utils.CMake.Generator("Visual Studio 14 2015 Win64")
+                : new Utils.CMake.Generator("Visual Studio 14 2015"),
             Compiler.VisualStudio2017 => Is64Bit(platform)
-                ? new CMake.Generator("Visual Studio 15 Win64")
-                : new CMake.Generator("Visual Studio 15"),
+                ? new Utils.CMake.Generator("Visual Studio 15 Win64")
+                : new Utils.CMake.Generator("Visual Studio 15"),
             Compiler.VisualStudio2019 =>
-                new CMake.Generator("Visual Studio 16 2019", GetCmakeArchitectureArgument(platform)),
+                new Utils.CMake.Generator("Visual Studio 16 2019", GetCmakeArchitectureArgument(platform)),
             Compiler.VisualStudio2022 =>
-                new CMake.Generator("Visual Studio 17 2022", GetCmakeArchitectureArgument(platform)),
+                new Utils.CMake.Generator("Visual Studio 17 2022", GetCmakeArchitectureArgument(platform)),
             _ => throw new Exception("Invalid compiler"),
         };
 

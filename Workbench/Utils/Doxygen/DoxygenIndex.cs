@@ -2,7 +2,7 @@
 using System.Xml;
 using Workbench.Utils;
 
-namespace Workbench.Doxygen;
+namespace Workbench.Utils.Doxygen;
 
 
 internal enum CompoundKind

@@ -2,8 +2,8 @@ using Spectre.Console;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Text.Json.Serialization;
-using Workbench.Doxygen;
 using Workbench.Utils;
+using Workbench.Utils.Doxygen;
 
 namespace Workbench.Commands.Dependencies;
 
@@ -16,7 +16,7 @@ public static class Dependencies
         bool add_members, bool cluster_namespace)
     {
         AnsiConsole.WriteLine("Parsing doxygen XML...");
-        var dox = Doxygen.Doxygen.ParseIndex(doxygen_xml);
+        var dox = Doxygen.ParseIndex(doxygen_xml);
         var root_namespace = namespace_name == NO_NAMESPACE ? null : DoxygenUtils.FindNamespace(dox, namespace_name);
 
         if (namespace_name != NO_NAMESPACE && root_namespace == null)
@@ -143,7 +143,7 @@ public static class Dependencies
     internal static void PrintLists(Printer printer, string doxygen_xml, string namespace_name)
     {
         AnsiConsole.WriteLine("Parsing doxygen XML...");
-        var dox = Doxygen.Doxygen.ParseIndex(doxygen_xml);
+        var dox = Doxygen.ParseIndex(doxygen_xml);
         var root_namespace = DoxygenUtils.FindNamespace(dox, namespace_name);
 
         if (root_namespace == null)
@@ -222,7 +222,7 @@ public static class Dependencies
         // todo(Gustav): option to remove namespace prefixes
 
         AnsiConsole.WriteLine("Parsing doxygen XML...");
-        var dox = Doxygen.Doxygen.ParseIndex(doxygen_xml);
+        var dox = Doxygen.ParseIndex(doxygen_xml);
 
         AnsiConsole.WriteLine("Collecting functions...");
         var namespaces = DoxygenUtils.AllNamespaces(dox).ToImmutableArray();

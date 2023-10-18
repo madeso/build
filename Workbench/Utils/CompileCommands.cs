@@ -1,9 +1,8 @@
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 using Spectre.Console.Cli;
-using Workbench.Utils;
 
-namespace Workbench;
+namespace Workbench.Utils;
 
 public class CompileCommand
 {

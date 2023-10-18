@@ -3,8 +3,8 @@ using Spectre.Console.Cli;
 using Spectre.Console;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using Workbench.CMake;
 using Workbench.Utils;
+using Workbench.Utils.CMake;
 
 namespace Workbench.Commands.CheckForMissingInCmake;
 

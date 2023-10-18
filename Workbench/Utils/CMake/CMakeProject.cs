@@ -1,7 +1,7 @@
 using Spectre.Console;
 using Workbench.Utils;
 
-namespace Workbench.CMake;
+namespace Workbench.Utils.CMake;
 
 // cmake generator
 public class Generator

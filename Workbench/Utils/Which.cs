@@ -1,6 +1,4 @@
-using Workbench.Utils;
-
-namespace Workbench;
+namespace Workbench.Utils;
 
 public static class Which
 {

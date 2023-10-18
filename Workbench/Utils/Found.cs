@@ -1,4 +1,4 @@
-namespace Workbench;
+namespace Workbench.Utils;
 
 // todo(Gustav): expand to include more than one?
 // either we want

@@ -1,10 +1,9 @@
 using Spectre.Console;
 using System.Collections.Immutable;
 using System.Xml;
-using Workbench.CMake;
-using Workbench.Utils;
+using Workbench.Utils.CMake;
 
-namespace Workbench;
+namespace Workbench.Utils;
 
 public class Solution
 {

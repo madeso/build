@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using Spectre.Console;
 using Workbench.Config;
+using Workbench.Utils;
 
 namespace Workbench.Commands.CheckIncludeOrder;
 

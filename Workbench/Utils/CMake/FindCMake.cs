@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Workbench.Utils;
 
-namespace Workbench.CMake
+namespace Workbench.Utils.CMake
 {
     internal static class FindCMake
     {
@@ -45,12 +45,12 @@ namespace Workbench.CMake
                 return new Found(path, PATH_SOURCE);
             }
         }
-        
+
 
 
         public static string? FindInstallationOrNull(Printer printer)
             => FindAllInstallations(printer).GetFirstValueOrNull();
-        
+
 
 
         public static IEnumerable<Found> ListAllBuilds(CompileCommandsArguments settings, Printer printer)
@@ -97,7 +97,7 @@ namespace Workbench.CMake
             }
 
         }
-        
+
 
 
         public static string? FindBuildOrNone(CompileCommandsArguments settings, Printer printer)

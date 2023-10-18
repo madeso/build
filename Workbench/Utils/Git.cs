@@ -1,6 +1,4 @@
-using Workbench.Utils;
-
-namespace Workbench;
+namespace Workbench.Utils;
 
 
 public static class Git
@@ -62,7 +60,7 @@ public static class Git
 
         foreach (var line in output.Select(x => x.Line))
         {
-            if(line[0] == '\t')
+            if (line[0] == '\t')
             {
                 yield return new BlameLine(hash, original_line_number, final_line_number, line[1..],
                     parse_author("author"), parse_author("commiter"), get_arg("summary", ""), get_arg("filename", ""));
@@ -71,7 +69,7 @@ public static class Git
             {
                 var cmd = line.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
                 var is_hash = cmd[0].Length == 40; // todo(Gustav): improve hash detection
-                if(is_hash)
+                if (is_hash)
                 {
                     var lines = cmd[1].Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     hash = cmd[0];
@@ -99,7 +97,7 @@ public static class Git
 
         string get_arg(string name, string def)
         {
-            if(args!.TryGetValue(name, out var ret))
+            if (args!.TryGetValue(name, out var ret))
             {
                 return ret;
             }
@@ -136,7 +134,7 @@ public static class Git
         foreach (var line in output.Select(x => x.Line))
         {
             if (string.IsNullOrWhiteSpace(line)) continue;
-            var options = line.Split(SEPARATOR, sep_count+1, StringSplitOptions.TrimEntries);
+            var options = line.Split(SEPARATOR, sep_count + 1, StringSplitOptions.TrimEntries);
 
             yield return new LogLine(options[0], options[1],
                 options[2], options[3], DateTime.Parse(options[4]),
