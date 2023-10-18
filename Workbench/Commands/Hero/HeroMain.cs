@@ -36,7 +36,7 @@ internal sealed class NewHeroCommand : Command<NewHeroCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Printer.PrintErrorsAtExit(print =>
+        return Log.PrintErrorsAtExit(print =>
             UiFacade.HandleNewHero(settings.ProjectFile, settings.Overwrite, print));
     }
 }
@@ -56,7 +56,7 @@ internal sealed class RunHeroHtmlCommand : Command<RunHeroHtmlCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Printer.PrintErrorsAtExit(print =>
+        return Log.PrintErrorsAtExit(print =>
             UiFacade.HandleRunHeroHtml(settings.ProjectFile, settings.OutputDirectory, print));
     }
 }
@@ -95,7 +95,7 @@ internal sealed class RunHeroDotCommand : Command<RunHeroDotCommand.Arg>
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
-        => Printer.PrintErrorsAtExit(print => UiFacade.RunHeroGraphviz(
+        => Log.PrintErrorsAtExit(print => UiFacade.RunHeroGraphviz(
             args.ProjectFile,
             args.OutputFile,
             args.SimplifyGraphviz,

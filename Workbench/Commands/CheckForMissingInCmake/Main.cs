@@ -27,7 +27,7 @@ internal sealed class CheckForMissingInCmakeCommand : Command<CheckForMissingInC
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Printer.PrintErrorsAtExit(print =>
+        return Log.PrintErrorsAtExit(print =>
         {
             var cmake = FindCMake.FindInstallationOrNull(print);
             if (cmake == null)

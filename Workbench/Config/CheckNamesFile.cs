@@ -28,7 +28,7 @@ internal class CheckNamesFile
         return Path.Join(Environment.CurrentDirectory, FileNames.CheckNames);
     }
 
-    public static CheckNamesFile? LoadFromDirectoryOrNull(Printer print)
+    public static CheckNamesFile? LoadFromDirectoryOrNull(Log print)
     {
         return ConfigFile.LoadOrNull<CheckNamesFile>(print, GetBuildDataPath());
     }

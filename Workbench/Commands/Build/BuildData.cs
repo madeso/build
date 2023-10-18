@@ -29,7 +29,7 @@ public readonly struct BuildData
         return Path.Join(BuildDirectory, FileNames.BuildSettings);
     }
 
-    public static BuildData? LoadOrNull(Printer print)
+    public static BuildData? LoadOrNull(Log print)
     {
         return ConfigFile.LoadOrNull<BuildFile, BuildData>(print, BuildFile.GetBuildDataPath(),
             loaded =>

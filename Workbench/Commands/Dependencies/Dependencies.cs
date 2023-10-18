@@ -11,7 +11,7 @@ public static class Dependencies
 {
     const string NO_NAMESPACE = "|";
 
-    internal static void WriteToGraphviz(Printer printer, string doxygen_xml, string namespace_name,
+    internal static void WriteToGraphviz(Log log, string doxygen_xml, string namespace_name,
         string output_file, ImmutableHashSet<string> ignored_classes, bool include_functions, bool add_arguments,
         bool add_members, bool cluster_namespace)
     {
@@ -21,7 +21,7 @@ public static class Dependencies
 
         if (namespace_name != NO_NAMESPACE && root_namespace == null)
         {
-            printer.Error($"Unknown namespace {namespace_name}");
+            log.Error($"Unknown namespace {namespace_name}");
             return;
         }
 
@@ -140,7 +140,7 @@ public static class Dependencies
         g.SmartWriteFile(output_file);
     }
 
-    internal static void PrintLists(Printer printer, string doxygen_xml, string namespace_name)
+    internal static void PrintLists(Log log, string doxygen_xml, string namespace_name)
     {
         AnsiConsole.WriteLine("Parsing doxygen XML...");
         var dox = Doxygen.ParseIndex(doxygen_xml);
@@ -148,7 +148,7 @@ public static class Dependencies
 
         if (root_namespace == null)
         {
-            printer.Error($"Unknown namespace {namespace_name}");
+            log.Error($"Unknown namespace {namespace_name}");
             return;
         }
 

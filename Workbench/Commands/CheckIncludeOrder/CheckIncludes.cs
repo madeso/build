@@ -16,7 +16,7 @@ public readonly struct IncludeData
 {
     public List<List<OptionalRegex>> IncludeDirectories { get; }
 
-    private static IEnumerable<OptionalRegex> StringsToRegex(TextReplacer replacer, IEnumerable<string> includes, Printer print) =>
+    private static IEnumerable<OptionalRegex> StringsToRegex(TextReplacer replacer, IEnumerable<string> includes, Log print) =>
         includes.Select
         (
             (Func<string, OptionalRegex>)(regex =>
@@ -56,7 +56,7 @@ public readonly struct IncludeData
         }
     }
 
-    public IncludeData(IEnumerable<List<string>> includes, Printer print)
+    public IncludeData(IEnumerable<List<string>> includes, Log print)
     {
         var replacer = IncludeTools.CreateReplacer("file_stem");
         IncludeDirectories = includes
@@ -64,17 +64,17 @@ public readonly struct IncludeData
             .ToList();
     }
 
-    private static IncludeData? LoadFromDirectoryOrNull(Printer print)
+    private static IncludeData? LoadFromDirectoryOrNull(Log print)
         => ConfigFile.LoadOrNull<CheckIncludesFile, IncludeData>(
             print, CheckIncludesFile.GetBuildDataPath(), loaded => new IncludeData(loaded.IncludeDirectories, print));
 
-    public static IncludeData? LoadOrNull(Printer print)
+    public static IncludeData? LoadOrNull(Log print)
         => LoadFromDirectoryOrNull(print);
 }
 
 public interface OptionalRegex
 {
-    Regex? GetRegex(Printer print, TextReplacer replacer);
+    Regex? GetRegex(Log print, TextReplacer replacer);
 }
 
 public class OptionalRegexDynamic : OptionalRegex
@@ -86,7 +86,7 @@ public class OptionalRegexDynamic : OptionalRegex
         this.regex = regex;
     }
 
-    public Regex? GetRegex(Printer print, TextReplacer replacer)
+    public Regex? GetRegex(Log print, TextReplacer replacer)
     {
         var regex_source = replacer.Replace(regex);
         switch (IncludeData.CompileRegex(regex_source))
@@ -111,7 +111,7 @@ public class OptionalRegexStatic : OptionalRegex
         this.regex = regex;
     }
 
-    public Regex GetRegex(Printer print, TextReplacer replacer)
+    public Regex GetRegex(Log print, TextReplacer replacer)
     {
         return regex;
     }
@@ -126,7 +126,7 @@ public class OptionalRegexFailed : OptionalRegex
         this.error = error;
     }
 
-    public Regex? GetRegex(Printer print, TextReplacer replacer)
+    public Regex? GetRegex(Log print, TextReplacer replacer)
     {
         print.Error(error);
         return null;
@@ -166,32 +166,9 @@ public class Include : IComparable<Include>
     }
 }
 
-public enum MessageType
-{
-    Error, Warning
-}
 
 public static class IncludeTools
 {
-    private static void PrintError(Printer print, string filename, int line, string message)
-    {
-        print.Error($"{filename}({line}): error CHK3030: {message}");
-    }
-
-    private static void PrintWarning(string filename, int line, string message)
-    {
-        Printer.Warning($"{Printer.ToFileString(filename, line)}: warning CHK3030: {message}");
-    }
-
-    private static void PrintMessage(MessageType message_type, Printer print, string filename, int line, string message)
-    {
-        switch (message_type)
-        {
-            case MessageType.Error: PrintError(print, filename, line, message); break;
-            case MessageType.Warning: PrintWarning(filename, line, message); break;
-        }
-    }
-
     public static TextReplacer CreateReplacer(string file_stem)
     {
         var replacer = new TextReplacer();
@@ -203,7 +180,7 @@ public static class IncludeTools
     private static int? ClassifySingleLine
     (
         HashSet<string> missing_files,
-        Printer print,
+        Log print,
         IncludeData data,
         string line,
         string filename,
@@ -230,7 +207,8 @@ public static class IncludeTools
         if (missing_files.Contains(line) == false)
         {
             missing_files.Add(line);
-            PrintError(print, filename, line_number, $"{line} is a invalid header");
+            string message = $"{line} is a invalid header";
+            print.PrintError((FileLine?)new(filename, line_number), message);
         }
 
         return null;
@@ -274,7 +252,7 @@ public static class IncludeTools
     (
         IEnumerable<string> lines,
         HashSet<string> missing_files,
-        Printer print,
+        Log print,
         IncludeData data,
         string filename,
         bool verbose,
@@ -303,7 +281,9 @@ public static class IncludeTools
             {
                 if (print_include_order_error_for_include)
                 {
-                    PrintMessage(include_error_message, print, filename, line_num, $"Include order error for {l}");
+                    FileLine? file = new (filename, line_num);
+                    string message = $"Include order error for {l}";
+                    print.Print(include_error_message, file, message);
                 }
                 r.HasInvalidOrder = true;
             }
@@ -322,7 +302,7 @@ public static class IncludeTools
     (
         string[] lines,
         ClassifiedFile f,
-        Printer print,
+        Log print,
         string filename,
         bool print_first_error_only
     )
@@ -360,7 +340,8 @@ public static class IncludeTools
                 {
                     if (print_this_error)
                     {
-                        PrintError(print, filename, line_num, $"Invalid text after include: {end}");
+                        string message = $"Invalid text after include: {end}";
+                        print.PrintError((FileLine?)new(filename, line_num), message);
                     }
                     ok = false;
                 }
@@ -369,7 +350,8 @@ public static class IncludeTools
             {
                 if (print_this_error)
                 {
-                    PrintError(print, filename, line_num, $"Invalid line {line}");
+                    string message = $"Invalid line {line}";
+                    print.PrintError((FileLine?)new(filename, line_num), message);
                 }
                 ok = false;
             }
@@ -428,7 +410,7 @@ public static class IncludeTools
     private static bool RunFile
     (
         HashSet<string> missing_files,
-        Printer print,
+        Log print,
         IncludeData data,
         bool verbose,
         string filename,
@@ -529,7 +511,7 @@ public static class IncludeTools
     internal static int CommonMain
     (
         CommonArgs args,
-        Printer print,
+        Log print,
         IncludeData data,
         CheckAction command
     )
@@ -576,7 +558,7 @@ public static class IncludeTools
         return error_count;
     }
 
-    public static int HandleInit(Printer print, bool overwrite)
+    public static int HandleInit(Log print, bool overwrite)
     {
         var data = new CheckIncludesFile();
         data.IncludeDirectories.Add(new() { "list of regexes", "that are used by check-includes" });

@@ -10,7 +10,7 @@ namespace Workbench.Commands.Hero;
 internal static class Ui
 {
 
-    public static void ScanAndGenerateHtml(Printer printer, UserInput input, OutputFolders root)
+    public static void ScanAndGenerateHtml(Log log, UserInput input, OutputFolders root)
     {
         var project = new Project(input);
         var scanner = new Scanner();
@@ -30,7 +30,7 @@ internal static class Ui
     }
 
     public static void ScanAndGenerateDot(
-        Printer printer, UserInput input, OutputFolders root, bool simplify_graphviz, bool only_headers,
+        Log log, UserInput input, OutputFolders root, bool simplify_graphviz, bool only_headers,
         string[] exclude, bool cluster)
     {
         var project = new Project(input);
@@ -294,7 +294,7 @@ internal static class Ui
 
 internal static class UiFacade
 {
-    internal static int HandleNewHero(string project_file, bool overwrite, Printer print)
+    internal static int HandleNewHero(string project_file, bool overwrite, Log print)
     {
         if (File.Exists(project_file) && overwrite == false)
         {
@@ -311,7 +311,7 @@ internal static class UiFacade
         return 0;
     }
 
-    internal static int HandleRunHeroHtml(string project_file, string output_directory, Printer print)
+    internal static int HandleRunHeroHtml(string project_file, string output_directory, Log print)
     {
         var input = UserInput.LoadFromFile(print, project_file);
         if (input == null)
@@ -331,7 +331,7 @@ internal static class UiFacade
 
     internal static int RunHeroGraphviz(
         string project_file, string output_file, bool simplify_graphviz, bool only_headers, bool cluster,
-        string[] exclude, Printer print)
+        string[] exclude, Log print)
     {
         var input = UserInput.LoadFromFile(print, project_file);
         if (input == null)

@@ -7,9 +7,9 @@ namespace Workbench.Commands.CheckIncludeOrder;
 
 public static class CheckIncludesCommonExecute
 {
-    public static int WithLoadedIncludeData(Func<Printer, IncludeData, int> callback)
+    public static int WithLoadedIncludeData(Func<Log, IncludeData, int> callback)
     {
-        return Printer.PrintErrorsAtExit(print =>
+        return Log.PrintErrorsAtExit(print =>
         {
             var data = IncludeData.LoadOrNull(print);
             if (data == null)
@@ -76,7 +76,7 @@ internal sealed class InitCommand : Command<InitCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Printer.PrintErrorsAtExit(print => IncludeTools.HandleInit(print, settings.Overwrite));
+        return Log.PrintErrorsAtExit(print => IncludeTools.HandleInit(print, settings.Overwrite));
     }
 }
 

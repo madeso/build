@@ -40,7 +40,7 @@ public interface BuildDependency
     void AddCmakeArguments(CMakeProject cmake);
 
     // install the dependency
-    public void Install(BuildEnvironment env, Printer print, BuildData data);
+    public void Install(BuildEnvironment env, Log print, BuildData data);
 
     // get the status of the dependency
     public IEnumerable<string> GetStatus();
@@ -89,7 +89,7 @@ internal class DependencySdl2 : BuildDependency
         cmake.AddArgument("SDL2_HINT_BUILD", build_folder);
     }
 
-    public void Install(BuildEnvironment env, Printer print, BuildData data)
+    public void Install(BuildEnvironment env, Log print, BuildData data)
     {
         var generator = env.CreateCmakeGenerator();
 
@@ -169,7 +169,7 @@ internal class DependencyPython : BuildDependency
         cmake.AddArgument("PYTHON_EXECUTABLE:FILEPATH", python_exe);
     }
 
-    public void Install(BuildEnvironment env, Printer print, BuildData data)
+    public void Install(BuildEnvironment env, Log print, BuildData data)
     {
     }
 
@@ -210,7 +210,7 @@ internal class DependencyAssimp : BuildDependency
         cmake.AddArgument("ASSIMP_ROOT_DIR", install_folder);
     }
 
-    public void Install(BuildEnvironment env, Printer print, BuildData data)
+    public void Install(BuildEnvironment env, Log print, BuildData data)
     {
         const string URL = "https://github.com/assimp/assimp/archive/v5.0.1.zip";
 
@@ -298,7 +298,7 @@ internal class DependencyWxWidgets : BuildDependency
     private string GetLibraryFolder()
         => Path.Join(build_folder, "lib", "vc_x64_lib");
 
-    public void Install(BuildEnvironment env, Printer print, BuildData data)
+    public void Install(BuildEnvironment env, Log print, BuildData data)
     {
         var generator = env.CreateCmakeGenerator();
 
@@ -351,7 +351,7 @@ internal class DependencyWxWidgets : BuildDependency
         }
     }
 
-    private static CMakeProject ConfigProject(Printer print, string root, string build, Generator generator)
+    private static CMakeProject ConfigProject(Log print, string root, string build, Generator generator)
     {
         var project = new CMakeProject(build, root, generator);
         project.AddArgument("LIBC", "ON");

@@ -235,7 +235,7 @@ public class Solution
 
 
 
-        public static Solution VisualStudio(Printer printer, string solution_path)
+        public static Solution VisualStudio(Log log, string solution_path)
         {
             var solution = new Solution();
 
@@ -299,7 +299,7 @@ public class Solution
                 var document = new XmlDocument();
                 document.Load(path_to_project_file);
                 var root_element = document.DocumentElement;
-                if (root_element == null) { printer.Error($"Failed to load {project_relative_path}"); continue; }
+                if (root_element == null) { log.Error($"Failed to load {project_relative_path}"); continue; }
                 HashSet<string> configurations = new();
                 foreach (var n in root_element.ElementsNamed("VisualStudioProject").ElementsNamed("Configurations").ElementsNamed("Configuration"))
                 {

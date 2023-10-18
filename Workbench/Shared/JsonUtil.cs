@@ -11,7 +11,7 @@ public static class JsonUtil
         AllowTrailingCommas = true,
     };
 
-    public static T? Parse<T>(Printer print, string file, string content)
+    public static T? Parse<T>(Log print, string file, string content)
         where T : class
     {
         try

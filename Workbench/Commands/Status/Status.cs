@@ -6,9 +6,9 @@ namespace Workbench.Commands.Status;
 
 internal static class Status
 {
-    internal static void HandleStatus(Printer printer, CompileCommandsArguments cc)
+    internal static void HandleStatus(Log log, CompileCommandsArguments cc)
     {
-        print_found_list("cmake", FindCMake.FindAllInstallations(printer).ToList());
+        print_found_list("cmake", FindCMake.FindAllInstallations(log).ToList());
 
         var root = Environment.CurrentDirectory;
         AnsiConsole.WriteLine($"Root: {root}");
@@ -16,14 +16,14 @@ internal static class Status
         var project_build_folder = CompileCommand.FindBuildRootOrNull(root);
         if (project_build_folder == null)
         {
-            printer.Error("Unable to find build folder");
+            log.Error("Unable to find build folder");
         }
         else
         {
             AnsiConsole.WriteLine($"Project build folder: {project_build_folder}");
         }
 
-        var ccs = cc.GetPathToCompileCommandsOrNull(printer);
+        var ccs = cc.GetPathToCompileCommandsOrNull(log);
         if (ccs != null)
         {
             AnsiConsole.WriteLine($"Compile commands: {ccs}");

@@ -36,7 +36,7 @@ internal static class OrderInFile
         return 0;
     }
 
-    public static int Run(Printer printer, string file, string root)
+    public static int Run(Log log, string file, string root)
     {
         var parsed = Doxygen.ParseIndex(file);
 
@@ -58,7 +58,7 @@ internal static class OrderInFile
             .ThenByDescending(x => x.Class.Location!.Line)
             )
         {
-            PrintError(printer, f.Class, f.PrimaryFile, f.SecondaryFile, f.ErrorMessage);
+            PrintError(log, f.Class, f.PrimaryFile, f.SecondaryFile, f.ErrorMessage, root);
         }
 
         var number_of_files = fails.DistinctBy(x => x.Class.Location!.File).Count();
@@ -70,7 +70,7 @@ internal static class OrderInFile
         else { return -1; }
     }
 
-    private record CheckError(CompoundDef Class, string PrimaryFile, string SecondaryFile, string ErrorMessage);
+    private record CheckError(CompoundDef Class, LocationType? PrimaryFile, LocationType? SecondaryFile, string ErrorMessage);
 
     private static CheckError? CheckClass(CompoundDef k, string root)
     {
@@ -92,10 +92,8 @@ internal static class OrderInFile
 
                 if (last_class.Order > new_class.Order)
                 {
-                    var primary_file = DoxygenUtils.LocationToString(member.Location, root);
-                    var secondary_file = DoxygenUtils.LocationToString(last_member.Location, root);
                     var error_message = $"Members for {k.CompoundName} are ordered badly, can't go from {last_class.Name} ({DoxygenUtils.MemberToString(last_member!)}) to {new_class.Name} ({DoxygenUtils.MemberToString(member)})!";
-                    return new CheckError(k, primary_file, secondary_file, error_message);
+                    return new CheckError(k, member.Location, last_member.Location, error_message);
                 }
             }
             last_class = new_class;
@@ -106,11 +104,11 @@ internal static class OrderInFile
     }
 
     private static void PrintError(
-        Printer printer, CompoundDef k, string primary_file, string secondary_file, string error_message)
+        Log log, CompoundDef k, LocationType? primary_file, LocationType? secondary_file, string error_message, string root)
     {
         var members = DoxygenUtils.AllMembersForAClass(k).ToArray();
-        printer.Error(primary_file, error_message);
-        AnsiConsole.WriteLine($"{secondary_file}: From here");
+        log.Error(DoxygenUtils.LocationToString(primary_file, root), error_message);
+        AnsiConsole.WriteLine($"{DoxygenUtils.LocationToString(secondary_file, root)}: From here");
 
         AnsiConsole.WriteLine("Something better could be:");
         AnsiConsole.WriteLine("");

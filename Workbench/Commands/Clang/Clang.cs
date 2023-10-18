@@ -63,7 +63,7 @@ internal static class ClangFacade
         return Path.Join(build_folder, FileNames.ClangTidyStore);
     }
 
-    private static Store? LoadStore(Printer print, string build_folder)
+    private static Store? LoadStore(Log print, string build_folder)
     {
         var file_name = GetPathToStore(build_folder);
         if (!File.Exists(file_name))
@@ -220,7 +220,7 @@ internal static class ClangFacade
     }
 
     // runs clang-tidy and returns all the text output
-    private static TidyOutput GetExistingOutputOrCallClangTidy(Store store, Printer printer, string root, bool force, string tidy_path, string project_build_folder, string source_file, bool fix)
+    private static TidyOutput GetExistingOutputOrCallClangTidy(Store store, Log log, string root, bool force, string tidy_path, string project_build_folder, string source_file, bool fix)
     {
         if (false == force)
         {
@@ -231,12 +231,12 @@ internal static class ClangFacade
             }
         }
 
-        var ret = CallClangTidy(printer, tidy_path, project_build_folder, source_file, fix);
+        var ret = CallClangTidy(log, tidy_path, project_build_folder, source_file, fix);
         StoreOutput(store, root, project_build_folder, source_file, ret);
         return ret;
     }
 
-    private static TidyOutput CallClangTidy(Printer printer, string tidy_path, string project_build_folder, string source_file, bool fix)
+    private static TidyOutput CallClangTidy(Log log, string tidy_path, string project_build_folder, string source_file, bool fix)
     {
         var command = new ProcessBuilder(tidy_path);
         command.AddArgument("-p");
@@ -252,8 +252,8 @@ internal static class ClangFacade
 
         if (output.ExitCode != 0)
         {
-            printer.Error($"Error: {output.ExitCode}");
-            output.PrintOutput(printer);
+            log.Error($"Error: {output.ExitCode}");
+            output.PrintOutput(log);
             // System.Exit(-1);
         }
 
@@ -265,12 +265,12 @@ internal static class ClangFacade
 
     // runs the clang-tidy process, printing status to terminal
     private static (ColCounter<string> warnings, ColCounter<string> classes) RunTidy(
-        Store store, Printer printer, string root, bool force, string tidy_path, string source_file,
+        Store store, Log log, string root, bool force, string tidy_path, string source_file,
         string project_build_folder, FileStatistics stats, bool short_list, NamePrinter name_printer, bool fix,
         string printable_file, string[] only)
     {
         name_printer.Print();
-        var co = GetExistingOutputOrCallClangTidy(store, printer, root, force, tidy_path, project_build_folder, source_file, fix);
+        var co = GetExistingOutputOrCallClangTidy(store, log, root, force, tidy_path, project_build_folder, source_file, fix);
         return CreateStatisticsAndPrintStatus(stats, short_list, printable_file, only, co);
     }
 
@@ -387,7 +387,7 @@ internal static class ClangFacade
         }
     }
 
-    internal static int HandleTidyListFilesCommand(Printer print, bool sort_files)
+    internal static int HandleTidyListFilesCommand(Log print, bool sort_files)
     {
         var root = Environment.CurrentDirectory;
 
@@ -425,20 +425,20 @@ internal static class ClangFacade
     }
 
     // callback function called when running clang.py tidy
-    internal static int HandleRunClangTidyCommand(Printer printer, string tidy_path, bool force, bool headers, bool short_args, bool args_nop, string[] args_filter, string[] args_only, bool args_fix)
+    internal static int HandleRunClangTidyCommand(Log log, string tidy_path, bool force, bool headers, bool short_args, bool args_nop, string[] args_filter, string[] args_only, bool args_fix)
     {
         var root = Environment.CurrentDirectory;
         var project_build_folder = CompileCommand.FindBuildRootOrNull(root);
         if (project_build_folder is null)
         {
-            printer.Error("unable to find build folder");
+            log.Error("unable to find build folder");
             return -1;
         }
 
-        var store = LoadStore(printer, project_build_folder);
+        var store = LoadStore(log, project_build_folder);
         if (store == null)
         {
-            printer.Error("unable to find load store");
+            log.Error("unable to find load store");
             return -1;
         }
 
@@ -474,7 +474,7 @@ internal static class ClangFacade
                 }
                 if (args_nop is false)
                 {
-                    var (warnings, classes) = RunTidy(store, printer, root, force, tidy_path, source_file, project_build_folder, stats, short_args, print_name, args_fix, printable_file, args_only);
+                    var (warnings, classes) = RunTidy(store, log, root, force, tidy_path, source_file, project_build_folder, stats, short_args, print_name, args_fix, printable_file, args_only);
                     if (short_args && warnings.TotalCount() > 0)
                     {
                         break;
@@ -546,14 +546,14 @@ internal static class ClangFacade
     }
 
     // callback function called when running clang.py format
-    internal static int HandleClangFormatCommand(Printer printer, bool nop)
+    internal static int HandleClangFormatCommand(Log log, bool nop)
     {
         var root = Environment.CurrentDirectory;
 
         var project_build_folder = CompileCommand.FindBuildRootOrNull(root);
         if (project_build_folder is null)
         {
-            printer.Error("unable to find build folder");
+            log.Error("unable to find build folder");
             return -1;
         }
 
@@ -573,7 +573,7 @@ internal static class ClangFacade
                 var res = new ProcessBuilder("clang-format", "-i", file).RunAndGetOutput();
                 if (res.ExitCode != 0)
                 {
-                    res.PrintOutput(printer);
+                    res.PrintOutput(log);
                     return -1;
                 }
             }

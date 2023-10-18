@@ -60,14 +60,14 @@ public class CompileCommand
         public string Command = "";
     }
 
-    internal static Dictionary<string, CompileCommand>? LoadCompileCommandsOrNull(Printer printer, string path)
+    internal static Dictionary<string, CompileCommand>? LoadCompileCommandsOrNull(Log log, string path)
     {
         var content = File.ReadAllText(path);
-        var store = JsonUtil.Parse<List<CompileCommandJson>>(printer, path, content);
+        var store = JsonUtil.Parse<List<CompileCommandJson>>(log, path, content);
 
         if (store == null)
         {
-            printer.Error($"Unable to load compile commands from {path}");
+            log.Error($"Unable to load compile commands from {path}");
             return null;
         }
 
@@ -96,7 +96,7 @@ internal class CompileCommandsArguments : CommandSettings
     [DefaultValue(null)]
     public string? CompileCommands { get; set; }
 
-    public string? GetPathToCompileCommandsOrNull(Printer print)
+    public string? GetPathToCompileCommandsOrNull(Log print)
     {
         var ret = get_argument_or_none(Environment.CurrentDirectory, CompileCommands);
         if (ret == null)

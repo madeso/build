@@ -1,4 +1,4 @@
-namespace Workbench.Shared;
+namespace Workbench.Shared.Extensions;
 
 internal static class Functional
 {
@@ -34,15 +34,15 @@ internal static class Functional
         {
             if (has_left && has_right)
             {
-                yield return new (left_enumerator.Current, right_enumerator.Current);
+                yield return new(left_enumerator.Current, right_enumerator.Current);
             }
             else if (has_left)
             {
-                yield return new (left_enumerator.Current, null);
+                yield return new(left_enumerator.Current, null);
             }
             else if (has_right)
             {
-                yield return new (null, right_enumerator.Current);
+                yield return new(null, right_enumerator.Current);
             }
 
             has_left = left_enumerator.MoveNext();

@@ -216,7 +216,7 @@ public class Includes
     private static ImmutableArray<string> CompleteLimitArg(IEnumerable<string> args_limit)
         => args_limit.Select(x => new DirectoryInfo(x).FullName).ToImmutableArray();
 
-    public static int HandleListIncludesCommand(Printer print, string? compile_commands_arg,
+    public static int HandleListIncludesCommand(Log print, string? compile_commands_arg,
         string[] args_files,
         bool args_print_files,
         bool args_print_stats,
@@ -288,7 +288,7 @@ public class Includes
         return 0;
     }
 
-    public static int HandleIncludeGraphvizCommand(Printer print, string? compile_commands_arg,
+    public static int HandleIncludeGraphvizCommand(Log print, string? compile_commands_arg,
         string[] args_files,
         string[] args_limit,
         bool args_group,

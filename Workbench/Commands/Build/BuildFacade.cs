@@ -9,7 +9,7 @@ namespace Workbench.Commands.Build;
 
 internal static class BuildFacade
 {
-    public static int HandleInit(Printer print, bool overwrite)
+    public static int HandleInit(Log print, bool overwrite)
     {
         var data = new BuildFile
         {
@@ -20,32 +20,32 @@ internal static class BuildFacade
         return ConfigFile.WriteInit(print, overwrite, BuildFile.GetBuildDataPath(), data);
     }
 
-    public static int HandleInstall(Printer printer, BuildEnvironment build, BuildData data)
+    public static int HandleInstall(Log log, BuildEnvironment build, BuildData data)
     {
-        SaveBuildData(printer, build, data);
-        RunInstall(build, data, printer);
+        SaveBuildData(log, build, data);
+        RunInstall(build, data, log);
         return 0;
     }
 
-    internal static int HandleBuild(Printer printer, BuildEnvironment build, BuildData data)
+    internal static int HandleBuild(Log log, BuildEnvironment build, BuildData data)
     {
-        SaveBuildData(printer, build, data);
-        GenerateCmakeProject(build, data).Build(printer, Shared.CMake.Config.Release);
+        SaveBuildData(log, build, data);
+        GenerateCmakeProject(build, data).Build(log, Shared.CMake.Config.Release);
         return 0;
     }
 
-    internal static int HandleDev(Printer printer, BuildEnvironment build, BuildData data)
+    internal static int HandleDev(Log log, BuildEnvironment build, BuildData data)
     {
-        SaveBuildData(printer, build, data);
-        RunInstall(build, data, printer);
-        RunCmake(build, data, printer, false);
+        SaveBuildData(log, build, data);
+        RunInstall(build, data, log);
+        RunCmake(build, data, log, false);
         return 0;
     }
 
-    public static int HandleCmake(bool nop, Printer printer, BuildEnvironment build, BuildData data)
+    public static int HandleCmake(bool nop, Log log, BuildEnvironment build, BuildData data)
     {
-        SaveBuildData(printer, build, data);
-        RunCmake(build, data, printer, nop);
+        SaveBuildData(log, build, data);
+        RunCmake(build, data, log, nop);
         return 0;
     }
 
@@ -64,7 +64,7 @@ internal static class BuildFacade
 
 
     // install dependencies
-    internal static void RunInstall(BuildEnvironment env, BuildData data, Printer print)
+    internal static void RunInstall(BuildEnvironment env, BuildData data, Log print)
     {
         foreach (var dep in data.Dependencies)
         {
@@ -74,21 +74,21 @@ internal static class BuildFacade
 
 
     // configure the euphoria cmake project
-    internal static void RunCmake(BuildEnvironment build, BuildData data, Printer printer, bool nop)
+    internal static void RunCmake(BuildEnvironment build, BuildData data, Log log, bool nop)
     {
-        GenerateCmakeProject(build, data).Configure(printer, nop);
+        GenerateCmakeProject(build, data).Configure(log, nop);
     }
 
     // save the build environment to the settings file
-    internal static void SaveBuildData(Printer print, BuildEnvironment build, BuildData data)
+    internal static void SaveBuildData(Log print, BuildEnvironment build, BuildData data)
     {
         Core.VerifyDirectoryExists(print, data.BuildDirectory);
         BuildFunctions.SaveToFile(build, data.GetPathToSettingsFile());
     }
 
-    internal static int HandleBuildStatus(Printer printer, BuildData data)
+    internal static int HandleBuildStatus(Log log, BuildData data)
     {
-        var env = BuildFunctions.LoadFromFileOrCreateEmpty(data.GetPathToSettingsFile(), printer);
+        var env = BuildFunctions.LoadFromFileOrCreateEmpty(data.GetPathToSettingsFile(), log);
 
         Printer.Header(data.Name);
         AnsiConsole.WriteLine($"Project: {data.Name}");
@@ -120,9 +120,9 @@ internal static class BuildFacade
         return 0;
     }
 
-    public static int WithLoadedBuildData(Func<Printer, BuildData, int> callback)
+    public static int WithLoadedBuildData(Func<Log, BuildData, int> callback)
     {
-        return Printer.PrintErrorsAtExit(print =>
+        return Log.PrintErrorsAtExit(print =>
         {
             var data = BuildData.LoadOrNull(print);
             if (data == null)
@@ -137,7 +137,7 @@ internal static class BuildFacade
         });
     }
 
-    internal static int HandleGenericBuild(EnvironmentArgument args, Func<Printer, BuildEnvironment, BuildData, int> callback)
+    internal static int HandleGenericBuild(EnvironmentArgument args, Func<Log, BuildEnvironment, BuildData, int> callback)
     {
         return WithLoadedBuildData((printer, data) =>
         {

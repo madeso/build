@@ -5,7 +5,7 @@ namespace Workbench.Commands.CppLint;
 
 public static class Cpplint
 {
-    public static int HandleList(Printer print, string root)
+    public static int HandleList(Log print, string root)
     {
         var files = FileUtil.ListAllFiles(root);
         foreach (var f in files)
@@ -17,7 +17,7 @@ public static class Cpplint
     }
 
 
-    public static int HandleRun(Printer printer, string root)
+    public static int HandleRun(Log log, string root)
     {
         var files = FileUtil.ListAllFiles(root);
         var has_errors = false;
@@ -28,7 +28,7 @@ public static class Cpplint
             {
                 var stdout = string.Join("\n", ret.Output.Select(x => x.Line));
                 Printer.Line();
-                printer.Error(f);
+                log.Error(f);
                 AnsiConsole.WriteLine(stdout);
                 Printer.Line();
                 AnsiConsole.WriteLine("");

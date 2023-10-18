@@ -33,7 +33,7 @@ internal class ProcessExitWithOutput
         return Output;
     }
 
-    public ProcessExitWithOutput PrintOutput(Printer print)
+    public ProcessExitWithOutput PrintOutput(Log print)
     {
         foreach (var line in Output)
         {
@@ -223,12 +223,12 @@ public class ProcessBuilder
         return $"{Executable} {args}";
     }
 
-    internal void RunAndPrintOutput(Printer printer)
+    internal void RunAndPrintOutput(Log log)
     {
-        var pe = RunWithCallback(null, AnsiConsole.WriteLine, printer.Error,
+        var pe = RunWithCallback(null, AnsiConsole.WriteLine, log.Error,
             (mess, ex) => {
-                printer.Error(mess);
-                printer.Error(ex.Message);
+                log.Error(mess);
+                log.Error(ex.Message);
             }
         );
         var message = $"{pe.CommandLine} exited with {pe.ExitCode}";
@@ -238,7 +238,7 @@ public class ProcessBuilder
         }
         else
         {
-            printer.Error(message);
+            log.Error(message);
         }
     }
 }

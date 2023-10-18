@@ -17,7 +17,7 @@ internal sealed class OrderInFileCommand : Command<OrderInFileCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return Printer.PrintErrorsAtExit(printer => OrderInFile.Run(printer, arg.DoxygenXml, Environment.CurrentDirectory));
+        return Log.PrintErrorsAtExit(printer => OrderInFile.Run(printer, arg.DoxygenXml, Environment.CurrentDirectory));
     }
 }
 

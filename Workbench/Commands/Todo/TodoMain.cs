@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using Workbench.Shared;
+using Workbench.Shared.Extensions;
 
 namespace Workbench.Commands.Todo;
 
@@ -36,8 +37,7 @@ internal sealed class FindTodosCommand : Command<FindTodosCommand.Arg>
 
         foreach (var todo in TodoComments.ListAllTodos(root))
         {
-            var file_and_line = Printer.ToFileString(todo.File.FullName, todo.Line);
-            AnsiConsole.MarkupLineInterpolated($"[blue]{file_and_line}[/]: {todo.Todo}");
+            Log.WriteInformation(new FileLine(todo.File.FullName, todo.Line), todo.Todo);
             cc.AddOne(todo.File.FullName);
         }
 
@@ -91,8 +91,7 @@ internal sealed class GroupWithTimeCommand : Command<GroupWithTimeCommand.Arg>
             foreach (var x in group.Todos)
             {
                 var todo = x.Todo;
-                var file_and_line = Printer.ToFileString(todo.File.FullName, todo.Line);
-                AnsiConsole.MarkupLineInterpolated($"[blue]{file_and_line}[/] {blame_to_time(x.Blame)}: {todo.Todo}");
+                Log.WriteInformation(new(todo.File.FullName, todo.Line), $"{blame_to_time(x.Blame)}: {todo.Todo}");
             }
         }
 

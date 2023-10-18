@@ -98,12 +98,12 @@ public class CMakeProject
     }
 
     // run cmake configure step
-    public void Configure(Printer printer, bool nop = false)
+    public void Configure(Log log, bool nop = false)
     {
-        var cmake = FindCMake.FindInstallationOrNull(printer);
+        var cmake = FindCMake.FindInstallationOrNull(log);
         if (cmake == null)
         {
-            printer.Error("CMake executable not found");
+            log.Error("CMake executable not found");
             return;
         }
 
@@ -123,7 +123,7 @@ public class CMakeProject
             command.AddArgument(generator.Arch);
         }
 
-        Core.VerifyDirectoryExists(printer, build_folder);
+        Core.VerifyDirectoryExists(log, build_folder);
         command.WorkingDirectory = build_folder;
 
         if (Core.IsWindows())
@@ -134,7 +134,7 @@ public class CMakeProject
             }
             else
             {
-                command.RunAndPrintOutput(printer);
+                command.RunAndPrintOutput(log);
             }
         }
         else
@@ -144,12 +144,12 @@ public class CMakeProject
     }
 
     // run cmake build step
-    private void RunBuildCommand(Printer printer, Install install, Config config)
+    private void RunBuildCommand(Log log, Install install, Config config)
     {
-        var cmake = FindCMake.FindInstallationOrNull(printer);
+        var cmake = FindCMake.FindInstallationOrNull(log);
         if (cmake == null)
         {
-            printer.Error("CMake executable not found");
+            log.Error("CMake executable not found");
             return;
         }
 
@@ -170,12 +170,12 @@ public class CMakeProject
             _ => throw new NotImplementedException(),
         });
 
-        Core.VerifyDirectoryExists(printer, build_folder);
+        Core.VerifyDirectoryExists(log, build_folder);
         command.WorkingDirectory = build_folder;
 
         if (Core.IsWindows())
         {
-            command.RunAndPrintOutput(printer);
+            command.RunAndPrintOutput(log);
         }
         else
         {
@@ -184,14 +184,14 @@ public class CMakeProject
     }
 
     // build cmake project
-    public void Build(Printer printer, Config config)
+    public void Build(Log log, Config config)
     {
-        RunBuildCommand(printer, CMake.Install.No, config);
+        RunBuildCommand(log, CMake.Install.No, config);
     }
 
     // install cmake project
-    public void Install(Printer printer, Config config)
+    public void Install(Log log, Config config)
     {
-        RunBuildCommand(printer, CMake.Install.Yes, config);
+        RunBuildCommand(log, CMake.Install.Yes, config);
     }
 }

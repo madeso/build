@@ -17,7 +17,7 @@ internal sealed class CheckCommand : Command<CheckCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return Printer.PrintErrorsAtExit(printer => CheckNamesRunner.Run(printer, arg.DoxygenXml, Environment.CurrentDirectory));
+        return Log.PrintErrorsAtExit(printer => CheckNamesRunner.Run(printer, arg.DoxygenXml, Environment.CurrentDirectory));
     }
 }
 
@@ -33,7 +33,7 @@ internal sealed class InitCommand : Command<InitCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Printer.PrintErrorsAtExit(print => CheckNamesRunner.HandleInit(print, settings.Overwrite));
+        return Log.PrintErrorsAtExit(print => CheckNamesRunner.HandleInit(print, settings.Overwrite));
     }
 }
 

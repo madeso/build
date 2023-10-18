@@ -20,7 +20,7 @@ internal sealed class LsCommand : Command<LsCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Printer.PrintErrorsAtExit(print => Cpplint.HandleList(print, settings.Root ?? Environment.CurrentDirectory));
+        return Log.PrintErrorsAtExit(print => Cpplint.HandleList(print, settings.Root ?? Environment.CurrentDirectory));
     }
 }
 
@@ -37,7 +37,7 @@ internal sealed class RunCommand : Command<RunCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Printer.PrintErrorsAtExit(print => Cpplint.HandleRun(print, settings.Root ?? Environment.CurrentDirectory));
+        return Log.PrintErrorsAtExit(print => Cpplint.HandleRun(print, settings.Root ?? Environment.CurrentDirectory));
     }
 }
 

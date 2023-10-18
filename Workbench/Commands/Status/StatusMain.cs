@@ -22,7 +22,7 @@ internal sealed class DebugCommand : Command<DebugCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Printer.PrintErrorsAtExit(print =>
+        return Log.PrintErrorsAtExit(print =>
         {
             Status.HandleStatus(print, settings);
             return 0;

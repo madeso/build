@@ -5,7 +5,7 @@ namespace Workbench.Config;
 
 internal static class ConfigFile
 {
-    public static TFile? LoadOrNull<TFile>(Printer print, string file)
+    public static TFile? LoadOrNull<TFile>(Log print, string file)
         where TFile : class
     {
         if (File.Exists(file) == false)
@@ -24,7 +24,7 @@ internal static class ConfigFile
         return loaded;
     }
 
-    public static TData? LoadOrNull<TFile, TData>(Printer print, string file, Func<TFile, TData> enrich)
+    public static TData? LoadOrNull<TFile, TData>(Log print, string file, Func<TFile, TData> enrich)
         where TData : struct
         where TFile: class
     {
@@ -37,7 +37,7 @@ internal static class ConfigFile
         return enrich(loaded);
     }
 
-    internal static int WriteInit<T>(Printer print, bool overwrite, string path, T data)
+    internal static int WriteInit<T>(Log print, bool overwrite, string path, T data)
     {
         var content = JsonUtil.Write(data);
 

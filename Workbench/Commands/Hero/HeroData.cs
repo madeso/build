@@ -16,7 +16,7 @@ public class UserInput
     public List<string> IncludeDirectories { get; set; } = new();
     public List<string> PrecompiledHeaders { get; set; } = new();
 
-    public bool Validate(Printer print)
+    public bool Validate(Log print)
     {
         var status = true;
 
@@ -35,14 +35,14 @@ public class UserInput
         return status;
     }
 
-    public static UserInput? LoadFromFile(Printer print, string file)
+    public static UserInput? LoadFromFile(Log print, string file)
     {
         var content = File.ReadAllText(file);
         var data = JsonUtil.Parse<UserInput>(print, file, content);
         return data;
     }
 
-    public void Decorate(Printer printer, string root)
+    public void Decorate(Log log, string root)
     {
         decorate_this(root, ProjectDirectories, "Project directories", f => Directory.Exists(f) || File.Exists(f));
         decorate_this(root, IncludeDirectories, "Include directories", Directory.Exists);

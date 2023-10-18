@@ -68,7 +68,7 @@ static class SlnDepsFunctions
     // logic
     // ======================================================================================================================
 
-    private static void RunGraphviz(Printer printer, string target_file, string image_format, string graphviz_layout)
+    private static void RunGraphviz(Log log, string target_file, string image_format, string graphviz_layout)
     {
         var cmdline = new ProcessBuilder(
             "dot",
@@ -77,7 +77,7 @@ static class SlnDepsFunctions
             "-O" + target_file + "." + image_format
         );
         AnsiConsole.WriteLine($"Running graphviz {cmdline}");
-        cmdline.RunAndPrintOutput(printer);
+        cmdline.RunAndPrintOutput(log);
     }
 
 
@@ -92,7 +92,7 @@ static class SlnDepsFunctions
     // Handlers
     // ======================================================================================================================
 
-    public static int HandleGenerate(Printer printer, string target,
+    public static int HandleGenerate(Log log, string target,
             string format,
             ExclusionList exclude,
             bool simplify,
@@ -100,7 +100,7 @@ static class SlnDepsFunctions
             string path_to_solution_file,
             string layout_name)
     {
-        var solution = Solution.Parse.VisualStudio(printer, path_to_solution_file);
+        var solution = Solution.Parse.VisualStudio(log, path_to_solution_file);
 
         solution.RemoveProjects(p => exclude.ShouldExclude(p.Name));
 
@@ -117,7 +117,7 @@ static class SlnDepsFunctions
 
         gv.WriteFile(target_file);
 
-        RunGraphviz(printer, target_file, image_format, graphviz_layout);
+        RunGraphviz(log, target_file, image_format, graphviz_layout);
 
         return 0;
     }
@@ -129,12 +129,12 @@ static class SlnDepsFunctions
         return Path.Join(dir, $"{name}.{new_extension}");
     }
 
-    public static int SourceCommand(Printer printer, ExclusionList exclude,
+    public static int SourceCommand(Log log, ExclusionList exclude,
             bool simplify,
             bool reverse_arrows,
             string path_to_solution_file)
     {
-        var solution = Solution.Parse.VisualStudio(printer, path_to_solution_file);
+        var solution = Solution.Parse.VisualStudio(log, path_to_solution_file);
 
         solution.RemoveProjects(p => exclude.ShouldExclude(p.Name));
 
@@ -154,10 +154,10 @@ static class SlnDepsFunctions
     }
 
     public static int WriteCommand(
-        Printer printer, ExclusionList exclude, string target_file_or_empty, bool simplify,
+        Log log, ExclusionList exclude, string target_file_or_empty, bool simplify,
             bool reverse_arrows, string path_to_solution_file)
     {
-        var solution = Solution.Parse.VisualStudio(printer, path_to_solution_file);
+        var solution = Solution.Parse.VisualStudio(log, path_to_solution_file);
 
         solution.RemoveProjects(p => exclude.ShouldExclude(p.Name));
 
@@ -177,9 +177,9 @@ static class SlnDepsFunctions
         return 0;
     }
 
-    public static int ListCommand(Printer printer, string solution_path)
+    public static int ListCommand(Log log, string solution_path)
     {
-        var solution = Solution.Parse.VisualStudio(printer, solution_path);
+        var solution = Solution.Parse.VisualStudio(log, solution_path);
         foreach (var project in solution.Projects)
         {
             AnsiConsole.WriteLine(project.Name);

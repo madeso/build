@@ -5,12 +5,12 @@ namespace Workbench.Shared.CMake
 {
     internal static class FindCMake
     {
-        public static IEnumerable<Found> FindAllInstallations(Printer printer)
+        public static IEnumerable<Found> FindAllInstallations(Log log)
         {
-            yield return find_installation_in_registry(printer);
-            yield return find_installation_in_path(printer);
+            yield return find_installation_in_registry(log);
+            yield return find_installation_in_path(log);
 
-            static Found find_installation_in_registry(Printer printer)
+            static Found find_installation_in_registry(Log printer)
             {
                 const string REGISTRY_SOURCE = "registry";
 
@@ -28,7 +28,7 @@ namespace Workbench.Shared.CMake
             }
 
 
-            static Found find_installation_in_path(Printer printer)
+            static Found find_installation_in_path(Log printer)
             {
                 const string PATH_SOURCE = "path";
                 var path = Which.Find("cmake");
@@ -48,17 +48,17 @@ namespace Workbench.Shared.CMake
 
 
 
-        public static string? FindInstallationOrNull(Printer printer)
-            => FindAllInstallations(printer).GetFirstValueOrNull();
+        public static string? FindInstallationOrNull(Log log)
+            => FindAllInstallations(log).GetFirstValueOrNull();
 
 
 
-        public static IEnumerable<Found> ListAllBuilds(CompileCommandsArguments settings, Printer printer)
+        public static IEnumerable<Found> ListAllBuilds(CompileCommandsArguments settings, Log log)
         {
             const string CMAKE_CACHE_FILE = "CMakeCache.txt";
 
             yield return find_build_in_current_directory();
-            yield return find_build_from_compile_commands(settings, printer);
+            yield return find_build_from_compile_commands(settings, log);
             yield return find_single_build_with_cache();
 
 
@@ -75,7 +75,7 @@ namespace Workbench.Shared.CMake
                 return new Found(build_root, SOURCE);
             }
 
-            static Found find_build_from_compile_commands(CompileCommandsArguments settings, Printer printer)
+            static Found find_build_from_compile_commands(CompileCommandsArguments settings, Log printer)
             {
                 var found = settings.GetPathToCompileCommandsOrNull(printer);
                 return new Found(found, "compile commands");
@@ -100,7 +100,7 @@ namespace Workbench.Shared.CMake
 
 
 
-        public static string? FindBuildOrNone(CompileCommandsArguments settings, Printer printer)
-            => ListAllBuilds(settings, printer).GetFirstValueOrNull();
+        public static string? FindBuildOrNone(CompileCommandsArguments settings, Log log)
+            => ListAllBuilds(settings, log).GetFirstValueOrNull();
     }
 }

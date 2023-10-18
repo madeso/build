@@ -1,4 +1,4 @@
-namespace Workbench.Shared;
+namespace Workbench.Shared.Extensions;
 
 public static class FileExtensions
 {

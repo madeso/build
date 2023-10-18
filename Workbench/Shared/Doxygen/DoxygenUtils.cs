@@ -22,14 +22,14 @@ internal static class DoxygenUtils
         return print;
     }
 
-    public static string LocationToString(LocationType? loc, string root)
+    public static FileLine? LocationToString(LocationType? loc, string root)
     {
         if (loc == null)
         {
-            return "<missing location>";
+            return null;
         }
         var file_name = DoxygenFileToPath(loc, root);
-        return Printer.ToFileString(file_name, loc.Line ?? -1);
+        return new FileLine(file_name, loc.Line);
     }
 
     public static bool IsConstructorOrDestructor(MemberDefinitionType m)

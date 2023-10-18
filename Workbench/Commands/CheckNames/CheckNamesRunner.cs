@@ -85,11 +85,11 @@ internal class CheckNamesRunner
 
     private int names_checked = 0;
     private int errors_detected = 0;
-    private readonly Printer printer;
+    private readonly Log log;
 
-    public CheckNamesRunner(Printer printer, CheckNamesFile file)
+    public CheckNamesRunner(Log log, CheckNamesFile file)
     {
-        this.printer = printer;
+        this.log = log;
         this.file = file;
     }
 
@@ -129,13 +129,13 @@ internal class CheckNamesRunner
             .ThenByDescending(x => x.Location!.Line)
             )
         {
-            printer.Error(DoxygenUtils.LocationToString(f.Location, root), f.ErrorMessage);
+            log.Error(DoxygenUtils.LocationToString(f.Location, root), f.ErrorMessage);
         }
     }
 
-    internal static int Run(Printer printer, string doxygen_xml, string root)
+    internal static int Run(Log log, string doxygen_xml, string root)
     {
-        var file = CheckNamesFile.LoadFromDirectoryOrNull(printer);
+        var file = CheckNamesFile.LoadFromDirectoryOrNull(log);
         if (file == null)
         {
             return -1;
@@ -143,7 +143,7 @@ internal class CheckNamesRunner
 
         var parsed = Doxygen.ParseIndex(doxygen_xml);
 
-        CheckNamesRunner runner = new(printer, file);
+        CheckNamesRunner runner = new(log, file);
         foreach (var k in DoxygenUtils.AllClasses(parsed))
         {
             runner.CheckClass(k);
@@ -411,7 +411,7 @@ internal class CheckNamesRunner
         }
     }
 
-    internal static int HandleInit(Printer print, bool overwrite)
+    internal static int HandleInit(Log print, bool overwrite)
     {
         var data = new CheckNamesFile();
         data.AcceptedFunctions.Add("some function or method name");

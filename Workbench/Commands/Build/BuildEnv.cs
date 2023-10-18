@@ -60,19 +60,19 @@ public class BuildEnvironment
     }
 
     // validate the build environment
-    public bool Validate(Printer printer)
+    public bool Validate(Log log)
     {
         var status = true;
 
         if (Compiler == null)
         {
-            printer.Error("Compiler not set");
+            log.Error("Compiler not set");
             status = false;
         }
 
         if (Platform == null)
         {
-            printer.Error("Platform not set");
+            log.Error("Platform not set");
             status = false;
         }
 
@@ -80,7 +80,7 @@ public class BuildEnvironment
     }
 
     // update the build environment from an argparse namespace
-    public void UpdateFromArguments(Printer printer, EnvironmentArgument args)
+    public void UpdateFromArguments(Log log, EnvironmentArgument args)
     {
         update_compiler();
         update_platform();
@@ -100,12 +100,12 @@ public class BuildEnvironment
 
             if (args.ForceChange)
             {
-                Printer.Warning($"Compiler changed via argument from {Compiler} to {args.Compiler}");
+                Log.Warning($"Compiler changed via argument from {Compiler} to {args.Compiler}");
                 Compiler = args.Compiler;
             }
             else
             {
-                printer.Error($"Compiler changed via argument from {Compiler} to {args.Compiler}");
+                log.Error($"Compiler changed via argument from {Compiler} to {args.Compiler}");
             }
         }
 
@@ -123,12 +123,12 @@ public class BuildEnvironment
 
             if (args.ForceChange)
             {
-                Printer.Warning($"Platform changed via argument from {Platform} to {args.Platform}");
+                Log.Warning($"Platform changed via argument from {Platform} to {args.Platform}");
                 Platform = args.Platform;
             }
             else
             {
-                printer.Error($"Platform changed via argument from {Platform} to {args.Platform}");
+                log.Error($"Platform changed via argument from {Platform} to {args.Platform}");
             }
         }
     }
@@ -201,7 +201,7 @@ public static class BuildFunctions
     }
 
     // load build environment from json file
-    public static BuildEnvironment LoadFromFileOrCreateEmpty(string path, Printer printer)
+    public static BuildEnvironment LoadFromFileOrCreateEmpty(string path, Log log)
     {
         if (File.Exists(path) == false)
         {
@@ -210,7 +210,7 @@ public static class BuildFunctions
 
         var content = File.ReadAllText(path);
 
-        var loaded = JsonUtil.Parse<BuildEnvironment>(printer, path, content);
+        var loaded = JsonUtil.Parse<BuildEnvironment>(log, path, content);
         if (loaded == null)
         {
             return BuildEnvironment.CreateEmpty();

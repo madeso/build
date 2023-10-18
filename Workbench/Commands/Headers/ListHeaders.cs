@@ -241,7 +241,7 @@ internal class FileWalker
 
     internal bool Walk
     (
-        Printer print, string path,
+        Log print, string path,
         Dictionary<string, List<Statement>> file_cache
     )
     {
@@ -262,7 +262,7 @@ internal class FileWalker
         return walk_rec(print, directories.ToArray(), included_file_cache, path, defines, file_cache, 0);
     }
 
-    private static List<Statement> ParseFileToBlocks(string path, Printer print)
+    private static List<Statement> ParseFileToBlocks(string path, Log print)
     {
         var source_lines = File.ReadAllLines(path);
         var joined_lines = ListHeaderFunctions.JoinCppLines(source_lines);
@@ -275,7 +275,7 @@ internal class FileWalker
 
     private bool walk_rec
     (
-        Printer print,
+        Log print,
         string[] directories,
         HashSet<string> included_file_cache,
         string path,
@@ -304,7 +304,7 @@ internal class FileWalker
 
     private bool BlockRecursive
     (
-        Printer print,
+        Log print,
         string[] directories,
         HashSet<string> included_file_cache,
         string path,
@@ -477,7 +477,7 @@ internal static class ListHeaderFunctions
             ;
     }
 
-    private static void GroupCommands(string path, Printer print, List<Statement> ret, PreProcessorParser commands, int depth)
+    private static void GroupCommands(string path, Log print, List<Statement> ret, PreProcessorParser commands, int depth)
     {
         while (true)
         {
@@ -534,7 +534,7 @@ internal static class ListHeaderFunctions
                 }
                 else
                 {
-                    print.Error($"{path}({command.Line}): Ignored unmatched endif");
+                    print.Error(new(path, command.Line), "Ignored unmatched endif");
                 }
             }
             else if (command.Command == "elif")
@@ -546,7 +546,7 @@ internal static class ListHeaderFunctions
                 }
                 else
                 {
-                    print.Error($"{path}({command.Line}): Ignored unmatched elif");
+                    print.Error(new(path, command.Line), "Ignored unmatched elif");
                 }
             }
             else
@@ -568,7 +568,7 @@ internal static class ListHeaderFunctions
                         // pass
                         break;
                     default:
-                        print.Error($"{path}({command.Line}): unknown pragma {command.Command}");
+                        print.Error(new(path, command.Line), $"unknown pragma {command.Command}");
                         break;
                 }
             }
@@ -614,7 +614,7 @@ internal static class ListHeaderFunctions
         }
     }
 
-    internal static List<Statement> ParseToBlocks(string path, Printer print, List<PreProcessor> r)
+    internal static List<Statement> ParseToBlocks(string path, Log print, List<PreProcessor> r)
     {
         var parser = new PreProcessorParser(commands: r, index: 0);
         var ret = new List<Statement>();
@@ -623,7 +623,7 @@ internal static class ListHeaderFunctions
     }
 
 
-    internal static void HandleLines(Printer print, string file_name, ListAction action)
+    internal static void HandleLines(Log print, string file_name, ListAction action)
     {
         var source_lines = File.ReadLines(file_name);
         var joined_lines = JoinCppLines(source_lines);
@@ -691,7 +691,7 @@ internal static class ListHeaderFunctions
 
 
     internal static int HandleFiles(
-        Printer print, string? ccpath, List<string> sources, int most_common_count)
+        Log print, string? ccpath, List<string> sources, int most_common_count)
     {
         if (ccpath == null) { return -1; }
 

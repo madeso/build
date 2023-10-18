@@ -19,7 +19,7 @@ public static class Core
     }
 
     /// make sure directory exists 
-    public static void VerifyDirectoryExists(Printer print, string dir)
+    public static void VerifyDirectoryExists(Log print, string dir)
     {
         if (Directory.Exists(dir))
         {
@@ -50,7 +50,7 @@ public static class Core
 
 
     /// download file if not already downloaded 
-    public static void DownloadFileIfMissing(Printer print, string url, string dest)
+    public static void DownloadFileIfMissing(Log print, string url, string dest)
     {
         if (File.Exists(dest))
         {
@@ -72,7 +72,7 @@ public static class Core
     }
 
     /// moves all file from one directory to another
-    public static void MoveFiles(Printer print, string from, string to)
+    public static void MoveFiles(Log print, string from, string to)
     {
         if (Path.Exists(from) == false)
         {
