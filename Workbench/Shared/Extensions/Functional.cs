@@ -12,6 +12,11 @@ internal static class Functional
         }
     }
 
+    public static T[] Params<T>(params T[] args)
+    {
+        return args;
+    }
+
     public static IEnumerable<T> IgnoreNull<T>(this IEnumerable<T?> it)
     {
         foreach (var t in it)

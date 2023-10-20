@@ -1,4 +1,5 @@
 using System.Text;
+using Workbench.Shared.Extensions;
 
 namespace Workbench.Shared;
 
@@ -27,14 +28,17 @@ public class StringListCombiner
         empty = "";
     }
 
-
-    public static StringListCombiner EnglishOr(string empty = "<none>")
+    public string Combine<T>(IEnumerable<T> arr)
     {
-        return new StringListCombiner(", ", " or ", empty);
+        return Combine(arr.Select(x => x?.ToString()).IgnoreNull());
     }
 
+    public string Combine(IEnumerable<string> arr)
+    {
+        return CombineArray(arr.ToArray());
+    }
 
-    public string Combine(string[] strings)
+    public string CombineArray(string[] strings)
     {
         if (strings.Length == 0) return empty;
         
@@ -58,4 +62,15 @@ public class StringListCombiner
     private readonly string separator;
     private readonly string final_separator;
     private readonly string empty;
+
+
+    public static StringListCombiner EnglishOr(string empty = "<none>")
+    {
+        return new StringListCombiner(", ", " or ", empty);
+    }
+
+    public static StringListCombiner EnglishAnd(string empty = "<none>")
+    {
+        return new StringListCombiner(", ", " and ", empty);
+    }
 }

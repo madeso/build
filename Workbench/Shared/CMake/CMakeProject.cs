@@ -100,7 +100,7 @@ public class CMakeProject
     // run cmake configure step
     public void Configure(Log log, bool nop = false)
     {
-        var cmake = FindCMake.FindInstallationOrNull(log);
+        var cmake = FindCMake.RequireInstallationOrNull(log);
         if (cmake == null)
         {
             log.Error("CMake executable not found");
@@ -146,7 +146,7 @@ public class CMakeProject
     // run cmake build step
     private void RunBuildCommand(Log log, Install install, Config config)
     {
-        var cmake = FindCMake.FindInstallationOrNull(log);
+        var cmake = FindCMake.RequireInstallationOrNull(log);
         if (cmake == null)
         {
             log.Error("CMake executable not found");

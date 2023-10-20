@@ -391,12 +391,12 @@ internal static class ClangFacade
     {
         var root = Environment.CurrentDirectory;
 
-        var build_folder = CompileCommand.FindBuildRootOrNull(root);
-        if (build_folder is null)
-        {
-            print.Error("unable to find build folder");
-            return -1;
-        }
+        // var build_folder = CompileCommand.FindBuildRootOrNull(root);
+        // if (build_folder is null)
+        // {
+        //     print.Error("unable to find build folder");
+        //     return -1;
+        // }
 
         var files = FileUtil.ListFilesRecursively(root, FileUtil.SourceFiles);
 
@@ -425,10 +425,15 @@ internal static class ClangFacade
     }
 
     // callback function called when running clang.py tidy
-    internal static int HandleRunClangTidyCommand(Log log, string tidy_path, bool force, bool headers, bool short_args, bool args_nop, string[] args_filter, string[] args_only, bool args_fix)
+    internal static int HandleRunClangTidyCommand(CompileCommandsArguments cc, Log log, string tidy_path, bool force, bool headers, bool short_args, bool args_nop, string[] args_filter, string[] args_only, bool args_fix)
     {
         var root = Environment.CurrentDirectory;
-        var project_build_folder = CompileCommand.FindBuildRootOrNull(root);
+        var cc_file = CompileCommand.RequireOrNone(cc, log);
+        if (cc_file == null)
+        {
+            return -1;
+        }
+        var project_build_folder = new FileInfo(cc_file).Directory?.FullName;
         if (project_build_folder is null)
         {
             log.Error("unable to find build folder");
@@ -550,12 +555,12 @@ internal static class ClangFacade
     {
         var root = Environment.CurrentDirectory;
 
-        var project_build_folder = CompileCommand.FindBuildRootOrNull(root);
-        if (project_build_folder is null)
-        {
-            log.Error("unable to find build folder");
-            return -1;
-        }
+        // var project_build_folder = CompileCommand.FindBuildRootOrNull(root);
+        // if (project_build_folder is null)
+        // {
+        //     log.Error("unable to find build folder");
+        //     return -1;
+        // }
 
         var data = MapAllFilesInRootOnFirstDir(root, FileUtil.HeaderAndSourceFiles);
 

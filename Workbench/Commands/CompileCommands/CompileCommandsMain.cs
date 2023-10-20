@@ -18,7 +18,7 @@ internal sealed class FilesCommand : Command<FilesCommand.Arg>
             (
                 print =>
                 {
-                    var path = settings.GetPathToCompileCommandsOrNull(print);
+                    var path = CompileCommand.RequireOrNone(settings, print);
                     if (path == null) { return -1; }
 
                     var commands = CompileCommand.LoadCompileCommandsOrNull(print, path);
@@ -44,7 +44,7 @@ internal sealed class IncludesCommand : Command<IncludesCommand.Arg>
             (
                 print =>
                 {
-                    var path = settings.GetPathToCompileCommandsOrNull(print);
+                    var path = CompileCommand.RequireOrNone(settings, print);
                     if (path == null) { return -1; }
 
                     var commands = CompileCommand.LoadCompileCommandsOrNull(print, path);
@@ -77,7 +77,7 @@ internal sealed class DefinesCommand : Command<DefinesCommand.Arg>
             (
                 print =>
                 {
-                    var path = settings.GetPathToCompileCommandsOrNull(print);
+                    var path = CompileCommand.RequireOrNone(settings, print);
                     if (path == null) { return -1; }
 
                     var commands = CompileCommand.LoadCompileCommandsOrNull(print, path);

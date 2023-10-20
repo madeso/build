@@ -63,7 +63,7 @@ internal sealed class FilesCommand : Command<FilesCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return Log.PrintErrorsAtExit(print => ListHeaderFunctions.HandleFiles(print, arg.GetPathToCompileCommandsOrNull(print), arg.Sources, arg.MostCommonCount));
+        return Log.PrintErrorsAtExit(print => ListHeaderFunctions.HandleFiles(print, CompileCommand.RequireOrNone(arg, print), arg.Sources, arg.MostCommonCount));
     }
 }
 
@@ -106,7 +106,7 @@ internal sealed class IncludeListCommand : Command<IncludeListCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Log.PrintErrorsAtExit(print => Includes.HandleListIncludesCommand(print, settings.GetPathToCompileCommandsOrNull(print),
+        return Log.PrintErrorsAtExit(print => Includes.HandleListIncludesCommand(print, CompileCommand.RequireOrNone(settings, print),
             settings.Files, settings.PrintFiles, settings.PrintStats, settings.PrintMax,
             settings.PrintList, settings.Count, settings.Limit));
     }
@@ -142,7 +142,7 @@ internal sealed class IncludeGraphvizCommand : Command<IncludeGraphvizCommand.Ar
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return Log.PrintErrorsAtExit(print =>
-            Includes.HandleIncludeGraphvizCommand(print, settings.GetPathToCompileCommandsOrNull(print),
+            Includes.HandleIncludeGraphvizCommand(print, CompileCommand.RequireOrNone(settings, print),
                 settings.Files, settings.Limit, settings.Group, settings.Cluster));
     }
 }

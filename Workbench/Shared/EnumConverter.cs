@@ -60,12 +60,12 @@ internal class EnumConverter<T>
             .Select(simple_quote).ToArray();
         if (suggestions.Length == 0)
         {
-            var all = StringListCombiner.EnglishOr().Combine(from_string.Keys.Select(simple_quote).ToArray());
+            var all = StringListCombiner.EnglishOr().CombineArray(from_string.Keys.Select(simple_quote).ToArray());
             return (null, $"Invalid value {simple_quote(name)}! You need to select either {all}");
         }
         else
         {
-            var mean = StringListCombiner.EnglishOr().Combine(suggestions);
+            var mean = StringListCombiner.EnglishOr().CombineArray(suggestions);
             return (null, $"Invalid value {simple_quote(name)}! Perhaps you meant {mean}?");
         }
     }

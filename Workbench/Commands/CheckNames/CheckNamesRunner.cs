@@ -275,7 +275,7 @@ internal class CheckNamesRunner
             {
                 if (file.BadFunctionVerbs.TryGetValue(first_name, out var suggested_replacements))
                 {
-                    var message = StringListCombiner.EnglishOr().Combine(suggested_replacements);
+                    var message = StringListCombiner.EnglishOr().CombineArray(suggested_replacements);
                     var are = suggested_replacements.Length ==1 ? "is" : "are";
                     ReportError(mem.Location, $"{first_name} is not a recomended verb for {member_name}: suggestions {are}: {message}");
                 }

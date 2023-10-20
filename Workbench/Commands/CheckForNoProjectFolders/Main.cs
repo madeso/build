@@ -30,14 +30,14 @@ internal sealed class CheckForNoProjectFoldersCommand : Command<CheckForNoProjec
     {
         return Log.PrintErrorsAtExit(print =>
         {
-            var cmake = FindCMake.FindInstallationOrNull(print);
+            var cmake = FindCMake.RequireInstallationOrNull(print);
             if (cmake == null)
             {
                 print.Error("Failed to find cmake");
                 return -1;
             }
 
-            var build_root = FindCMake.ListAllBuilds(settings, print).GetFirstValueOrNull();
+            var build_root = FindCMake.ListAllBuilds(settings).GetFirstValueOrNull();
             if (build_root == null)
             {
                 return -1;

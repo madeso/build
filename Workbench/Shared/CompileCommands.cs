@@ -1,6 +1,8 @@
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 using Spectre.Console.Cli;
+using Workbench.Shared.Extensions;
 
 namespace Workbench.Shared;
 
@@ -76,14 +78,77 @@ public class CompileCommand
         );
     }
 
-    internal const string JSON_FILE_NAME = "compile_commands.json";
+    internal const string COMPILE_COMMANDS_FILE_NAME = "compile_commands.json";
 
-    /// find the build folder containing the compile_commands file or None
-    public static string? FindBuildRootOrNull(string root)
-        => FileUtil
-            .PitchforkBuildFolders(root)
-            .FirstOrDefault(build => Path.Exists(Path.Join(build, JSON_FILE_NAME)))
-    ;
+    private static IEnumerable<Found<string>> FindJustTheBuilds()
+    {
+        var cwd = Environment.CurrentDirectory;
+        yield return FileUtil
+            .PitchforkBuildFolders(cwd)
+            .Select(build_root => Path.Join(build_root, COMPILE_COMMANDS_FILE_NAME))
+            .Select(find_cmake_cache)
+            .Collect("pitchfork folders")
+            ;
+
+        static FoundEntry<string> find_cmake_cache(string compile_commands)
+        {
+            if (new FileInfo(compile_commands).Exists == false)
+            {
+                return new FoundEntry<string>.Error($"{compile_commands} doesn't exist");
+            }
+
+            return new FoundEntry<string>.Result(compile_commands);
+        }
+    }
+
+    private static FoundEntry<string>? GetBuildFromArgument(CompileCommandsArguments settings)
+    {
+        return settings.GetFileFromArgument(COMPILE_COMMANDS_FILE_NAME);
+    }
+
+    internal static IEnumerable<Found<string>> ListAll(CompileCommandsArguments settings)
+    {
+        return Functional.Params(
+                Functional.Params(GetBuildFromArgument(settings))
+                    .IgnoreNull()
+                    .Collect("commandline")
+                )
+            .Concat(FindJustTheBuilds());
+    }
+
+    internal static string? RequireOrNone(CompileCommandsArguments settings, Log log)
+    {
+        var found = FindOrNone(settings, log);
+        if (found == null)
+        {
+            log.Error("No compile commands specified or none/too many found");
+        }
+
+        return found;
+    }
+
+    internal static string? FindOrNone(CompileCommandsArguments settings, Log? log)
+    {
+        // commandline overrides all builds
+        var arg = GetBuildFromArgument(settings);
+        switch (arg)
+        {
+            case FoundEntry<string>.Result r:
+                return r.Value;
+            case FoundEntry<string>.Error e:
+            {
+                log?.Error(e.Reason);
+                return null;
+            }
+        }
+
+        var valid = FindJustTheBuilds().AllValid().ToImmutableArray();
+
+        // only one build folder is valid
+        return valid.Length == 1
+            ? valid[0]
+            : null;
+    }
 }
 
 
@@ -96,24 +161,45 @@ internal class CompileCommandsArguments : CommandSettings
     [DefaultValue(null)]
     public string? CompileCommands { get; set; }
 
-    public string? GetPathToCompileCommandsOrNull(Log print)
+    public FoundEntry<string>? GetFileFromArgument(string filename)
     {
-        var ret = get_argument_or_none(Environment.CurrentDirectory, CompileCommands);
-        if (ret == null)
+        var settings = this;
+        var found = settings.CompileCommands;
+            
+        if (found == null)
         {
-            print.Error($"Unable to locate {CompileCommand.JSON_FILE_NAME}");
+            return null;
         }
-        return ret;
 
-        static string? get_argument_or_none(string cwd, string? cc)
+        if (Directory.Exists(found))
         {
-            if (cc != null) { return cc; }
-
-            var r = CompileCommand.FindBuildRootOrNull(cwd);
-            if (r == null) { return null; }
-
-            return Path.Join(r, CompileCommand.JSON_FILE_NAME);
+            // if a directory was specified, point to a file
+            found = Path.Join(found, filename);
         }
+
+        return new FoundEntry<string>.Result(found);
+    }
+
+    public FoundEntry<string>? GetDirectoryFromArgument()
+    {
+        var settings = this;
+        var found = settings.CompileCommands;
+            
+        if (found == null)
+        {
+            return null;
+        }
+
+        if (File.Exists(found))
+        {
+            var dir = new FileInfo(found).Directory?.FullName;
+            if (dir == null)
+            {
+                return new FoundEntry<string>.Error($"Failed to get directory from file {found}");
+            }
+        }
+
+        return new FoundEntry<string>.Result(found);
     }
 }
 

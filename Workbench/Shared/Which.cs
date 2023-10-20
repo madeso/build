@@ -6,7 +6,7 @@ public static class Which
 {
     // todo(Gustav): test this
 
-    public static string? Find(string executable)
+    public static string? FirstValidPath(string executable)
     {
         var binary = Core.IsWindows() && Path.GetExtension(executable) != ".exe"
             ? Path.ChangeExtension(executable.Trim(), "exe")

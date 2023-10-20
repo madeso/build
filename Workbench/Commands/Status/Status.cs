@@ -1,4 +1,5 @@
 using Spectre.Console;
+using Spectre.Console.Rendering;
 using Workbench.Shared;
 using Workbench.Shared.CMake;
 
@@ -8,35 +9,43 @@ internal static class Status
 {
     internal static void HandleStatus(Log log, CompileCommandsArguments cc)
     {
-        print_found_list("cmake", FindCMake.FindAllInstallations(log).ToList());
-
         var root = Environment.CurrentDirectory;
         AnsiConsole.WriteLine($"Root: {root}");
 
-        var project_build_folder = CompileCommand.FindBuildRootOrNull(root);
-        if (project_build_folder == null)
-        {
-            log.Error("Unable to find build folder");
-        }
-        else
-        {
-            AnsiConsole.WriteLine($"Project build folder: {project_build_folder}");
-        }
+        print_found_list("cmake", FindCMake.FindInstallationOrNull(),
+            FindCMake.FindAllInstallations());
+        print_found_list("cmake build", FindCMake.FindBuildOrNone(cc, null),
+            FindCMake.ListAllBuilds(cc));
+        print_found_list("compile command", CompileCommand.FindOrNone(cc, null),
+            CompileCommand.ListAll(cc));
 
-        var ccs = cc.GetPathToCompileCommandsOrNull(log);
-        if (ccs != null)
+        static void print_found_list<T>(string name, T? selected, IEnumerable<Found<T>> list)
         {
-            AnsiConsole.WriteLine($"Compile commands: {ccs}");
-        }
+            var found = selected?.ToString() ?? "<None>";
+            var table = new Table();
 
-        static void print_found_list(string name, List<Found> list)
-        {
-            var found = list.GetFirstValueOrNull() ?? "<None>";
-            AnsiConsole.WriteLine($"{name}: {found}");
+            // name/found is not exactly column title but works for now
+            table.AddColumn(new TableColumn(name).RightAligned());
+            table.AddColumn(new TableColumn(found).NoWrap());
             foreach (var f in list)
             {
-                AnsiConsole.WriteLine($"    {f}");
+                var renderables = f.Findings.Select<FoundEntry<T>, IRenderable>(f => f switch
+                {
+                    FoundEntry<T>.Result r => Markup.FromInterpolated($"[blue]{r.Value}[/]"),
+                    FoundEntry<T>.Error e => Markup.FromInterpolated($"[red]{e.Reason}[/]"),
+                    _ => throw new ArgumentOutOfRangeException(nameof(f), f, null)
+                }).ToList();
+                if (renderables.Count == 0)
+                {
+                    // spectre rows doesn't like empty container so hack around with a empty text
+                    renderables.Add(new Text(string.Empty));
+                }
+                var rows = new Rows(renderables);
+                table.AddRow(new Text(f.Name), rows);
             }
+
+            table.Expand();
+            AnsiConsole.Write(table);
         }
     }
 }

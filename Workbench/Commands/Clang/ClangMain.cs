@@ -42,7 +42,7 @@ internal sealed class ListCommand : Command<ListCommand.Arg>
 
 internal sealed class TidyCommand : Command<TidyCommand.Arg>
 {
-    public sealed class Arg : CommandSettings
+    public sealed class Arg : CompileCommandsArguments
     {
         [Description("combinatory filter on what to run")]
         [CommandArgument(0, "<filter>")]
@@ -92,7 +92,7 @@ internal sealed class TidyCommand : Command<TidyCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return Log.PrintErrorsAtExit(print => ClangFacade.HandleRunClangTidyCommand(
-            print,
+            settings, print,
             settings.ClangTidy,
             settings.Force,
             settings.Headers,
