@@ -1,6 +1,6 @@
 using System.Xml;
 
-namespace Workbench.Shared;
+namespace Workbench.Shared.Extensions;
 
 internal static class XmlExtensions
 {

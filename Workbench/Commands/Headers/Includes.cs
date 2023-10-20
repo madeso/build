@@ -31,7 +31,7 @@ public class Includes
         {
             return "";
         }
-        var r = (new string[] { "libs", "external" }).Contains(b[0]) ? b[1] : b[0];
+        var r = (new[] { "libs", "external" }).Contains(b[0]) ? b[1] : b[0];
         if (r == "..")
         {
             return "";

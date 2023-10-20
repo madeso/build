@@ -1,5 +1,5 @@
 using System.Xml;
-using Workbench.Shared;
+using Workbench.Shared.Extensions;
 
 namespace Workbench.Shared.Doxygen;
 

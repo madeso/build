@@ -1,5 +1,3 @@
-using Workbench.Shared;
-
 namespace Workbench.Commands.Hero;
 
 internal class Html

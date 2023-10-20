@@ -119,7 +119,7 @@ internal static class IndentFunctions
                             // assume javadoc comment
                             if (indent % 2 == 1)
                             {
-                                return indent -= 1;
+                                return indent - 1;
                             }
 
                             return indent;

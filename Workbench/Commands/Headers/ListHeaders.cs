@@ -347,9 +347,6 @@ internal class FileWalker
                                 }
                             }
                             break;
-
-                        default:
-                            break;
                     }
                     break;
                 case Command cmd:
@@ -577,7 +574,7 @@ internal static class ListHeaderFunctions
 
     internal static (string, string) SplitIdentifier(string val)
     {
-        var re_ident = new Regex(@"[a-zA-Z_][a-zA-Z_0-9]*");
+        var re_ident = new Regex("[a-zA-Z_][a-zA-Z_0-9]*");
 
         var f = re_ident.Match(val);
         if (f.Success)

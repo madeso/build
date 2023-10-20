@@ -10,7 +10,7 @@ internal partial class TodoComments
 {
     internal static IEnumerable<TodoInFile> ListAllTodos(DirectoryInfo root)
     {
-        var extra_extensions = new string[] { ".jsonc" };
+        var extra_extensions = new[] { ".jsonc" };
         var extensions = FileUtil.HeaderAndSourceFiles.Concat(extra_extensions).ToArray();
 
         var build_folder = root.GetDir("build");

@@ -1,7 +1,6 @@
 using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Workbench.Shared;
 
 namespace Workbench.Shared.CMake
 {

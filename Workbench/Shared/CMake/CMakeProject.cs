@@ -1,5 +1,4 @@
 using Spectre.Console;
-using Workbench.Shared;
 
 namespace Workbench.Shared.CMake;
 

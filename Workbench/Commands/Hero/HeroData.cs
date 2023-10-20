@@ -57,7 +57,7 @@ public class UserInput
                 .ToImmutableArray()
                 ;
 
-            foreach (var x in changes.Where(x => x.Exist == true))
+            foreach (var x in changes.Where(x => x.Exist))
             {
                 AnsiConsole.WriteLine($"{x.Src} does not exist in {name}, but was replaced with {x.Dst}");
             }

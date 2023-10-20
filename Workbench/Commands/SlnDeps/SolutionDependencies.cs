@@ -1,7 +1,5 @@
 using Spectre.Console;
 using System.Collections.Immutable;
-using System.Text.RegularExpressions;
-using System.Xml;
 using Workbench.Shared;
 
 namespace Workbench.Commands.SlnDeps;
@@ -34,7 +32,7 @@ static class SlnDepsFunctions
         {
             if (cmake)
             {
-                return exclude.Concat(new string[] {
+                return exclude.Concat(new[] {
                         "ZERO_CHECK", "RUN_TESTS", "NightlyMemoryCheck", "ALL_BUILD",
                         "Continuous", "Experimental", "Nightly",
                     });

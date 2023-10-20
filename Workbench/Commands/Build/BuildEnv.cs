@@ -183,15 +183,15 @@ public static class BuildFunctions
         => compiler switch
         {
             Compiler.VisualStudio2015 => Is64Bit(platform)
-                ? new Shared.CMake.Generator("Visual Studio 14 2015 Win64")
-                : new Shared.CMake.Generator("Visual Studio 14 2015"),
+                ? new Generator("Visual Studio 14 2015 Win64")
+                : new Generator("Visual Studio 14 2015"),
             Compiler.VisualStudio2017 => Is64Bit(platform)
-                ? new Shared.CMake.Generator("Visual Studio 15 Win64")
-                : new Shared.CMake.Generator("Visual Studio 15"),
+                ? new Generator("Visual Studio 15 Win64")
+                : new Generator("Visual Studio 15"),
             Compiler.VisualStudio2019 =>
-                new Shared.CMake.Generator("Visual Studio 16 2019", GetCmakeArchitectureArgument(platform)),
+                new Generator("Visual Studio 16 2019", GetCmakeArchitectureArgument(platform)),
             Compiler.VisualStudio2022 =>
-                new Shared.CMake.Generator("Visual Studio 17 2022", GetCmakeArchitectureArgument(platform)),
+                new Generator("Visual Studio 17 2022", GetCmakeArchitectureArgument(platform)),
             _ => throw new Exception("Invalid compiler"),
         };
 

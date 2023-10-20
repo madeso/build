@@ -47,7 +47,7 @@ internal class Cube
 
     public static Vec3 GetMax(IEnumerable<Cube> subs)
         => subs
-        .SelectMany(c => new Vec3[] { c.Position, c.Position + c.Size })
+        .SelectMany(c => new[] { c.Position, c.Position + c.Size })
         .Aggregate(Vec3.Zero, Vec3.Max)
         ;
 }

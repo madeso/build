@@ -2,6 +2,7 @@ using Spectre.Console;
 using System.Collections.Immutable;
 using System.Xml;
 using Workbench.Shared.CMake;
+using Workbench.Shared.Extensions;
 
 namespace Workbench.Shared;
 

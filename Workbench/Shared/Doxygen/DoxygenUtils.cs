@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using Workbench.Shared;
 
 namespace Workbench.Shared.Doxygen;
 
@@ -118,7 +117,7 @@ internal static class DoxygenUtils
                 .Where(c => c.Kind == CompoundKind.Namespace)
                 .FirstOrDefault(c => c.Name == namespace_name)
                 ?.DoxygenFile
-                ?.FirstCompound
+                .FirstCompound
             ;
     }
 }

@@ -281,8 +281,8 @@ public static class IncludeTools
             {
                 if (print_include_order_error_for_include)
                 {
-                    FileLine? file = new (filename, line_num);
-                    string message = $"Include order error for {l}";
+                    FileLine file = new (filename, line_num);
+                    var message = $"Include order error for {l}";
                     print.Print(include_error_message, file, message);
                 }
                 r.HasInvalidOrder = true;

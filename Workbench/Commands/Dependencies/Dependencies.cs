@@ -50,7 +50,7 @@ public static class Dependencies
                     : k.CompoundName;
 
                 var node = g.AddNodeWithId(name, Shape.Box3d, k.Id);
-                classes!.Add(k.Id, node);
+                classes.Add(k.Id, node);
 
                 node.Cluster = g.FindOrCreateCluster(ns.CompoundName);
             }
@@ -65,7 +65,7 @@ public static class Dependencies
             }
 
             var node = g.AddNode(k.Name, Shape.Box);
-            classes!.Add(k.Id, node);
+            classes.Add(k.Id, node);
 
             var existing_refs = new HashSet<string>();
             AddTypeLink(g, classes, () => node, existing_refs, k.Type);
@@ -106,7 +106,7 @@ public static class Dependencies
                 }
 
                 // return value for a function or the type of the member
-                AddTypeLink(g, classes, () => graphviz_klass, existing_refs, member?.Type);
+                AddTypeLink(g, classes, () => graphviz_klass, existing_refs, member.Type);
             }
         }
 

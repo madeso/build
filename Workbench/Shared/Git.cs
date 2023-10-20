@@ -97,7 +97,7 @@ public static class Git
 
         string get_arg(string name, string def)
         {
-            if (args!.TryGetValue(name, out var ret))
+            if (args.TryGetValue(name, out var ret))
             {
                 return ret;
             }

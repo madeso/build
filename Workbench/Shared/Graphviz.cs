@@ -135,7 +135,7 @@ public class Graphviz
         var id = ConvertIntoSafeId(display, "node");
         var base_id = id;
         var index = 2;
-        while (id_to_node.ContainsKey(id) == true)
+        while (id_to_node.ContainsKey(id))
         {
             id = $"{base_id}_{index}";
             index += 1;

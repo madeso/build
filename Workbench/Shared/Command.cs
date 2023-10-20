@@ -173,15 +173,15 @@ public class ProcessBuilder
             {
                 result += (result.Length > 0 ? " " : "")
                     + arg
-                        .Replace(@" ", @"\ ")
+                        .Replace(" ", @"\ ")
                         .Replace("\t", "\\\t")
                         .Replace(@"\", @"\\")
                         .Replace(@"""", @"\""")
-                        .Replace(@"<", @"\<")
-                        .Replace(@">", @"\>")
-                        .Replace(@"|", @"\|")
-                        .Replace(@"@", @"\@")
-                        .Replace(@"&", @"\&");
+                        .Replace("<", @"\<")
+                        .Replace(">", @"\>")
+                        .Replace("|", @"\|")
+                        .Replace("@", @"\@")
+                        .Replace("&", @"\&");
             }
         }
         else //Windows family

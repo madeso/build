@@ -555,13 +555,6 @@ internal static class ClangFacade
     {
         var root = Environment.CurrentDirectory;
 
-        // var project_build_folder = CompileCommand.FindBuildRootOrNull(root);
-        // if (project_build_folder is null)
-        // {
-        //     log.Error("unable to find build folder");
-        //     return -1;
-        // }
-
         var data = MapAllFilesInRootOnFirstDir(root, FileUtil.HeaderAndSourceFiles);
 
         foreach (var (project, source_files) in data)
@@ -570,7 +563,7 @@ internal static class ClangFacade
             foreach (var file in source_files)
             {
                 AnsiConsole.WriteLine(Path.GetRelativePath(file, root));
-                if (nop != false)
+                if (nop)
                 {
                     continue;
                 }

@@ -1,5 +1,5 @@
 using System.Xml;
-using Workbench.Shared;
+using Workbench.Shared.Extensions;
 
 namespace Workbench.Shared.Doxygen;
 
@@ -707,13 +707,13 @@ class ChildNodeType
 {
     public ChildNodeType(XmlElement el)
     {
-        Edgelabel = el.ElementsNamed("edgelabel").Select(x => x.GetFirstText()).ToArray();
+        // Edgelabel = el.ElementsNamed("edgelabel").Select(x => x.GetFirstText()).ToArray();
         RefId = el.GetAttributeString("refid");
         Relation = el.GetAttributeEnum<DoxGraphRelation>("relation");
     }
 
     // elements
-    string[] Edgelabel { get; } // unspecified type
+    // string[] Edgelabel { get; } // unspecified type
 
     // attributes
     public string RefId { get; }
