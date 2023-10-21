@@ -40,7 +40,7 @@ internal partial class TodoComments
         var build_folder = root.GetDir("build");
         
         var files = FileUtil.IterateFiles(root, false, true)
-                .Where(f => FileUtil.IsHeaderOrSource(f) || FileUtil.ClassifySource(f) == Language.JsonConfig)
+                .Where(f => FileUtil.ClassifySource(f) != Language.Unknown)
                 .Select(f => f.FullName)
                 .Where(x => build_folder.HasFile(x) == false)
             ;
