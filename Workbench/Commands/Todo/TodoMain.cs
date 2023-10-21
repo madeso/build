@@ -89,17 +89,20 @@ internal sealed class GroupWithTimeCommand : AsyncCommand<GroupWithTimeCommand.A
             return file;
         });
 
-
-        var all_todos = todo_list.OrderBy(x => x.File.Name);
+        // group on file
+        var grouped = todo_list.OrderBy(x => x.File.Name)
+            .GroupBy(todo => todo.File,
+                (file, todos) => new {File=file, Todos=todos.ToImmutableArray()}
+                ).ToImmutableArray();
 
         // group by file to only run blame once (per file)
-        var todo_with_blame = await all_todos.GroupBy(todo => todo.File, async (file, todos) => {
-                var blames = await Shared.Git.BlameAsync(file).ToListAsync();
-                return todos
-                    .Select(x => new {Todo = x, Blame = blames[x.Line-1] })
-                    .ToImmutableArray();
-            })
-            .ToListAsync();
+        var todo_with_blame = await TodoComments.Progress().MapArrayAsync(grouped, async entry =>
+        {
+            var blames = await Shared.Git.BlameAsync(entry.File).ToListAsync();
+            return ($"Blaming {entry.File.FullName}", entry.Todos
+                .Select(x => new {Todo = x, Blame = blames[x.Line-1] })
+                .ToImmutableArray());
+        });
 
         // extract from file grouping and order by time
         var sorted_todos = todo_with_blame.SelectMany(x => x)
