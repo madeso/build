@@ -36,14 +36,14 @@ internal sealed class CatDirCommand : Command<CatDirCommand.Arg>
         [Description("Display all sources instead of just headers")]
         [CommandOption("--all")]
         [DefaultValue(false)]
-        public bool AllSources { get; set; }
+        public bool IncludeSources { get; set; }
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var dir = new DirectoryInfo(arg.Dir);
         foreach (var file in FileUtil.IterateFiles(dir, false, true)
-            .Where(file => FileUtil.FileHasAnyExtension(file.FullName, arg.AllSources ? FileUtil.HeaderAndSourceFiles : FileUtil.HeaderFiles))
+            .Where(file => arg.IncludeSources ? FileUtil.IsHeaderOrSource(file) : FileUtil.IsHeader(file))
         )
         {
             AnsiConsole.WriteLine($"File: {file.FullName}");

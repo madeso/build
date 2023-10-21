@@ -59,7 +59,7 @@ internal static class Ui
             // explicit included... then it's not excluded
             return false;
         }
-        else if (only_headers && FileUtil.IsHeader(file) == false)
+        else if (only_headers && FileUtil.IsHeader(new FileInfo(file)) == false)
         {
             return true;
         }

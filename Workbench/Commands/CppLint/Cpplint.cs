@@ -8,7 +8,7 @@ public static class Cpplint
 {
     private static IEnumerable<string> ListAllFiles(string root)
         => FileUtil.FilesInPitchfork(new DirectoryInfo(root), include_hidden: false)
-            .Where(file => file.HasAnyExtension(FileUtil.HeaderAndSourceFiles))
+            .Where(FileUtil.IsHeaderOrSource)
             // ignore pch
             .Where(file => file.Name.StartsWith("pch.") == false)
             .Select(f => f.FullName);

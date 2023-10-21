@@ -56,7 +56,7 @@ internal sealed class CheckForMissingInCmakeCommand : AsyncCommand<CheckForMissi
             }
 
             var count = 0;
-            foreach (var file in FileUtil.SourcesFromArgs(args.Folders, FileUtil.HeaderAndSourceFiles))
+            foreach (var file in FileUtil.SourcesFromArgs(args.Folders, FileUtil.IsHeaderOrSource))
             {
                 var resolved = new FileInfo(file).FullName;
                 if (paths.Contains(resolved) == false)

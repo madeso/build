@@ -29,7 +29,7 @@ internal sealed class CheckFileNamesCommand : Command<CheckFileNamesCommand.Arg>
         var files = 0;
         var errors = 0;
 
-        foreach (var file in FileUtil.SourcesFromArgs(args_files, FileUtil.HeaderAndSourceFiles))
+        foreach (var file in FileUtil.SourcesFromArgs(args_files, FileUtil.IsHeaderOrSource))
         {
             files += 1;
             if (file.Contains('-'))

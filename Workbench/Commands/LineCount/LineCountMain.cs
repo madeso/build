@@ -45,7 +45,7 @@ internal sealed class LineCountCommand : Command<LineCountCommand.Arg>
         var stats = new Dictionary<int, List<string>>();
         var file_count = 0;
 
-        foreach (var file in FileUtil.SourcesFromArgs(arg.Files, FileUtil.HeaderAndSourceFiles))
+        foreach (var file in FileUtil.SourcesFromArgs(arg.Files, FileUtil.IsHeaderOrSource))
         {
             file_count += 1;
 

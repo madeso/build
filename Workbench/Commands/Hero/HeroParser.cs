@@ -225,7 +225,7 @@ public class Analytics
         {
             if (include == path) { continue; }
 
-            var is_translation_unit = FileUtil.IsTranslationUnit(path);
+            var is_translation_unit = FileUtil.IsTranslationUnit(new FileInfo(path));
 
             Analyze(include, project);
 
@@ -334,7 +334,7 @@ public static class Report
                 .Sum();
             var total_lines = super_total_lines - pch_lines;
             var total_parsed = analytics.FileToData
-                .Where(kvp => FileUtil.IsTranslationUnit(kvp.Key) && !project.ScannedFiles[kvp.Key].IsPrecompiled)
+                .Where(kvp => FileUtil.IsTranslationUnit(new FileInfo(kvp.Key)) && !project.ScannedFiles[kvp.Key].IsPrecompiled)
                 .Select(kvp => kvp.Value.TotalIncludedLines + project.ScannedFiles[kvp.Key].NumberOfLines)
                 .Sum();
             var factor = total_parsed / (double)total_lines;
@@ -518,15 +518,14 @@ public class Scanner
         void scan_single_file(FileInfo file_info)
         {
             var file = file_info.FullName;
-            var ext = Path.GetExtension(file);
-            if (FileUtil.IsTranslationUnitExtension(ext))
+            if (FileUtil.IsTranslationUnit(file_info))
             {
                 AddToQueue(file, ParserFacade.canonicalize_or_default(file));
             }
             else
             {
                 // printer.info("invalid extension {}", ext);
-                MissingExt.AddOne(ext);
+                MissingExt.AddOne(file_info.Extension);
             }
         }
     }

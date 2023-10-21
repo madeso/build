@@ -286,7 +286,7 @@ internal class FileWalker
     {
         Stats.TotalFileCount += 1;
 
-        if (FileUtil.IsSource(path))
+        if (FileUtil.IsSource(new FileInfo(path)))
         {
             var parsed_blocks = ParseFileToBlocks(path, print);
             return BlockRecursive(print, directories, included_file_cache, path, defines, parsed_blocks, file_cache, depth);

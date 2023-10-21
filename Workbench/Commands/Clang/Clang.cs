@@ -163,10 +163,10 @@ internal static class ClangFacade
                 )
             ).ToArray();
 
-    private static CategoryAndFiles[] MapAllFilesInRootOnFirstDir(string root, string[] extensions)
+    private static CategoryAndFiles[] MapAllFilesInRootOnFirstDir(string root, Func<FileInfo, bool> extension_filter)
     {
         return MapFilesOnFirstDir(root, FileUtil.IterateFiles(new DirectoryInfo(root), false, true)
-            .Where(f => f.HasAnyExtension(extensions))
+            .Where(extension_filter)
             .Select(f => f.FullName)
         );
     }
@@ -403,7 +403,7 @@ internal static class ClangFacade
         // }
 
         var files = FileUtil.IterateFiles(new DirectoryInfo(root), false, true)
-            .Where(f => f.HasAnyExtension(FileUtil.SourceFiles))
+            .Where(FileUtil.IsSource)
             .Select(f => f.FullName);
 
         if (sort_files)
@@ -460,7 +460,7 @@ internal static class ClangFacade
         var total_classes = new ColCounter<string>();
         Dictionary<string, List<string>> warnings_per_file = new();
 
-        var data = MapAllFilesInRootOnFirstDir(root, headers ? FileUtil.HeaderAndSourceFiles : FileUtil.SourceFiles);
+        var data = MapAllFilesInRootOnFirstDir(root, headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource);
         var stats = new FileStatistics();
 
         foreach (var (project, source_files) in data)
@@ -561,7 +561,7 @@ internal static class ClangFacade
     {
         var root = Environment.CurrentDirectory;
 
-        var data = MapAllFilesInRootOnFirstDir(root, FileUtil.HeaderAndSourceFiles);
+        var data = MapAllFilesInRootOnFirstDir(root, FileUtil.IsHeaderOrSource);
 
         foreach (var (project, source_files) in data)
         {

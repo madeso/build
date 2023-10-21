@@ -37,13 +37,10 @@ internal partial class TodoComments
 
     public static ImmutableArray<string> ListFiles(DirectoryInfo root)
     {
-        var extra_extensions = new[] { ".jsonc" };
-        var extensions = FileUtil.HeaderAndSourceFiles.Concat(extra_extensions).ToArray();
-
         var build_folder = root.GetDir("build");
         
         var files = FileUtil.IterateFiles(root, false, true)
-                .Where(f => f.HasAnyExtension(extensions))
+                .Where(f => FileUtil.IsHeaderOrSource(f) || FileUtil.ClassifySource(f) == Language.JsonConfig)
                 .Select(f => f.FullName)
                 .Where(x => build_folder.HasFile(x) == false)
             ;

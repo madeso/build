@@ -26,9 +26,4 @@ public static class FileExtensions
     {
         return Path.GetRelativePath(build_folder.FullName, x).StartsWith("..") == false;
     }
-
-    public static bool HasAnyExtension(this FileInfo file, string[] extensions)
-    {
-        return FileUtil.FileHasAnyExtension(file.FullName, extensions);
-    }
 }
