@@ -5,7 +5,7 @@ namespace Workbench.Shared.Extensions;
 
 public static class SpectreExtensions
 {
-    public static async Task RunArray<T>(this Progress progress, ImmutableArray<T> arr, Func<T, Task<string>> action)
+    public static async Task RunArrayAsync<T>(this Progress progress, ImmutableArray<T> arr, Func<T, Task<string>> action)
     {
         if (arr.Length == 1)
         {

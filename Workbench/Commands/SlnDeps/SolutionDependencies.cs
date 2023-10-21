@@ -66,7 +66,7 @@ static class SlnDepsFunctions
     // logic
     // ======================================================================================================================
 
-    private static void RunGraphviz(Log log, string target_file, string image_format, string graphviz_layout)
+    private static async Task RunGraphvizAsync(Log log, string target_file, string image_format, string graphviz_layout)
     {
         var cmdline = new ProcessBuilder(
             "dot",
@@ -75,7 +75,7 @@ static class SlnDepsFunctions
             "-O" + target_file + "." + image_format
         );
         AnsiConsole.WriteLine($"Running graphviz {cmdline}");
-        cmdline.RunAndPrintOutput(log);
+        await cmdline.RunAndPrintOutputAsync(log);
     }
 
 
@@ -90,7 +90,7 @@ static class SlnDepsFunctions
     // Handlers
     // ======================================================================================================================
 
-    public static int HandleGenerate(Log log, string target,
+    public static async Task<int> HandleGenerateAsync(Log log, string target,
             string format,
             ExclusionList exclude,
             bool simplify,
@@ -115,7 +115,7 @@ static class SlnDepsFunctions
 
         gv.WriteFile(target_file);
 
-        RunGraphviz(log, target_file, image_format, graphviz_layout);
+        await RunGraphvizAsync(log, target_file, image_format, graphviz_layout);
 
         return 0;
     }

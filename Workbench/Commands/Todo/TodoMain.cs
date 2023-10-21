@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Spectre.Console;
@@ -36,9 +37,9 @@ internal sealed class FindTodosCommand : AsyncCommand<FindTodosCommand.Arg>
         var cc = new ColCounter<string>();
 
         var source_files = TodoComments.ListFiles(root);
-        await TodoComments.Progress().RunArray(source_files, async file =>
+        await TodoComments.Progress().RunArrayAsync(source_files, async file =>
         {
-            var todos = await TodoComments.FindTodosInFile(file);
+            var todos = await TodoComments.FindTodosInFileAsync(file);
 
             foreach (var todo in todos)
             {
@@ -81,9 +82,9 @@ internal sealed class GroupWithTimeCommand : AsyncCommand<GroupWithTimeCommand.A
         var todo_list = new List<TodoInFile>();
 
         var source_files = TodoComments.ListFiles(root);
-        await TodoComments.Progress().RunArray(source_files, async file =>
+        await TodoComments.Progress().RunArrayAsync(source_files, async file =>
         {
-            var todos = await TodoComments.FindTodosInFile(file);
+            var todos = await TodoComments.FindTodosInFileAsync(file);
             todo_list.AddRange(todos);
             return file;
         });
@@ -92,13 +93,17 @@ internal sealed class GroupWithTimeCommand : AsyncCommand<GroupWithTimeCommand.A
         var all_todos = todo_list.OrderBy(x => x.File.Name);
 
         // group by file to only run blame once (per file)
-        var todo_with_blame = all_todos.GroupBy(todo => todo.File, (file, todos) => {
-                var blames = Shared.Git.Blame(file).ToArray();
-                return todos.Select(x => new {Todo = x, Blame = blames[x.Line-1] });
-            });
+        var todo_with_blame = await all_todos.GroupBy(todo => todo.File, async (file, todos) => {
+                var blames = await Shared.Git.BlameAsync(file).ToListAsync();
+                return todos
+                    .Select(x => new {Todo = x, Blame = blames[x.Line-1] })
+                    .ToImmutableArray();
+            })
+            .ToListAsync();
 
         // extract from file grouping and order by time
-        var sorted_todos = todo_with_blame.SelectMany(x => x).OrderByDescending(x => blame_to_time(x.Blame));
+        var sorted_todos = todo_with_blame.SelectMany(x => x)
+            .OrderByDescending(x => blame_to_time(x.Blame));
 
         // group on x time ago to break up the info dump
         var time_grouped = sorted_todos.GroupBy(x => blame_to_time(x.Blame).GetTimeAgoString(),

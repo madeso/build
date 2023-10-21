@@ -10,11 +10,11 @@ public static class Git
 
     public record GitStatusEntry(GitStatus Status, string Path);
 
-    public static IEnumerable<GitStatusEntry> Status(string folder)
+    public static async IAsyncEnumerable<GitStatusEntry> StatusAsync(string folder)
     {
-        var output = new ProcessBuilder("git", "status", "--porcelain=v1")
+        var output = (await new ProcessBuilder("git", "status", "--porcelain=v1")
             .InDirectory(folder)
-            .RunAndGetOutput()
+            .RunAndGetOutputAsync())
             .RequireSuccess()
             ;
         foreach (var item in output.Select(x => x.Line))
@@ -46,11 +46,11 @@ public static class Git
             Author Author, Author Committer, string Summary, string Filename
         );
 
-    public static IEnumerable<BlameLine> Blame(FileInfo file)
+    public static async IAsyncEnumerable<BlameLine> BlameAsync(FileInfo file)
     {
-        var output = new ProcessBuilder("git", "blame", "--porcelain", file.Name)
+        var output = (await new ProcessBuilder("git", "blame", "--porcelain", file.Name)
             .InDirectory(file.DirectoryName!)
-            .RunAndGetOutput()
+            .RunAndGetOutputAsync())
             .RequireSuccess()
             ;
         var hash = string.Empty;
@@ -121,14 +121,14 @@ public static class Git
             string Subject
         );
 
-    public static IEnumerable<LogLine> Log(string folder)
+    public static async IAsyncEnumerable<LogLine> LogAsync(string folder)
     {
         const char SEPARATOR = ';';
         var log_format = string.Join(SEPARATOR, "%h", "%p", "%an", "%ae", "%aI", "%cn", "%ce", "%cI", "%s");
         var sep_count = log_format.Count(c => c == SEPARATOR);
-        var output = new ProcessBuilder("git", "log", $"--format=format:{log_format}")
+        var output = (await new ProcessBuilder("git", "log", $"--format=format:{log_format}")
                 .InDirectory(folder)
-                .RunAndGetOutput()
+                .RunAndGetOutputAsync())
                 .RequireSuccess()
             ;
         foreach (var line in output.Select(x => x.Line))

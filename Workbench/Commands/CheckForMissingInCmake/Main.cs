@@ -16,7 +16,7 @@ Previous commands for refactoring info:
    wb tools check-missing-in-cmake libs apps
  */
 [Description("find files that exists on disk but are missing in cmake")]
-internal sealed class CheckForMissingInCmakeCommand : Command<CheckForMissingInCmakeCommand.Arg>
+internal sealed class CheckForMissingInCmakeCommand : AsyncCommand<CheckForMissingInCmakeCommand.Arg>
 {
     public sealed class Arg : CompileCommandsArguments
     {
@@ -25,9 +25,9 @@ internal sealed class CheckForMissingInCmakeCommand : Command<CheckForMissingInC
         public string[] Folders { get; set; } = Array.Empty<string>();
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg args)
     {
-        return Log.PrintErrorsAtExit(print =>
+        return await Log.PrintErrorsAtExitAsync(async print =>
         {
             var cmake = FindCMake.RequireInstallationOrNull(print);
             if (cmake == null)
@@ -42,7 +42,7 @@ internal sealed class CheckForMissingInCmakeCommand : Command<CheckForMissingInC
             var bases = args.Folders.Select(FileUtil.RealPath).ToImmutableArray();
 
             var paths = new HashSet<string>();
-            foreach (var cmd in CMakeTrace.TraceDirectory(cmake, build_root))
+            foreach (var cmd in await CMakeTrace.TraceDirectoryAsync(cmake, build_root))
             {
                 if (!bases.Select(b => FileUtil.FileIsInFolder(cmd.File!, b)).Any())
                 {

@@ -53,7 +53,7 @@ internal class ProcessExitWithOutput
 
 public class ProcessBuilder
 {
-    internal ProcessExit RunWithCallback(
+    internal async Task<ProcessExit> RunWithCallbackAsync(
         IEnumerable<string>? input, Action<string> on_stdout, Action<string> on_stderr, Action<string, Exception> on_fail)
     {
         // Prepare the process to run
@@ -87,14 +87,14 @@ public class ProcessBuilder
             {
                 foreach(var line in input)
                 {
-                    proc.StandardInput.WriteLine(line);
+                    await proc.StandardInput.WriteLineAsync(line);
                 }
                 proc.StandardInput.Close();
             }
             
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
-            proc.WaitForExit();
+            await proc.WaitForExitAsync();
 
             return new(ToString(), proc.ExitCode);
         }
@@ -105,11 +105,11 @@ public class ProcessBuilder
         }
     }
 
-    internal ProcessExitWithOutput RunAndGetOutput()
+    internal async Task<ProcessExitWithOutput> RunAndGetOutputAsync()
     {
         var output = new List<OutputLine>();
 
-        var ret = RunWithCallback(null,
+        var ret = await RunWithCallbackAsync(null,
             line => output.Add(new OutputLine(line, false)),
             line => output.Add(new OutputLine(line, true)),
             (line, ex) => {
@@ -120,11 +120,11 @@ public class ProcessBuilder
         return new(ret, output.ToArray());
     }
 
-    internal ProcessExitWithOutput RunAndGetOutput(IEnumerable<string> lines)
+    internal async Task<ProcessExitWithOutput> RunAndGetOutputAsync(IEnumerable<string> lines)
     {
         var output = new List<OutputLine>();
 
-        var ret = RunWithCallback(lines,
+        var ret = await RunWithCallbackAsync(lines,
             line => output.Add(new OutputLine(line, false)),
             line => output.Add(new OutputLine(line, true)),
             (line, ex) => {
@@ -223,9 +223,9 @@ public class ProcessBuilder
         return $"{Executable} {args}";
     }
 
-    internal void RunAndPrintOutput(Log log)
+    internal async Task RunAndPrintOutputAsync(Log log)
     {
-        var pe = RunWithCallback(null, AnsiConsole.WriteLine, log.Error,
+        var pe = await RunWithCallbackAsync(null, AnsiConsole.WriteLine, log.Error,
             (mess, ex) => {
                 log.Error(mess);
                 log.Error(ex.Message);

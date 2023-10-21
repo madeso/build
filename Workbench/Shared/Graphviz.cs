@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Workbench.Shared.Extensions;
 
 namespace Workbench.Shared;
 
@@ -197,13 +198,13 @@ public class Graphviz
         File.WriteAllLines(path, Lines);
     }
 
-    public string[] WriteSvg()
+    public async Task<string[]> WriteSvgAsync()
     {
         var cmdline = new ProcessBuilder(
             "dot",
             "-Tsvg"
         );
-        var output = cmdline.RunAndGetOutput(Lines);
+        var output = await cmdline.RunAndGetOutputAsync(Lines);
 
         if (output.ExitCode != 0)
         {
@@ -221,9 +222,9 @@ public class Graphviz
         return ret;
     }
 
-    public IEnumerable<string> WriteHtml(string file, bool use_max_width = false)
+    public async IAsyncEnumerable<string> WriteHtmlAsync(string file, bool use_max_width = false)
     {
-        var svg = WriteSvg();
+        var svg = await WriteSvgAsync();
 
         yield return "<!DOCTYPE html>";
         yield return "<html>";
@@ -278,7 +279,7 @@ public class Graphviz
         yield return "</html>";
     }
 
-    public void SmartWriteFile(string path)
+    public async Task SmartWriteFileAsync(string path)
     {
         switch (Path.GetExtension(path))
         {
@@ -289,10 +290,10 @@ public class Graphviz
                 WriteFile(path);
                 break;
             case ".svg":
-                File.WriteAllLines(path, WriteSvg());
+                await File.WriteAllLinesAsync(path, await WriteSvgAsync());
                 break;
             case ".html":
-                File.WriteAllLines(path, WriteHtml(path));
+                await File.WriteAllLinesAsync(path, await WriteHtmlAsync(path).ToListAsync());
                 break;
         }
     }

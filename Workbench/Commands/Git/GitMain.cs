@@ -5,7 +5,7 @@ using Spectre.Console.Cli;
 
 namespace Workbench.Commands.Git;
 
-internal sealed class BlameCommand : Command<BlameCommand.Arg>
+internal sealed class BlameCommand : AsyncCommand<BlameCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -14,9 +14,9 @@ internal sealed class BlameCommand : Command<BlameCommand.Arg>
         public string File { get; set; } = "";
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        foreach(var line in Shared.Git.Blame(new FileInfo(settings.File)))
+        await foreach(var line in Shared.Git.BlameAsync(new FileInfo(settings.File)))
         {
             AnsiConsole.MarkupLineInterpolated($"{line.Author.Name} {line.Author.Time} {line.FinalLineNumber}: {line.Line}");
         }
@@ -24,7 +24,7 @@ internal sealed class BlameCommand : Command<BlameCommand.Arg>
     }
 }
 
-internal sealed class StatusCommand : Command<StatusCommand.Arg>
+internal sealed class StatusCommand : AsyncCommand<StatusCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -33,11 +33,10 @@ internal sealed class StatusCommand : Command<StatusCommand.Arg>
         public string Root { get; set; } = "";
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         AnsiConsole.MarkupLineInterpolated($"Status for [green]{settings.Root}[/].");
-        var r = Shared.Git.Status(settings.Root);
-        foreach (var line in r)
+        await foreach (var line in Shared.Git.StatusAsync(settings.Root))
         {
             string status = string.Empty;
             if (File.Exists(line.Path))
@@ -63,7 +62,7 @@ internal sealed class StatusCommand : Command<StatusCommand.Arg>
     }
 }
 
-internal sealed class RemoveUnknownCommand : Command<RemoveUnknownCommand.Arg>
+internal sealed class RemoveUnknownCommand : AsyncCommand<RemoveUnknownCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -77,11 +76,10 @@ internal sealed class RemoveUnknownCommand : Command<RemoveUnknownCommand.Arg>
         public bool Recursive { get; set; }
     }
 
-    private static void WalkDirectory(string dir, bool recursive)
+    private static async Task WalkDirectoryAsync(string dir, bool recursive)
     {
         AnsiConsole.MarkupLineInterpolated($"Removing unknowns from [green]{dir}[/].");
-        var r = Shared.Git.Status(dir);
-        foreach (var line in r)
+        await foreach (var line in Shared.Git.StatusAsync(dir))
         {
             switch (line.Status)
             {
@@ -101,21 +99,21 @@ internal sealed class RemoveUnknownCommand : Command<RemoveUnknownCommand.Arg>
                     if (recursive && Directory.Exists(line.Path))
                     {
                         AnsiConsole.MarkupLineInterpolated($"Modified directory [blue]{line.Path}[/] assumed to be submodule.");
-                        WalkDirectory(line.Path, recursive);
+                        await WalkDirectoryAsync(line.Path, recursive);
                     }
                     break;
             }
         }
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        WalkDirectory(settings.Root, settings.Recursive);
+        await WalkDirectoryAsync(settings.Root, settings.Recursive);
         return 0;
     }
 }
 
-internal sealed class AuthorsCommand : Command<AuthorsCommand.Arg>
+internal sealed class AuthorsCommand : AsyncCommand<AuthorsCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -150,10 +148,10 @@ internal sealed class AuthorsCommand : Command<AuthorsCommand.Arg>
         }
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var authors = new Dictionary<string, State>();
-        foreach (var e in Shared.Git.Log(Environment.CurrentDirectory))
+        await foreach (var e in Shared.Git.LogAsync(Environment.CurrentDirectory))
         {
             var email = e.AuthorEmail;
             var date = e.AuthorDate;

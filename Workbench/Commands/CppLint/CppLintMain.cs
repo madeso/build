@@ -25,7 +25,7 @@ internal sealed class LsCommand : Command<LsCommand.Arg>
 }
 
 [Description("run all files")]
-internal sealed class RunCommand : Command<RunCommand.Arg>
+internal sealed class RunCommand : AsyncCommand<RunCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -35,9 +35,9 @@ internal sealed class RunCommand : Command<RunCommand.Arg>
         public string? Root { get; set; } = null;
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Log.PrintErrorsAtExit(print => Cpplint.HandleRun(print, settings.Root ?? Environment.CurrentDirectory));
+        return await Log.PrintErrorsAtExitAsync(async print => await Cpplint.HandleRun(print, settings.Root ?? Environment.CurrentDirectory));
     }
 }
 

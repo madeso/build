@@ -100,5 +100,17 @@ public class Log
 
         return ret;
     }
+    
+    public static async Task<int> PrintErrorsAtExitAsync(Func<Log, Task<int>> callback)
+    {
+        var printer = new Log();
+        var ret = await callback(printer);
+        if (printer.error_count > 0)
+        {
+            AnsiConsole.MarkupLineInterpolated($"Errors detected: ({printer.error_count})");
+        }
+
+        return ret;
+    }
 }
 

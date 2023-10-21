@@ -39,32 +39,36 @@ internal sealed class InitCommand : Command<InitCommand.Arg>
     }
 }
 
-internal sealed class StatusCommand : Command<StatusCommand.Arg>
+internal sealed class StatusCommand : AsyncCommand<StatusCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return BuildFacade.WithLoadedBuildData(BuildFacade.HandleBuildStatus);
+        return await BuildFacade.WithLoadedBuildDataAsync(async (log, data) =>
+        {
+            await Task.Delay(0); // hack since all build data are async
+            return BuildFacade.HandleBuildStatus(log, data);
+        });
     }
 }
 
-internal sealed class InstallCommand : Command<InstallCommand.Arg>
+internal sealed class InstallCommand : AsyncCommand<InstallCommand.Arg>
 {
     public sealed class Arg : EnvironmentArgument
     {
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return BuildFacade.HandleGenericBuild(settings, BuildFacade.HandleInstall);
+        return await BuildFacade.HandleGenericBuildAsync(settings, BuildFacade.HandleInstallAsync);
     }
 }
 
 
-internal sealed class CmakeCommand : Command<CmakeCommand.Arg>
+internal sealed class CmakeCommand : AsyncCommand<CmakeCommand.Arg>
 {
     public sealed class Arg : EnvironmentArgument
     {
@@ -74,36 +78,36 @@ internal sealed class CmakeCommand : Command<CmakeCommand.Arg>
         public bool Nop { get; set; }
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return BuildFacade.HandleGenericBuild(
+        return await BuildFacade.HandleGenericBuildAsync(
             settings,
-            (printer, env, data) => BuildFacade.HandleCmake(settings.Nop, printer, env, data));
+            (printer, env, data) => BuildFacade.HandleCmakeAsync(settings.Nop, printer, env, data));
     }
 }
 
 
-internal sealed class DevCommand : Command<DevCommand.Arg>
+internal sealed class DevCommand : AsyncCommand<DevCommand.Arg>
 {
     public sealed class Arg : EnvironmentArgument
     {
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return BuildFacade.HandleGenericBuild(settings, BuildFacade.HandleDev);
+        return await BuildFacade.HandleGenericBuildAsync(settings, BuildFacade.HandleDevAsync);
     }
 }
 
 
-internal sealed class BuildCommand : Command<BuildCommand.Arg>
+internal sealed class BuildCommand : AsyncCommand<BuildCommand.Arg>
 {
     public sealed class Arg : EnvironmentArgument
     {
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return BuildFacade.HandleGenericBuild(settings, BuildFacade.HandleBuild);
+        return await BuildFacade.HandleGenericBuildAsync(settings, BuildFacade.HandleBuildAsync);
     }
 }

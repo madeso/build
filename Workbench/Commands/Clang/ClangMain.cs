@@ -40,7 +40,7 @@ internal sealed class ListCommand : Command<ListCommand.Arg>
     }
 }
 
-internal sealed class TidyCommand : Command<TidyCommand.Arg>
+internal sealed class TidyCommand : AsyncCommand<TidyCommand.Arg>
 {
     public sealed class Arg : CompileCommandsArguments
     {
@@ -89,9 +89,9 @@ internal sealed class TidyCommand : Command<TidyCommand.Arg>
         public string ClangTidy { get; set; } = string.Empty;
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Log.PrintErrorsAtExit(print => ClangFacade.HandleRunClangTidyCommand(
+        return await Log.PrintErrorsAtExitAsync(print => ClangFacade.HandleRunClangTidyCommand(
             settings, print,
             settings.ClangTidy,
             settings.Force,
@@ -104,7 +104,7 @@ internal sealed class TidyCommand : Command<TidyCommand.Arg>
     }
 }
 
-internal sealed class FormatCommand : Command<FormatCommand.Arg>
+internal sealed class FormatCommand : AsyncCommand<FormatCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -114,9 +114,9 @@ internal sealed class FormatCommand : Command<FormatCommand.Arg>
         public bool Nop { get; set; }
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Log.PrintErrorsAtExit(print => ClangFacade.HandleClangFormatCommand(print, settings.Nop));
+        return await Log.PrintErrorsAtExitAsync(async print => await ClangFacade.HandleClangFormatCommand(print, settings.Nop));
     }
 }
 

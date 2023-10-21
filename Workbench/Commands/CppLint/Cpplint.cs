@@ -25,13 +25,13 @@ public static class Cpplint
     }
 
 
-    public static int HandleRun(Log log, string root)
+    public static async Task<int> HandleRun(Log log, string root)
     {
         var files = ListAllFiles(root);
         var has_errors = false;
         foreach (var f in files)
         {
-            var ret = new ProcessBuilder("cpplint", f).RunAndGetOutput();
+            var ret = await new ProcessBuilder("cpplint", f).RunAndGetOutputAsync();
             if (ret.ExitCode != 0)
             {
                 var stdout = string.Join("\n", ret.Output.Select(x => x.Line));

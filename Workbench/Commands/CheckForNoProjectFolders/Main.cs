@@ -17,7 +17,7 @@ Previous commands for refactoring info:
    wb tools check-no-project-folders libs apps external tools data
  */
 [Description("find projects that have not set the solution folder")]
-internal sealed class CheckForNoProjectFoldersCommand : Command<CheckForNoProjectFoldersCommand.Arg>
+internal sealed class CheckForNoProjectFoldersCommand : AsyncCommand<CheckForNoProjectFoldersCommand.Arg>
 {
     public sealed class Arg : CompileCommandsArguments
     {
@@ -26,9 +26,9 @@ internal sealed class CheckForNoProjectFoldersCommand : Command<CheckForNoProjec
         public string[] Files { get; set; } = Array.Empty<string>();
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Log.PrintErrorsAtExit(print =>
+        return await Log.PrintErrorsAtExitAsync(async print =>
         {
             var cmake = FindCMake.RequireInstallationOrNull(print);
             if (cmake == null)
@@ -43,11 +43,11 @@ internal sealed class CheckForNoProjectFoldersCommand : Command<CheckForNoProjec
                 return -1;
             }
 
-            return CheckForNoProjectFolders(settings.Files, build_root, cmake);
+            return await CheckForNoProjectFolders(settings.Files, build_root, cmake);
         });
     }
 
-    public static int CheckForNoProjectFolders(string[] args_files, string build_root, string cmake)
+    public static async Task<int> CheckForNoProjectFolders(string[] args_files, string build_root, string cmake)
     {
         var bases = args_files.Select(FileUtil.RealPath).ToImmutableArray();
 
@@ -56,7 +56,7 @@ internal sealed class CheckForNoProjectFoldersCommand : Command<CheckForNoProjec
         var files = new Dictionary<string, string>();
         var project_folders = new ColCounter<string>();
 
-        foreach (var cmd in CMakeTrace.TraceDirectory(cmake, build_root))
+        foreach (var cmd in await CMakeTrace.TraceDirectoryAsync(cmake, build_root))
         {
             if (cmd.File == null) { continue; }
 

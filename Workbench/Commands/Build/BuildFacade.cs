@@ -20,37 +20,37 @@ internal static class BuildFacade
         return ConfigFile.WriteInit(print, overwrite, BuildFile.GetBuildDataPath(), data);
     }
 
-    public static int HandleInstall(Log log, BuildEnvironment build, BuildData data)
+    public static async Task<int> HandleInstallAsync(Log log, BuildEnvironment build, BuildData data)
     {
         SaveBuildData(log, build, data);
-        RunInstall(build, data, log);
+        await RunInstallAsync(build, data, log);
         return 0;
     }
 
-    internal static int HandleBuild(Log log, BuildEnvironment build, BuildData data)
+    internal static async Task<int> HandleBuildAsync(Log log, BuildEnvironment build, BuildData data)
     {
         SaveBuildData(log, build, data);
-        GenerateCmakeProject(build, data).Build(log, Shared.CMake.Config.Release);
+        await GenerateCmakeProjectAsync(build, data).BuildAsync(log, Shared.CMake.Config.Release);
         return 0;
     }
 
-    internal static int HandleDev(Log log, BuildEnvironment build, BuildData data)
+    internal static async Task<int> HandleDevAsync(Log log, BuildEnvironment build, BuildData data)
     {
         SaveBuildData(log, build, data);
-        RunInstall(build, data, log);
-        RunCmake(build, data, log, false);
+        await RunInstallAsync(build, data, log);
+        await RunCmakeAsync(build, data, log, false);
         return 0;
     }
 
-    public static int HandleCmake(bool nop, Log log, BuildEnvironment build, BuildData data)
+    public static async Task<int> HandleCmakeAsync(bool nop, Log log, BuildEnvironment build, BuildData data)
     {
         SaveBuildData(log, build, data);
-        RunCmake(build, data, log, nop);
+        await RunCmakeAsync(build, data, log, nop);
         return 0;
     }
 
     // generate the ride project
-    internal static CMakeProject GenerateCmakeProject(BuildEnvironment build, BuildData data)
+    internal static CMakeProject GenerateCmakeProjectAsync(BuildEnvironment build, BuildData data)
     {
         var project = new CMakeProject(data.ProjectDirectory, data.RootDirectory, build.CreateCmakeGenerator());
 
@@ -64,19 +64,19 @@ internal static class BuildFacade
 
 
     // install dependencies
-    internal static void RunInstall(BuildEnvironment env, BuildData data, Log print)
+    internal static async Task RunInstallAsync(BuildEnvironment env, BuildData data, Log print)
     {
         foreach (var dep in data.Dependencies)
         {
-            dep.Install(env, print, data);
+            await dep.InstallAsync(env, print, data);
         }
     }
 
 
     // configure the euphoria cmake project
-    internal static void RunCmake(BuildEnvironment build, BuildData data, Log log, bool nop)
+    internal static async Task RunCmakeAsync(BuildEnvironment build, BuildData data, Log log, bool nop)
     {
-        GenerateCmakeProject(build, data).Configure(log, nop);
+        await GenerateCmakeProjectAsync(build, data).ConfigureAsync(log, nop);
     }
 
     // save the build environment to the settings file
@@ -120,9 +120,9 @@ internal static class BuildFacade
         return 0;
     }
 
-    public static int WithLoadedBuildData(Func<Log, BuildData, int> callback)
+    public static async Task<int> WithLoadedBuildDataAsync(Func<Log, BuildData, Task<int>> callback)
     {
-        return Log.PrintErrorsAtExit(print =>
+        return await Log.PrintErrorsAtExitAsync(async print =>
         {
             var data = BuildData.LoadOrNull(print);
             if (data == null)
@@ -132,14 +132,14 @@ internal static class BuildFacade
             }
             else
             {
-                return callback(print, data.Value);
+                return await callback(print, data.Value);
             }
         });
     }
 
-    internal static int HandleGenericBuild(EnvironmentArgument args, Func<Log, BuildEnvironment, BuildData, int> callback)
+    internal static async Task<int> HandleGenericBuildAsync(EnvironmentArgument args, Func<Log, BuildEnvironment, BuildData, Task<int>> callback)
     {
-        return WithLoadedBuildData((printer, data) =>
+        return await WithLoadedBuildDataAsync(async (printer, data) =>
         {
             var env = BuildFunctions.LoadFromFileOrCreateEmpty(data.GetPathToSettingsFile(), printer);
             env.UpdateFromArguments(printer, args);
@@ -148,7 +148,7 @@ internal static class BuildFacade
                 return -1;
             }
 
-            return callback(printer, env, data);
+            return await callback(printer, env, data);
         });
     }
 }

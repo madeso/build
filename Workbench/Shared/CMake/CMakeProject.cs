@@ -97,7 +97,7 @@ public class CMakeProject
     }
 
     // run cmake configure step
-    public void Configure(Log log, bool nop = false)
+    public async Task ConfigureAsync(Log log, bool nop = false)
     {
         var cmake = FindCMake.RequireInstallationOrNull(log);
         if (cmake == null)
@@ -133,7 +133,7 @@ public class CMakeProject
             }
             else
             {
-                command.RunAndPrintOutput(log);
+                await command.RunAndPrintOutputAsync(log);
             }
         }
         else
@@ -143,7 +143,7 @@ public class CMakeProject
     }
 
     // run cmake build step
-    private void RunBuildCommand(Log log, Install install, Config config)
+    private async Task RunBuildCommandAsync(Log log, Install install, Config config)
     {
         var cmake = FindCMake.RequireInstallationOrNull(log);
         if (cmake == null)
@@ -174,7 +174,7 @@ public class CMakeProject
 
         if (Core.IsWindows())
         {
-            command.RunAndPrintOutput(log);
+            await command.RunAndPrintOutputAsync(log);
         }
         else
         {
@@ -183,14 +183,14 @@ public class CMakeProject
     }
 
     // build cmake project
-    public void Build(Log log, Config config)
+    public async Task BuildAsync(Log log, Config config)
     {
-        RunBuildCommand(log, CMake.Install.No, config);
+        await RunBuildCommandAsync(log, CMake.Install.No, config);
     }
 
     // install cmake project
-    public void Install(Log log, Config config)
+    public async Task InstallAsync(Log log, Config config)
     {
-        RunBuildCommand(log, CMake.Install.Yes, config);
+        await RunBuildCommandAsync(log, CMake.Install.Yes, config);
     }
 }

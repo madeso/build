@@ -10,7 +10,7 @@ internal record TodoInFile(FileInfo File, int Line, string Todo);
 
 internal partial class TodoComments
 {
-    internal static async Task<ImmutableArray<TodoInFile>> FindTodosInFile(string file)
+    internal static async Task<ImmutableArray<TodoInFile>> FindTodosInFileAsync(string file)
     {
         var lines = await File.ReadAllLinesAsync(file);
         return lines

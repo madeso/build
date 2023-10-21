@@ -7,7 +7,7 @@ using Workbench.Shared;
 namespace Workbench.Commands.Dependencies;
 
 
-internal sealed class ListGraphvizCommand : Command<ListGraphvizCommand.Arg>
+internal sealed class ListGraphvizCommand : AsyncCommand<ListGraphvizCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -44,11 +44,11 @@ internal sealed class ListGraphvizCommand : Command<ListGraphvizCommand.Arg>
         public bool? ClusterNamespace { get; init; }
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return Log.PrintErrorsAtExit(printer =>
+        return await Log.PrintErrorsAtExitAsync(async printer =>
             {
-                Dependencies.WriteToGraphviz(printer, arg.DoxygenXml, arg.NamespaceFilter, arg.OutputFile,
+                await Dependencies.WriteToGraphvizAsync(printer, arg.DoxygenXml, arg.NamespaceFilter, arg.OutputFile,
                     arg.IgnoredClasses.ToImmutableHashSet(),
                     !(arg.NoIncludeFunctions ?? false),
                     !(arg.NoAddArguments ?? false),
@@ -62,7 +62,7 @@ internal sealed class ListGraphvizCommand : Command<ListGraphvizCommand.Arg>
 }
 
 
-internal sealed class ListCallGraph : Command<ListCallGraph.Arg>
+internal sealed class ListCallGraph : AsyncCommand<ListCallGraph.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -83,9 +83,9 @@ internal sealed class ListCallGraph : Command<ListCallGraph.Arg>
         public Dependencies.ClusterCallGraphOn? ClusterOn { get; init; }
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        Dependencies.WriteCallGraphToGraphviz(arg.DoxygenXml, arg.OutputFile,
+        await Dependencies.WriteCallGraphToGraphvizAsync(arg.DoxygenXml, arg.OutputFile,
             arg.ClusterOn ?? Dependencies.ClusterCallGraphOn.None);
         return 0;
     }

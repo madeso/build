@@ -18,15 +18,16 @@ namespace Workbench.Shared.CMake
         [JsonPropertyName("args")]
         public string[] Args { set; get; } = Array.Empty<string>();
 
-        public static IEnumerable<CMakeTrace> TraceDirectory(string cmake_executable, string dir)
+        public static async Task<IEnumerable<CMakeTrace>> TraceDirectoryAsync(string cmake_executable, string dir)
         {
             List<CMakeTrace> lines = new();
             List<string> error = new();
 
             var stderr = new List<string>();
-            var ret = new ProcessBuilder(cmake_executable, "--trace-expand", "--trace-format=json-v1", "-S", Environment.CurrentDirectory, "-B", dir)
+            var ret = (await new ProcessBuilder(cmake_executable, "--trace-expand", "--trace-format=json-v1", "-S", Environment.CurrentDirectory, "-B", dir)
                     .InDirectory(dir)
-                    .RunWithCallback(null, on_line, err => { on_line(err); stderr.Add(err); }, (err, ex) => { error.Add(err); error.Add(ex.Message); })
+                    .RunWithCallbackAsync(null, on_line, err => { on_line(err); stderr.Add(err); }, (err, ex) => { error.Add(err); error.Add(ex.Message); })
+                    )
                     .ExitCode
                 ;
 

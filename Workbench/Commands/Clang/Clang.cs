@@ -224,7 +224,7 @@ internal static class ClangFacade
     }
 
     // runs clang-tidy and returns all the text output
-    private static TidyOutput GetExistingOutputOrCallClangTidy(Store store, Log log, string root, bool force, string tidy_path, string project_build_folder, string source_file, bool fix)
+    private static async Task<TidyOutput> GetExistingOutputOrCallClangTidy(Store store, Log log, string root, bool force, string tidy_path, string project_build_folder, string source_file, bool fix)
     {
         if (false == force)
         {
@@ -235,12 +235,12 @@ internal static class ClangFacade
             }
         }
 
-        var ret = CallClangTidy(log, tidy_path, project_build_folder, source_file, fix);
+        var ret = await CallClangTidyAsync(log, tidy_path, project_build_folder, source_file, fix);
         StoreOutput(store, root, project_build_folder, source_file, ret);
         return ret;
     }
 
-    private static TidyOutput CallClangTidy(Log log, string tidy_path, string project_build_folder, string source_file, bool fix)
+    private static async Task<TidyOutput> CallClangTidyAsync(Log log, string tidy_path, string project_build_folder, string source_file, bool fix)
     {
         var command = new ProcessBuilder(tidy_path);
         command.AddArgument("-p");
@@ -252,7 +252,7 @@ internal static class ClangFacade
         command.AddArgument(source_file);
 
         var start = new DateTime();
-        var output = command.RunAndGetOutput();
+        var output = await command.RunAndGetOutputAsync();
 
         if (output.ExitCode != 0)
         {
@@ -268,13 +268,13 @@ internal static class ClangFacade
     }
 
     // runs the clang-tidy process, printing status to terminal
-    private static (ColCounter<string> warnings, ColCounter<string> classes) RunTidy(
+    private static async Task<(ColCounter<string> warnings, ColCounter<string> classes)> RunTidyAsync(
         Store store, Log log, string root, bool force, string tidy_path, string source_file,
         string project_build_folder, FileStatistics stats, bool short_list, NamePrinter name_printer, bool fix,
         string printable_file, string[] only)
     {
         name_printer.Print();
-        var co = GetExistingOutputOrCallClangTidy(store, log, root, force, tidy_path, project_build_folder, source_file, fix);
+        var co = await GetExistingOutputOrCallClangTidy(store, log, root, force, tidy_path, project_build_folder, source_file, fix);
         return CreateStatisticsAndPrintStatus(stats, short_list, printable_file, only, co);
     }
 
@@ -431,7 +431,7 @@ internal static class ClangFacade
     }
 
     // callback function called when running clang.py tidy
-    internal static int HandleRunClangTidyCommand(CompileCommandsArguments cc, Log log, string tidy_path, bool force, bool headers, bool short_args, bool args_nop, string[] args_filter, string[] args_only, bool args_fix)
+    internal static async Task<int> HandleRunClangTidyCommand(CompileCommandsArguments cc, Log log, string tidy_path, bool force, bool headers, bool short_args, bool args_nop, string[] args_filter, string[] args_only, bool args_fix)
     {
         var root = Environment.CurrentDirectory;
         var cc_file = CompileCommand.RequireOrNone(cc, log);
@@ -485,7 +485,7 @@ internal static class ClangFacade
                 }
                 if (args_nop is false)
                 {
-                    var (warnings, classes) = RunTidy(store, log, root, force, tidy_path, source_file, project_build_folder, stats, short_args, print_name, args_fix, printable_file, args_only);
+                    var (warnings, classes) = await RunTidyAsync(store, log, root, force, tidy_path, source_file, project_build_folder, stats, short_args, print_name, args_fix, printable_file, args_only);
                     if (short_args && warnings.TotalCount() > 0)
                     {
                         break;
@@ -557,7 +557,7 @@ internal static class ClangFacade
     }
 
     // callback function called when running clang.py format
-    internal static int HandleClangFormatCommand(Log log, bool nop)
+    internal static async Task<int> HandleClangFormatCommand(Log log, bool nop)
     {
         var root = Environment.CurrentDirectory;
 
@@ -574,7 +574,7 @@ internal static class ClangFacade
                     continue;
                 }
 
-                var res = new ProcessBuilder("clang-format", "-i", file).RunAndGetOutput();
+                var res = await new ProcessBuilder("clang-format", "-i", file).RunAndGetOutputAsync();
                 if (res.ExitCode != 0)
                 {
                     res.PrintOutput(log);

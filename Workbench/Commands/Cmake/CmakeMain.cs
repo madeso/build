@@ -9,7 +9,7 @@ using Workbench.Shared.CMake;
 namespace Workbench.Commands.Cmake;
 
 
-internal sealed class TraceCommand : Command<TraceCommand.Arg>
+internal sealed class TraceCommand : AsyncCommand<TraceCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -18,9 +18,9 @@ internal sealed class TraceCommand : Command<TraceCommand.Arg>
         public string File { get; set; } = "";
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Log.PrintErrorsAtExit(printer => {
+        return await Log.PrintErrorsAtExitAsync(async printer => {
             var cmake = FindCMake.RequireInstallationOrNull(printer);
 
             if (cmake == null)
@@ -33,7 +33,7 @@ internal sealed class TraceCommand : Command<TraceCommand.Arg>
 
             try
             {
-                var lines = CMakeTrace.TraceDirectory(cmake, settings.File);
+                var lines = await CMakeTrace.TraceDirectoryAsync(cmake, settings.File);
                 foreach (var li in lines)
                 {
                     AnsiConsole.MarkupLineInterpolated($"Running [green]{li.Cmd}[/].");
@@ -49,7 +49,7 @@ internal sealed class TraceCommand : Command<TraceCommand.Arg>
     }
 }
 
-internal sealed class DotCommand : Command<DotCommand.Arg>
+internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -87,9 +87,9 @@ internal sealed class DotCommand : Command<DotCommand.Arg>
         public string[] NamesToIgnore { get; set; } = Array.Empty<string>(); 
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Log.PrintErrorsAtExit(printer => {
+        return await Log.PrintErrorsAtExitAsync(async printer => {
             var cmake = FindCMake.RequireInstallationOrNull(printer);
 
             if(cmake == null)
@@ -104,7 +104,7 @@ internal sealed class DotCommand : Command<DotCommand.Arg>
             {
                 var ignores = settings.NamesToIgnore.ToImmutableHashSet();
                 AnsiConsole.MarkupLineInterpolated($"Ignoring [red]{ignores.Count}[/] projects.");
-                var lines = CMakeTrace.TraceDirectory(cmake, settings.File);
+                var lines = await CMakeTrace.TraceDirectoryAsync(cmake, settings.File);
                 var solution = Solution.Parse.CMake(lines);
 
                 if (settings.RemoveInterface)

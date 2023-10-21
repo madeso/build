@@ -50,7 +50,7 @@ internal class SharedArguments : WithSolutionArguments
 
 
 [Description("Generate a solution dependency file")]
-internal sealed class GenerateCommand : Command<GenerateCommand.Arg>
+internal sealed class GenerateCommand : AsyncCommand<GenerateCommand.Arg>
 {
     public sealed class Arg : SharedArguments
     {
@@ -65,10 +65,10 @@ internal sealed class GenerateCommand : Command<GenerateCommand.Arg>
         public string Format { get; set; } = string.Empty;
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg args)
     {
-        return Log.PrintErrorsAtExit(printer =>
-            SlnDepsFunctions.HandleGenerate(printer, args.Target, args.Format, args.MakeExclusionList(), args.Simplify, args.Reverse, args.Solution, args.Style)
+        return await Log.PrintErrorsAtExitAsync(async printer =>
+            await SlnDepsFunctions.HandleGenerateAsync(printer, args.Target, args.Format, args.MakeExclusionList(), args.Simplify, args.Reverse, args.Solution, args.Style)
         );
     }
 }
