@@ -15,7 +15,7 @@ internal class Main
     {
         config.AddBranch(name, cmake =>
         {
-            cmake.SetDescription("todo-comments related commands");
+            cmake.SetDescription("Commands related to comments marked with todo");
             cmake.AddCommand<FindTodosCommand>("find");
             cmake.AddCommand<GroupWithTimeCommand>("with-time");
         });
@@ -23,7 +23,7 @@ internal class Main
 }
 
 
-[Description("list line counts")]
+[Description("Recursively list all todo comments in the current folder")]
 internal sealed class FindTodosCommand : AsyncCommand<FindTodosCommand.Arg>
 {
     public sealed class Arg : CommandSettings
@@ -68,7 +68,7 @@ internal sealed class FindTodosCommand : AsyncCommand<FindTodosCommand.Arg>
 
 
 
-[Description("list line counts")]
+[Description("Find todo comments and group them the last time that line was changed in git")]
 internal sealed class GroupWithTimeCommand : AsyncCommand<GroupWithTimeCommand.Arg>
 {
     public sealed class Arg : CommandSettings
