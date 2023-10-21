@@ -207,8 +207,7 @@ public class Includes
 
     private static IEnumerable<string> GetAllTranslationUnits(IEnumerable<string> files)
     {
-        return files
-                .SelectMany(path => FileUtil.ListFilesRecursively(path, FileUtil.SourceFiles))
+        return FileUtil.SourcesFromArgs(files, FileUtil.SourceFiles)
                 .Select(file => new FileInfo(file).FullName)
             ;
     }

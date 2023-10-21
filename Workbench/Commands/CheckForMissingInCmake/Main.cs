@@ -20,12 +20,12 @@ internal sealed class CheckForMissingInCmakeCommand : Command<CheckForMissingInC
 {
     public sealed class Arg : CompileCommandsArguments
     {
-        [Description("File to read")]
+        [Description("Folders to read")]
         [CommandArgument(0, "<input files>")]
-        public string[] Files { get; set; } = Array.Empty<string>();
+        public string[] Folders { get; set; } = Array.Empty<string>();
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
         return Log.PrintErrorsAtExit(print =>
         {
@@ -36,45 +36,39 @@ internal sealed class CheckForMissingInCmakeCommand : Command<CheckForMissingInC
                 return -1;
             }
 
-            return CheckForMissingInCmake(settings.Files, FindCMake.RequireBuildOrNone(settings, print), cmake);
+            string? build_root = FindCMake.RequireBuildOrNone(args, print);
+            if (build_root == null) { return -1; }
+
+            var bases = args.Folders.Select(FileUtil.RealPath).ToImmutableArray();
+
+            var paths = new HashSet<string>();
+            foreach (var cmd in CMakeTrace.TraceDirectory(cmake, build_root))
+            {
+                if (!bases.Select(b => FileUtil.FileIsInFolder(cmd.File!, b)).Any())
+                {
+                    continue;
+                }
+
+                if (cmd.Cmd.ToLower() == "add_library" || cmd.Cmd.ToLower() == "add_executable")
+                {
+                    paths.UnionWith(cmd.ListFilesInLibraryOrExecutable());
+                }
+            }
+
+            var count = 0;
+            foreach (var file in FileUtil.SourcesFromArgs(args.Folders, FileUtil.HeaderAndSourceFiles))
+            {
+                var resolved = new FileInfo(file).FullName;
+                if (paths.Contains(resolved) == false)
+                {
+                    AnsiConsole.WriteLine(resolved);
+                    count += 1;
+                }
+            }
+
+            AnsiConsole.WriteLine($"Found {count} files not referenced in cmake");
+            return 0;
         });
-    }
-
-    public static int CheckForMissingInCmake(string[] relative_files, string? build_root, string cmake)
-    {
-        var bases = relative_files.Select(FileUtil.RealPath).ToImmutableArray();
-        if (build_root == null) { return -1; }
-
-        var paths = new HashSet<string>();
-
-        foreach (var cmd in CMakeTrace.TraceDirectory(cmake, build_root))
-        {
-            if (bases.Select(b => FileUtil.FileIsInFolder(cmd.File!, b)).Any())
-            {
-                if (cmd.Cmd.ToLower() == "add_library")
-                {
-                    paths.UnionWith(cmd.ListFilesInCmakeLibrary());
-                }
-                if (cmd.Cmd.ToLower() == "add_executable")
-                {
-                    paths.UnionWith(cmd.ListFilesInCmakeLibrary());
-                }
-            }
-        }
-
-        var count = 0;
-        foreach (var file in FileUtil.ListFilesRecursively(relative_files, FileUtil.HeaderAndSourceFiles))
-        {
-            var resolved = new FileInfo(file).FullName;
-            if (paths.Contains(resolved) == false)
-            {
-                AnsiConsole.WriteLine(resolved);
-                count += 1;
-            }
-        }
-
-        AnsiConsole.WriteLine($"Found {count} files not referenced in cmake");
-        return 0;
     }
 }
 

@@ -67,7 +67,7 @@ namespace Workbench.Shared.CMake
         }
 
 
-        public IEnumerable<string> ListFilesInCmakeLibrary()
+        public IEnumerable<string> ListFilesInLibraryOrExecutable()
         {
             return ListFilesInArgs("STATIC");
         }

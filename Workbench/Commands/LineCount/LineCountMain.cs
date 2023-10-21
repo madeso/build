@@ -40,28 +40,19 @@ internal sealed class LineCountCommand : Command<LineCountCommand.Arg>
         public bool DiscardEmpty { get; set; } = true;
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
-    {
-        return HandleLineCountCommand(
-            settings.Files, settings.Each, settings.Show, settings.DiscardEmpty);
-    }
-
-    public static int HandleLineCountCommand(string[] args_files,
-        int each,
-        bool args_show,
-        bool args_discard_empty)
+    public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var stats = new Dictionary<int, List<string>>();
         var file_count = 0;
 
-        foreach (var file in FileUtil.ListFilesRecursively(args_files, FileUtil.HeaderAndSourceFiles))
+        foreach (var file in FileUtil.SourcesFromArgs(arg.Files, FileUtil.HeaderAndSourceFiles))
         {
             file_count += 1;
 
-            var count = file_read_lines(file, args_discard_empty)
+            var count = file_read_lines(file, arg.DiscardEmpty)
                 .Count();
 
-            var index = each <= 1 ? count : count - count % each;
+            var index = arg.Each <= 1 ? count : count - count % arg.Each;
             if (stats.TryGetValue(index, out var data_values))
             {
                 data_values.Add(file);
@@ -76,8 +67,8 @@ internal sealed class LineCountCommand : Command<LineCountCommand.Arg>
         foreach (var (count, files) in stats.OrderBy(x => x.Key))
         {
             var c = files.Count;
-            var count_str = each <= 1 ? $"{count}" : $"{count}-{count + each - 1}";
-            if (args_show && c < 3)
+            var count_str = arg.Each <= 1 ? $"{count}" : $"{count}-{count + arg.Each - 1}";
+            if (arg.Show && c < 3)
             {
                 AnsiConsole.WriteLine($"{count_str}: {files}");
             }

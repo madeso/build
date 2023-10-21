@@ -1,3 +1,5 @@
+using Workbench.Shared.Extensions;
+
 namespace Workbench.Shared;
 
 internal static class FileUtil
@@ -46,33 +48,26 @@ internal static class FileUtil
             _ => false
         };
 
+
+    public static IEnumerable<string> SourcesFromArgs(IEnumerable<string> args, string[] extensions)
+        => ListFilesFromArgs(args)
+            .Where(arg => arg.HasAnyExtension(extensions))
+            .Select(f => f.FullName);
+
     public static bool IsTranslationUnit(string path)
         => IsTranslationUnitExtension(Path.GetExtension(path));
 
     public static bool FileHasAnyExtension(string file_path, string[] extensions)
         => extensions.Contains(Path.GetExtension(file_path));
 
-    public static IEnumerable<string> ListFilesRecursively(IEnumerable<DirectoryInfo> paths, string[] extensions)
-        => paths.SelectMany(p => ListFilesRecursively(p, extensions));
-
-    public static IEnumerable<string> ListFilesRecursively(IEnumerable<string> paths, string[] extensions)
-        => paths.SelectMany(p => ListFilesRecursively(p, extensions));
-
-    public static IEnumerable<string> ListFilesRecursively(DirectoryInfo path, string[] extensions)
-        => ListFilesRecursively(path.FullName, extensions);
-
-    public static IEnumerable<string> ListFilesRecursively(string path, string[] extensions)
+    public static IEnumerable<FileInfo> ListFilesFromArgs(IEnumerable<string> args)
     {
-        if (File.Exists(path))
+        foreach (var file_or_dir in args)
         {
-            yield return path;
-        }
-        else
-        {
-            foreach (var f in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+            if (File.Exists(file_or_dir)) yield return new FileInfo(file_or_dir);
+            else // assume directory
             {
-                bool x = extensions.Length == 0 || FileHasAnyExtension(f, extensions);
-                if (x)
+                foreach (var f in IterateFiles(new DirectoryInfo(file_or_dir), include_hidden: false, recursive: true))
                 {
                     yield return f;
                 }
@@ -80,18 +75,21 @@ internal static class FileUtil
         }
     }
 
-    public static IEnumerable<string> ListAllFiles(string root)
+    public static IEnumerable<DirectoryInfo> FoldersInPitchfork(DirectoryInfo root)
         => PitchforkFolders
-            .Select(relative_dir => new DirectoryInfo(Path.Join(root, relative_dir)).FullName)
-            .Where(Directory.Exists)
-            .SelectMany(dir => ListFilesRecursively(dir, HeaderAndSourceFiles)
-                .Where(x => new FileInfo(x).Name.StartsWith("pch.") == false))
-            ;
+            .Select(relative_dir => new DirectoryInfo(Path.Join(root.FullName, relative_dir)));
+
+    public static IEnumerable<FileInfo> FilesInPitchfork(DirectoryInfo root, bool include_hidden)
+        => FoldersInPitchfork(root)
+            .Where(d => d.Exists)
+            .SelectMany(d => IterateFiles(d, include_hidden, true));
 
     public static string GetFirstFolder(string root, string file)
      => Path.GetRelativePath(root, file)
          .Split(Path.DirectorySeparatorChar, 2)[0];
 
+
+    // iterate all files, ignores special folders
     public static IEnumerable<FileInfo> IterateFiles(DirectoryInfo root, bool include_hidden, bool recursive)
     {
         var search_options = new EnumerationOptions
@@ -134,7 +132,7 @@ internal static class FileUtil
      => f.Extension switch
      {
          ".cs" => "c#",
-         ".jsx" => "React",
+         ".tsx" or ".jsx" => "React",
          ".ts" or ".js" => "Javascript/typescript",
          ".cpp" or ".c" or ".h" or ".hpp" => "C/C++",
          _ => null,

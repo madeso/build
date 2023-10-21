@@ -23,23 +23,31 @@ internal class Main
 
 
 [Description("list line counts")]
-internal sealed class FindTodosCommand : Command<FindTodosCommand.Arg>
+internal sealed class FindTodosCommand : AsyncCommand<FindTodosCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var root = new DirectoryInfo(Environment.CurrentDirectory);
 
         var cc = new ColCounter<string>();
 
-        foreach (var todo in TodoComments.ListAllTodos(root))
+        var source_files = TodoComments.ListFiles(root);
+        await TodoComments.Progress().RunArray(source_files, async file =>
         {
-            Log.WriteInformation(new FileLine(todo.File.FullName, todo.Line), todo.Todo);
-            cc.AddOne(todo.File.FullName);
-        }
+            var todos = await TodoComments.FindTodosInFile(file);
+
+            foreach (var todo in todos)
+            {
+                Log.WriteInformation(new FileLine(todo.File.FullName, todo.Line), todo.Todo);
+                cc.AddOne(todo.File.FullName);
+            }
+
+            return file;
+        });
 
         {
             var count = cc.TotalCount();
@@ -60,16 +68,28 @@ internal sealed class FindTodosCommand : Command<FindTodosCommand.Arg>
 
 
 [Description("list line counts")]
-internal sealed class GroupWithTimeCommand : Command<GroupWithTimeCommand.Arg>
+internal sealed class GroupWithTimeCommand : AsyncCommand<GroupWithTimeCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var root = new DirectoryInfo(Environment.CurrentDirectory);
-        var all_todos = TodoComments.ListAllTodos(root).OrderBy(x => x.File.Name);
+
+        var todo_list = new List<TodoInFile>();
+
+        var source_files = TodoComments.ListFiles(root);
+        await TodoComments.Progress().RunArray(source_files, async file =>
+        {
+            var todos = await TodoComments.FindTodosInFile(file);
+            todo_list.AddRange(todos);
+            return file;
+        });
+
+
+        var all_todos = todo_list.OrderBy(x => x.File.Name);
 
         // group by file to only run blame once (per file)
         var todo_with_blame = all_todos.GroupBy(todo => todo.File, (file, todos) => {

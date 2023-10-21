@@ -29,7 +29,7 @@ internal sealed class CheckForMissingPragmaOnceCommand : Command<CheckForMissing
         var count = 0;
         var total_files = 0;
 
-        foreach (var file in FileUtil.ListFilesRecursively(settings.Files, FileUtil.HeaderFiles))
+        foreach (var file in FileUtil.SourcesFromArgs(settings.Files, FileUtil.HeaderFiles))
         {
             total_files += 1;
             if (contains_pragma_once(file))

@@ -2,6 +2,7 @@ using Spectre.Console;
 using System.Text.RegularExpressions;
 using Workbench.Config;
 using Workbench.Shared;
+using Workbench.Shared.Extensions;
 
 namespace Workbench.Commands.Clang;
 
@@ -164,7 +165,10 @@ internal static class ClangFacade
 
     private static CategoryAndFiles[] MapAllFilesInRootOnFirstDir(string root, string[] extensions)
     {
-        return MapFilesOnFirstDir(root, FileUtil.ListFilesRecursively(root, extensions));
+        return MapFilesOnFirstDir(root, FileUtil.IterateFiles(new DirectoryInfo(root), false, true)
+            .Where(f => f.HasAnyExtension(extensions))
+            .Select(f => f.FullName)
+        );
     }
 
     private static bool FileMatchesAllFilters(string file, string[]? filters)
@@ -398,7 +402,9 @@ internal static class ClangFacade
         //     return -1;
         // }
 
-        var files = FileUtil.ListFilesRecursively(root, FileUtil.SourceFiles);
+        var files = FileUtil.IterateFiles(new DirectoryInfo(root), false, true)
+            .Where(f => f.HasAnyExtension(FileUtil.SourceFiles))
+            .Select(f => f.FullName);
 
         if (sort_files)
         {
