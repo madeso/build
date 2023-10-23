@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Workbench.Shared.Extensions;
 
 internal static class Functional
@@ -52,6 +54,24 @@ internal static class Functional
 
             has_left = left_enumerator.MoveNext();
             has_right = right_enumerator.MoveNext();
+        }
+    }
+
+    public static IEnumerable<(T, T)> Permutation<T>(this IEnumerable<T> iter, bool reverse = true)
+    {
+        var c = iter.ToImmutableArray();
+
+        for (var i = 0; i < c.Length; i++)
+        {
+            for (var j = 0; j < c.Length; j++)
+            {
+                if (i == j) continue;
+                yield return (c[i], c[j]);
+                if (reverse)
+                {
+                    yield return (c[j], c[i]);
+                }
+            }
         }
     }
 }

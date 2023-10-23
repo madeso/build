@@ -88,4 +88,15 @@ public static class ColCounterExtensions
             AnsiConsole.WriteLine($"{file}: {count}");
         }
     }
+
+    public static ColCounter<T> ToColCounter<T>(this IEnumerable<T> its)
+        where T : notnull
+    {
+        var ret = new ColCounter<T>();
+        foreach (var it in its)
+        {
+            ret.AddOne(it);
+        }
+        return ret;
+    }
 }

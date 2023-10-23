@@ -21,20 +21,6 @@ internal partial class TodoComments
         ;
     }
 
-    internal static Progress Progress()
-    {
-        return AnsiConsole.Progress()
-            .AutoClear(true)
-            .HideCompleted(true)
-            .Columns(
-                new SpinnerColumn(),
-                new ProgressBarColumn(),
-                new PercentageColumn(),
-                new RemainingTimeColumn(),
-                new TaskDescriptionColumn()
-            );
-    }
-
     public static ImmutableArray<string> ListFiles(DirectoryInfo root)
     {
         var build_folder = root.GetDir("build");

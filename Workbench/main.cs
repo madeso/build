@@ -41,7 +41,9 @@ internal class Program
             Commands.SlnDeps.Main.Configure(config, "slndeps");
             Commands.CodeCity.Main.Configure(config, "code-city");
             Commands.Todo.Main.Configure(config, "todo");
+
             Commands.Dependencies.Main.Configure(config, "deps");
+            Commands.FileDependencies.Main.Configure(config, "file-deps");
         });
         return app.Run(args);
     }

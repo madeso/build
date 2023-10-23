@@ -37,7 +37,7 @@ internal sealed class FindTodosCommand : AsyncCommand<FindTodosCommand.Arg>
         var cc = new ColCounter<string>();
 
         var source_files = TodoComments.ListFiles(root);
-        await TodoComments.Progress().RunArrayAsync(source_files, async file =>
+        await SpectreExtensions.Progress().RunArrayAsync(source_files, async file =>
         {
             var todos = await TodoComments.FindTodosInFileAsync(file);
 
@@ -82,7 +82,7 @@ internal sealed class GroupWithTimeCommand : AsyncCommand<GroupWithTimeCommand.A
         var todo_list = new List<TodoInFile>();
 
         var source_files = TodoComments.ListFiles(root);
-        await TodoComments.Progress().RunArrayAsync(source_files, async file =>
+        await SpectreExtensions.Progress().RunArrayAsync(source_files, async file =>
         {
             var todos = await TodoComments.FindTodosInFileAsync(file);
             todo_list.AddRange(todos);
@@ -96,7 +96,7 @@ internal sealed class GroupWithTimeCommand : AsyncCommand<GroupWithTimeCommand.A
                 ).ToImmutableArray();
 
         // group by file to only run blame once (per file)
-        var todo_with_blame = await TodoComments.Progress().MapArrayAsync(grouped, async entry =>
+        var todo_with_blame = await SpectreExtensions.Progress().MapArrayAsync(grouped, async entry =>
         {
             var blames = await Shared.Git.BlameAsync(entry.File).ToListAsync();
             return ($"Blaming {entry.File.FullName}", entry.Todos

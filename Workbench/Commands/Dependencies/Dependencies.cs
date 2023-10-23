@@ -137,7 +137,7 @@ public static class Dependencies
             }
         }
 
-        await g.SmartWriteFileAsync(output_file);
+        await g.SmartWriteFileAsync(output_file, log);
     }
 
     internal static void PrintLists(Log log, string doxygen_xml, string namespace_name)
@@ -217,7 +217,7 @@ public static class Dependencies
     }
 
     private record Method(CompoundDef? Klass, MemberDefinitionType Function);
-    internal static async Task WriteCallGraphToGraphvizAsync(string doxygen_xml, string output_file, ClusterCallGraphOn cluster_on)
+    internal static async Task WriteCallGraphToGraphvizAsync(Log log, string doxygen_xml, string output_file, ClusterCallGraphOn cluster_on)
     {
         // todo(Gustav): option to remove namespace prefixes
 
@@ -314,7 +314,7 @@ public static class Dependencies
         }
 
         AnsiConsole.WriteLine("Writing graph...");
-        await g.SmartWriteFileAsync(output_file);
+        await g.SmartWriteFileAsync(output_file, log);
 
         static Shape func_to_shape(Method func) => func.Function.Protection switch
         {

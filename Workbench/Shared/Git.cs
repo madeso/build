@@ -1,3 +1,6 @@
+using System.Collections.Immutable;
+using System.Security.AccessControl;
+
 namespace Workbench.Shared;
 
 
@@ -141,5 +144,32 @@ public static class Git
                 options[5], options[6], DateTime.Parse(options[7]),
                 options[8]);
         }
+    }
+
+    public enum LineMod
+    {
+        Modified, Added,
+        Deleted
+    }
+    public record FileLine(LineMod Modification, string File);
+
+    public static async Task<ImmutableArray<FileLine>> FilesInCommitAsync(string folder, string commit)
+    {
+        // git diff-tree --no-commit-id --name-only bd61ad98 -r
+        var output = (await new ProcessBuilder("git", "diff-tree", "--no-commit-id", "--name-status", commit, "-r")
+                .InDirectory(folder)
+                .RunAndGetOutputAsync())
+            .RequireSuccess();
+
+        return output
+            .Select(s => s.Line.Split('\t', 2, StringSplitOptions.TrimEntries))
+            .Select(sp => new FileLine(sp[0] switch
+            {
+                "M" => LineMod.Modified,
+                "A" => LineMod.Added,
+                "D" => LineMod.Deleted,
+                _ => throw new ArgumentOutOfRangeException(nameof(sp), sp[0], null)
+            }, sp[1]))
+            .ToImmutableArray();
     }
 }

@@ -26,4 +26,14 @@ public static class FileExtensions
     {
         return Path.GetRelativePath(build_folder.FullName, x).StartsWith("..") == false;
     }
+
+    public static string GetRelative(this FileInfo file, DirectoryInfo root)
+    {
+        return Path.GetRelativePath(root.FullName, file.FullName);
+    }
+
+    public static bool IsInFolder(this FileInfo file, DirectoryInfo folder)
+    {
+        return FileUtil.FileIsInFolder(file.FullName, folder.FullName);
+    }
 }

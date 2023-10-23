@@ -1,8 +1,12 @@
 using System.Collections.Immutable;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Spectre.Console;
 using Spectre.Console.Cli;
+using Workbench.Config;
 using Workbench.Shared;
+using Workbench.Shared.Extensions;
 
 namespace Workbench.Commands.Dependencies;
 
@@ -85,9 +89,12 @@ internal sealed class ListCallGraph : AsyncCommand<ListCallGraph.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        await Dependencies.WriteCallGraphToGraphvizAsync(arg.DoxygenXml, arg.OutputFile,
-            arg.ClusterOn ?? Dependencies.ClusterCallGraphOn.None);
-        return 0;
+        return await Log.PrintErrorsAtExitAsync(async log =>
+        {
+            await Dependencies.WriteCallGraphToGraphvizAsync(
+                log, arg.DoxygenXml, arg.OutputFile, arg.ClusterOn ?? Dependencies.ClusterCallGraphOn.None);
+            return 0;
+        });
     }
 }
 

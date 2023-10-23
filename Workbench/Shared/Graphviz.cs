@@ -104,6 +104,9 @@ public class Graphviz
     private readonly Dictionary<string, Node> id_to_node = new();
     private readonly List<Edge> edges = new();
 
+    public int NodeCount => nodes.Count;
+    public int EdgeCount => edges.Count;
+
     private readonly Dictionary<string, Cluster> clusters = new();
 
     public Cluster FindOrCreateCluster(string id, string display)
@@ -188,6 +191,12 @@ public class Graphviz
             ;
     }
 
+    public Node GetOrCreate(string display, Shape shape = Shape.Box)
+    {
+        return GetNodeFromId(ConvertIntoSafeId(display, "node"))
+               ?? AddNode(display, shape);
+    }
+
     public void AddEdge(Node from, Node to)
     {
         edges.Add(new Edge(from, to));
@@ -196,6 +205,11 @@ public class Graphviz
     public void WriteFile(string path)
     {
         File.WriteAllLines(path, Lines);
+    }
+
+    public async Task WriteFileAsync(string path)
+    {
+        await File.WriteAllLinesAsync(path, Lines);
     }
 
     public async Task<string[]> WriteSvgAsync()
@@ -279,22 +293,26 @@ public class Graphviz
         yield return "</html>";
     }
 
-    public async Task SmartWriteFileAsync(string path)
+    public async Task SmartWriteFileAsync(string path, Log log)
     {
-        switch (Path.GetExtension(path))
+        var am = new ActionMapper();
+        am.Add(async () =>
         {
-            case "":
-            case ".gv":
-            case ".graphviz":
-            case ".dot":
-                WriteFile(path);
-                break;
-            case ".svg":
-                await File.WriteAllLinesAsync(path, await WriteSvgAsync());
-                break;
-            case ".html":
-                await File.WriteAllLinesAsync(path, await WriteHtmlAsync(path).ToListAsync());
-                break;
+            await WriteFileAsync(path);
+        }, "", ".gv", ".graphviz", ".dot");
+        am.Add(async () =>
+        {
+            await File.WriteAllLinesAsync(path, await WriteSvgAsync());
+        }, ".svg");
+        am.Add(async () =>
+        {
+            await File.WriteAllLinesAsync(path, await WriteHtmlAsync(path).ToListAsync());
+        }, ".htm", ".html");
+
+        var ext = Path.GetExtension(path);
+        if (false == await am.Run(ext))
+        {
+            log.Error($"Unknown extension {ext}, supported: {StringListCombiner.EnglishAnd().Combine(am.Names)}");
         }
     }
 

@@ -77,4 +77,18 @@ public static class SpectreExtensions
         static string to_task_message(string message)
             => message.Length == 0 ? "Waiting..." : message;
     }
+
+    internal static Progress Progress()
+    {
+        return AnsiConsole.Progress()
+            .AutoClear(true)
+            .HideCompleted(true)
+            .Columns(
+                new SpinnerColumn(),
+                new ProgressBarColumn(),
+                new PercentageColumn(),
+                new RemainingTimeColumn(),
+                new TaskDescriptionColumn()
+            );
+    }
 }
