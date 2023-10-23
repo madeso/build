@@ -51,9 +51,16 @@ public static class Git
 
     public static async IAsyncEnumerable<BlameLine> BlameAsync(FileInfo file)
     {
-        var output = (await new ProcessBuilder("git", "blame", "--porcelain", file.Name)
+        var result = (await new ProcessBuilder("git", "blame", "--porcelain", file.Name)
             .InDirectory(file.DirectoryName!)
-            .RunAndGetOutputAsync())
+            .RunAndGetOutputAsync());
+        if (result.ExitCode == 128)
+        {
+            // hope this means that the file isn't known to git...
+            yield break;
+        }
+
+        var output = result
             .RequireSuccess()
             ;
         var hash = string.Empty;
@@ -71,6 +78,8 @@ public static class Git
             else
             {
                 var cmd = line.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                if(cmd.Length <= 1) {continue;}
+
                 var is_hash = cmd[0].Length == 40; // todo(Gustav): improve hash detection
                 if (is_hash)
                 {

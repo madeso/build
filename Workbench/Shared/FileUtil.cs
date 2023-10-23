@@ -139,8 +139,9 @@ internal static class FileUtil
                         .Where(d => d.Name switch
                         {
                             // todo(Gustav): parse and use gitignore instead of hacky names
-                            ".git" => false,
-                            "node_modules" => false,
+                            ".git" or "node_modules"
+                            or "external" or "build"
+                                => false,
                             _ => true,
                         })
                         .SelectMany(d => sub_iterate_files(d, search_options, true))

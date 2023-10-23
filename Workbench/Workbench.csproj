@@ -24,5 +24,6 @@
       <Folder Include="Commands\CheckForMissingInCmake\" />
       <Folder Include="Commands\CheckForNoProjectFolders\" />
       <Folder Include="Commands\CheckFileNames\" />
+      <Folder Include="Commands\CodeHistory\" />
     </ItemGroup>
 </Project>

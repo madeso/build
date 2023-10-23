@@ -1,4 +1,5 @@
-﻿using System.Collections.Immutable;
+﻿using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace Workbench.Shared.Extensions;
 
@@ -18,17 +19,11 @@ public static class AsyncExtensions
         return list;
     }
 
-    public static async Task<List<ImmutableArray<T>>> ToListAsync<T>(this IEnumerable<Task<ImmutableArray<T>>> enumerable)
+    public static async IAsyncEnumerable<TT> SelectAsync<T, TT>(this IAsyncEnumerable<T> tt, Func<T, TT> sel)
     {
-        if (null == enumerable)
-            throw new ArgumentNullException(nameof(enumerable));
-
-        var list = new List<ImmutableArray<T>>();
-        foreach (var t in enumerable)
+        await foreach (var t in tt)
         {
-            list.Add(await t);
+            yield return sel(t);
         }
-
-        return list;
     }
 }
