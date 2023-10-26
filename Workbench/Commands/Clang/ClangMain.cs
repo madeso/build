@@ -7,7 +7,7 @@ namespace Workbench.Commands.Clang;
 
 
 
-internal sealed class MakeCommand : Command<MakeCommand.Arg>
+internal sealed class MakeClangTidyCommand : Command<MakeClangTidyCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -24,7 +24,7 @@ internal sealed class MakeCommand : Command<MakeCommand.Arg>
     }
 }
 
-internal sealed class ListCommand : Command<ListCommand.Arg>
+internal sealed class ListClangTidyCommand : Command<ListClangTidyCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -40,7 +40,7 @@ internal sealed class ListCommand : Command<ListCommand.Arg>
     }
 }
 
-internal sealed class TidyCommand : AsyncCommand<TidyCommand.Arg>
+internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
 {
     public sealed class Arg : CompileCommandsArguments
     {
@@ -104,7 +104,7 @@ internal sealed class TidyCommand : AsyncCommand<TidyCommand.Arg>
     }
 }
 
-internal sealed class FormatCommand : AsyncCommand<FormatCommand.Arg>
+internal sealed class RunClangFormatCommand : AsyncCommand<RunClangFormatCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -116,7 +116,8 @@ internal sealed class FormatCommand : AsyncCommand<FormatCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return await Log.PrintErrorsAtExitAsync(async print => await ClangFacade.HandleClangFormatCommand(print, settings.Nop));
+        return await Log.PrintErrorsAtExitAsync(async print =>
+            await ClangFacade.HandleClangFormatCommand(print, settings.Nop));
     }
 }
 
@@ -127,10 +128,12 @@ public static class Main
         config.AddBranch(name, git =>
         {
             git.SetDescription("clang-tidy and clang-format related tools");
-            git.AddCommand<MakeCommand>("make").WithDescription("make .clang-tidy");
-            git.AddCommand<ListCommand>("ls").WithDescription("list files");
-            git.AddCommand<TidyCommand>("tidy").WithDescription("do clang tidy on files");
-            git.AddCommand<FormatCommand>("format").WithDescription("do clang format on files");
+            git.AddCommand<MakeClangTidyCommand>("make").WithDescription("Make .clang-tidy");
+            git.AddCommand<ListClangTidyCommand>("ls").WithDescription("list files");
+            git.AddCommand<RunTidyCommand>("tidy").WithDescription("Run clang tidy on files");
+            git.AddCommand<RunClangFormatCommand>("format").WithDescription("Run clang format on files");
+
+            CompileCommand.Config(git, "cc");
         });
     }
 }

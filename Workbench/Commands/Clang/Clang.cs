@@ -2,7 +2,6 @@ using Spectre.Console;
 using System.Text.RegularExpressions;
 using Workbench.Config;
 using Workbench.Shared;
-using Workbench.Shared.Extensions;
 
 namespace Workbench.Commands.Clang;
 
@@ -394,13 +393,6 @@ internal static class ClangFacade
     internal static int HandleTidyListFilesCommand(Log print, bool sort_files)
     {
         var root = Environment.CurrentDirectory;
-
-        // var build_folder = CompileCommand.FindBuildRootOrNull(root);
-        // if (build_folder is null)
-        // {
-        //     print.Error("unable to find build folder");
-        //     return -1;
-        // }
 
         var files = FileUtil.IterateFiles(new DirectoryInfo(root), false, true)
             .Where(FileUtil.IsSource)

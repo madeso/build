@@ -10,4 +10,5 @@ internal static class FileNames
     internal static readonly string BuildData = "workbench.build.jsonc";
     internal static readonly string CheckIncludes = "workbench.check-includes.jsonc";
     internal static readonly string CheckNames = "workbench.check-names.jsonc";
+    internal static readonly string Paths = "workbench.paths.jsonc";
 }

@@ -13,7 +13,7 @@ public static class JsonUtil
         AllowTrailingCommas = true,
     };
 
-    public static T? Parse<T>(Log print, string file, string content)
+    public static T? Parse<T>(Log? print, string file, string content)
         where T : class
     {
         try
@@ -24,12 +24,12 @@ public static class JsonUtil
         }
         catch (JsonException err)
         {
-            print.Error($"Unable to parse json {file}: {err.Message}");
+            print?.Error($"Unable to parse json {file}: {err.Message}");
             return null;
         }
         catch (NotSupportedException err)
         {
-            print.Error($"Unable to parse json {file}: {err.Message}");
+            print?.Error($"Unable to parse json {file}: {err.Message}");
             return null;
         }
     }

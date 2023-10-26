@@ -5,19 +5,19 @@ namespace Workbench.Config;
 
 internal static class ConfigFile
 {
-    public static TFile? LoadOrNull<TFile>(Log print, string file)
+    public static TFile? LoadOrNull<TFile>(Log? print, string file)
         where TFile : class
     {
         if (File.Exists(file) == false)
         {
-            print.Error($"Unable to read file: {file}");
+            print?.Error($"Unable to read file: {file}");
             return null;
         }
         var content = File.ReadAllText(file);
         var loaded = JsonUtil.Parse<TFile>(print, file, content);
         if (loaded == null)
         {
-            print.Error($"Unable to parse file: {file}");
+            print?.Error($"Unable to parse file: {file}");
             return null;
         }
 
@@ -46,6 +46,15 @@ internal static class ConfigFile
             print.Error($"{path} already exist and overwrite was not requested");
             return -1;
         }
+
+        File.WriteAllText(path, content);
+        AnsiConsole.WriteLine($"Wrote {path}");
+        return 0;
+    }
+
+    internal static int Write<T>(string path, T data)
+    {
+        var content = JsonUtil.Write(data);
 
         File.WriteAllText(path, content);
         AnsiConsole.WriteLine($"Wrote {path}");
