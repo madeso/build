@@ -26,7 +26,7 @@ internal class Paths
     public static Paths? LoadFromDirectoryOrNull(Log? print)
     {
         return File.Exists(GetPath()) == false
-            ? null
+            ? new Paths()
             : ConfigFile.LoadOrNull<Paths>(print, GetPath())
             ;
     }
