@@ -574,7 +574,7 @@ internal static class ClangFacade
             Printer.Header(project);
             foreach (var file in source_files)
             {
-                AnsiConsole.WriteLine(Path.GetRelativePath(file, root));
+                AnsiConsole.WriteLine(Path.GetRelativePath(root, file));
                 if (nop)
                 {
                     continue;
