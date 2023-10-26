@@ -181,7 +181,7 @@ public class CompileCommand
         SetupPathCommand.Configure<CompileCommandsArguments>(config, name, (paths, value) => paths.CompileCommands = value, (cc) =>
         {
             CompileCommand.ListAll(cc).PrintFoundList("compile command", CompileCommand.FindOrNone(cc, null));
-        }, cc => CompileCommand.ListAll(cc).SelectMany(x => x.Findings).Select(v => v.ValueOrNull).IgnoreNull());
+        }, cc => CompileCommand.ListAll(cc).SelectMany(x => x.Findings).Select(v => v.ValueOrNull).IgnoreNull().Distinct());
     }
 }
 
