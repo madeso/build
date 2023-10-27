@@ -17,7 +17,11 @@ internal sealed class PrintCodeHistory : AsyncCommand<PrintCodeHistory.Arg>
 {
     public sealed class Arg : CommandSettings
     {
-        public bool AllFiles = false;
+        [CommandArgument(0, "<Resolution>")]
+        public TimeResolution Resolution { get; set; } = TimeResolution.Month;
+
+        [CommandOption("--all-files")]
+        public bool AllFiles { get; set; } = false;
     }
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg arg)
@@ -42,10 +46,9 @@ internal sealed class PrintCodeHistory : AsyncCommand<PrintCodeHistory.Arg>
             }))
             .SelectMany(x => x);
 
-        // todo(Gustav): group on requested resolution
         var grouped = blamed_times
             .Order()
-            .GroupBy(dt => dt.GetTimeAgoString(), (title, times) => new {Title=title, Count=times.Count()})
+            .GroupOnTime(x => x, arg.Resolution, (title, times) => new {Title=title.ToString(arg.Resolution), Count=times.Count})
             .ToImmutableArray();
 
         // display histogram

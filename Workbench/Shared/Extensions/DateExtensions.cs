@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 
@@ -114,6 +115,7 @@ internal static class DateExtensions
     {
         return resolution switch
         {
+            TimeResolution.Year => dt.AddMonths(12),
             TimeResolution.Month => dt.AddMonths(1),
             TimeResolution.Week => dt.AddDays(7),
             TimeResolution.Day => dt.AddDays(1),
@@ -128,22 +130,17 @@ internal static class DateExtensions
 
     private static DateTime MoveToStart(DateTime current, TimeResolution resolution)
     {
-        switch (resolution)
+        return resolution switch
         {
-            case TimeResolution.Month:
-                return DateTest.ToUniqueDateMonth(current);
-            case TimeResolution.Week:
-                return DateTest.ToUniqueDateWeek(current);
-            case TimeResolution.Day:
-                return DateTest.ToUniqueDateDay(current);
-            case TimeResolution.Hour:
-                return DateTest.ToUniqueDateHour(current);
-            case TimeResolution.Minute:
-                return DateTest.ToUniqueDateMinute(current);
-            case TimeResolution.Second:
-                return DateTest.ToUniqueDateSecond(current);
-        }
-        throw new ArgumentOutOfRangeException(resolution + " was not handled");
+            TimeResolution.Year => DateTest.ToUniqueDateYear(current),
+            TimeResolution.Month => DateTest.ToUniqueDateMonth(current),
+            TimeResolution.Week => DateTest.ToUniqueDateWeek(current),
+            TimeResolution.Day => DateTest.ToUniqueDateDay(current),
+            TimeResolution.Hour => DateTest.ToUniqueDateHour(current),
+            TimeResolution.Minute => DateTest.ToUniqueDateMinute(current),
+            TimeResolution.Second => DateTest.ToUniqueDateSecond(current),
+            _ => throw new ArgumentOutOfRangeException(resolution + " was not handled")
+        };
     }
 
 
@@ -153,6 +150,7 @@ internal static class DateExtensions
         const string BASE_DATE = "yyyy-MM-dd";
         return resolution switch
         {
+            TimeResolution.Year => "yyyy",
             TimeResolution.Month => "MMM yy",
             TimeResolution.Week => BASE_DATE,
             TimeResolution.Day => BASE_DATE,
@@ -163,11 +161,60 @@ internal static class DateExtensions
         };
     }
 
+    public static string ToString(this DateTime dt, TimeResolution res)
+    {
+        return dt.ToString(GetDateStringFormat(res));
+    }
+
+    public static IEnumerable<TValue> GroupOnTime<TIn, TValue>(
+        this IEnumerable<TIn> entry_list,
+        Func<TIn, DateTime> time,
+        TimeResolution res,
+        Func<DateTime, List<TIn>, TValue> to_value)
+    {
+        var entries = entry_list
+            .Select(e => new { Time = time(e), Value = e })
+            .OrderBy(e => e.Time)
+            .ToImmutableArray();
+
+        List<TIn> counts = new();
+        DateTime? first = null;
+        foreach (var e in entries)
+        {
+            if (first.HasValue == false)
+            {
+                first = e.Time;
+            }
+            else
+            {
+                if(DateTest.IsSame(res, first.Value, e.Time))
+                {
+                }
+                else
+                {
+                    yield return to_value(first.Value, counts);
+                    first = e.Time;
+                    counts.Clear();
+                }
+            }
+            counts.Add(e.Value);
+        }
+
+        if (counts.Count > 0)
+        {
+            Debug.Assert(first.HasValue);
+            yield return to_value(first.Value, counts);
+        }
+    }
+
 }
 
 
 public enum TimeResolution
 {
+    [EnumString("month")]
+    Year,
+
     [EnumString("month")]
     Month,
 
@@ -194,15 +241,19 @@ internal static class DateTest
     public static DateTime StartOfDay(DateTime d) => new(d.Year, d.Month, d.Day, 0, 0, 0);
     public static DateTime EndOfDay(DateTime d) => new(d.Year, d.Month, d.Day, 23, 59, 59);
 
+    private static bool IsSameYear(DateTime lhs, DateTime rhs) => lhs.Year == rhs.Year;
+
+    public static bool IsSameMonth(DateTime lhs, DateTime rhs) => IsSameYear(lhs, rhs) && lhs.Month == rhs.Month;
+
     public static bool IsSameDay(DateTime lhs, DateTime rhs) => IsSameMonth(lhs, rhs) && lhs.Day == rhs.Day;
 
     public static bool IsSameHour(DateTime lhs, DateTime rhs) => IsSameDay(lhs, rhs) && lhs.Hour == rhs.Hour;
 
     public static bool IsSameMinute(DateTime lhs, DateTime rhs) => IsSameHour(lhs, rhs) && lhs.Minute == rhs.Minute;
 
-    private static bool IsSameYear(DateTime lhs, DateTime rhs) => lhs.Year == rhs.Year;
+    public static bool IsSameSecond(DateTime lhs, DateTime rhs) => IsSameMinute(lhs, rhs) && lhs.Second == rhs.Second;
 
-    public static bool IsSameMonth(DateTime lhs, DateTime rhs) => IsSameYear(lhs, rhs) && lhs.Month == rhs.Month;
+    
 
     public static bool IsSameWeek(DateTime lhs, DateTime rhs)
     {
@@ -212,6 +263,19 @@ internal static class DateTest
         var start = DayOfWeek.Monday;
         return cal.GetWeekOfYear(lhs, rule, start) == cal.GetWeekOfYear(rhs, rule, start);
     }
+
+    public static bool IsSame(TimeResolution res, DateTime lhs, DateTime rhs)
+        => res switch
+        {
+            TimeResolution.Year => IsSameYear(lhs, rhs),
+            TimeResolution.Month => IsSameMonth(lhs, rhs),
+            TimeResolution.Week => IsSameWeek(lhs, rhs),
+            TimeResolution.Day => IsSameDay(lhs, rhs),
+            TimeResolution.Hour => IsSameHour(lhs, rhs),
+            TimeResolution.Minute => IsSameMinute(lhs, rhs),
+            TimeResolution.Second => IsSameSecond(lhs, rhs),
+            _ => throw new ArgumentOutOfRangeException(nameof(res), res, null)
+        };
 
 
     public static DateTime ToUniqueDateYear(DateTime c) => new(c.Year, 1, 1, 0, 0, 0, 0);
