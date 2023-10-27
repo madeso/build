@@ -46,6 +46,8 @@ internal class Program
             Commands.FileDependencies.Main.Configure(config, "file-deps");
 
             Commands.CodeHistory.Main.Configure(config, "code-history");
+
+            Commands.Paths.Main.Configure(config, "path");
         });
         return app.Run(args);
     }

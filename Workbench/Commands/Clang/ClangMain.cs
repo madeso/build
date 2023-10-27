@@ -132,8 +132,6 @@ public static class Main
             git.AddCommand<ListClangTidyCommand>("ls").WithDescription("list files");
             git.AddCommand<RunTidyCommand>("tidy").WithDescription("Run clang tidy on files");
             git.AddCommand<RunClangFormatCommand>("format").WithDescription("Run clang format on files");
-
-            CompileCommand.Config(git, "cc");
         });
     }
 }

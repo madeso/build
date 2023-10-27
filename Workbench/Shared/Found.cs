@@ -107,4 +107,34 @@ public static class FoundExtensions
         table.Expand();
         AnsiConsole.Write(table);
     }
+
+    public static string? FirstValidOrOverride(this IEnumerable<Found<string>> defaults,
+        IEnumerable<Found<string>> overrides, Log? log, string name)
+    {
+        foreach (var arg in overrides.SelectMany(x => x.Findings))
+        {
+            switch (arg)
+            {
+                case FoundEntry<string>.Result r:
+                    return r.Value;
+                case FoundEntry<string>.Error e:
+                {
+                    log?.Error(e.Reason);
+                    return null;
+                }
+            }
+        }
+
+
+        var valid = defaults
+            .AllValid()
+            .Distinct()
+            .ToImmutableArray();
+
+        // only one build folder is valid
+        if (valid.Length == 1) return valid[0];
+
+        log?.Error($"Expected 1 {name} but found {valid.Length}!");
+        return null;
+    }
 }

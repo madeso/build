@@ -426,7 +426,7 @@ internal static class ClangFacade
     internal static async Task<int> HandleRunClangTidyCommand(CompileCommandsArguments cc, Log log, string tidy_path, bool force, bool headers, bool short_args, bool args_nop, string[] args_filter, string[] args_only, bool args_fix)
     {
         var root = Environment.CurrentDirectory;
-        var cc_file = CompileCommand.RequireOrNone(cc, log);
+        var cc_file = CompileCommand.FindOrNone(cc, log);
         if (cc_file == null)
         {
             return -1;

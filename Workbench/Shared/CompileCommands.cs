@@ -107,81 +107,24 @@ public class CompileCommand
         return settings.GetFileFromArgument(COMPILE_COMMANDS_FILE_NAME);
     }
 
-    private static FoundEntry<string>? GetBuildFromPaths(Log? log)
+    internal static IEnumerable<Found<string>> ListOverrides(CompileCommandsArguments settings, Log? log)
     {
-        var cc = Paths.LoadFromDirectoryOrNull(log)?.CompileCommands;
-        if (cc == null)
-        {
-            // todo(Gustav): handle errors better
-            return null;
-        }
-
-        return new FoundEntry<string>.Result(cc);
+        yield return Functional.Params(
+                    GetBuildFromArgument(settings))
+                .IgnoreNull()
+                .Collect("commandline")
+            ;
+        yield return Paths.Find(log, p => p.CompileCommands);
     }
 
     internal static IEnumerable<Found<string>> ListAll(CompileCommandsArguments settings)
-    {
-        var cmd = Functional.Params(Functional.Params(
-                GetBuildFromArgument(settings))
-                .IgnoreNull()
-                .Collect("commandline")
-        );
-        var paths = Functional.Params(Functional.Params(
-                GetBuildFromPaths(null))
-                .IgnoreNull()
-                .Collect($"{FileNames.Paths} file")
-        );
-        var builds = FindJustTheBuilds();
-
-        return cmd
-            .Concat(paths)
-            .Concat(builds);
-    }
-
-    internal static string? RequireOrNone(CompileCommandsArguments settings, Log log)
-    {
-        var found = FindOrNone(settings, log);
-        if (found == null)
-        {
-            log.Error("No compile commands specified or none/too many found");
-        }
-
-        return found;
-    }
+        => ListOverrides(settings, null)
+            .Concat(FindJustTheBuilds());
 
     internal static string? FindOrNone(CompileCommandsArguments settings, Log? log)
     {
-        // commandline and priority paths overrides all builds
-        foreach(var arg in Functional.Params(GetBuildFromArgument(settings),
-                    GetBuildFromPaths(log)).IgnoreNull())
-        {
-            switch (arg)
-            {
-                case FoundEntry<string>.Result r:
-                    return r.Value;
-                case FoundEntry<string>.Error e:
-                {
-                    log?.Error(e.Reason);
-                    return null;
-                }
-            }
-        }
-
-
-        var valid = FindJustTheBuilds().AllValid().ToImmutableArray();
-
-        // only one build folder is valid
-        return valid.Length == 1
-            ? valid[0]
-            : null;
-    }
-
-    internal static void Config(IConfigurator<CommandSettings> config, string name)
-    {
-        SetupPathCommand.Configure<CompileCommandsArguments>(config, name, (paths, value) => paths.CompileCommands = value, (cc) =>
-        {
-            CompileCommand.ListAll(cc).PrintFoundList("compile command", CompileCommand.FindOrNone(cc, null));
-        }, cc => CompileCommand.ListAll(cc).SelectMany(x => x.Findings).Select(v => v.ValueOrNull).IgnoreNull().Distinct());
+        return FindJustTheBuilds()
+            .FirstValidOrOverride(ListOverrides(settings, log), log, "compile command");
     }
 }
 

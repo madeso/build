@@ -102,7 +102,6 @@ public class CMakeProject
         var cmake = FindCMake.RequireInstallationOrNull(log);
         if (cmake == null)
         {
-            log.Error("CMake executable not found");
             return;
         }
 

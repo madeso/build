@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Immutable;
+using System.Linq;
 using Workbench.Shared;
 using Workbench.Shared.Extensions;
 
@@ -34,14 +35,7 @@ namespace Workbench.Shared.CMake
 
             static Found<string> find_installation_in_path()
             {
-                const string PATH_SOURCE = "path";
-                return Functional
-                    .Params(Which.FirstValidPath("cmake"))
-                    .IgnoreNull()
-                    .Select<string, FoundEntry<string>>(path => File.Exists(path)
-                        ? new FoundEntry<string>.Result(path)
-                        : new FoundEntry<string>.Error($"Found path to cmake in path ({path}) but it didn't exist"))
-                    .Collect(PATH_SOURCE);
+                return Which.FindPaths("cmake");
             }
         }
 
