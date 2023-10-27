@@ -49,7 +49,7 @@ public static class Which
         return targets
             .Select(target => Environment.GetEnvironmentVariable("PATH", target))
             .IgnoreNull()
-            .SelectMany(path => path.Split(';', StringSplitOptions.TrimEntries))
+            .SelectMany(path => path.Split(Core.IsWindows() ? ';' : ':', StringSplitOptions.TrimEntries))
             .Where(s => s.Length > 0)
             ;
     }
