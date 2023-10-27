@@ -27,13 +27,13 @@ internal static class FileDeps
     }
 
     // todo(Gustav): is this working correctly???
-    public static async Task<Dictionary<string, ConnectionEntry>> ExtractGraphData(Log log, DirectoryInfo cwd)
+    public static async Task<Dictionary<string, ConnectionEntry>> ExtractGraphData(string git_path, Log log, DirectoryInfo cwd)
     {
         // todo(Gustav): make a list and move to argument
         var external_folder = cwd.GetSubDirs("external");
 
         // collect commits
-        var commits = (await Shared.Git.LogAsync(cwd.FullName).ToListAsync()).ToImmutableArray();
+        var commits = (await Shared.Git.LogAsync(git_path, cwd.FullName).ToListAsync()).ToImmutableArray();
         var latest_commit = commits[0].Hash;
 
         // collect files (collect is slow, so cache!
@@ -44,7 +44,7 @@ internal static class FileDeps
             AnsiConsole.WriteLine("Collecting git history...");
             var collected_before_git = await SpectreExtensions.Progress().MapArrayAsync(commits, async commit =>
             {
-                var files = await Shared.Git.FilesInCommitAsync(cwd.FullName, commit.Hash);
+                var files = await Shared.Git.FilesInCommitAsync(git_path, cwd.FullName, commit.Hash);
                 var ret = new { Commit = commit, Files = files };
                 return ($"Listing files for {commit.Hash}...", ret);
             });
@@ -130,8 +130,14 @@ internal sealed class ListInfoCommand : AsyncCommand<ListInfoCommand.Arg>
 
     private static async Task<int> Run(Arg arg, Log log)
     {
+        var git_path = Config.Paths.GetExecutable(log);
+        if (git_path == null)
+        {
+            return -1;
+        }
+
         var cwd = new DirectoryInfo(Environment.CurrentDirectory);
-        var counters = await FileDeps.ExtractGraphData(log, cwd);
+        var counters = await FileDeps.ExtractGraphData(git_path, log, cwd);
 
         var commits = counters.Values
             .Where(c => c.Commits >= arg.MinCommits)
@@ -203,8 +209,14 @@ internal sealed class GitFilesCommand : AsyncCommand<GitFilesCommand.Arg>
 
     private static async Task<int> Run(Arg arg, Log log)
     {
+        var git_path = Config.Paths.GetExecutable(log);
+        if (git_path == null)
+        {
+            return -1;
+        }
+
         var cwd = new DirectoryInfo(Environment.CurrentDirectory);
-        var counters = await FileDeps.ExtractGraphData(log, cwd);
+        var counters = await FileDeps.ExtractGraphData(git_path, log, cwd);
 
         // draw graphviz with links with probability count, remove nodes with no links
         AnsiConsole.WriteLine("Collecting graphviz");

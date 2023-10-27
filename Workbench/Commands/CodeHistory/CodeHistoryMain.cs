@@ -32,55 +32,71 @@ internal sealed class PrintCodeHistory : AsyncCommand<PrintCodeHistory.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        var cwd = new DirectoryInfo(Environment.CurrentDirectory);
-
-        // get files
-        var files = FileUtil.IterateFiles(cwd, false, true);
-        if (arg.AllFiles == false)
+        return await Log.PrintErrorsAtExitAsync(async log =>
         {
-            files = files.Where(file => FileUtil.ClassifySource(file) != Language.Unknown);
-        }
 
-        // get time for all lines in the files
-        var blamed_times = (await SpectreExtensions.Progress()
-            .MapArrayAsync(files.ToImmutableArray(), async file =>
+            var git_path = Config.Paths.GetExecutable(log);
+            if (git_path == null)
             {
-                var blamed = await Shared.Git.BlameAsync(file)
-                    .SelectAsync(line => new {File=file, line.Author.Time})
-                    .ToListAsync();
-                return ($"Blaming {file.GetRelative(cwd)}", blamed);
-            }))
-            .SelectMany(x => x);
-
-        var grouped = blamed_times
-            .OrderBy(x=> x.Time)
-            .GroupOnTime(x => x.Time, arg.Resolution, (title, times) => new {
-                Title=title.ToString(arg.Resolution),
-                Files=times.Select(x => x.File).DistinctBy(x => x.FullName).ToImmutableArray(),
-                times.Count})
-            .ToImmutableArray();
-
-        // display histogram
-        AnsiConsole.Write(new BarChart()
-            .Width(60)
-            .Label("[green bold underline]File age (lines)[/]")
-            .CenterLabel()
-            .AddItems(grouped, item => new BarChartItem(
-                item.Title, item.Count, Color.Blue)));
-
-        if (!arg.ShowFiles) { return 0; }
-
-        foreach (var e in grouped)
-        {
-            Printer.Header($"{e.Title} ({e.Count})");
-            foreach (var f in e.Files)
-            {
-                AnsiConsole.WriteLine(f.GetRelative(cwd));
+                return -1;
             }
-            AnsiConsole.WriteLine();
-        }
 
-        return 0;
+            var cwd = new DirectoryInfo(Environment.CurrentDirectory);
+
+            // get files
+            var files = FileUtil.IterateFiles(cwd, false, true);
+            if (arg.AllFiles == false)
+            {
+                files = files.Where(file => FileUtil.ClassifySource(file) != Language.Unknown);
+            }
+
+            // get time for all lines in the files
+            var blamed_times = (await SpectreExtensions.Progress()
+                    .MapArrayAsync(files.ToImmutableArray(), async file =>
+                    {
+                        var blamed = await Shared.Git.BlameAsync(git_path, file)
+                            .SelectAsync(line => new { File = file, line.Author.Time })
+                            .ToListAsync();
+                        return ($"Blaming {file.GetRelative(cwd)}", blamed);
+                    }))
+                .SelectMany(x => x);
+
+            var grouped = blamed_times
+                .OrderBy(x => x.Time)
+                .GroupOnTime(x => x.Time, arg.Resolution, (title, times) => new
+                {
+                    Title = title.ToString(arg.Resolution),
+                    Files = times.Select(x => x.File).DistinctBy(x => x.FullName).ToImmutableArray(),
+                    times.Count
+                })
+                .ToImmutableArray();
+
+            // display histogram
+            AnsiConsole.Write(new BarChart()
+                .Width(60)
+                .Label("[green bold underline]File age (lines)[/]")
+                .CenterLabel()
+                .AddItems(grouped, item => new BarChartItem(
+                    item.Title, item.Count, Color.Blue)));
+
+            if (!arg.ShowFiles)
+            {
+                return 0;
+            }
+
+            foreach (var e in grouped)
+            {
+                Printer.Header($"{e.Title} ({e.Count})");
+                foreach (var f in e.Files)
+                {
+                    AnsiConsole.WriteLine(f.GetRelative(cwd));
+                }
+
+                AnsiConsole.WriteLine();
+            }
+
+            return 0;
+        });
     }
 }
 
