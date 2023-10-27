@@ -130,7 +130,7 @@ internal sealed class ListInfoCommand : AsyncCommand<ListInfoCommand.Arg>
 
     private static async Task<int> Run(Arg arg, Log log)
     {
-        var git_path = Config.Paths.GetExecutable(log);
+        var git_path = Config.Paths.GetGitExecutable(log);
         if (git_path == null)
         {
             return -1;
@@ -209,7 +209,7 @@ internal sealed class GitFilesCommand : AsyncCommand<GitFilesCommand.Arg>
 
     private static async Task<int> Run(Arg arg, Log log)
     {
-        var git_path = Config.Paths.GetExecutable(log);
+        var git_path = Config.Paths.GetGitExecutable(log);
         if (git_path == null)
         {
             return -1;

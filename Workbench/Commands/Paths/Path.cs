@@ -24,14 +24,22 @@ public class Main
                     .PrintFoundList("compile command", CompileCommand.FindOrNone(cc, null))
                 , cc => ToSelectables(CompileCommand.ListAll(cc)));
 
-            AddExecutable(config, "git", "git executables", "git executable", p => p.GitExecutable, DefaultPaths.GIT);
+            AddExecutable(config, "git", p => p.GitExecutable, DefaultPaths.GIT);
+            AddExecutable(config, "clang-tidy", p => p.ClangTidyExecutable, DefaultPaths.CLANG_TIDY);
+            AddExecutable(config, "clang-format", p => p.ClangFormatExecutable, DefaultPaths.CLANG_FORMAT);
+
         });
     }
 
     private static void AddExecutable(IConfigurator<CommandSettings> config,
-        string command_name, string list_name, string friendly_name, Func<Config.Paths, string?> getter,
+        string name, Func<Config.Paths, string?> getter,
         string executable)
     {
+        // todo(Gustav): move to a DefaultPaths record
+        var command_name = name;
+        var list_name = $"{name} executables";
+        var friendly_name = $"{name} executable";
+
         SetupPathCommand.Configure<CompileCommandsArguments>(config, command_name,
             (paths, value) => paths.CompileCommands = value,
             _ => list_all_executables()

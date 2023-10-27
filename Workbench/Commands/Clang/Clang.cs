@@ -423,8 +423,16 @@ internal static class ClangFacade
     }
 
     // callback function called when running clang.py tidy
-    internal static async Task<int> HandleRunClangTidyCommand(CompileCommandsArguments cc, Log log, string tidy_path, bool force, bool headers, bool short_args, bool args_nop, string[] args_filter, string[] args_only, bool args_fix)
+    internal static async Task<int> HandleRunClangTidyCommand(CompileCommandsArguments cc, Log log, bool force, bool headers, bool short_args, bool args_nop, string[] args_filter, string[] args_only, bool args_fix)
     {
+        var clang_tidy = Config.Paths.GetClangTidyExecutable(log);
+        if (clang_tidy == null)
+        {
+            return -1;
+        }
+
+        var tidy_path = clang_tidy;
+
         var root = Environment.CurrentDirectory;
         var cc_file = CompileCommand.FindOrNone(cc, log);
         if (cc_file == null)
@@ -551,6 +559,12 @@ internal static class ClangFacade
     // callback function called when running clang.py format
     internal static async Task<int> HandleClangFormatCommand(Log log, bool nop)
     {
+        var clang_format_path = Config.Paths.GetClangFormatExecutable(log);
+        if (clang_format_path == null)
+        {
+            return -1;
+        }
+
         var root = Environment.CurrentDirectory;
 
         var data = MapAllFilesInRootOnFirstDir(root, FileUtil.IsHeaderOrSource);
@@ -566,7 +580,7 @@ internal static class ClangFacade
                     continue;
                 }
 
-                var res = await new ProcessBuilder("clang-format", "-i", file).RunAndGetOutputAsync();
+                var res = await new ProcessBuilder(clang_format_path, "-i", file).RunAndGetOutputAsync();
                 if (res.ExitCode != 0)
                 {
                     res.PrintOutput(log);

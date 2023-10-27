@@ -35,7 +35,7 @@ internal sealed class PrintCodeHistory : AsyncCommand<PrintCodeHistory.Arg>
         return await Log.PrintErrorsAtExitAsync(async log =>
         {
 
-            var git_path = Config.Paths.GetExecutable(log);
+            var git_path = Config.Paths.GetGitExecutable(log);
             if (git_path == null)
             {
                 return -1;

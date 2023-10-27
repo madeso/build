@@ -82,18 +82,12 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
         [CommandOption("--only")]
         [DefaultValue(null)]
         public string[]? Only { get; set; }
-
-        [Description("the clang-tidy to use")]
-        [CommandOption("--tidy")]
-        [DefaultValue("clang-tidy")]
-        public string ClangTidy { get; set; } = string.Empty;
     }
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return await Log.PrintErrorsAtExitAsync(print => ClangFacade.HandleRunClangTidyCommand(
             settings, print,
-            settings.ClangTidy,
             settings.Force,
             settings.Headers,
             settings.Short,

@@ -19,7 +19,7 @@ internal sealed class BlameCommand : AsyncCommand<BlameCommand.Arg>
     {
         return await Log.PrintErrorsAtExitAsync(async log =>
         {
-            var git_path = Config.Paths.GetExecutable(log);
+            var git_path = Config.Paths.GetGitExecutable(log);
             if (git_path == null)
             {
                 return -1;
@@ -49,7 +49,7 @@ internal sealed class StatusCommand : AsyncCommand<StatusCommand.Arg>
     {
         return await Log.PrintErrorsAtExitAsync(async log =>
         {
-            var git_path = Config.Paths.GetExecutable(log);
+            var git_path = Config.Paths.GetGitExecutable(log);
             if (git_path == null)
             {
                 return -1;
@@ -133,7 +133,7 @@ internal sealed class RemoveUnknownCommand : AsyncCommand<RemoveUnknownCommand.A
     {
         return await Log.PrintErrorsAtExitAsync(async log =>
         {
-            var git_path = Config.Paths.GetExecutable(log);
+            var git_path = Config.Paths.GetGitExecutable(log);
             if (git_path == null)
             {
                 return -1;
@@ -184,7 +184,7 @@ internal sealed class AuthorsCommand : AsyncCommand<AuthorsCommand.Arg>
     {
         return await Log.PrintErrorsAtExitAsync(async log =>
         {
-            var git_path = Config.Paths.GetExecutable(log);
+            var git_path = Config.Paths.GetGitExecutable(log);
             if (git_path == null)
             {
                 return -1;

@@ -16,6 +16,12 @@ internal class Paths
     [JsonPropertyName("git_executable")]
     public string? GitExecutable { get; set; }
 
+    [JsonPropertyName("clang_tidy_executable")]
+    public string? ClangTidyExecutable { get; set; }
+
+    [JsonPropertyName("clang_format_executable")]
+    public string? ClangFormatExecutable { get; set; }
+
     public static string GetPath()
     {
         return Path.Join(Environment.CurrentDirectory, FileNames.Paths);
@@ -72,6 +78,12 @@ internal class Paths
         => DefaultExecutable(executable)
             .FirstValidOrOverride(ListOverrides(log, getter), log, friendly_name);
 
-    internal static string? GetExecutable(Log log)
+    internal static string? GetGitExecutable(Log log)
         => GetExecutableOrSaved(log, p => p.GitExecutable, "git executable", DefaultPaths.GIT);
+
+    internal static string? GetClangTidyExecutable(Log log)
+        => GetExecutableOrSaved(log, p => p.ClangTidyExecutable, "clang tidy executable", DefaultPaths.CLANG_TIDY);
+
+    internal static string? GetClangFormatExecutable(Log log)
+        => GetExecutableOrSaved(log, p => p.ClangFormatExecutable, "clang format executable", DefaultPaths.CLANG_FORMAT);
 }
