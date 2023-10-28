@@ -79,6 +79,16 @@ public static class FoundExtensions
             .FirstOrDefault();
     }
 
+    public static T? RequireFirstValueOrNull<T>(this IEnumerable<Found<T>> founds, Log? log, string name)
+    {
+        var found = GetFirstValueOrNull(founds);
+        if (found == null)
+        {
+            log?.Error($"Failed to valid {name}");
+        }
+        return found;
+    }
+
     internal static void PrintFoundList<T>(this IEnumerable<Found<T>> list, string name, T? selected)
     {
         var found = selected?.ToString() ?? "<None>";

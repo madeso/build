@@ -28,16 +28,16 @@ internal sealed class CheckForNoProjectFoldersCommand : AsyncCommand<CheckForNoP
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return await Log.PrintErrorsAtExitAsync(async print =>
+        return await Log.PrintErrorsAtExitAsync(async log =>
         {
-            var cmake = FindCMake.RequireInstallationOrNull(print);
+            var cmake = FindCMake.RequireInstallationOrNull(log);
             if (cmake == null)
             {
-                print.Error("Failed to find cmake");
                 return -1;
             }
 
-            var build_root = FindCMake.ListAllBuilds(settings).GetFirstValueOrNull();
+            var build_root = FindCMake.ListAllBuilds(settings)
+                .RequireFirstValueOrNull(log, "build root");
             if (build_root == null)
             {
                 return -1;

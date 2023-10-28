@@ -73,10 +73,11 @@ internal class Paths
 
     internal static IEnumerable<Found<string>> ListAllExecutables(Func<Paths, string?> getter, string executable)
         => ListOverrides(null, getter).Concat(DefaultExecutable(executable));
-    
-    internal static string? GetExecutableOrSaved(Log? log, Func<Paths, string?> getter, string friendly_name, string executable)
-        => DefaultExecutable(executable)
-            .FirstValidOrOverride(ListOverrides(log, getter), log, friendly_name);
+
+    internal static string? GetExecutableOrSaved(Log? log, Func<Paths, string?> getter, string friendly_name,
+        string executable)
+        => DefaultExecutable(executable).Concat(ListOverrides(log, getter))
+            .RequireFirstValueOrNull(log, friendly_name);
 
     internal static string? GetGitExecutable(Log log)
         => GetExecutableOrSaved(log, p => p.GitExecutable, "git executable", DefaultPaths.GIT);

@@ -40,19 +40,11 @@ namespace Workbench.Shared.CMake
         }
 
         public static string? RequireInstallationOrNull(Log log)
-        {
-            var found = FindInstallationOrNull();
-            if (found == null)
-            {
-                log.Error("Failed to find a valid cmake");
-            }
-
-            return found;
-        }
-
+            => FindAllInstallations().RequireFirstValueOrNull(log, "cmake");
 
         public static string? FindInstallationOrNull()
             => FindAllInstallations().GetFirstValueOrNull();
+
 
         private static IEnumerable<Found<string>> FindJustTheBuilds()
         {
