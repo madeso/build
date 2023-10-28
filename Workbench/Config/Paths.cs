@@ -68,23 +68,23 @@ internal class Paths
 
     private static IEnumerable<Found<string>> ListOverrides(Log? log, Func<Paths, string?> getter) =>
         Functional.Params(Find(log, getter));
-    private static IEnumerable<Found<string>> DefaultExecutable(string executable) =>
-        Functional.Params(Which.FindPaths(executable));
+    private static IEnumerable<Found<string>> FindDefaultExecutable(Executable exe) =>
+        Functional.Params(Which.FindPaths(exe.Name));
 
-    internal static IEnumerable<Found<string>> ListAllExecutables(Func<Paths, string?> getter, string executable)
-        => ListOverrides(null, getter).Concat(DefaultExecutable(executable));
+    internal static IEnumerable<Found<string>> ListAllExecutables(Func<Paths, string?> getter, Executable exe)
+        => ListOverrides(null, getter).Concat(FindDefaultExecutable(exe));
 
-    internal static string? GetExecutableOrSaved(Log? log, Func<Paths, string?> getter, string friendly_name,
-        string executable)
-        => DefaultExecutable(executable).Concat(ListOverrides(log, getter))
-            .RequireFirstValueOrNull(log, friendly_name);
+    internal static string? GetExecutableOrSaved(Log? log, Func<Paths, string?> getter,
+        Executable exe)
+        => FindDefaultExecutable(exe).Concat(ListOverrides(log, getter))
+            .RequireFirstValueOrNull(log, exe.FriendlyName);
 
     internal static string? GetGitExecutable(Log log)
-        => GetExecutableOrSaved(log, p => p.GitExecutable, "git executable", DefaultPaths.GIT);
+        => GetExecutableOrSaved(log, p => p.GitExecutable, DefaultExecutables.Git);
 
     internal static string? GetClangTidyExecutable(Log log)
-        => GetExecutableOrSaved(log, p => p.ClangTidyExecutable, "clang tidy executable", DefaultPaths.CLANG_TIDY);
+        => GetExecutableOrSaved(log, p => p.ClangTidyExecutable, DefaultExecutables.ClangTidy);
 
     internal static string? GetClangFormatExecutable(Log log)
-        => GetExecutableOrSaved(log, p => p.ClangFormatExecutable, "clang format executable", DefaultPaths.CLANG_FORMAT);
+        => GetExecutableOrSaved(log, p => p.ClangFormatExecutable, DefaultExecutables.ClangFormat);
 }

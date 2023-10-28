@@ -24,33 +24,28 @@ public class Main
                     .PrintFoundList("compile command", CompileCommand.FindOrNone(cc, null))
                 , cc => ToSelectables(CompileCommand.ListAll(cc)));
 
-            AddExecutable(config, "git", p => p.GitExecutable, DefaultPaths.GIT);
-            AddExecutable(config, "clang-tidy", p => p.ClangTidyExecutable, DefaultPaths.CLANG_TIDY);
-            AddExecutable(config, "clang-format", p => p.ClangFormatExecutable, DefaultPaths.CLANG_FORMAT);
+            AddExecutable(config, p => p.GitExecutable, DefaultExecutables.Git);
+            AddExecutable(config, p => p.ClangTidyExecutable, DefaultExecutables.ClangTidy);
+            AddExecutable(config, p => p.ClangFormatExecutable, DefaultExecutables.ClangFormat);
 
         });
     }
 
     private static void AddExecutable(IConfigurator<CommandSettings> config,
-        string name, Func<Config.Paths, string?> getter,
-        string executable)
+        Func<Config.Paths, string?> getter,
+        Executable exe)
     {
-        // todo(Gustav): move to a DefaultPaths record
-        var command_name = name;
-        var list_name = $"{name} executables";
-        var friendly_name = $"{name} executable";
-
-        SetupPathCommand.Configure<CompileCommandsArguments>(config, command_name,
+        SetupPathCommand.Configure<CompileCommandsArguments>(config, exe.Name,
             (paths, value) => paths.CompileCommands = value,
             _ => list_all_executables()
-                .PrintFoundList(list_name, get_executable_or_saved())
+                .PrintFoundList(exe.ListName, get_executable_or_saved())
             , _ => ToSelectables(list_all_executables()));
         return;
 
         IEnumerable<Found<string>> list_all_executables()
-            => Config.Paths.ListAllExecutables(getter, executable);
+            => Config.Paths.ListAllExecutables(getter, exe);
         string? get_executable_or_saved()
-            => Config.Paths.GetExecutableOrSaved(null, getter, friendly_name, executable);
+            => Config.Paths.GetExecutableOrSaved(null, getter, exe);
     }
 
     private static IEnumerable<string> ToSelectables(IEnumerable<Found<string>> founds)
