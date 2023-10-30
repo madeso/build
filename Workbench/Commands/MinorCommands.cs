@@ -90,29 +90,52 @@ internal sealed class LsCommand : Command<LsCommand.Arg>
     public sealed class Arg : CommandSettings
     {
         [Description("Directoy to list")]
-        [CommandArgument(0, "<input file>")]
+        [CommandArgument(0, "[input directory]")]
         public string Path { get; set; } = "";
+
+        [Description("Recursivly list")]
+        [CommandOption("--recursive")]
+        [DefaultValue(false)]
+        public bool Recursive { get; set; } = false;
+
+        [Description("Max depth")]
+        [CommandOption("--depth")]
+        [DefaultValue(3)]
+        public int MaxDepth { get; set; } = 3;
     }
 
     // todo(Gustav): transform into a spectre tree
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        print_recursive(Cli.ToDirectory(settings.Path), "");
+        var dir = Cli.ToDirectory(settings.Path);
+        var tree = new Tree(dir.Name);
+        print_recursive(tree, dir, settings.Recursive, 0, settings.MaxDepth);
+        AnsiConsole.Write(tree);
         return 0;
 
-        static void print_recursive(Dir root, string start)
+        static void print_recursive(IHasTreeNodes tree, Dir root, bool recursive, int current_depth, int max_depth)
         {
-            var ident = " ".Repeat(4);
-
+            if (max_depth >= 0 && current_depth >= max_depth)
+            {
+                if (root.EnumerateDirectories().Any() || root.EnumerateFiles().Any())
+                {
+                    tree.AddNode("...");
+                }
+                return;
+            }
             foreach (var file_path in root.EnumerateDirectories())
             {
-                AnsiConsole.MarkupLineInterpolated($"{start}{file_path.Name}/");
-                print_recursive(file_path, $"{start}{ident}");
+                var n = tree.AddNode(Cli.ToMarkup($"[blue]{file_path.Name}[/]/"));
+                if(recursive)
+                {
+                    print_recursive(n, file_path, recursive, current_depth+1, max_depth);
+                }
             }
+            
 
             foreach (var file_path in root.EnumerateFiles())
             {
-                AnsiConsole.MarkupLineInterpolated($"{start}{file_path.Name}");
+                tree.AddNode(Cli.ToMarkup($"[red]{file_path.Name}[/]"));
             }
         }
     }

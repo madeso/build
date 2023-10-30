@@ -1,11 +1,12 @@
 ﻿using System.Collections.Immutable;
+using System.Globalization;
 using Spectre.Console;
 using Workbench.Shared.Extensions;
 using static Workbench.Commands.Indent.IndentationCommand;
 
 namespace Workbench.Shared;
 
-public class Cli
+public static class Cli
 {
     public const string STDOUT_ARGUMENT = "stdout";
 
@@ -116,5 +117,18 @@ public class Cli
     {
         var vt = value.Trim();
         return vt.Trim() == "" || vt.Trim() == "?" ? def : new Fil(value);
+    }
+
+    public static Markup ToMarkup(FormattableString value)
+    {
+        var provider = CultureInfo.CurrentCulture;
+        return new Markup(escape_interpolated(provider, value));
+
+        static string escape_interpolated(CultureInfo ci, FormattableString value)
+        {
+            object?[] args = value.GetArguments().Select(arg => arg is string s ? s.EscapeMarkup() : arg)
+                .ToArray();
+            return string.Format(ci, value.Format, args);
+        }
     }
 }
