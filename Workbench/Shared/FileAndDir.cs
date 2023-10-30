@@ -61,7 +61,7 @@ public class Dir
 
     public Dir(string path)
     {
-        Debug.Assert(SysPath.IsPathFullyQualified(path)); // path must be rooted
+        Debug.Assert(SysPath.IsPathFullyQualified(path), "dir path must be rooted");
         Path = SysPath.GetFullPath(new DirectoryInfo(path).FullName);
     }
 
@@ -137,7 +137,7 @@ public class Fil
 
     public Fil(string path)
     {
-        Debug.Assert(SysPath.IsPathFullyQualified(path)); // path must be rooted
+        Debug.Assert(SysPath.IsPathFullyQualified(path), "file path must be rooted");
         Path = SysPath.GetFullPath(new FileInfo(path).FullName);
     }
 

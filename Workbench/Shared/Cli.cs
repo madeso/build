@@ -30,8 +30,10 @@ public class Cli
     {
         if (string.IsNullOrEmpty(arg)) return Dir.CurrentDirectory;
 
-        var dir = new Fil(arg)?.Directory;
-        return dir?.Exists == true ? dir : new Dir(arg);
+        var rooted = FileUtil.RootPath(Dir.CurrentDirectory, arg);
+
+        var dir = new Fil(rooted)?.Directory;
+        return dir?.Exists == true ? dir : new Dir(rooted);
     }
 
     public static IEnumerable<Dir> ToDirectories(IEnumerable<string> args)
@@ -64,10 +66,10 @@ public class Cli
 
     public static Fil? RequireFile(Log log, string arg, string name)
     {
-        var file = new Fil(arg);
+        var file = new Fil(FileUtil.RootPath(Dir.CurrentDirectory, arg));
         if (file.Exists == false)
         {
-            log.Error($"File '{arg}', passed for {name}, doesn't exist");
+            log.Error($"File '{arg}', passed for {name}, doesn't exist ({file})");
             return null;
         }
 

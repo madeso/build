@@ -155,7 +155,7 @@ internal static class Ui
             {
                 html.PushString($"<p>{s}</p>");
             }
-            html.PushString("<h1>Unhandled extensions</h1>");
+            html.PushString("<h1>Extensions not regarded as translation units</h1>");
             foreach (var (ext, count) in scanner.MissingExt.MostCommon())
             {
                 html.PushString($"<p>{ext} {count}</p>");
@@ -231,6 +231,7 @@ internal static class Ui
     {
         var html = new Html();
 
+        var short_name = file.Name;
         var display_name = Html.GetFilename(common, root.InputRoot, file);
 
         html.BeginJoin($"Inspecting - {display_name}");
@@ -242,7 +243,7 @@ internal static class Ui
             project.ScannedFiles
                 .Where(kvp => kvp.Value.AbsoluteIncludes.Contains(file))
                 .Select(kvp => kvp.Key),
-            "included_by", $"These include {display_name}",
+            "included_by", $"These include {short_name}",
             it => it.AllIncludedBy.Count
         );
 
@@ -257,7 +258,7 @@ internal static class Ui
             var total_lines = Core.FormatNumber(analytics_file.TotalIncludedLines);
             var total_count = Core.FormatNumber(analytics_file.AllIncludes.Count);
 
-            html.PushString($"<h2>{display_name}</h2>\n");
+            html.PushString($"<h2>{short_name}</h2>\n");
 
             html.PushString("<table class=\"summary\">");
 
@@ -276,7 +277,7 @@ internal static class Ui
             common, html, root,
             analytics,
             project.ScannedFiles[file].AbsoluteIncludes,
-            "includes", $"{display_name} includes these",
+            "includes", $"{short_name} includes these",
             it => it.AllIncludes.Count
         );
 

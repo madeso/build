@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Text.Json.Serialization;
 using Spectre.Console;
 using Workbench.Commands.Status;
 using Workbench.Shared;
@@ -14,8 +15,13 @@ public record OutputFolders(Dir InputRoot, Dir OutputDirectory);
 
 public class UserInput
 {
+    [JsonPropertyName("project_directories")]
     public List<string> ProjectDirectories { get; set; } = new();
+
+    [JsonPropertyName("include_directories")]
     public List<string> IncludeDirectories { get; set; } = new();
+
+    [JsonPropertyName("pre_compiled_headers")]
     public List<string> PrecompiledHeaders { get; set; } = new();
 
     public static UserInput? LoadFromFile(Log print, Fil file)
@@ -36,7 +42,7 @@ public class UserInput
             .Select(p => new Dir(p))
             .ToImmutableArray()
             ;
-        var pch_files = decorate_this(root, PrecompiledHeaders, "Precompiled headers", p => File.Exists(p))
+        var pch_files = decorate_this(root, PrecompiledHeaders, "Precompiled headers", File.Exists)
             .Select(p => new Fil(p))
             .ToImmutableArray()
             ;
@@ -67,9 +73,9 @@ public class UserInput
                     IsRelative = !Path.IsPathFullyQualified(d),
                     Dst = FileUtil.RootPath(root, d)
                 })
-                .Where(x => exists(x.Dst) == false, x =>
+                .Where(x => exists(x.Dst), x =>
                 {
-                    Log.Warning($"{x.Src} was removed from {name} since it doesn't exist and the replacement {x.Dst} was found");
+                    Log.Warning($"{x.Src} was removed from {name} since it doesn't exist and the replacement {x.Dst} wasn't found");
                 })
                 .Select(x => x.Dst);
         }
