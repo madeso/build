@@ -20,7 +20,16 @@ internal sealed class LsCommand : Command<LsCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return Log.PrintErrorsAtExit(print => Cpplint.HandleList(print, Cli.ToDirectory(arg.Root)));
+        return Log.PrintErrorsAtExit(log =>
+        {
+            var root = Cli.RequireDirectory(log, arg.Root, "ls directory");
+            if (root == null)
+            {
+                return -1;
+            }
+
+            return Log.PrintErrorsAtExit(print => Cpplint.HandleList(print, root));
+        });
     }
 }
 
@@ -37,7 +46,15 @@ internal sealed class RunCommand : AsyncCommand<RunCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return await Log.PrintErrorsAtExitAsync(async print => await Cpplint.HandleRun(print, Cli.ToDirectory(arg.Root)));
+        return await Log.PrintErrorsAtExitAsync(async log =>
+        {
+            var root = Cli.RequireDirectory(log, arg.Root, "root");
+            if (root == null)
+            {
+                return -1;
+            }
+            return await Log.PrintErrorsAtExitAsync(async print => await Cpplint.HandleRun(print, root));
+        });
     }
 }
 

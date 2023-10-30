@@ -48,6 +48,8 @@ internal class Program
             Commands.CodeHistory.Main.Configure(config, "code-history");
 
             Commands.Paths.Main.Configure(config, "path");
+
+            Commands.Folder.Main.Configure(config, "folder");
         });
         return app.Run(args);
     }

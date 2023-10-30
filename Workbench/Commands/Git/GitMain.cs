@@ -42,7 +42,7 @@ internal sealed class StatusCommand : AsyncCommand<StatusCommand.Arg>
     public sealed class Arg : CommandSettings
     {
         [Description("Git root to use")]
-        [CommandArgument(0, "<git root>")]
+        [CommandArgument(0, "[git root]")]
         public string Root { get; set; } = "";
     }
 
@@ -56,7 +56,11 @@ internal sealed class StatusCommand : AsyncCommand<StatusCommand.Arg>
                 return -1;
             }
 
-            var root = Cli.ToDirectory(settings.Root);
+            var root = Cli.RequireDirectory(log, settings.Root, "git root");
+            if (root == null)
+            {
+                return -1;
+            }
 
             AnsiConsole.MarkupLineInterpolated($"Status for [green]{settings.Root}[/].");
             await foreach (var line in Shared.Git.StatusAsync(git_path, root))
@@ -93,7 +97,7 @@ internal sealed class RemoveUnknownCommand : AsyncCommand<RemoveUnknownCommand.A
     public sealed class Arg : CommandSettings
     {
         [Description("Git root to use")]
-        [CommandArgument(0, "<git root>")]
+        [CommandArgument(0, "[git root]")]
         public string Root { get; set; } = "";
 
         [Description("Recursivly remove")]
@@ -142,7 +146,13 @@ internal sealed class RemoveUnknownCommand : AsyncCommand<RemoveUnknownCommand.A
                 return -1;
             }
 
-            await WalkDirectoryAsync(git_path, Cli.ToDirectory(settings.Root), settings.Recursive);
+            var root = Cli.RequireDirectory(log, settings.Root, "root");
+            if (root == null)
+            {
+                return -1;
+            }
+
+            await WalkDirectoryAsync(git_path, root, settings.Recursive);
             return 0;
         });
     }

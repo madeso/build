@@ -17,8 +17,16 @@ internal sealed class CheckCommand : Command<CheckCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return Log.PrintErrorsAtExit(printer => CheckNamesRunner.Run(printer, Cli.ToDirectory(arg.DoxygenXml),
-            Dir.CurrentDirectory));
+        return Log.PrintErrorsAtExit(printer =>
+        {
+            var dox = Cli.RequireDirectory(printer, arg.DoxygenXml, "doxygen xml folder");
+            if (dox == null)
+            {
+                return -1;
+            }
+            return CheckNamesRunner.Run(printer, dox,
+                Dir.CurrentDirectory);
+        });
     }
 }
 

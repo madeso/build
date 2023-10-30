@@ -52,7 +52,13 @@ internal sealed class ListGraphvizCommand : AsyncCommand<ListGraphvizCommand.Arg
     {
         return await Log.PrintErrorsAtExitAsync(async printer =>
             {
-                await Dependencies.WriteToGraphvizAsync(printer, Cli.ToDirectory(arg.DoxygenXml),
+                var dox = Cli.RequireDirectory(printer, arg.DoxygenXml, "doxygen xml folder");
+                if (dox == null)
+                {
+                    return -1;
+                }
+
+                await Dependencies.WriteToGraphvizAsync(printer, dox,
                     arg.NamespaceFilter, new Fil(arg.OutputFile),
                     arg.IgnoredClasses.ToImmutableHashSet(),
                     !(arg.NoIncludeFunctions ?? false),
@@ -88,9 +94,16 @@ internal sealed class ListCallGraph : AsyncCommand<ListCallGraph.Arg>
     {
         return await Log.PrintErrorsAtExitAsync(async log =>
         {
+            var dox = Cli.RequireDirectory(log, arg.DoxygenXml, "Doxygen xml folder");
+            if (dox == null)
+            {
+                return -1;
+            }
+
             await Dependencies.WriteCallGraphToGraphvizAsync(
-                log, Cli.ToDirectory(arg.DoxygenXml), new Fil(arg.OutputFile),
+                log, dox, new Fil(arg.OutputFile),
                 arg.ClusterOn ?? Dependencies.ClusterCallGraphOn.None);
+            
             return 0;
         });
     }
@@ -114,7 +127,13 @@ internal sealed class PrintCommand : Command<PrintCommand.Arg>
     {
         return Log.PrintErrorsAtExit(printer =>
             {
-                Dependencies.PrintLists(printer, Cli.ToDirectory(arg.DoxygenXml), arg.NamespaceFilter);
+                var dox = Cli.RequireDirectory(printer, arg.DoxygenXml, "Doxygen xml folder");
+                if (dox == null)
+                {
+                    return -1;
+                }
+
+                Dependencies.PrintLists(printer, dox, arg.NamespaceFilter);
                 return 0;
             }
         );

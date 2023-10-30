@@ -27,14 +27,30 @@ public static class Cli
         }
     }
 
-    public static Dir ToDirectory(string? arg)
+    public static Dir? RequireDirectory(Log log, string? arg, string name)
     {
         if (string.IsNullOrEmpty(arg)) return Dir.CurrentDirectory;
 
         var rooted = FileUtil.RootPath(Dir.CurrentDirectory, arg);
 
-        var dir = new Fil(rooted)?.Directory;
-        return dir?.Exists == true ? dir : new Dir(rooted);
+        var dd = new Dir(rooted);
+        if (dd.Exists) return dd;
+
+        var file = new Fil(rooted);
+        if (!file.Exists)
+        {
+            log.Error($"Directory {dd} for {name} doesn't exist");
+            return null;
+        }
+
+        var fd = file.Directory;
+        if (fd != null)
+        {
+            return fd;
+        }
+
+        log.Error($"Directory {dd} doesn't exist and failed to get directory from file {file} for {name}");
+        return null;
     }
 
     public static IEnumerable<Dir> ToDirectories(IEnumerable<string> args)
@@ -130,5 +146,14 @@ public static class Cli
                 .ToArray();
             return string.Format(ci, value.Format, args);
         }
+    }
+
+    public static Dir ToOutputDirectory(string arg)
+    {
+        if (string.IsNullOrEmpty(arg)) return Dir.CurrentDirectory;
+
+        var rooted = FileUtil.RootPath(Dir.CurrentDirectory, arg);
+
+        return new Dir(rooted);
     }
 }

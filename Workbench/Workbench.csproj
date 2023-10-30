@@ -25,5 +25,6 @@
       <Folder Include="Commands\CheckForNoProjectFolders\" />
       <Folder Include="Commands\CheckFileNames\" />
       <Folder Include="Commands\CodeHistory\" />
+      <Folder Include="Commands\Folder\" />
     </ItemGroup>
 </Project>

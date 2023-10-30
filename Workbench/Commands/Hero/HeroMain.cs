@@ -63,7 +63,7 @@ internal sealed class RunHeroHtmlCommand : Command<RunHeroHtmlCommand.Arg>
             {
                 return -1;
             }
-            return UiFacade.HandleRunHeroHtml(project_file, Cli.ToDirectory(settings.OutputDirectory),
+            return UiFacade.HandleRunHeroHtml(project_file, Cli.ToOutputDirectory(settings.OutputDirectory),
                 print);
         });
     }

@@ -104,39 +104,46 @@ internal sealed class LsCommand : Command<LsCommand.Arg>
         public int MaxDepth { get; set; } = 3;
     }
 
-    // todo(Gustav): transform into a spectre tree
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        var dir = Cli.ToDirectory(settings.Path);
-        var tree = new Tree(dir.Name);
-        print_recursive(tree, dir, settings.Recursive, 0, settings.MaxDepth);
-        AnsiConsole.Write(tree);
-        return 0;
-
-        static void print_recursive(IHasTreeNodes tree, Dir root, bool recursive, int current_depth, int max_depth)
+        return Log.PrintErrorsAtExit(log =>
         {
-            if (max_depth >= 0 && current_depth >= max_depth)
+            var dir = Cli.RequireDirectory(log, settings.Path, "path");
+            if (dir == null)
             {
-                if (root.EnumerateDirectories().Any() || root.EnumerateFiles().Any())
-                {
-                    tree.AddNode("...");
-                }
-                return;
+                return -1;
             }
-            foreach (var file_path in root.EnumerateDirectories())
-            {
-                var n = tree.AddNode(Cli.ToMarkup($"[blue]{file_path.Name}[/]/"));
-                if(recursive)
-                {
-                    print_recursive(n, file_path, recursive, current_depth+1, max_depth);
-                }
-            }
-            
 
-            foreach (var file_path in root.EnumerateFiles())
+            var tree = new Tree(dir.Name);
+            print_recursive(tree, dir, settings.Recursive, 0, settings.MaxDepth);
+            AnsiConsole.Write(tree);
+            return 0;
+
+            static void print_recursive(IHasTreeNodes tree, Dir root, bool recursive, int current_depth, int max_depth)
             {
-                tree.AddNode(Cli.ToMarkup($"[red]{file_path.Name}[/]"));
+                if (max_depth >= 0 && current_depth >= max_depth)
+                {
+                    if (root.EnumerateDirectories().Any() || root.EnumerateFiles().Any())
+                    {
+                        tree.AddNode("...");
+                    }
+                    return;
+                }
+                foreach (var file_path in root.EnumerateDirectories())
+                {
+                    var n = tree.AddNode(Cli.ToMarkup($"[blue]{file_path.Name}[/]/"));
+                    if(recursive)
+                    {
+                        print_recursive(n, file_path, recursive, current_depth+1, max_depth);
+                    }
+                }
+                
+
+                foreach (var file_path in root.EnumerateFiles())
+                {
+                    tree.AddNode(Cli.ToMarkup($"[red]{file_path.Name}[/]"));
+                }
             }
-        }
+        });
     }
 }
