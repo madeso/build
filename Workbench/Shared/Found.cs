@@ -59,6 +59,16 @@ public static class FoundExtensions
         return new Found<T>(values.ToImmutableArray(), name);
     }
 
+    public static FoundEntry<Fil> ToFoundExist(this Fil file)
+    {
+        if (file.Exists == false)
+        {
+            return new FoundEntry<Fil>.Error($"{file} doesn't exist");
+        }
+
+        return new FoundEntry<Fil>.Result(file);
+    }
+
     public static IEnumerable<T> AllValid<T>(this IEnumerable<Found<T>> founds)
     {
         return founds
@@ -118,19 +128,19 @@ public static class FoundExtensions
         AnsiConsole.Write(table);
     }
 
-    public static string? FirstValidOrOverride(this IEnumerable<Found<string>> defaults,
-        IEnumerable<Found<string>> overrides, Log? log, string name)
+    public static T? FirstValidOrOverride<T>(this IEnumerable<Found<T>> defaults,
+        IEnumerable<Found<T>> overrides, Log? log, string name)
     {
         foreach (var arg in overrides.SelectMany(x => x.Findings))
         {
             switch (arg)
             {
-                case FoundEntry<string>.Result r:
+                case FoundEntry<T>.Result r:
                     return r.Value;
-                case FoundEntry<string>.Error e:
+                case FoundEntry<T>.Error e:
                 {
                     log?.Error(e.Reason);
-                    return null;
+                    return default;
                 }
             }
         }
@@ -145,6 +155,6 @@ public static class FoundExtensions
         if (valid.Length == 1) return valid[0];
 
         log?.Error($"Expected 1 {name} but found {valid.Length}!");
-        return null;
+        return default;
     }
 }

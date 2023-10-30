@@ -202,31 +202,40 @@ public class Graphviz
         edges.Add(new Edge(from, to));
     }
 
-    public void WriteFile(string path)
+    public void WriteFile(Fil path)
     {
-        File.WriteAllLines(path, Lines);
+        path.WriteAllLines(Lines);
     }
 
-    public async Task WriteFileAsync(string path)
+    public async Task WriteFileAsync(Fil path)
     {
-        await File.WriteAllLinesAsync(path, Lines);
+        await path.WriteAllLinesAsync(Lines);
     }
 
-    public async Task<string[]> WriteSvgAsync()
+    public async Task<string[]> WriteSvgAsync(Log log)
     {
+        var dot = Config.Paths.GetGraphvizExecutable(log);
+
+        if (dot == null)
+        {
+            return Array.Empty<string>();
+        }
+
         var cmdline = new ProcessBuilder(
-            "dot",
+            dot,
             "-Tsvg"
         );
         var output = await cmdline.RunAndGetOutputAsync(Lines);
 
         if (output.ExitCode != 0)
         {
-            Console.WriteLine($"Non zero return from calling dot: {output.ExitCode}");
+            log.Error($"Non zero return from calling dot: {output.ExitCode}");
             foreach (var err in output.Output.Where(x => x.IsError))
             {
                 Console.WriteLine(err.Line);
             }
+
+            return Array.Empty<string>();
         }
 
         var ret = output.Output
@@ -236,9 +245,9 @@ public class Graphviz
         return ret;
     }
 
-    public async IAsyncEnumerable<string> WriteHtmlAsync(string file, bool use_max_width = false)
+    public async IAsyncEnumerable<string> WriteHtmlAsync(Log log, Fil file, bool use_max_width = false)
     {
-        var svg = await WriteSvgAsync();
+        var svg = await WriteSvgAsync(log);
 
         yield return "<!DOCTYPE html>";
         yield return "<html>";
@@ -256,7 +265,7 @@ public class Graphviz
             yield return "}";
             yield return "</style>";
         }
-        yield return $"<title>{Path.GetFileNameWithoutExtension(file)}</title>";
+        yield return $"<title>{file.NameWithoutExtension}</title>";
         yield return "<script src=\"https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js\"></script>";
         yield return "</head>";
 
@@ -293,7 +302,7 @@ public class Graphviz
         yield return "</html>";
     }
 
-    public async Task SmartWriteFileAsync(string path, Log log)
+    public async Task SmartWriteFileAsync(Fil path, Log log)
     {
         var am = new ActionMapper();
         am.Add(async () =>
@@ -302,14 +311,16 @@ public class Graphviz
         }, "", ".gv", ".graphviz", ".dot");
         am.Add(async () =>
         {
-            await File.WriteAllLinesAsync(path, await WriteSvgAsync());
+            // todo(Gustav): don't write svg if we failed
+            await path.WriteAllLinesAsync(await WriteSvgAsync(log));
         }, ".svg");
         am.Add(async () =>
         {
-            await File.WriteAllLinesAsync(path, await WriteHtmlAsync(path).ToListAsync());
+            // todo(Gustav): don't write html if we failed
+            await path.WriteAllLinesAsync(await WriteHtmlAsync(log, path).ToListAsync());
         }, ".htm", ".html");
 
-        var ext = Path.GetExtension(path);
+        var ext = path.Extension;
         if (false == await am.Run(ext))
         {
             log.Error($"Unknown extension {ext}, supported: {StringListCombiner.EnglishAnd().Combine(am.Names)}");

@@ -57,7 +57,15 @@ internal sealed class RunHeroHtmlCommand : Command<RunHeroHtmlCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return Log.PrintErrorsAtExit(print =>
-            UiFacade.HandleRunHeroHtml(settings.ProjectFile, settings.OutputDirectory, print));
+        {
+            var project_file = Cli.RequireFile(print, settings.ProjectFile, "project file");
+            if (project_file == null)
+            {
+                return -1;
+            }
+            return UiFacade.HandleRunHeroHtml(project_file, Cli.ToDirectory(settings.OutputDirectory),
+                print);
+        });
     }
 }
 
@@ -95,12 +103,27 @@ internal sealed class RunHeroDotCommand : Command<RunHeroDotCommand.Arg>
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
-        => Log.PrintErrorsAtExit(print => UiFacade.RunHeroGraphviz(
-            args.ProjectFile,
-            args.OutputFile,
-            args.SimplifyGraphviz,
-            args.OnlyHeaders,
-            args.Cluster,
-            args.Exclude ?? Array.Empty<string>(),
-            print));
+        => Log.PrintErrorsAtExit(print =>
+        {
+            var project_file = Cli.RequireFile(print, args.ProjectFile, "project file");
+            if (project_file == null)
+            {
+                return -1;
+            }
+
+            var exclude = Cli.ToExistingFileOrDir(args.Exclude, print);
+            if (exclude == null)
+            {
+                return -1;
+            }
+
+            return UiFacade.RunHeroGraphviz(
+                project_file,
+                Cli.ToSingleFile(args.OutputFile, ""),
+                args.SimplifyGraphviz,
+                args.OnlyHeaders,
+                args.Cluster,
+                exclude,
+                print);
+        });
 }

@@ -10,9 +10,8 @@ namespace Workbench.Commands.Hero;
 internal static class Ui
 {
 
-    public static void ScanAndGenerateHtml(Log log, UserInput input, OutputFolders root)
+    public static void ScanAndGenerateHtml(OutputFolders root, Project project)
     {
-        var project = new Project(input);
         var scanner = new Scanner();
         var feedback = new ProgressFeedback();
         scanner.Rescan(project, feedback);
@@ -29,37 +28,37 @@ internal static class Ui
         }
     }
 
-    public static void ScanAndGenerateDot(
-        Log log, UserInput input, OutputFolders root, bool simplify_graphviz, bool only_headers,
-        string[] exclude, bool cluster)
+    public static void ScanAndGenerateDot(Dir input_root, bool simplify_graphviz,
+        bool only_headers,
+        FileOrDir[] exclude, bool cluster, Fil dot_target, Project project)
     {
-        var project = new Project(input);
         var scanner = new Scanner();
         var feedback = new ProgressFeedback();
         scanner.Rescan(project, feedback);
         var f = new UniqueFiles();
         AddFiles(f, project);
-        GenerateDot(f.GetCommon(), root, project, scanner, simplify_graphviz, only_headers, exclude, input, cluster);
+        GenerateDot(f.GetCommon(), input_root, project, simplify_graphviz, only_headers, exclude, cluster, dot_target);
     }
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     // ReportForm
 
-    private static bool FileIsInFileList(string f, IEnumerable<string> list)
+    private static bool FileIsInFileList(Fil ff, IEnumerable<FileOrDir> list)
     {
-        var ff = new FileInfo(f);
-        return list.Select(p => new FileInfo(p)).Any(pp => ff.FullName == pp.FullName);
+        return list
+            .Select(p => p.IsFile ? p.AsFile!.Equals(ff) : ff.IsInFolder(p.AsDir!))
+            .FirstOrDefault(false);
     }
 
-    private static bool ExcludeFile(string file, UserInput input, bool only_headers, IEnumerable<string> exclude)
+    private static bool ExcludeFile(Fil file, Project input, bool only_headers, IEnumerable<FileOrDir> exclude)
     {
-        if (FileIsInFileList(file, input.ProjectDirectories))
+        if (FileIsInFileList(file, input.ScanDirectories))
         {
             // explicit included... then it's not excluded
             return false;
         }
-        else if (only_headers && FileUtil.IsHeader(new FileInfo(file)) == false)
+        else if (only_headers && FileUtil.IsHeader(file) == false)
         {
             return true;
         }
@@ -73,37 +72,38 @@ internal static class Ui
         }
     }
 
+    // todo(Gustav): OutputFolders shouldn't be used here!
     private static void GenerateDot(
-        string? common, OutputFolders root, Project project, Scanner scanner,
-        bool simplify_graphviz, bool only_headers, string[] exclude, UserInput input, bool cluster)
+        Dir? common, Dir input_root, Project project,
+        bool simplify_graphviz, bool only_headers, FileOrDir[] exclude, bool cluster, Fil dot_target)
     {
         var analytics = Analytics.Analyze(project);
         var gv = new Graphviz();
 
         foreach (var file in project.ScannedFiles.Keys)
         {
-            if (ExcludeFile(file, input, only_headers, exclude))
+            if (ExcludeFile(file, project, only_headers, exclude))
             {
                 AnsiConsole.WriteLine($"{file} rejected due to non-header");
                 continue;
             }
 
             AnsiConsole.WriteLine($"{file} added as a node");
-            var display_name = Html.GetFilename(common, root.InputRoot, file);
+            var display_name = Html.GetFilename(common, input_root, file);
             var node_id = Html.GetSafeInspectFilenameWithoutHtml(file);
             var added_node = gv.AddNodeWithId(display_name, Shape.Box, node_id);
             if (!cluster) continue;
 
-            var parent = new FileInfo(file).Directory?.FullName;
+            var parent = file.Directory;
             if (parent != null)
             {
-                added_node.Cluster = gv.FindOrCreateCluster(Path.GetRelativePath(root.InputRoot, parent));
+                added_node.Cluster = gv.FindOrCreateCluster(input_root.RelativeFromTo(parent));
             }
         }
 
         foreach (var file in project.ScannedFiles.Keys)
         {
-            if (ExcludeFile(file, input, only_headers, exclude))
+            if (ExcludeFile(file, project, only_headers, exclude))
             {
                 AnsiConsole.WriteLine($"{file} rejected due to non-header");
                 continue;
@@ -118,7 +118,7 @@ internal static class Ui
 
             foreach (var s in project.ScannedFiles[file].AbsoluteIncludes)
             {
-                if (ExcludeFile(s, input, only_headers, exclude))
+                if (ExcludeFile(s, project, only_headers, exclude))
                 {
                     AnsiConsole.WriteLine($"{s} rejected due to non-header");
                     continue;
@@ -143,10 +143,10 @@ internal static class Ui
             gv.Simplify();
         }
 
-        gv.WriteFile(root.OutputDirectory);
+        gv.WriteFile(dot_target);
     }
 
-    private static void GenerateReport(string? common, OutputFolders root, Project project, Scanner scanner)
+    private static void GenerateReport(Dir? common, OutputFolders root, Project project, Scanner scanner)
     {
         {
             var html = new Html();
@@ -162,8 +162,7 @@ internal static class Ui
             }
             html.End();
 
-            var path = Path.Join(root.OutputDirectory, "errors.html");
-            html.WriteToFile(path);
+            html.WriteToFile(root.OutputDirectory.GetFile("errors.html"));
         }
 
         {
@@ -185,8 +184,7 @@ internal static class Ui
             }
             html.End();
 
-            var path = Path.Join(root.OutputDirectory, "missing.html");
-            html.WriteToFile(path);
+            html.WriteToFile(root.OutputDirectory.GetFile("missing.html"));
         }
 
         var analytics = Analytics.Analyze(project);
@@ -201,11 +199,11 @@ internal static class Ui
 
     private static void WriteInspectHeaderTable
     (
-        string? common,
+        Dir? common,
         Html html,
         OutputFolders root,
         Analytics analytics,
-        IEnumerable<string> included,
+        IEnumerable<Fil> included,
         string klass,
         string header,
         Func<ItemAnalytics, int> length_fun
@@ -229,7 +227,7 @@ internal static class Ui
         html.PushString("</div>\n");
     }
 
-    private static void write_inspection_page(string? common, OutputFolders root, string file, Project project, Analytics analytics)
+    private static void write_inspection_page(Dir? common, OutputFolders root, Fil file, Project project, Analytics analytics)
     {
         var html = new Html();
 
@@ -284,9 +282,7 @@ internal static class Ui
 
         html.End();
 
-        var filename = Html.GetSafeInspectFilenameHtml(file);
-        var path = Path.Join(root.OutputDirectory, filename);
-        html.WriteToFile(path);
+        html.WriteToFile(root.OutputDirectory.GetFile(Html.GetSafeInspectFilenameHtml(file)));
     }
 
 }
@@ -311,40 +307,42 @@ internal static class UiFacade
         return 0;
     }
 
-    internal static int HandleRunHeroHtml(string project_file, string output_directory, Log print)
+    internal static int HandleRunHeroHtml(Fil project_file, Dir output_directory, Log print)
     {
         var input = UserInput.LoadFromFile(print, project_file);
         if (input == null)
         {
             return -1;
         }
-        if (input.Validate(print) == false)
+        var input_root = project_file.Directory ?? Dir.CurrentDirectory;
+        var project = input.ToProject(print, input_root, null);
+        if (project == null)
         {
             return -1;
         }
-        var input_root = new FileInfo(project_file).DirectoryName ?? Environment.CurrentDirectory;
-        input.Decorate(print, input_root);
-        Directory.CreateDirectory(output_directory);
-        Ui.ScanAndGenerateHtml(print, input, new(input_root, output_directory));
+        
+        Directory.CreateDirectory(output_directory.Path);
+        Ui.ScanAndGenerateHtml(new(input_root, output_directory), project);
         return 0;
     }
 
     internal static int RunHeroGraphviz(
-        string project_file, string output_file, bool simplify_graphviz, bool only_headers, bool cluster,
-        string[] exclude, Log print)
+        Fil project_file, Fil output_file, bool simplify_graphviz, bool only_headers, bool cluster,
+        FileOrDir[] exclude, Log print)
     {
         var input = UserInput.LoadFromFile(print, project_file);
         if (input == null)
         {
             return -1;
         }
-        if (input.Validate(print) == false)
+        var input_root = project_file.Directory ?? Dir.CurrentDirectory;
+        var project = input.ToProject(print, input_root, null);
+        if (project == null)
         {
             return -1;
         }
-        var input_root = new FileInfo(project_file).DirectoryName ?? Environment.CurrentDirectory;
-        input.Decorate(print, input_root);
-        Ui.ScanAndGenerateDot(print, input, new(input_root, output_file), simplify_graphviz, only_headers, exclude, cluster);
+
+        Ui.ScanAndGenerateDot(input_root, simplify_graphviz, only_headers, exclude, cluster, output_file, project);
         return 0;
     }
 }

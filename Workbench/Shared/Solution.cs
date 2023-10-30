@@ -139,7 +139,7 @@ public class Solution
     public static class Parse
     {
         private record Dependency(Project From, string To);
-        private record LoadProject(Project Project, string File);
+        private record LoadProject(Project Project, Fil File);
 
         public static Solution CMake(IEnumerable<CMakeTrace> lines)
         {
@@ -236,7 +236,7 @@ public class Solution
 
 
 
-        public static Solution VisualStudio(Log log, string solution_path)
+        public static Solution VisualStudio(Log log, Fil solution_path)
         {
             var solution = new Solution();
 
@@ -248,10 +248,10 @@ public class Solution
             // load solution
 
             {
-                var lines = File.ReadLines(solution_path).ToArray();
+                var lines = solution_path.ReadAllLines().ToArray();
                 Project? current_project = null;
                 var project_line = string.Empty;
-                var solution_dir = new FileInfo(solution_path).Directory?.FullName!;
+                var solution_dir = solution_path.Directory!;
                 foreach (var line in lines)
                 {
                     if (line.StartsWith("Project"))
@@ -269,7 +269,7 @@ public class Solution
                         var project_guid = data[2].Trim().Trim('\"').Trim();
                         // todo(Gustav): reuse guid?
                         current_project = solution.AddProject(ProjectType.Unknown, name);
-                        loads.Add(new(current_project, Path.Join(solution_dir, relative_path)));
+                        loads.Add(new(current_project, solution_dir.GetFile(relative_path)));
                         projects[project_guid.ToLowerInvariant()] = current_project;
                     }
                     else if (current_project != null && line.Trim().StartsWith("{"))
@@ -288,17 +288,17 @@ public class Solution
             foreach (var (project, project_relative_path) in loads)
             {
                 var path_to_project_file = determine_real_filename(project_relative_path);
-                if (path_to_project_file == "")
+                if (path_to_project_file == null)
                 {
                     continue;
                 }
-                if (File.Exists(path_to_project_file) == false)
+                if (path_to_project_file.Exists)
                 {
                     AnsiConsole.WriteLine($"Unable to open project file: {path_to_project_file}");
                     continue;
                 }
                 var document = new XmlDocument();
-                document.Load(path_to_project_file);
+                document.Load(path_to_project_file.Path);
                 var root_element = document.DocumentElement;
                 if (root_element == null) { log.Error($"Failed to load {project_relative_path}"); continue; }
                 HashSet<string> configurations = new();
@@ -399,25 +399,10 @@ public class Solution
 
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
             // load additional project data from file
-            static string determine_real_filename(string pa)
-            {
-                var p = pa;
-                if (File.Exists(p))
-                {
-                    return p;
-                }
-                p = pa + ".vcxproj";
-                if (File.Exists(p))
-                {
-                    return p;
-                }
-                p = pa + ".csproj";
-                if (File.Exists(p))
-                {
-                    return p;
-                }
-                return "";
-            }
+            static Fil? determine_real_filename(Fil pa)
+                => Functional.Params("", ".vcxproj", ".csproj")
+                    .Select(x => new Fil(pa.Path + x))
+                    .FirstOrDefault(p => p.Exists);
         }
 
     }

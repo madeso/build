@@ -23,8 +23,8 @@ internal sealed class WriteCodeCity : Command<WriteCodeCity.Arg>
     {
         return Log.PrintErrorsAtExit(printer =>
             {
-                var cubes = Facade.Collect(printer, arg.DoxygenXml);
-                File.WriteAllLines(arg.OutputFile, Facade.HtmlLines("CodeCity", cubes));
+                var cubes = Facade.Collect(printer, Cli.ToDirectory(arg.DoxygenXml));
+                new Fil(arg.OutputFile).WriteAllLines(Facade.HtmlLines("CodeCity", cubes));
                 return 0;
             }
         );

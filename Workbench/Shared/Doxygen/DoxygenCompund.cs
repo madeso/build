@@ -8,10 +8,10 @@ namespace Workbench.Shared.Doxygen;
 
 class CompoundLoader
 {
-    readonly string dir;
+    readonly Dir dir;
     readonly Dictionary<string, ParsedDoxygenFile> cache = new();
 
-    public CompoundLoader(string dir)
+    public CompoundLoader(Dir dir)
     {
         this.dir = dir;
     }
@@ -23,9 +23,9 @@ class CompoundLoader
             return type;
         }
 
-        var path = Path.Join(dir, id + ".xml");
+        var path = dir.GetFile($"{id}.xml");
         XmlDocument doc = new();
-        doc.Load(path);
+        doc.Load(path.Path);
         var root = doc.ElementsNamed("doxygen").First();
         var parsed = new ParsedDoxygenFile(root);
 

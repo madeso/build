@@ -195,20 +195,20 @@ public static class BuildFunctions
             _ => throw new Exception("Invalid compiler"),
         };
 
-    public static void SaveToFile(BuildEnvironment self, string path)
+    public static void SaveToFile(BuildEnvironment self, Fil path)
     {
-        File.WriteAllText(path, JsonUtil.Write(self));
+        path.WriteAllText(JsonUtil.Write(self));
     }
 
     // load build environment from json file
-    public static BuildEnvironment LoadFromFileOrCreateEmpty(string path, Log log)
+    public static BuildEnvironment LoadFromFileOrCreateEmpty(Fil path, Log log)
     {
-        if (File.Exists(path) == false)
+        if (path.Exists == false)
         {
             return BuildEnvironment.CreateEmpty();
         }
 
-        var content = File.ReadAllText(path);
+        var content = path.ReadAllText();
 
         var loaded = JsonUtil.Parse<BuildEnvironment>(log, path, content);
         if (loaded == null)

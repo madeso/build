@@ -212,7 +212,7 @@ internal class Block : Statement
 
 internal class FileStats
 {
-    public ColCounter<string> Includes = new();
+    public ColCounter<Fil> Includes = new();
     public ColCounter<string> Missing = new();
     public int FileCount = 0;
     public int TotalFileCount = 0;
@@ -220,29 +220,30 @@ internal class FileStats
 
 internal class FileWalker
 {
-    private readonly Dictionary<string, CompileCommand> commands;
+    private readonly Dictionary<Fil, CompileCommand> commands;
     public FileStats Stats = new();
 
-    public FileWalker(Dictionary<string, CompileCommand> commands)
+    public FileWalker(Dictionary<Fil, CompileCommand> commands)
     {
         this.commands = commands;
     }
 
-    private void AddInclude(string path)
+    private void AddInclude(Fil path)
     {
         Stats.Includes.AddOne(path);
     }
 
     private void AddMissing(string include)
     {
-        Stats.Includes.AddOne(include);
+        // todo(Gustav): used to add missing to includes... that seems wrong... investigate!
+        // Stats.Includes.AddOne(include);
         Stats.Missing.AddOne(include);
     }
 
     internal bool Walk
     (
-        Log print, string path,
-        Dictionary<string, List<Statement>> file_cache
+        Log print, Fil path,
+        Dictionary<Fil, List<Statement>> file_cache
     )
     {
         AnsiConsole.WriteLine($"Parsing {path}");
@@ -256,15 +257,16 @@ internal class FileWalker
 
         var directories = cc.GetRelativeIncludes();
 
-        var included_file_cache = new HashSet<string>();
+        var included_file_cache = new HashSet<Fil>();
         var defines = cc.GetDefines();
 
-        return walk_rec(print, directories.ToArray(), included_file_cache, path, defines, file_cache, 0);
+        return walk_rec(print, directories.ToArray(), included_file_cache, path,
+            defines, file_cache, 0);
     }
 
-    private static List<Statement> ParseFileToBlocks(string path, Log print)
+    private static List<Statement> ParseFileToBlocks(Fil path, Log print)
     {
-        var source_lines = File.ReadAllLines(path);
+        var source_lines = path.ReadAllLines();
         var joined_lines = ListHeaderFunctions.JoinCppLines(source_lines);
         var trim_lines = joined_lines.Select(str => str.TrimStart()).ToList();
         var lines = ListHeaderFunctions.RemoveCppComments(trim_lines);
@@ -276,17 +278,17 @@ internal class FileWalker
     private bool walk_rec
     (
         Log print,
-        string[] directories,
-        HashSet<string> included_file_cache,
-        string path,
+        Dir[] directories,
+        HashSet<Fil> included_file_cache,
+        Fil path,
         Dictionary<string, string> defines,
-        Dictionary<string, List<Statement>> file_cache,
+        Dictionary<Fil, List<Statement>> file_cache,
         int depth
     )
     {
         Stats.TotalFileCount += 1;
 
-        if (FileUtil.IsSource(new FileInfo(path)))
+        if (FileUtil.IsSource(path))
         {
             var parsed_blocks = ParseFileToBlocks(path, print);
             return BlockRecursive(print, directories, included_file_cache, path, defines, parsed_blocks, file_cache, depth);
@@ -305,12 +307,12 @@ internal class FileWalker
     private bool BlockRecursive
     (
         Log print,
-        string[] directories,
-        HashSet<string> included_file_cache,
-        string path,
+        Dir[] directories,
+        HashSet<Fil> included_file_cache,
+        Fil path,
         Dictionary<string, string> defines,
         List<Statement> blocks,
-        Dictionary<string, List<Statement>> file_cache,
+        Dictionary<Fil, List<Statement>> file_cache,
         int depth
     )
     {
@@ -474,7 +476,7 @@ internal static class ListHeaderFunctions
             ;
     }
 
-    private static void GroupCommands(string path, Log print, List<Statement> ret, PreProcessorParser commands, int depth)
+    private static void GroupCommands(Fil path, Log print, List<Statement> ret, PreProcessorParser commands, int depth)
     {
         while (true)
         {
@@ -611,7 +613,7 @@ internal static class ListHeaderFunctions
         }
     }
 
-    internal static List<Statement> ParseToBlocks(string path, Log print, List<PreProcessor> r)
+    internal static List<Statement> ParseToBlocks(Fil path, Log print, List<PreProcessor> r)
     {
         var parser = new PreProcessorParser(commands: r, index: 0);
         var ret = new List<Statement>();
@@ -620,9 +622,9 @@ internal static class ListHeaderFunctions
     }
 
 
-    internal static void HandleLines(Log print, string file_name, ListAction action)
+    internal static void HandleLines(Log print, Fil file_name, ListAction action)
     {
-        var source_lines = File.ReadLines(file_name);
+        var source_lines = file_name.ReadAllLines();
         var joined_lines = JoinCppLines(source_lines);
         var trim_lines = joined_lines.Select(str => str.TrimStart()).ToList();
         var lines = RemoveCppComments(trim_lines);
@@ -658,37 +660,27 @@ internal static class ListHeaderFunctions
 
 
 
-    internal static string? ResolvePath(string[] directories, string stem, string caller_file, bool use_relative_path)
+    internal static Fil? ResolvePath(Dir[] directories, string stem, Fil caller_file,
+        bool use_relative_path)
     {
         if (use_relative_path)
         {
-            var caller = new FileInfo(caller_file).Directory?.FullName;
-            if (caller != null)
+            var caller = caller_file.Directory?.GetFile(stem);
+            if (caller is { Exists: true })
             {
-                var r = Path.Join(caller, stem);
-                if (File.Exists(r))
-                {
-                    return r;
-                }
+                return caller;
             }
         }
 
-        foreach (var dd in directories)
-        {
-            var r = Path.Join(dd, stem);
-            if (File.Exists(r))
-            {
-                return r;
-            }
-        }
-
-        return null;
+        return directories
+            .Select(dd => dd.GetFile(stem))
+            .FirstOrDefault(r => r.Exists);
     }
 
 
 
     internal static int HandleFiles(
-        Log print, string? ccpath, List<string> sources, int most_common_count)
+        Log print, Fil? ccpath, IEnumerable<FileOrDir> sources, int most_common_count)
     {
         if (ccpath == null) { return -1; }
 
@@ -697,23 +689,26 @@ internal static class ListHeaderFunctions
 
         var walker = new FileWalker(commands);
 
-        var file_cache = new Dictionary<string, List<Statement>>();
+        var file_cache = new Dictionary<Fil, List<Statement>>();
 
         foreach (var file in sources)
         {
-            if (File.Exists(file))
+            var ff = new Fil(file.Path);
+            if (ff.Exists)
             {
-                if (false == walker.Walk(print, file, file_cache))
+                if (false == walker.Walk(print, ff, file_cache))
                 {
                     return -1;
                 }
             }
             else
             {
-                var f = new DirectoryInfo(file).FullName;
-                if (false == walker.Walk(print, f, file_cache))
+                foreach(var fi in new Dir(file.Path).EnumerateFiles())
                 {
-                    return -1;
+                    if (false == walker.Walk(print, fi, file_cache))
+                    {
+                        return -1;
+                    }
                 }
             }
         }
@@ -724,7 +719,7 @@ internal static class ListHeaderFunctions
 
         foreach (var (file, count) in stats.Includes.MostCommon().Take(most_common_count))
         {
-            var d = Path.GetRelativePath(Environment.CurrentDirectory, file);
+            var d = file.GetDisplay();
             var times = count / (double)stats.FileCount;
             AnsiConsole.WriteLine($" - {d} {times:.2}x ({count}/{stats.FileCount})");
         }

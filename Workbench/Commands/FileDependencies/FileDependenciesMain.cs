@@ -14,10 +14,10 @@ namespace Workbench.Commands.FileDependencies;
 
 internal static class FileDeps
 {
-    public record ConnectionEntry(FileInfo File)
+    public record ConnectionEntry(Fil File)
     {
         public int Commits { get; set; }
-        public ColCounter<FileInfo> Counter { get; } = new();
+        public ColCounter<Fil> Counter { get; } = new();
 
         // count is from counter
         public float CalculateFactor(int count)
@@ -27,13 +27,13 @@ internal static class FileDeps
     }
 
     // todo(Gustav): is this working correctly???
-    public static async Task<Dictionary<string, ConnectionEntry>> ExtractGraphData(string git_path, Log log, DirectoryInfo cwd)
+    public static async Task<Dictionary<Fil, ConnectionEntry>> ExtractGraphData(Fil git_path, Log log, Dir cwd)
     {
         // todo(Gustav): make a list and move to argument
         var external_folder = cwd.GetSubDirs("external");
 
         // collect commits
-        var commits = (await Shared.Git.LogAsync(git_path, cwd.FullName).ToListAsync()).ToImmutableArray();
+        var commits = (await Shared.Git.LogAsync(git_path, cwd).ToListAsync()).ToImmutableArray();
         var latest_commit = commits[0].Hash;
 
         // collect files (collect is slow, so cache!
@@ -44,7 +44,7 @@ internal static class FileDeps
             AnsiConsole.WriteLine("Collecting git history...");
             var collected_before_git = await SpectreExtensions.Progress().MapArrayAsync(commits, async commit =>
             {
-                var files = await Shared.Git.FilesInCommitAsync(git_path, cwd.FullName, commit.Hash);
+                var files = await Shared.Git.FilesInCommitAsync(git_path, cwd, commit.Hash);
                 var ret = new { Commit = commit, Files = files };
                 return ($"Listing files for {commit.Hash}...", ret);
             });
@@ -54,7 +54,7 @@ internal static class FileDeps
                 x => x.Files.Select(f => f.File).ToList()
             );
             collected_before = new_files;
-            cache = new GitFile()
+            cache = new GitFile
             {
                 LatestCommit = latest_commit,
                 File = new_files
@@ -76,7 +76,7 @@ internal static class FileDeps
                 .SelectMany(pair => pair.Value.Select(y => new
                 {
                     Commit = pair.Key,
-                    File = cwd.GetFile(y)
+                    File = y
                 }))
                 .Where(x => x.File.Exists)
                 .Where(f => f.File.IsInFolder(external_folder) == false)
@@ -93,12 +93,12 @@ internal static class FileDeps
         // foreach file, foreach commit, ColCount of other files, get probability given counts of commits
         AnsiConsole.WriteLine("Counting commits...");
         var counters = collected
-            .SelectMany(x => x.Files.Select(f => f.FullName))
+            .SelectMany(x => x.Files)
             .ToHashSet()
-            .ToDictionary(x => x, file => new ConnectionEntry(new FileInfo(file)));
+            .ToDictionary(x => x, file => new ConnectionEntry(file));
         foreach (var ent in collected)
         {
-            var files = ent.Files.Select(f => f.FullName).Distinct().ToImmutableArray();
+            var files = ent.Files.Distinct().ToImmutableArray();
             foreach (var f in files)
             {
                 counters[f].Commits += 1;
@@ -106,7 +106,7 @@ internal static class FileDeps
 
             foreach (var (from, to) in files.Permutation())
             {
-                counters[from].Counter.AddOne(new FileInfo(to));
+                counters[from].Counter.AddOne(to);
             }
         }
 
@@ -136,7 +136,7 @@ internal sealed class ListInfoCommand : AsyncCommand<ListInfoCommand.Arg>
             return -1;
         }
 
-        var cwd = new DirectoryInfo(Environment.CurrentDirectory);
+        var cwd = Dir.CurrentDirectory;
         var counters = await FileDeps.ExtractGraphData(git_path, log, cwd);
 
         var commits = counters.Values
@@ -215,7 +215,7 @@ internal sealed class GitFilesCommand : AsyncCommand<GitFilesCommand.Arg>
             return -1;
         }
 
-        var cwd = new DirectoryInfo(Environment.CurrentDirectory);
+        var cwd = Dir.CurrentDirectory;
         var counters = await FileDeps.ExtractGraphData(git_path, log, cwd);
 
         // draw graphviz with links with probability count, remove nodes with no links
@@ -228,7 +228,7 @@ internal sealed class GitFilesCommand : AsyncCommand<GitFilesCommand.Arg>
                 continue;
             }
 
-            var src = new FileInfo(file_path);
+            var src = file_path;
             foreach(var (dst, count) in targets.Counter.Items)
             {
                 Debug.Assert(targets.Commits >= 1);
@@ -248,7 +248,7 @@ internal sealed class GitFilesCommand : AsyncCommand<GitFilesCommand.Arg>
             }
         }
 
-        var gvf = arg.OutputFile.NullIfEmpty() ?? cwd.GetFile("file-dependencies.html").FullName;
+        var gvf = Cli.ToSingleFile(arg.OutputFile, "file-dependencies.html");
         AnsiConsole.WriteLine($"Writing graphviz to {gvf} with {gv.NodeCount} nodes and {gv.EdgeCount} edges");
         await gv.SmartWriteFileAsync(gvf, log);
 

@@ -28,6 +28,37 @@ internal static class Functional
         }
     }
 
+    public static IEnumerable<TDst> SelectNonNull<TSrc, TDst>(
+        this IEnumerable<TSrc> it,
+        Func<TSrc, TDst?> sel, Action<TSrc> fail)
+    {
+        foreach (var t in it)
+        {
+            var r = sel(t);
+            if (r == null)
+            {
+                fail(t);
+                continue;
+            }
+            yield return r;
+        }
+    }
+
+    public static IEnumerable<T> Where<T>(this IEnumerable<T> src, Func<T, bool> predicate, Action<T> fail)
+    {
+        foreach (var t in src)
+        {
+            if (predicate(t))
+            {
+                yield return t;
+            }
+            else
+            {
+                fail(t);
+            }
+        }
+    }
+
     public static IEnumerable<(T?, T?)> ZipLongest<T>(this IEnumerable<T> left, IEnumerable<T> right)
         where T : class
     {

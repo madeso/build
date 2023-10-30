@@ -38,12 +38,21 @@ internal sealed class LinesCommand : Command<LinesCommand.Arg>
         public ListAction Action { get; set; } = ListAction.Lines;
     }
 
-    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         return Log.PrintErrorsAtExit
-            (
-                print => { ListHeaderFunctions.HandleLines(print, settings.FileName, settings.Action); return 0; }
-            );
+        (
+            print =>
+            {
+                var input = Cli.RequireFile(print, arg.FileName, "filename");
+                if (input == null)
+                {
+                    return -1;
+                }
+                ListHeaderFunctions.HandleLines(print, input, arg.Action);
+                return 0;
+            }
+        );
     }
 }
 
@@ -63,7 +72,18 @@ internal sealed class FilesCommand : Command<FilesCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return Log.PrintErrorsAtExit(print => ListHeaderFunctions.HandleFiles(print, CompileCommand.FindOrNone(arg, print), arg.Sources, arg.MostCommonCount));
+        return Log.PrintErrorsAtExit(print =>
+        {
+            var sources = Cli.ToExistingFileOrDir(arg.Sources, print);
+            if (sources == null)
+            {
+                return -1;
+            }
+
+            return ListHeaderFunctions.HandleFiles(print,
+                CompileCommand.FindOrNone(arg, print), sources,
+                arg.MostCommonCount);
+        });
     }
 }
 
@@ -106,7 +126,8 @@ internal sealed class IncludeListCommand : Command<IncludeListCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Log.PrintErrorsAtExit(print => Includes.HandleListIncludesCommand(print, CompileCommand.FindOrNone(settings, print),
+        return Log.PrintErrorsAtExit(print => Includes.HandleListIncludesCommand(print,
+            CompileCommand.FindOrNone(settings, print),
             settings.Files, settings.PrintFiles, settings.PrintStats, settings.PrintMax,
             settings.PrintList, settings.Count, settings.Limit));
     }

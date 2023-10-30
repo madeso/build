@@ -65,15 +65,15 @@ public static class BuildDependencies
 
 internal class DependencySdl2 : BuildDependency
 {
-    private readonly string root_folder;
-    private readonly string build_folder;
+    private readonly Dir root_folder;
+    private readonly Dir build_folder;
     private readonly string url;
     private readonly string folder_name;
 
     public DependencySdl2(BuildData data, string url_to_zip_file, string folder_name)
     {
-        root_folder = Path.Combine(data.DependencyDirectory, folder_name);
-        build_folder = Path.Combine(root_folder, "cmake-build");
+        root_folder = data.DependencyDirectory.GetDir(folder_name);
+        build_folder = root_folder.GetDir("cmake-build");
         url = url_to_zip_file;
         this.folder_name = folder_name;
     }
@@ -85,8 +85,9 @@ internal class DependencySdl2 : BuildDependency
 
     public void AddCmakeArguments(CMakeProject cmake)
     {
-        cmake.AddArgument("SDL2_HINT_ROOT", root_folder);
-        cmake.AddArgument("SDL2_HINT_BUILD", build_folder);
+        // todo(Gustav): used to send path as string
+        cmake.AddArgumentWithEscape("SDL2_HINT_ROOT", root_folder);
+        cmake.AddArgumentWithEscape("SDL2_HINT_BUILD", build_folder);
     }
 
     public async Task InstallAsync(BuildEnvironment env, Log print, BuildData data)
@@ -95,9 +96,9 @@ internal class DependencySdl2 : BuildDependency
 
         Printer.Header("Installing dependency sdl2");
 
-        var zip_file = Path.Join(data.DependencyDirectory, $"{folder_name}.zip");
+        var zip_file = data.DependencyDirectory.GetFile($"{folder_name}.zip");
 
-        if (false == File.Exists(zip_file))
+        if (false == zip_file.Exists)
         {
             Core.VerifyDirectoryExists(print, root_folder);
             Core.VerifyDirectoryExists(print, data.DependencyDirectory);
@@ -109,17 +110,17 @@ internal class DependencySdl2 : BuildDependency
             AnsiConsole.WriteLine("SDL2 zip file exist, not downloading again...");
         }
 
-        if (false == File.Exists(Path.Join(root_folder, "INSTALL.txt")))
+        if (false == root_folder.GetFile("INSTALL.txt").Exists)
         {
             Core.ExtractZip(zip_file, root_folder);
-            Core.MoveFiles(print, Path.Join(root_folder, folder_name), root_folder);
+            Core.MoveFiles(print, root_folder.GetDir(folder_name), root_folder);
         }
         else
         {
             AnsiConsole.WriteLine("SDL2 is unzipped, not unzipping again");
         }
 
-        if (false == File.Exists(Path.Join(build_folder, "SDL2.sln")))
+        if (false == build_folder.GetFile("SDL2.sln").Exists)
         {
             var project = new CMakeProject(build_folder, root_folder, generator);
             // project.make_static_library()
@@ -190,14 +191,14 @@ internal class DependencyPython : BuildDependency
 
 internal class DependencyAssimp : BuildDependency
 {
-    private readonly string dependency_folder;
-    private readonly string install_folder;
+    private readonly Dir dependency_folder;
+    private readonly Dir install_folder;
     private readonly bool use_static_build;
 
     public DependencyAssimp(BuildData data, bool use_static_build)
     {
-        dependency_folder = Path.Join(data.DependencyDirectory, "assimp");
-        install_folder = Path.Join(dependency_folder, "cmake-install");
+        dependency_folder = data.DependencyDirectory.GetDir("assimp");
+        install_folder = dependency_folder.GetDir("cmake-install");
         this.use_static_build = use_static_build;
     }
 
@@ -208,7 +209,7 @@ internal class DependencyAssimp : BuildDependency
 
     public void AddCmakeArguments(CMakeProject cmake)
     {
-        cmake.AddArgument("ASSIMP_ROOT_DIR", install_folder);
+        cmake.AddArgument("ASSIMP_ROOT_DIR", install_folder.Path);
     }
 
     public async Task InstallAsync(BuildEnvironment env, Log print, BuildData data)
@@ -218,8 +219,8 @@ internal class DependencyAssimp : BuildDependency
         var generator = env.CreateCmakeGenerator();
 
         Printer.Header("Installing dependency assimp");
-        var zip_file = Path.Join(data.DependencyDirectory, "assimp.zip");
-        if (false == Directory.Exists(dependency_folder))
+        var zip_file = data.DependencyDirectory.GetFile("assimp.zip");
+        if (false == dependency_folder.Exists)
         {
             Core.VerifyDirectoryExists(print, dependency_folder);
             Core.VerifyDirectoryExists(print, data.DependencyDirectory);
@@ -227,8 +228,8 @@ internal class DependencyAssimp : BuildDependency
             Core.DownloadFileIfMissing(print, URL, zip_file);
             AnsiConsole.WriteLine("extracting assimp");
             Core.ExtractZip(zip_file, dependency_folder);
-            var build = Path.Join(dependency_folder, "cmake-build");
-            Core.MoveFiles(print, Path.Join(dependency_folder, "assimp-5.0.1"), dependency_folder);
+            var build = dependency_folder.GetDir("cmake-build");
+            Core.MoveFiles(print, dependency_folder.GetDir("assimp-5.0.1"), dependency_folder);
 
             var project = new CMakeProject(build, dependency_folder, generator);
             project.AddArgument("ASSIMP_BUILD_X3D_IMPORTER", "0");
@@ -261,15 +262,15 @@ internal class DependencyAssimp : BuildDependency
 
 internal class DependencyWxWidgets : BuildDependency
 {
-    private readonly string root_folder;
-    private readonly string build_folder;
+    private readonly Dir root_folder;
+    private readonly Dir build_folder;
     private readonly string url;
     private readonly string folder_name;
 
     public DependencyWxWidgets(BuildData data, string url_to_zip_file, string folder_name)
     {
-        root_folder = Path.Combine(data.DependencyDirectory, folder_name);
-        build_folder = Path.Combine(root_folder, "cmake-build");
+        root_folder = data.DependencyDirectory.GetDir(folder_name);
+        build_folder = root_folder.GetDir("cmake-build");
         url = url_to_zip_file;
         this.folder_name = folder_name;
     }
@@ -282,22 +283,18 @@ internal class DependencyWxWidgets : BuildDependency
     public void AddCmakeArguments(CMakeProject cmake)
     {
         // if these differs it clears the lib dir... but also one is required to use / on windows... wtf!
-        cmake.AddArgument("WX_ROOT_DIR", root_folder.Replace('\\', '/'));
-        cmake.AddArgument("wxWidgets_ROOT_DIR", root_folder);
+        cmake.AddArgumentWithEscape("WX_ROOT_DIR", root_folder);
+        cmake.AddArgumentWithEscape("wxWidgets_ROOT_DIR", root_folder);
         cmake.AddArgument("wxWidgets_CONFIGURATION", "mswu");
 
         cmake.AddArgument("wxWidgets_USE_REL_AND_DBG", "ON"); // require both debug and release
 
-        // perhaps replace \ with /
-        string p = GetLibraryFolder();
-        p = p.Replace('\\', '/');
-        if (p.EndsWith('/') == false) { p += '/'; }
-        cmake.AddArgument("wxWidgets_LIB_DIR", p);
+        cmake.AddArgumentWithEscape("wxWidgets_LIB_DIR", GetLibraryFolder());
     }
 
     // todo(Gustav): switch this when building 32 bit
-    private string GetLibraryFolder()
-        => Path.Join(build_folder, "lib", "vc_x64_lib");
+    private Dir GetLibraryFolder()
+        => build_folder.GetSubDirs("lib", "vc_x64_lib");
 
     public async Task InstallAsync(BuildEnvironment env, Log print, BuildData data)
     {
@@ -305,9 +302,9 @@ internal class DependencyWxWidgets : BuildDependency
 
         Printer.Header("Installing dependency wxwidgets");
 
-        var zip_file = Path.Join(data.DependencyDirectory, $"{folder_name}.zip");
+        var zip_file = data.DependencyDirectory.GetFile($"{folder_name}.zip");
 
-        if (false == File.Exists(zip_file))
+        if (false == zip_file.Exists)
         {
             Core.VerifyDirectoryExists(print, root_folder);
             Core.VerifyDirectoryExists(print, data.DependencyDirectory);
@@ -319,7 +316,7 @@ internal class DependencyWxWidgets : BuildDependency
             AnsiConsole.WriteLine("wxWidgets zip file exist, not downloading again...");
         }
 
-        if (false == File.Exists(Path.Join(root_folder, "CMakeLists.txt")))
+        if (false == root_folder.GetFile("CMakeLists.txt").Exists)
         {
             Core.ExtractZip(zip_file, root_folder);
         }
@@ -328,8 +325,8 @@ internal class DependencyWxWidgets : BuildDependency
             AnsiConsole.WriteLine("wxWidgets is unzipped, not unzipping again");
         }
 
-        var build_dbg = false == File.Exists(Path.Join(GetLibraryFolder(), "wxzlibd.lib"));
-        var build_rel = false == File.Exists(Path.Join(GetLibraryFolder(), "wxzlib.lib"));
+        var build_dbg = false == GetLibraryFolder().GetFile("wxzlibd.lib").Exists;
+        var build_rel = false == GetLibraryFolder().GetFile("wxzlib.lib").Exists;
 
         if (build_dbg || build_rel)
         {
@@ -352,7 +349,7 @@ internal class DependencyWxWidgets : BuildDependency
         }
     }
 
-    private static async Task<CMakeProject> ConfigProjectAsync(Log print, string root, string build, Generator generator)
+    private static async Task<CMakeProject> ConfigProjectAsync(Log print, Dir root, Dir build, Generator generator)
     {
         var project = new CMakeProject(build, root, generator);
         project.AddArgument("LIBC", "ON");

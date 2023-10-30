@@ -7,19 +7,19 @@ public static class Which
 {
     // todo(Gustav): test this
 
-    public static Found<string> FindPaths(string name)
+    public static Found<Fil> FindPaths(string name)
     {
         var executable = Core.IsWindows() && Path.GetExtension(name) != ".exe"
             ? Path.ChangeExtension(name.Trim(), "exe")
             : name.Trim()
             ;
         return GetPaths()
-            .Select<string, FoundEntry<string>>(path =>
+            .Select<Dir, FoundEntry<Fil>>(dir =>
             {
-                var file = new FileInfo(Path.Join(path, executable));
+                var file = dir.GetFile(executable);
                 if (file.Exists == false)
                 {
-                    return new FoundEntry<string>.Error($"{executable} not found in {path}");
+                    return new FoundEntry<Fil>.Error($"{file.Name} not found in {dir}");
                 }
 
                 if (Core.IsWindows() == false)
@@ -27,17 +27,17 @@ public static class Which
                     const UnixFileMode EXECUTE_FLAGS = UnixFileMode.GroupExecute | UnixFileMode.UserExecute | UnixFileMode.OtherExecute;
                     if ( (file.UnixFileMode & EXECUTE_FLAGS) == 0)
                     {
-                        return new FoundEntry<string>.Error($"{file.FullName} not marked as executable");
+                        return new FoundEntry<Fil>.Error($"{file} not marked as executable");
                     }
                 }
 
-                return new FoundEntry<string>.Result(file.FullName);
+                return new FoundEntry<Fil>.Result(file);
             })
             .Collect("Paths")
             ;
     }
 
-    private static IEnumerable<string> GetPaths()
+    private static IEnumerable<Dir> GetPaths()
     {
         var targets = new[]
         {
@@ -51,6 +51,7 @@ public static class Which
             .IgnoreNull()
             .SelectMany(path => path.Split(Core.IsWindows() ? ';' : ':', StringSplitOptions.TrimEntries))
             .Where(s => s.Length > 0)
+            .Select(x => new Dir(x))
             ;
     }
 }

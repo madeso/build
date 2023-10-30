@@ -32,10 +32,10 @@ internal sealed class CheckFileNamesCommand : Command<CheckFileNamesCommand.Arg>
         foreach (var file in FileUtil.SourcesFromArgs(args_files, FileUtil.IsHeaderOrSource))
         {
             files += 1;
-            if (file.Contains('-'))
+            if (file.Name.Contains('-'))
             {
                 errors += 1;
-                print.Error($"file name mismatch: {file}");
+                print.Error($"file name mismatch: {file.GetDisplay()}");
             }
         }
 

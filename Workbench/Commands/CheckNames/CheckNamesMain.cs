@@ -17,7 +17,8 @@ internal sealed class CheckCommand : Command<CheckCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return Log.PrintErrorsAtExit(printer => CheckNamesRunner.Run(printer, arg.DoxygenXml, Environment.CurrentDirectory));
+        return Log.PrintErrorsAtExit(printer => CheckNamesRunner.Run(printer, Cli.ToDirectory(arg.DoxygenXml),
+            Dir.CurrentDirectory));
     }
 }
 

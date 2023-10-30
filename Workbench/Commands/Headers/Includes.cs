@@ -18,9 +18,9 @@ public class Includes
     }
 
 
-    private static string CalculateDisplay(string file, string? name, string root)
+    private static string CalculateDisplay(string file, string? name, Dir root)
     {
-        return name ?? Path.GetRelativePath(root, file);
+        return name ?? Path.GetRelativePath(root.Path, file);
     }
 
 
@@ -89,28 +89,28 @@ public class Includes
             yield return "";
         }
 
-        public void Link(string source, string? name, string resolved, string root)
+        public void Link(Fil source, string? name, string resolved, Dir root)
         {
-            var from_node = CalculateIdentifier(source, name);
+            var from_node = CalculateIdentifier(source.Path, name);
             var to_node = CalculateIdentifier(resolved, null);
             links.AddOne($"{from_node} -> {to_node}");
 
             // probably will calc more than once but who cares?
-            nodes[from_node] = CalculateDisplay(source, name, root);
+            nodes[from_node] = CalculateDisplay(source.Path, name, root);
             nodes[to_node] = CalculateDisplay(resolved, null, root);
         }
     }
 
-    private static string? ResolveIncludeViaIncludeDirectoriesOrNone(string include, IEnumerable<string> include_directories)
+    private static Fil? ResolveIncludeViaIncludeDirectoriesOrNone(string include, IEnumerable<Dir> include_directories)
     {
         return include_directories
-                .Select(directory => Path.Join(directory, include))
-                .FirstOrDefault(File.Exists)
+                .Select(directory => directory.GetFile(include))
+                .FirstOrDefault(f => f.Exists)
             ;
     }
 
-    private static void gv_work(string real_file, string? name, ImmutableArray<string> include_directories, Graphvizer gv,
-        ImmutableArray<string> limit, string root)
+    private static void gv_work(Fil real_file, string? name, ImmutableArray<Dir> include_directories,
+        Graphvizer gv, ImmutableArray<Dir> limit, Dir root)
     {
         if (IsLimited(real_file, limit))
         {
@@ -122,7 +122,7 @@ public class Includes
             var resolved = ResolveIncludeViaIncludeDirectoriesOrNone(include, include_directories);
             if (resolved != null)
             {
-                gv.Link(real_file, name, resolved, root);
+                gv.Link(real_file, name, resolved.Path, root);
                 // todo(Gustav): fix name to be based on root
                 gv_work(resolved, null, include_directories, gv, limit, root);
             }
@@ -133,9 +133,9 @@ public class Includes
         }
     }
 
-    private static IEnumerable<string> FindIncludeFiles(string path)
+    private static IEnumerable<string> FindIncludeFiles(Fil path)
     {
-        var lines = File.ReadAllLines(path);
+        var lines = path.ReadAllLines();
         foreach (var line in lines)
         {
             var l = line.Trim();
@@ -147,14 +147,14 @@ public class Includes
         }
     }
 
-    private static bool IsLimited(string real_file, IEnumerable<string> limit)
+    private static bool IsLimited(Fil real_file, IEnumerable<Dir> limit)
     {
         var has_limits = false;
 
         foreach (var l in limit)
         {
             has_limits = true;
-            if (real_file.StartsWith(l))
+            if (l.HasFile(real_file))
             {
                 return false;
             }
@@ -163,9 +163,8 @@ public class Includes
         return has_limits;
     }
 
-    private static void Work(string
-            real_file, ImmutableArray<string> include_directories,
-        ColCounter<string> counter, bool print_files, ImmutableArray<string> limit)
+    private static void Work(Fil real_file, ImmutableArray<Dir> include_directories,
+        ColCounter<string> counter, bool print_files, ImmutableArray<Dir> limit)
     {
         if (IsLimited(real_file, limit))
         {
@@ -179,9 +178,9 @@ public class Includes
             {
                 if (print_files)
                 {
-                    AnsiConsole.WriteLine(resolved);
+                    AnsiConsole.WriteLine(resolved.GetDisplay());
                 }
-                counter.AddOne(resolved);
+                counter.AddOne(resolved.Path);
                 Work(resolved, include_directories, counter, print_files, limit);
             }
             else
@@ -195,27 +194,18 @@ public class Includes
         }
     }
 
-    private static IEnumerable<string> GetIncludeDirectories(string path, IReadOnlyDictionary<string, CompileCommand> cc)
-    {
-        var c = cc[path];
-        foreach (var relative_include in c.GetRelativeIncludes())
-        {
-            yield return new FileInfo(Path.Join(c.Directory, relative_include)).FullName;
-        }
-    }
+    private static IEnumerable<Dir> GetIncludeDirectories(Fil path,
+        IReadOnlyDictionary<Fil, CompileCommand> cc)
+        => cc[path].GetRelativeIncludes();
 
 
-    private static IEnumerable<string> GetAllTranslationUnits(IEnumerable<string> files)
-    {
-        return FileUtil.SourcesFromArgs(files, FileUtil.IsSource)
-                .Select(file => new FileInfo(file).FullName)
-            ;
-    }
+    private static IEnumerable<Fil> GetAllTranslationUnits(IEnumerable<string> files)
+        => FileUtil.SourcesFromArgs(files, FileUtil.IsSource);
 
-    private static ImmutableArray<string> CompleteLimitArg(IEnumerable<string> args_limit)
-        => args_limit.Select(x => new DirectoryInfo(x).FullName).ToImmutableArray();
+    private static ImmutableArray<Dir> CompleteLimitArg(IEnumerable<string> args_limit)
+        => Cli.ToDirectories(args_limit).ToImmutableArray();
 
-    public static int HandleListIncludesCommand(Log print, string? compile_commands_arg,
+    public static int HandleListIncludesCommand(Log print, Fil? compile_commands_arg,
         string[] args_files,
         bool args_print_files,
         bool args_print_stats,
@@ -287,7 +277,7 @@ public class Includes
         return 0;
     }
 
-    public static int HandleIncludeGraphvizCommand(Log print, string? compile_commands_arg,
+    public static int HandleIncludeGraphvizCommand(Log print, Fil? compile_commands_arg,
         string[] args_files,
         string[] args_limit,
         bool args_group,
@@ -310,7 +300,7 @@ public class Includes
             if (compile_commands.ContainsKey(translation_unit))
             {
                 var include_directories = GetIncludeDirectories(translation_unit, compile_commands).ToImmutableArray();
-                gv_work(translation_unit, "TU", include_directories, gv, limit, Environment.CurrentDirectory);
+                gv_work(translation_unit, "TU", include_directories, gv, limit, Dir.CurrentDirectory);
             }
         }
 

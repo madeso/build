@@ -28,7 +28,7 @@ public enum Install
 // utility to call cmake commands on a project
 public class CMakeProject
 {
-    public CMakeProject(string build_folder, string source_folder, Generator generator)
+    public CMakeProject(Dir build_folder, Dir source_folder, Generator generator)
     {
         this.generator = generator;
         this.build_folder = build_folder;
@@ -36,8 +36,8 @@ public class CMakeProject
     }
 
     private readonly Generator generator;
-    private readonly string build_folder;
-    private readonly string source_folder;
+    private readonly Dir build_folder;
+    private readonly Dir source_folder;
     private readonly List<Argument> arguments = new();
 
     // a cmake argument
@@ -84,10 +84,19 @@ public class CMakeProject
         arguments.Add(new Argument(name, value));
     }
 
-    // set the install folder
-    public void SetInstallFolder(string folder)
+    public void AddArgumentWithEscape(string name, Dir value)
     {
-        AddArgumentWithType("CMAKE_INSTALL_PREFIX", folder, "PATH");
+        var p = value.Path.Replace('\\', '/');
+        if (p.EndsWith('/') == false) { p += '/'; }
+        arguments.Add(new Argument(name, p));
+    }
+
+
+
+    // set the install folder
+    public void SetInstallFolder(Dir folder)
+    {
+        AddArgumentWithType("CMAKE_INSTALL_PREFIX", folder.Path, "PATH");
     }
 
     // set cmake to make static (not shared) library
@@ -112,7 +121,7 @@ public class CMakeProject
             command.AddArgument(argument);
         }
 
-        command.AddArgument(source_folder);
+        command.AddArgument(source_folder.Path);
         command.AddArgument("-G");
         command.AddArgument(generator.Name);
         if (generator.Arch != null)

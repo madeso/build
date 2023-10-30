@@ -1,6 +1,4 @@
-using System.Reflection.PortableExecutable;
 using System.Text.Json;
-using Workbench.Commands.Build;
 
 namespace Workbench.Shared;
 
@@ -11,9 +9,14 @@ public static class JsonUtil
         WriteIndented = true,
         ReadCommentHandling = JsonCommentHandling.Skip,
         AllowTrailingCommas = true,
+        Converters =
+        {
+            new FilJsonConverter(),
+            new DirJsonConverter()
+        }
     };
 
-    public static T? Parse<T>(Log? print, string file, string content)
+    public static T? Parse<T>(Log? print, Fil file, string content)
         where T : class
     {
         try
@@ -34,15 +37,15 @@ public static class JsonUtil
         }
     }
 
-    public static T? GetOrNull<T>(string path, Log log)
+    public static T? GetOrNull<T>(Fil path, Log log)
         where T: class
     {
-        if (!File.Exists(path))
+        if (!path.Exists)
         {
             return null;
         }
 
-        var content = File.ReadAllText(path);
+        var content = path.ReadAllText();
         return Parse<T>(log, path, content);
     }
 
@@ -51,8 +54,8 @@ public static class JsonUtil
         return JsonSerializer.Serialize(self, json_options);
     }
 
-    internal static void Save<T>(string path, T data)
+    internal static void Save<T>(Fil path, T data)
     {
-        File.WriteAllText(path, Write(data));
+        path.WriteAllText(Write(data));
     }
 }

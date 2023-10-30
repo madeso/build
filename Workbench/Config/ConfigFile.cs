@@ -1,19 +1,20 @@
 using Spectre.Console;
 using Workbench.Shared;
+using static Workbench.Shared.Git;
 
 namespace Workbench.Config;
 
 internal static class ConfigFile
 {
-    public static TFile? LoadOrNull<TFile>(Log? print, string file)
+    public static TFile? LoadOrNull<TFile>(Log? print, Fil file)
         where TFile : class
     {
-        if (File.Exists(file) == false)
+        if (file.Exists == false)
         {
             print?.Error($"Unable to read file: {file}");
             return null;
         }
-        var content = File.ReadAllText(file);
+        var content = file.ReadAllText();
         var loaded = JsonUtil.Parse<TFile>(print, file, content);
         if (loaded == null)
         {
@@ -24,7 +25,7 @@ internal static class ConfigFile
         return loaded;
     }
 
-    public static TData? LoadOrNull<TFile, TData>(Log print, string file, Func<TFile, TData> enrich)
+    public static TData? LoadOrNull<TFile, TData>(Log print, Fil file, Func<TFile, TData> enrich)
         where TData : struct
         where TFile: class
     {
@@ -37,26 +38,26 @@ internal static class ConfigFile
         return enrich(loaded);
     }
 
-    internal static int WriteInit<T>(Log print, bool overwrite, string path, T data)
+    internal static int WriteInit<T>(Log print, bool overwrite, Fil path, T data)
     {
         var content = JsonUtil.Write(data);
 
-        if (overwrite == false && File.Exists(path))
+        if (overwrite == false && path.Exists)
         {
             print.Error($"{path} already exist and overwrite was not requested");
             return -1;
         }
 
-        File.WriteAllText(path, content);
+        path.WriteAllText(content);
         AnsiConsole.WriteLine($"Wrote {path}");
         return 0;
     }
 
-    internal static int Write<T>(string path, T data)
+    internal static int Write<T>(Fil path, T data)
     {
         var content = JsonUtil.Write(data);
 
-        File.WriteAllText(path, content);
+        path.WriteAllText(content);
         AnsiConsole.WriteLine($"Wrote {path}");
         return 0;
     }

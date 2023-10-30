@@ -114,17 +114,17 @@ public class Result
     }
 
     /// Simple parser... only looks foreach #include lines. Does not take #defines or comments into account.
-    public static Result ParseFile(string fi, List<string> errors)
+    public static Result ParseFile(Fil fi, List<string> errors)
     {
         var res = new Result();
 
-        if (File.Exists(fi) == false)
+        if (fi.Exists == false)
         {
             errors.Add($"Unable to open file {fi}");
             return res;
         }
 
-        var lines = File.ReadAllLines(fi);
+        var lines = fi.ReadAllLines().ToImmutableArray();
         res.NumberOfLines = lines.Length;
         foreach (var line in lines)
         {
@@ -145,13 +145,9 @@ public class Result
 
 internal static class ParserFacade
 {
-    internal static string canonicalize_or_default(string p)
-    {
-        // is this correct?
-        return new FileInfo(p).FullName;
-    }
+    internal static Fil canonicalize_or_default(Fil p) => p;
 
-    internal static void touch_file(Project project, string abs)
+    internal static void touch_file(Project project, Fil abs)
     {
         if (project.ScannedFiles.TryGetValue(abs, out var file))
         {
@@ -171,15 +167,15 @@ internal static class ParserFacade
 public class ItemAnalytics
 {
     public int TotalIncludedLines = 0;
-    public HashSet<string> AllIncludes = new();
-    public HashSet<string> AllIncludedBy = new();
-    public HashSet<string> TranslationUnitsIncludedBy = new();
+    public HashSet<Fil> AllIncludes = new();
+    public HashSet<Fil> AllIncludedBy = new();
+    public HashSet<Fil> TranslationUnitsIncludedBy = new();
     public bool IsAnalyzed = false;
 }
 
 public class Analytics
 {
-    public readonly Dictionary<string, ItemAnalytics> FileToData = new();
+    public readonly Dictionary<Fil, ItemAnalytics> FileToData = new();
 
     public static Analytics Analyze(Project project)
     {
@@ -191,7 +187,7 @@ public class Analytics
         return analytics;
     }
 
-    private void AddTrans(string inc, string path)
+    private void AddTrans(Fil inc, Fil path)
     {
         if (FileToData.TryGetValue(inc, out var it))
         {
@@ -199,7 +195,7 @@ public class Analytics
         }
     }
 
-    private void AddAllInc(string inc, string path)
+    private void AddAllInc(Fil inc, Fil path)
     {
         if (FileToData.TryGetValue(inc, out var it))
         {
@@ -207,7 +203,7 @@ public class Analytics
         }
     }
 
-    private void Analyze(string path, Project project)
+    private void Analyze(Fil path, Project project)
     {
         if (FileToData.TryGetValue(path, out var analytics))
         {
@@ -225,7 +221,7 @@ public class Analytics
         {
             if (include == path) { continue; }
 
-            var is_translation_unit = FileUtil.IsTranslationUnit(new FileInfo(path));
+            var is_translation_unit = FileUtil.IsTranslationUnit(path);
 
             Analyze(include, project);
 
@@ -271,7 +267,7 @@ public class Analytics
 
 internal record TableRow(string Label, string Value);
 
-internal record PathCount(string Path, int Count);
+internal record PathCount(Fil Path, int Count);
 
 public static class Report
 {
@@ -296,7 +292,7 @@ public static class Report
     }
 
     private static void AddFileTable(
-        string? common, Html sb, OutputFolders root, string id, string header, IEnumerable<PathCount> count_list)
+        Dir? common, Html sb, OutputFolders root, string id, string header, IEnumerable<PathCount> count_list)
     {
         sb.PushString($"<div id=\"{id}\">\n");
         sb.PushString($"<a name=\"{id}\"></a>");
@@ -313,11 +309,11 @@ public static class Report
         sb.PushString("</div>\n");
     }
 
-    private static string GetPathToIndexFile(string root)
-        => Path.Join(root, "index.html");
+    private static Fil GetPathToIndexFile(Dir root)
+        => root.GetFile("index.html");
 
 
-    public static void GenerateIndexPage(string? common, OutputFolders root, Project project, Analytics analytics)
+    public static void GenerateIndexPage(Dir? common, OutputFolders root, Project project, Analytics analytics)
     {
         var sb = new Html();
 
@@ -334,7 +330,7 @@ public static class Report
                 .Sum();
             var total_lines = super_total_lines - pch_lines;
             var total_parsed = analytics.FileToData
-                .Where(kvp => FileUtil.IsTranslationUnit(new FileInfo(kvp.Key)) && !project.ScannedFiles[kvp.Key].IsPrecompiled)
+                .Where(kvp => FileUtil.IsTranslationUnit(kvp.Key) && !project.ScannedFiles[kvp.Key].IsPrecompiled)
                 .Select(kvp => kvp.Value.TotalIncludedLines + project.ScannedFiles[kvp.Key].NumberOfLines)
                 .Sum();
             var factor = total_parsed / (double)total_lines;
@@ -413,12 +409,12 @@ public class Scanner
 {
     private bool is_scanning_pch = false;
 
-    private readonly HashSet<string> file_queue = new();
-    private readonly List<string> scan_queue = new();
-    private readonly Dictionary<string, string> system_includes = new();
+    private readonly HashSet<Fil> file_queue = new();
+    private readonly List<Fil> scan_queue = new();
+    private readonly Dictionary<string, Fil> system_includes = new();
 
     public readonly List<string> Errors = new();
-    public readonly Dictionary<string, List<string>> NotFoundOrigins = new();
+    public readonly Dictionary<string, List<Fil>> NotFoundOrigins = new();
     public readonly ColCounter<string> MissingExt = new();
 
 
@@ -435,7 +431,7 @@ public class Scanner
         is_scanning_pch = true;
         foreach (var inc in project.PrecompiledHeaders)
         {
-            if (File.Exists(inc))
+            if (inc.Exists)
             {
                 ScanFile(project, inc);
                 while (scan_queue.Count > 0)
@@ -482,55 +478,46 @@ public class Scanner
         project.ScannedFiles.RemoveAll(kvp => kvp.Value.IsTouched == false);
     }
 
-    private void ScanDirectory(string dir, ProgressFeedback feedback)
-    {
-        if (PleaseScanDirectory(dir, feedback) == false)
-        {
-            Errors.Add($"Cannot descend into {dir}");
-        }
-    }
-
-    private bool PleaseScanDirectory(string dir, ProgressFeedback feedback)
+    // todo(Gustav): rename functions
+    private void ScanDirectory(FileOrDir dir, ProgressFeedback feedback)
     {
         feedback.UpdateMessage($"{dir}");
 
-        if (File.Exists(dir))
+        if (File.Exists(dir.Path))
         {
-            scan_single_file(new FileInfo(dir));
-            return true;
+            scan_single_file(new Fil(dir.Path));
+            return;
         }
 
-        var dir_info = new DirectoryInfo(dir);
+        PleaseScanDirectory(new Dir(dir.Path), feedback);
+    }
 
-        foreach (var file in dir_info.GetFiles())
+    private void PleaseScanDirectory(Dir dir_info, ProgressFeedback feedback)
+    {
+        foreach (var file in dir_info.EnumerateFiles())
         {
             scan_single_file(file);
         }
 
-        foreach (var sub_dir in dir_info.GetDirectories())
+        foreach (var sub_dir in dir_info.EnumerateDirectories())
         {
-            var dir_full_path = sub_dir.FullName;
-            ScanDirectory(dir_full_path, feedback);
-        }
-
-        return true;
-
-        void scan_single_file(FileInfo file_info)
-        {
-            var file = file_info.FullName;
-            if (FileUtil.IsTranslationUnit(file_info))
-            {
-                AddToQueue(file, ParserFacade.canonicalize_or_default(file));
-            }
-            else
-            {
-                // printer.info("invalid extension {}", ext);
-                MissingExt.AddOne(file_info.Extension);
-            }
+            PleaseScanDirectory(sub_dir, feedback);
         }
     }
 
-    private void AddToQueue(string inc, string abs)
+    private void scan_single_file(Fil file_info)
+    {
+        if (FileUtil.IsTranslationUnit(file_info))
+        {
+            AddToQueue(file_info, ParserFacade.canonicalize_or_default(file_info));
+        }
+        else
+        {
+            MissingExt.AddOne(file_info.Extension);
+        }
+    }
+
+    private void AddToQueue(Fil inc, Fil abs)
     {
         if (file_queue.Contains(abs))
         {
@@ -541,7 +528,7 @@ public class Scanner
         scan_queue.Add(inc);
     }
 
-    private void ScanFile(Project project, string p)
+    private void ScanFile(Project project, Fil p)
     {
         var path = ParserFacade.canonicalize_or_default(p);
         // todo(Gustav): add last scan feature!!!
@@ -565,19 +552,19 @@ public class Scanner
         }
     }
 
-    private void PleaseScanFile(Project project, string path, SourceFile sf)
+    private void PleaseScanFile(Project project, Fil path, SourceFile sf)
     {
         sf.IsTouched = true;
         sf.AbsoluteIncludes.Clear();
 
-        var local_dir = new FileInfo(path).Directory?.FullName;
+        var local_dir = path.Directory;
         if (local_dir == null)
         {
             throw new Exception($"{path} does not have a directory");
         }
         foreach (var s in sf.LocalIncludes)
         {
-            var inc = Path.Join(local_dir, s);
+            var inc = local_dir.GetFile(s);
             var abs = ParserFacade.canonicalize_or_default(inc);
             // found a header that's part of PCH during regular scan: ignore it
             if (!is_scanning_pch && project.ScannedFiles.ContainsKey(abs) && project.ScannedFiles[abs].IsPrecompiled)
@@ -585,7 +572,7 @@ public class Scanner
                 ParserFacade.touch_file(project, abs);
                 continue;
             }
-            if (!Path.Exists(inc))
+            if (!inc.Exists)
             {
                 if (!sf.SystemIncludes.Contains(s))
                 {
@@ -612,8 +599,8 @@ public class Scanner
             else
             {
                 var found_path = project.IncludeDirectories
-                    .Select(dir => Path.Join(dir, s))
-                    .FirstOrDefault(File.Exists);
+                    .Select(dir => dir.GetFile(s))
+                    .FirstOrDefault(f => f.Exists);
 
                 if (found_path != null)
                 {
@@ -631,6 +618,7 @@ public class Scanner
                     system_includes.Add(s, canonicalized);
                     AddToQueue(found_path, canonicalized);
                 }
+                // todo(Gustav): find a better code for this pattern
                 else if (NotFoundOrigins.TryGetValue(s, out var file_list))
                 {
                     file_list.Add(path);

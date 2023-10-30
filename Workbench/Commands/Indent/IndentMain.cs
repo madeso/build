@@ -40,10 +40,10 @@ internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
     {
         var folder = settings.SearchPath ?? Directory.GetCurrentDirectory();
 
-        var dir = new DirectoryInfo(folder);
+        var dir = new Dir(folder);
         if (dir.Exists == false)
         {
-            AnsiConsole.MarkupLineInterpolated($"[blue]ERROR[/]: Unable to open [red]{dir.FullName}[/]");
+            AnsiConsole.MarkupLineInterpolated($"[blue]ERROR[/]: Unable to open [red]{dir.GetDisplay()}[/]");
             return -1;
         }
         var files = FileUtil.IterateFiles(dir, settings.IncludeHidden, settings.Recursive)

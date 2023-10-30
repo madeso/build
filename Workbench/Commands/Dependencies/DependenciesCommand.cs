@@ -52,7 +52,8 @@ internal sealed class ListGraphvizCommand : AsyncCommand<ListGraphvizCommand.Arg
     {
         return await Log.PrintErrorsAtExitAsync(async printer =>
             {
-                await Dependencies.WriteToGraphvizAsync(printer, arg.DoxygenXml, arg.NamespaceFilter, arg.OutputFile,
+                await Dependencies.WriteToGraphvizAsync(printer, Cli.ToDirectory(arg.DoxygenXml),
+                    arg.NamespaceFilter, new Fil(arg.OutputFile),
                     arg.IgnoredClasses.ToImmutableHashSet(),
                     !(arg.NoIncludeFunctions ?? false),
                     !(arg.NoAddArguments ?? false),
@@ -74,10 +75,6 @@ internal sealed class ListCallGraph : AsyncCommand<ListCallGraph.Arg>
         [CommandArgument(0, "[doxygen xml]")]
         public string DoxygenXml { get; init; } = string.Empty;
 
-        [Description("Namespace filter")]
-        [CommandArgument(1, "[namespace]")]
-        public string NamespaceFilter { get; init; } = string.Empty;
-
         [Description("Output file")]
         [CommandArgument(2, "[output]")]
         public string OutputFile { get; init; } = string.Empty;
@@ -92,7 +89,8 @@ internal sealed class ListCallGraph : AsyncCommand<ListCallGraph.Arg>
         return await Log.PrintErrorsAtExitAsync(async log =>
         {
             await Dependencies.WriteCallGraphToGraphvizAsync(
-                log, arg.DoxygenXml, arg.OutputFile, arg.ClusterOn ?? Dependencies.ClusterCallGraphOn.None);
+                log, Cli.ToDirectory(arg.DoxygenXml), new Fil(arg.OutputFile),
+                arg.ClusterOn ?? Dependencies.ClusterCallGraphOn.None);
             return 0;
         });
     }
@@ -116,7 +114,7 @@ internal sealed class PrintCommand : Command<PrintCommand.Arg>
     {
         return Log.PrintErrorsAtExit(printer =>
             {
-                Dependencies.PrintLists(printer, arg.DoxygenXml, arg.NamespaceFilter);
+                Dependencies.PrintLists(printer, Cli.ToDirectory(arg.DoxygenXml), arg.NamespaceFilter);
                 return 0;
             }
         );

@@ -68,8 +68,15 @@ internal sealed class GenerateCommand : AsyncCommand<GenerateCommand.Arg>
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg args)
     {
         return await Log.PrintErrorsAtExitAsync(async printer =>
-            await SlnDepsFunctions.HandleGenerateAsync(printer, args.Target, args.Format, args.MakeExclusionList(), args.Simplify, args.Reverse, args.Solution, args.Style)
-        );
+        {
+            var sln = Cli.RequireFile(printer, args.Solution, "solution file");
+            if (sln == null)
+            {
+                return -1;
+            }
+            return await SlnDepsFunctions.HandleGenerateAsync(printer, args.Target, args.Format,
+                args.MakeExclusionList(), args.Simplify, args.Reverse, sln, args.Style);
+        });
     }
 }
 
@@ -83,8 +90,15 @@ internal sealed class WriteCommand : Command<WriteCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
         return Log.PrintErrorsAtExit(printer =>
-            SlnDepsFunctions.WriteCommand(printer, args.MakeExclusionList(), args.Target, args.Simplify, args.Reverse, args.Solution)
-        );
+        {
+            var sln = Cli.RequireFile(printer, args.Solution, "solution file");
+            if (sln == null)
+            {
+                return -1;
+            }
+            return SlnDepsFunctions.WriteCommand(printer, args.MakeExclusionList(), args.Target,
+                args.Simplify, args.Reverse, sln);
+        });
     }
 }
 
@@ -98,8 +112,16 @@ internal sealed class SourceCommand : Command<SourceCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
         return Log.PrintErrorsAtExit(printer =>
-            SlnDepsFunctions.SourceCommand(printer, args.MakeExclusionList(), args.Simplify, args.Reverse, args.Solution)
-        );
+        {
+            var sln = Cli.RequireFile(printer, args.Solution, "solution file");
+            if (sln == null)
+            {
+                return -1;
+            }
+
+            return SlnDepsFunctions.SourceCommand(printer, args.MakeExclusionList(), args.Simplify,
+                args.Reverse, sln);
+        });
     }
 }
 
@@ -112,7 +134,16 @@ internal sealed class ListCommand : Command<ListCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
-        return Log.PrintErrorsAtExit(printer => SlnDepsFunctions.ListCommand(printer, args.Solution));
+        return Log.PrintErrorsAtExit(printer =>
+        {
+            var sln = Cli.RequireFile(printer, args.Solution, "solution file");
+            if (sln == null)
+            {
+                return -1;
+            }
+
+            return SlnDepsFunctions.ListCommand(printer, sln);
+        });
     }
 }
 

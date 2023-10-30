@@ -27,12 +27,13 @@ public class Main
             AddExecutable(config, p => p.GitExecutable, DefaultExecutables.Git);
             AddExecutable(config, p => p.ClangTidyExecutable, DefaultExecutables.ClangTidy);
             AddExecutable(config, p => p.ClangFormatExecutable, DefaultExecutables.ClangFormat);
-
+            AddExecutable(config, p => p.GraphvizExecutable, DefaultExecutables.Graphviz);
+            AddExecutable(config, p => p.CpplintExecutable, DefaultExecutables.CppLint);
         });
     }
 
     private static void AddExecutable(IConfigurator<CommandSettings> config,
-        Func<Config.Paths, string?> getter,
+        Func<Config.Paths, Fil?> getter,
         Executable exe)
     {
         SetupPathCommand.Configure<CompileCommandsArguments>(config, exe.Name,
@@ -42,13 +43,13 @@ public class Main
             , _ => ToSelectables(list_all_executables()));
         return;
 
-        IEnumerable<Found<string>> list_all_executables()
+        IEnumerable<Found<Fil>> list_all_executables()
             => Config.Paths.ListAllExecutables(getter, exe);
-        string? get_executable_or_saved()
+        Fil? get_executable_or_saved()
             => Config.Paths.GetExecutableOrSaved(null, getter, exe);
     }
 
-    private static IEnumerable<string> ToSelectables(IEnumerable<Found<string>> founds)
+    private static IEnumerable<Fil> ToSelectables(IEnumerable<Found<Fil>> founds)
         => founds.SelectMany(x => x.Findings)
             .Select(v => v.ValueOrNull)
             .IgnoreNull()
@@ -59,8 +60,8 @@ public class Main
 internal class SetupPathCommand
 {
     internal static void Configure<TNoArg>(IConfigurator<CommandSettings> root, string name,
-        Action<Config.Paths, string?> setter, Action<TNoArg> list,
-        Func<TNoArg, IEnumerable<string>> value_getter)
+        Action<Config.Paths, Fil?> setter, Action<TNoArg> list,
+        Func<TNoArg, IEnumerable<Fil>> value_getter)
         where TNoArg: CommandSettings
     {
         root.AddBranch(name, branch =>
@@ -70,14 +71,19 @@ internal class SetupPathCommand
             {
                 return Log.PrintErrorsAtExit(print =>
                 {
-                    if (File.Exists(arg.Value) == false)
+                    var file = new Fil(arg.Value);
+                    if (file.Exists == false)
                     {
-                        AnsiConsole.WriteLine($"ERROR: {arg.Value} doesn't exist");
+                        print.Error($"{file} doesn't exist");
                         return -1;
                     }
+
+                    // todo(Gustav): add additional validations to make sure file is executable
+
                     var paths = Config.Paths.LoadFromDirectoryOrNull(print);
                     if (paths == null) { return -1; }
-                    setter(paths, arg.Value);
+
+                    setter(paths, file);
                     Config.Paths.Save(paths);
                     return 0;
                 });
@@ -116,7 +122,7 @@ internal class SetupPathCommand
                     if (paths == null) { return -1; }
 
                     var new_value = AnsiConsole.Prompt(
-                        new SelectionPrompt<string>()
+                        new SelectionPrompt<Fil>()
                             .Title($"Select [green]{name}[/]?")
                             .PageSize(10)
                             .MoreChoicesText("[grey](Move up and down to reveal more choices)[/]")

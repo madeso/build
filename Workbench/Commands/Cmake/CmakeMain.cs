@@ -13,9 +13,9 @@ internal sealed class TraceCommand : AsyncCommand<TraceCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
-        [Description("File to read")]
-        [CommandArgument(0, "<input file>")]
-        public string File { get; set; } = "";
+        [Description("Directory to trace")]
+        [CommandArgument(0, "<input directory>")]
+        public string Directory { get; set; } = "";
     }
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
@@ -29,11 +29,11 @@ internal sealed class TraceCommand : AsyncCommand<TraceCommand.Arg>
                 return -1;
             }
 
-            AnsiConsole.MarkupLineInterpolated($"Loading [green]{settings.File}[/].");
+            AnsiConsole.MarkupLineInterpolated($"Loading [green]{settings.Directory}[/].");
 
             try
             {
-                var lines = await CMakeTrace.TraceDirectoryAsync(cmake, settings.File);
+                var lines = await CMakeTrace.TraceDirectoryAsync(cmake, new Dir(settings.Directory));
                 foreach (var li in lines)
                 {
                     AnsiConsole.MarkupLineInterpolated($"Running [green]{li.Cmd}[/].");
@@ -55,7 +55,7 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
     {
         [Description("File to read")]
         [CommandArgument(0, "<input file>")]
-        public string File { get; set; } = "";
+        public string Directory { get; set; } = "";
 
         [Description("Simplify dotfile output")]
         [CommandOption("--simplify")]
@@ -98,13 +98,13 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
                 return -1;
             }
 
-            AnsiConsole.MarkupLineInterpolated($"Loading [green]{settings.File}[/].");
+            AnsiConsole.MarkupLineInterpolated($"Loading [green]{settings.Directory}[/].");
 
             try
             {
                 var ignores = settings.NamesToIgnore.ToImmutableHashSet();
                 AnsiConsole.MarkupLineInterpolated($"Ignoring [red]{ignores.Count}[/] projects.");
-                var lines = await CMakeTrace.TraceDirectoryAsync(cmake, settings.File);
+                var lines = await CMakeTrace.TraceDirectoryAsync(cmake, new Dir(settings.Directory));
                 var solution = Solution.Parse.CMake(lines);
 
                 if (settings.RemoveInterface)
@@ -126,20 +126,7 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
                     gv.Simplify();
                 }
 
-                var output = gv.Lines.ToArray();
-
-                if (settings.Output.ToLower() == "stdout")
-                {
-                    foreach (var l in output)
-                    {
-                        AnsiConsole.WriteLine(l);
-                    }
-                }
-                else
-                {
-                    AnsiConsole.MarkupLineInterpolated($"Writing {output.Length} lines of dot to {settings.Output}");
-                    File.WriteAllLines(settings.Output, output);
-                }
+                await Cli.WriteFileAsync(settings.Output, gv.Lines);
             }
             catch (CMakeTrace.TraceError x)
             {

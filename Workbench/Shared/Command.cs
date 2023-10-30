@@ -60,10 +60,10 @@ public class ProcessBuilder
         ProcessStartInfo start = new()
         {
             Arguments = CollectArguments(),
-            FileName = Executable,
+            FileName = Executable.Path,
             UseShellExecute = false,
 
-            WorkingDirectory = WorkingDirectory ?? Environment.CurrentDirectory,
+            WorkingDirectory = (WorkingDirectory?? Dir.CurrentDirectory).Path,
 
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -135,11 +135,11 @@ public class ProcessBuilder
         return new(ret, output.ToArray());
     }
 
-    private string Executable { get; }
+    private Fil Executable { get; }
     private readonly List<string> arguments = new();
-    public string? WorkingDirectory { get; set; } = "";
+    public Dir? WorkingDirectory { get; set; } = null;
 
-    public ProcessBuilder(string executable, params string[] arguments)
+    public ProcessBuilder(Fil executable, params string[] arguments)
     {
         Executable = executable;
         foreach (var arg in arguments)
@@ -148,7 +148,7 @@ public class ProcessBuilder
         }
     }
 
-    public ProcessBuilder InDirectory(string directory)
+    public ProcessBuilder InDirectory(Dir directory)
     {
         WorkingDirectory = directory;
         return this;

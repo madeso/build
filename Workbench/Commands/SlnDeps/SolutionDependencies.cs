@@ -60,29 +60,29 @@ static class SlnDepsFunctions
         }
     }
 
-    private const string GRAPHVIZ_EXTENSION_NO_DOT = "gv";
+    private const string GRAPHVIZ_EXTENSION_LEADING_DOT = ".gv";
 
     // ======================================================================================================================
     // logic
     // ======================================================================================================================
 
-    private static async Task RunGraphvizAsync(Log log, string target_file, string image_format, string graphviz_layout)
+    private static async Task<bool> RunGraphvizAsync(Log log, Fil target_file, string image_format, string graphviz_layout)
     {
+        var dot = Config.Paths.GetGraphvizExecutable(log);
+        if (dot == null)
+        {
+            return false;
+        }
+
         var cmdline = new ProcessBuilder(
-            "dot",
+            dot,
             target_file + ".graphviz", "-T" + image_format,
             "-K" + graphviz_layout,
             "-O" + target_file + "." + image_format
         );
         AnsiConsole.WriteLine($"Running graphviz {cmdline}");
         await cmdline.RunAndPrintOutputAsync(log);
-    }
-
-
-    private static string GetValueOrDefault(string value, string def)
-    {
-        var vt = value.Trim();
-        return vt.Trim() == "" || vt.Trim() == "?" ? def : value;
+        return true;
     }
 
 
@@ -95,7 +95,7 @@ static class SlnDepsFunctions
             ExclusionList exclude,
             bool simplify,
             bool reverse_arrows,
-            string path_to_solution_file,
+            Fil path_to_solution_file,
             string layout_name)
     {
         var solution = Solution.Parse.VisualStudio(log, path_to_solution_file);
@@ -109,28 +109,25 @@ static class SlnDepsFunctions
             gv.Simplify();
         }
 
-        var image_format = GetValueOrDefault(format, "svg");
-        var graphviz_layout = GetValueOrDefault(layout_name, "dot");
-        var target_file = GetValueOrDefault(target, ChangeExtension(path_to_solution_file, GRAPHVIZ_EXTENSION_NO_DOT));
+        var image_format = Cli.GetValueOrDefault(format, "svg");
+        var graphviz_layout = Cli.GetValueOrDefault(layout_name, "dot");
+        var target_file = Cli.GetValueOrDefault(target, path_to_solution_file.ChangeExtension(GRAPHVIZ_EXTENSION_LEADING_DOT));
 
         gv.WriteFile(target_file);
 
-        await RunGraphvizAsync(log, target_file, image_format, graphviz_layout);
+        var res = await RunGraphvizAsync(log, target_file, image_format, graphviz_layout);
+        if (res == false)
+        {
+            return -1;
+        }
 
         return 0;
-    }
-
-    private static string ChangeExtension(string file, string new_extension)
-    {
-        var dir = new FileInfo(file).Directory?.FullName!;
-        var name = Path.GetFileNameWithoutExtension(file);
-        return Path.Join(dir, $"{name}.{new_extension}");
     }
 
     public static int SourceCommand(Log log, ExclusionList exclude,
             bool simplify,
             bool reverse_arrows,
-            string path_to_solution_file)
+            Fil path_to_solution_file)
     {
         var solution = Solution.Parse.VisualStudio(log, path_to_solution_file);
 
@@ -153,7 +150,7 @@ static class SlnDepsFunctions
 
     public static int WriteCommand(
         Log log, ExclusionList exclude, string target_file_or_empty, bool simplify,
-            bool reverse_arrows, string path_to_solution_file)
+            bool reverse_arrows, Fil path_to_solution_file)
     {
         var solution = Solution.Parse.VisualStudio(log, path_to_solution_file);
 
@@ -166,7 +163,7 @@ static class SlnDepsFunctions
             gv.Simplify();
         }
 
-        var target_file = GetValueOrDefault(target_file_or_empty, ChangeExtension(path_to_solution_file, GRAPHVIZ_EXTENSION_NO_DOT));
+        var target_file = Cli.GetValueOrDefault(target_file_or_empty, path_to_solution_file.ChangeExtension(GRAPHVIZ_EXTENSION_LEADING_DOT));
 
         gv.WriteFile(target_file);
 
@@ -175,7 +172,7 @@ static class SlnDepsFunctions
         return 0;
     }
 
-    public static int ListCommand(Log log, string solution_path)
+    public static int ListCommand(Log log, Fil solution_path)
     {
         var solution = Solution.Parse.VisualStudio(log, solution_path);
         foreach (var project in solution.Projects)

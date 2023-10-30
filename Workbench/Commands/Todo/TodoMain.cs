@@ -32,9 +32,9 @@ internal sealed class FindTodosCommand : AsyncCommand<FindTodosCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        var root = new DirectoryInfo(Environment.CurrentDirectory);
+        var root = Dir.CurrentDirectory;
 
-        var cc = new ColCounter<string>();
+        var cc = new ColCounter<Fil>();
 
         var source_files = TodoComments.ListFiles(root);
         await SpectreExtensions.Progress().RunArrayAsync(source_files, async file =>
@@ -43,11 +43,11 @@ internal sealed class FindTodosCommand : AsyncCommand<FindTodosCommand.Arg>
 
             foreach (var todo in todos)
             {
-                Log.WriteInformation(new FileLine(todo.File.FullName, todo.Line), todo.Todo);
-                cc.AddOne(todo.File.FullName);
+                Log.WriteInformation(new FileLine(todo.File, todo.Line), todo.Todo);
+                cc.AddOne(todo.File);
             }
 
-            return file;
+            return file.GetDisplay();
         });
 
         {
@@ -85,7 +85,7 @@ internal sealed class GroupWithTimeCommand : AsyncCommand<GroupWithTimeCommand.A
                 return -1;
             }
 
-            var root = new DirectoryInfo(Environment.CurrentDirectory);
+            var root = Dir.CurrentDirectory;
 
             var todo_list = new List<TodoInFile>();
 
@@ -94,7 +94,7 @@ internal sealed class GroupWithTimeCommand : AsyncCommand<GroupWithTimeCommand.A
             {
                 var todos = await TodoComments.FindTodosInFileAsync(file);
                 todo_list.AddRange(todos);
-                return file;
+                return file.GetDisplay();
             });
 
             // group on file
@@ -107,17 +107,18 @@ internal sealed class GroupWithTimeCommand : AsyncCommand<GroupWithTimeCommand.A
             var todo_with_blame = await SpectreExtensions.Progress().MapArrayAsync(grouped, async entry =>
             {
                 var blames = await Shared.Git.BlameAsync(git_path, entry.File).ToListAsync();
-                return ($"Blaming {entry.File.FullName}", entry.Todos
-                    .Select(x => new { Todo = x, Blame = blames[x.Line - 1] })
+                return ($"Blaming {entry.File.GetDisplay()}", entry.Todos
+                        // if there are no blames, this file is probably new and the date is current
+                    .Select(x => new { Todo = x, Blame = blames.Count==0 ? DateTime.Now : blame_to_time(blames[x.Line - 1])})
                     .ToImmutableArray());
             });
 
             // extract from file grouping and order by time
             var sorted_todos = todo_with_blame.SelectMany(x => x)
-                .OrderByDescending(x => blame_to_time(x.Blame));
+                .OrderByDescending(x => x.Blame);
 
             // group on x time ago to break up the info dump
-            var time_grouped = sorted_todos.GroupBy(x => blame_to_time(x.Blame).GetTimeAgoString(),
+            var time_grouped = sorted_todos.GroupBy(x => x.Blame.GetTimeAgoString(),
                 (x, grouped_todos) => new { Time = x, Todos = grouped_todos.ToArray() }
             ).ToArray();
 
@@ -127,7 +128,8 @@ internal sealed class GroupWithTimeCommand : AsyncCommand<GroupWithTimeCommand.A
                 foreach (var x in group.Todos)
                 {
                     var todo = x.Todo;
-                    Log.WriteInformation(new(todo.File.FullName, todo.Line), $"{blame_to_time(x.Blame)}: {todo.Todo}");
+                    Log.WriteInformation(new(todo.File, todo.Line),
+                        $"{x.Blame}: {todo.Todo}");
                 }
             }
 

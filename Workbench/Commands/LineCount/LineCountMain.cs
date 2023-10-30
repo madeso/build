@@ -42,7 +42,7 @@ internal sealed class LineCountCommand : Command<LineCountCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        var stats = new Dictionary<int, List<string>>();
+        var stats = new Dictionary<int, List<Fil>>();
         var file_count = 0;
 
         foreach (var file in FileUtil.SourcesFromArgs(arg.Files, FileUtil.IsHeaderOrSource))
@@ -53,13 +53,15 @@ internal sealed class LineCountCommand : Command<LineCountCommand.Arg>
                 .Count();
 
             var index = arg.Each <= 1 ? count : count - count % arg.Each;
+
+            // todo(Gustav): fix this pattern
             if (stats.TryGetValue(index, out var data_values))
             {
                 data_values.Add(file);
             }
             else
             {
-                stats.Add(index, new List<string> { file });
+                stats.Add(index, new List<Fil> { file });
             }
         }
 
@@ -80,9 +82,9 @@ internal sealed class LineCountCommand : Command<LineCountCommand.Arg>
 
         return 0;
 
-        static IEnumerable<string> file_read_lines(string path, bool discard_empty)
+        static IEnumerable<string> file_read_lines(Fil path, bool discard_empty)
         {
-            var lines = File.ReadLines(path);
+            var lines = path.ReadAllLines();
 
             if (!discard_empty)
             {

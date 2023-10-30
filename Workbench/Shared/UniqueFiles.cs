@@ -5,14 +5,14 @@ namespace Workbench.Shared;
 
 public class UniqueFiles
 {
-    private readonly List<FileInfo> paths = new();
+    private readonly List<Fil> paths = new();
     
-    public void Add(string path)
+    public void Add(Fil path)
     {
-        paths.Add(new FileInfo(path));
+        paths.Add(path);
     }
 
-    public string? GetCommon()
+    public Dir? GetCommon()
     {
         var more = paths.Select(f => f.Directory).IgnoreNull().ToImmutableArray();
         if (more.Length == 0) return null;
@@ -24,23 +24,24 @@ public class UniqueFiles
             if (common == null) return null;
         }
 
-        return common.FullName;
+        return common;
     }
 
-    private static DirectoryInfo? GetCommonPrefix(DirectoryInfo left, DirectoryInfo right)
+    private static Dir? GetCommonPrefix(Dir left, Dir right)
     {
         var common = split(left)
             .ZipLongest(split(right))
-            .LastOrDefault(pair => pair.Item1 == pair.Item2).Item1;
-        return common != null ? new DirectoryInfo(common) : null;
+            .LastOrDefault(pair => pair.Item1?.Equals(pair.Item2) ?? false).Item1;
+        return common;
 
-        static IEnumerable<string> split(DirectoryInfo dir)
+        // with c:\foo\bar\ returns c:\ c:\foo\ and c:\foo\bar\
+        static IEnumerable<Dir> split(Dir dir)
         {
-            List<string> ret = new();
+            List<Dir> ret = new();
             var c = dir;
             while (c != null)
             {
-                ret.Add(c.FullName);
+                ret.Add(c);
                 c = c.Parent;
             }
 

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Workbench.Shared.Extensions;
 
 namespace Workbench.Shared;
@@ -17,19 +18,19 @@ public enum Language
 
 internal static class FileUtil
 {
-    internal static bool IsHeaderOrSource(FileInfo path)
+    internal static bool IsHeaderOrSource(Fil path)
         => IsHeader(path) || IsSource(path);
 
-    internal static bool IsSource(FileInfo path)
+    internal static bool IsSource(Fil path)
         => ClassifySource(path) == Language.CppSource;
 
-    internal static bool IsHeader(FileInfo path)
+    internal static bool IsHeader(Fil path)
         => ClassifySource(path) == Language.CppHeader;
 
-    public static bool IsTranslationUnit(FileInfo path)
+    public static bool IsTranslationUnit(Fil path)
         => ClassifySource(path) is Language.CppSource or Language.ObjectiveCpp;
 
-    public static Language ClassifySource(FileInfo f)
+    public static Language ClassifySource(Fil f)
         => f.Extension switch
         {
             ".cs" => Language.CSharp,
@@ -46,7 +47,7 @@ internal static class FileUtil
             _ => Language.Unknown,
         };
 
-    public static string? ClassifySourceOrNull(FileInfo f)
+    public static string? ClassifySourceOrNull(Fil f)
         => ClassifySource(f) switch
         {
             Language.CSharp => "C#",
@@ -63,35 +64,34 @@ internal static class FileUtil
 
     public static readonly string[] PitchforkFolders = { "apps", "libs", "src", "include" };
 
-    public static IEnumerable<string> PitchforkBuildFolders(string root)
+    public static IEnumerable<Dir> PitchforkBuildFolders(Dir root)
     {
-        var build = new DirectoryInfo(Path.Join(root, "build"));
+        var build = root.GetDir("build");
         if (!build.Exists)
         {
             yield break;
         }
 
-        yield return build.FullName;
+        yield return build;
 
-        foreach (var d in build.GetDirectories())
+        foreach (var d in build.EnumerateDirectories())
         {
-            yield return d.FullName;
+            yield return d;
         }
     }
 
-    public static IEnumerable<string> SourcesFromArgs(IEnumerable<string> args, Func<FileInfo, bool> theese_files)
+    public static IEnumerable<Fil> SourcesFromArgs(IEnumerable<string> args, Func<Fil, bool> these_files)
         => ListFilesFromArgs(args)
-            .Where(theese_files)
-            .Select(f => f.FullName);
+            .Where(these_files);
 
-    public static IEnumerable<FileInfo> ListFilesFromArgs(IEnumerable<string> args)
+    public static IEnumerable<Fil> ListFilesFromArgs(IEnumerable<string> args)
     {
         foreach (var file_or_dir in args)
         {
-            if (File.Exists(file_or_dir)) yield return new FileInfo(file_or_dir);
+            if (File.Exists(file_or_dir)) yield return new Fil(file_or_dir);
             else // assume directory
             {
-                foreach (var f in IterateFiles(new DirectoryInfo(file_or_dir), include_hidden: false, recursive: true))
+                foreach (var f in IterateFiles(new Dir(file_or_dir), include_hidden: false, recursive: true))
                 {
                     yield return f;
                 }
@@ -99,43 +99,37 @@ internal static class FileUtil
         }
     }
 
-    public static IEnumerable<DirectoryInfo> FoldersInPitchfork(DirectoryInfo root)
+    public static IEnumerable<Dir> FoldersInPitchfork(Dir root)
         => PitchforkFolders
-            .Select(relative_dir => new DirectoryInfo(Path.Join(root.FullName, relative_dir)));
+            .Select(root.GetDir);
 
-    public static IEnumerable<FileInfo> FilesInPitchfork(DirectoryInfo root, bool include_hidden)
+    public static IEnumerable<Fil> FilesInPitchfork(Dir root, bool include_hidden)
         => FoldersInPitchfork(root)
             .Where(d => d.Exists)
             .SelectMany(d => IterateFiles(d, include_hidden, true));
 
-    public static string GetFirstFolder(string root, string file)
-     => Path.GetRelativePath(root, file)
-         .Split(Path.DirectorySeparatorChar, 2)[0];
+    public static string GetFirstFolder(Dir root, Fil file)
+     => root.RelativeFromTo(file).Split(Path.DirectorySeparatorChar, 2)[0];
 
 
     // iterate all files, ignores special folders
-    public static IEnumerable<FileInfo> IterateFiles(DirectoryInfo root, bool include_hidden, bool recursive)
+    public static IEnumerable<Fil> IterateFiles(Dir root, bool include_hidden, bool recursive)
     {
-        var search_options = new EnumerationOptions
-        {
-            AttributesToSkip = include_hidden
-                ? FileAttributes.Hidden | FileAttributes.System
-                : FileAttributes.System
-        };
+        // todo(Gustav): mvoe to Dir and remove recursive argument, Dir already has EnumerateFiles
+        Debug.Assert(include_hidden == false); // todo(Gustav): remove argument
+        return sub_iterate_files(root, recursive);
 
-        return sub_iterate_files(root, search_options, recursive);
-
-        static IEnumerable<FileInfo> sub_iterate_files(
-            DirectoryInfo root, EnumerationOptions search_options, bool include_directories)
+        static IEnumerable<Fil> sub_iterate_files(
+            Dir root, bool include_directories)
         {
-            foreach (var f in root.GetFiles("*", search_options))
+            foreach (var f in root.EnumerateFiles())
             {
                 yield return f;
             }
 
             if (include_directories)
             {
-                var files = root.GetDirectories("*", search_options)
+                var files = root.EnumerateDirectories()
                         .Where(d => d.Name switch
                         {
                             // todo(Gustav): parse and use gitignore instead of hacky names
@@ -144,7 +138,7 @@ internal static class FileUtil
                                 => false,
                             _ => true,
                         })
-                        .SelectMany(d => sub_iterate_files(d, search_options, true))
+                        .SelectMany(d => sub_iterate_files(d, true))
                     ;
                 foreach (var f in files)
                 {
@@ -161,17 +155,16 @@ internal static class FileUtil
         .Any(lower => lower.Contains("auto-generated") || lower.Contains("generated by"))
     ;
 
-    internal static string RealPath(string rel)
+    internal static FileOrDir RealPath(FileOrDir rel)
     {
-        var dir = new DirectoryInfo(rel);
-        if (dir.Exists) { return dir.FullName; }
-
-        var file = new FileInfo(rel);
-        if (file.Exists) { return file.FullName; }
-
+        // todo(Gustav): remove function
         return rel;
     }
 
-    public static bool FileIsInFolder(string file, string folder)
-        => new FileInfo(file).FullName.StartsWith(new DirectoryInfo(folder).FullName);
+    public static bool FileIsInFolder(Fil file, Dir folder)
+        => file.Path.StartsWith(folder.Path);
+
+    public static string RootPath(Dir root, string s)
+        => Path.IsPathFullyQualified(s) ? s : Path.Join(root.Path, s);
 }
+

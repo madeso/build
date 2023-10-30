@@ -122,7 +122,7 @@ internal class CheckNamesRunner
         fails.Add(new(loc, error));
     }
 
-    private void PrintErrors(string root)
+    private void PrintErrors(Dir root)
     {
         foreach (var f in fails
             .OrderBy(x => x.Location.File)
@@ -133,7 +133,7 @@ internal class CheckNamesRunner
         }
     }
 
-    internal static int Run(Log log, string doxygen_xml, string root)
+    internal static int Run(Log log, Dir doxygen_xml, Dir root)
     {
         var file = CheckNamesFile.LoadFromDirectoryOrNull(log);
         if (file == null)

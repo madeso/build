@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using Workbench.Shared;
 
 namespace Workbench.Config;
 
@@ -8,10 +9,8 @@ internal class GitFile
     public string LatestCommit { get; set; } = string.Empty;
 
     [JsonPropertyName("files")]
-    public Dictionary<string, List<string>> File { get; set; } = new();
+    public Dictionary<string, List<Fil>> File { get; set; } = new();
 
-    public static string GetPath()
-    {
-        return Path.Join(Environment.CurrentDirectory, ".git-files.cache");
-    }
+    public static Fil GetPath()
+        => Dir.CurrentDirectory.GetFile(".git-files.cache");
 }

@@ -6,28 +6,28 @@ using Workbench.Shared.Extensions;
 
 namespace Workbench.Commands.Todo;
 
-internal record TodoInFile(FileInfo File, int Line, string Todo);
+internal record TodoInFile(Fil File, int Line, string Todo);
 
 internal partial class TodoComments
 {
-    internal static async Task<ImmutableArray<TodoInFile>> FindTodosInFileAsync(string file)
+    internal static async Task<ImmutableArray<TodoInFile>> FindTodosInFileAsync(Fil file)
     {
-        var lines = await File.ReadAllLinesAsync(file);
+        var lines = await file.ReadAllLinesAsync();
         return lines
                     .Select((value, i) => (comment: ExtractTodoComment(value), lineNumber: i+1))
                     .Where(x => x.comment != null)
-                    .Select(x => new TodoInFile(new FileInfo(file), x.lineNumber, x.comment!))
+                    .Select(x => new TodoInFile(file, x.lineNumber, x.comment!))
                     .ToImmutableArray()
         ;
     }
 
-    public static ImmutableArray<string> ListFiles(DirectoryInfo root)
+    public static ImmutableArray<Fil> ListFiles(Dir root)
     {
         var build_folder = root.GetDir("build");
         
         var files = FileUtil.IterateFiles(root, false, true)
                 .Where(f => FileUtil.ClassifySource(f) != Language.Unknown)
-                .Select(f => f.FullName)
+                .Select(f => f)
                 .Where(x => build_folder.HasFile(x) == false)
             ;
         return files.ToImmutableArray();

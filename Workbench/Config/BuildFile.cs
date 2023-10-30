@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Workbench.Commands.Build;
+using Workbench.Shared;
 
 namespace Workbench.Config;
 
@@ -11,8 +12,8 @@ internal class BuildFile
     [JsonPropertyName("dependencies")]
     public List<DependencyName> Dependencies { get; set; } = new();
 
-    public static string GetBuildDataPath()
-    {
-        return Path.Join(Environment.CurrentDirectory, FileNames.BuildData);
-    }
+
+    // todo(Gustav): rename
+    public static Fil GetBuildDataPath()
+        => Dir.CurrentDirectory.GetFile(FileNames.BuildData);
 }

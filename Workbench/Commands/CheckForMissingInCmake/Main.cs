@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Workbench.Shared;
 using Workbench.Shared.CMake;
+using Workbench.Shared.Extensions;
 
 namespace Workbench.Commands.CheckForMissingInCmake;
 
@@ -36,12 +37,13 @@ internal sealed class CheckForMissingInCmakeCommand : AsyncCommand<CheckForMissi
                 return -1;
             }
 
-            string? build_root = FindCMake.RequireBuildOrNone(args, print);
+            var build_root = FindCMake.RequireBuildOrNone(args, print);
             if (build_root == null) { return -1; }
 
-            var bases = args.Folders.Select(FileUtil.RealPath).ToImmutableArray();
+            var bases = Cli.ToDirectories(args.Folders)
+                .ToImmutableArray();
 
-            var paths = new HashSet<string>();
+            var paths = new HashSet<Fil>();
             foreach (var cmd in await CMakeTrace.TraceDirectoryAsync(cmake, build_root))
             {
                 if (!bases.Select(b => FileUtil.FileIsInFolder(cmd.File!, b)).Any())
@@ -58,10 +60,10 @@ internal sealed class CheckForMissingInCmakeCommand : AsyncCommand<CheckForMissi
             var count = 0;
             foreach (var file in FileUtil.SourcesFromArgs(args.Folders, FileUtil.IsHeaderOrSource))
             {
-                var resolved = new FileInfo(file).FullName;
+                var resolved = file;
                 if (paths.Contains(resolved) == false)
                 {
-                    AnsiConsole.WriteLine(resolved);
+                    AnsiConsole.WriteLine($"{resolved}");
                     count += 1;
                 }
             }

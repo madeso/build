@@ -2,24 +2,25 @@ using Spectre.Console;
 using System.Text.RegularExpressions;
 using Workbench.Config;
 using Workbench.Shared;
+using Workbench.Shared.Extensions;
 
 namespace Workbench.Commands.Clang;
 
 
 internal class Store
 {
-    public readonly Dictionary<string, StoredTidyUpdate> Cache = new();
+    public readonly Dictionary<Fil, StoredTidyUpdate> Cache = new();
 }
 
 internal record TidyOutput(string[] Output, TimeSpan Taken);
 internal record StoredTidyUpdate(string[] Output, TimeSpan Taken, DateTime Modified);
-internal record CategoryAndFiles(string Category, string[] Files);
+internal record CategoryAndFiles(string Category, Fil[] Files);
 
 internal class FileStatistics
 {
-    private readonly Dictionary<string, TimeSpan> data = new();
+    private readonly Dictionary<Fil, TimeSpan> data = new();
 
-    internal void Add(string file, TimeSpan time)
+    internal void Add(Fil file, TimeSpan time)
     {
         data.Add(file, time);
     }
@@ -58,48 +59,43 @@ internal class NamePrinter
 
 internal static class ClangFacade
 {
-    private static string GetPathToStore(string build_folder)
-    {
-        return Path.Join(build_folder, FileNames.ClangTidyStore);
-    }
+    private static Fil GetPathToStore(Dir build_folder)
+        => build_folder.GetFile(FileNames.ClangTidyStore);
 
-    private static Store? LoadStore(Log print, string build_folder)
+    private static Store? LoadStore(Log print, Dir build_folder)
     {
         var file_name = GetPathToStore(build_folder);
-        if (!File.Exists(file_name))
+        if (!file_name.Exists)
         {
             return new Store();
         }
 
-        var content = File.ReadAllText(file_name);
+        var content = file_name.ReadAllText();
         var loaded = JsonUtil.Parse<Store>(print, file_name, content);
         return loaded;
     }
 
-    private static void SaveStore(string build_folder, Store data)
+    private static void SaveStore(Dir build_folder, Store data)
     {
         var file_name = GetPathToStore(build_folder);
-        File.WriteAllText(file_name, JsonUtil.Write(data));
+        file_name.WriteAllText(JsonUtil.Write(data));
     }
 
-    private static bool IsFileIgnoredByClangTidy(string path)
+    private static bool IsFileIgnoredByClangTidy(Fil path)
     {
-        var lines = File.ReadAllLines(path);
-        if (lines.Length == 0) { return false; }
+        var first_line = path.ReadAllLines().FirstOrDefault();
+        if (first_line == null) { return false; }
 
-        var first_line = lines[0];
         return first_line.StartsWith("// clang-tidy: ignore");
     }
 
-    private static string GetPathToClangTidySource(string root)
-    {
-        return Path.Join(root, "clang-tidy");
-    }
+    private static Fil GetPathToClangTidySource(Dir root)
+        => root.GetFile("clang-tidy");
 
     // return a iterator over the the "compiled" .clang-tidy lines
-    private static IEnumerable<string> GenerateClangTidyAsIterator(string root)
+    private static IEnumerable<string> GenerateClangTidyAsIterator(Dir root)
     {
-        var clang_tidy_file = File.ReadAllLines(GetPathToClangTidySource(root));
+        var clang_tidy_file = GetPathToClangTidySource(root).ReadAllLines();
         var write = false;
         var checks = new List<string>();
         foreach (var line in clang_tidy_file)
@@ -134,7 +130,7 @@ internal static class ClangFacade
     }
 
     // print the clang-tidy "source"
-    private static void PrintGeneratedClangTidy(string root)
+    private static void PrintGeneratedClangTidy(Dir root)
     {
         foreach (var line in GenerateClangTidyAsIterator(root))
         {
@@ -142,7 +138,7 @@ internal static class ClangFacade
         }
     }
 
-    private static CategoryAndFiles[] MapFilesOnFirstDir(string root, IEnumerable<string> files_iterator)
+    private static CategoryAndFiles[] MapFilesOnFirstDir(Dir root, IEnumerable<Fil> files_iterator)
      => files_iterator
             .Select(f => new { Path = f, Cat = FileUtil.GetFirstFolder(root, f) })
             // ignore external and build folders
@@ -156,45 +152,31 @@ internal static class ClangFacade
                     files
                         // sort files
                         .Select(x => x.Path)
-                        .OrderBy(Path.GetFileName)
-                        .ThenByDescending(Path.GetExtension)
+                        .OrderBy(p => p.Name)
+                        .ThenByDescending(p => p.Extension)
                         .ToArray()
                 )
             ).ToArray();
 
-    private static CategoryAndFiles[] MapAllFilesInRootOnFirstDir(string root, Func<FileInfo, bool> extension_filter)
-    {
-        return MapFilesOnFirstDir(root, FileUtil.IterateFiles(new DirectoryInfo(root), false, true)
-            .Where(extension_filter)
-            .Select(f => f.FullName)
-        );
-    }
+    private static CategoryAndFiles[] MapAllFilesInRootOnFirstDir(Dir root, Func<Fil, bool> extension_filter)
+        => MapFilesOnFirstDir(root, FileUtil.IterateFiles(root, false, true)
+            .Where(extension_filter));
 
-    private static bool FileMatchesAllFilters(string file, string[]? filters)
-    {
-        if (filters == null)
-        {
-            return false;
-        }
+    private static bool FileMatchesAllFilters(Fil file, string[]? filters)
+        => filters == null
+            ? false
+            : filters.All(f => file.Path.Contains(f) == false);
 
-        return filters.All(f => file.Contains(f) == false);
-    }
+    private static DateTime GetLastModification(Fil file)
+        => file.LastWriteTimeUtc;
 
-    private static DateTime GetLastModification(string file)
-    {
-        var info = new FileInfo(file);
-        return info.LastWriteTimeUtc;
-    }
-
-    private static DateTime GetLastModificationForFiles(IEnumerable<string> input_files)
+    private static DateTime GetLastModificationForFiles(IEnumerable<Fil> input_files)
      => input_files.Select(GetLastModification).Max();
 
-    private static bool IsModificationTheLatest(IEnumerable<string> input_files, DateTime output)
-    {
-        return GetLastModificationForFiles(input_files) <= output;
-    }
+    private static bool IsModificationTheLatest(IEnumerable<Fil> input_files, DateTime output)
+        => GetLastModificationForFiles(input_files) <= output;
 
-    private static TidyOutput? GetExistingOutputOrNull(Store store, string root, string source_file)
+    private static TidyOutput? GetExistingOutputOrNull(Store store, Dir root, Fil source_file)
     {
         var root_file = GetPathToClangTidySource(root);
 
@@ -211,8 +193,8 @@ internal static class ClangFacade
         return null;
     }
 
-    private static void StoreOutput(Store store, string root, string project_build_folder,
-        string source_file, TidyOutput output)
+    private static void StoreOutput(Store store, Dir root, Dir project_build_folder,
+        Fil source_file, TidyOutput output)
     {
         var clang_tidy_source = GetPathToClangTidySource(root);
 
@@ -223,7 +205,9 @@ internal static class ClangFacade
     }
 
     // runs clang-tidy and returns all the text output
-    private static async Task<TidyOutput> GetExistingOutputOrCallClangTidy(Store store, Log log, string root, bool force, string tidy_path, string project_build_folder, string source_file, bool fix)
+    private static async Task<TidyOutput> GetExistingOutputOrCallClangTidy(Store store,
+        Log log, Dir root, bool force, Fil tidy_path, Dir project_build_folder,
+        Fil source_file, bool fix)
     {
         if (false == force)
         {
@@ -239,16 +223,17 @@ internal static class ClangFacade
         return ret;
     }
 
-    private static async Task<TidyOutput> CallClangTidyAsync(Log log, string tidy_path, string project_build_folder, string source_file, bool fix)
+    private static async Task<TidyOutput> CallClangTidyAsync(Log log, Fil tidy_path,
+        Dir project_build_folder, Fil source_file, bool fix)
     {
         var command = new ProcessBuilder(tidy_path);
         command.AddArgument("-p");
-        command.AddArgument(project_build_folder);
+        command.AddArgument(project_build_folder.Path);
         if (fix)
         {
             command.AddArgument("--fix");
         }
-        command.AddArgument(source_file);
+        command.AddArgument(source_file.Path);
 
         var start = new DateTime();
         var output = await command.RunAndGetOutputAsync();
@@ -267,22 +252,24 @@ internal static class ClangFacade
     }
 
     // runs the clang-tidy process, printing status to terminal
-    private static async Task<(ColCounter<string> warnings, ColCounter<string> classes)> RunTidyAsync(
-        Store store, Log log, string root, bool force, string tidy_path, string source_file,
-        string project_build_folder, FileStatistics stats, bool short_list, NamePrinter name_printer, bool fix,
-        string printable_file, string[] only)
+    private static async Task<(ColCounter<Fil> warnings, ColCounter<string> classes)> RunTidyAsync(
+        Store store, Log log, Dir root, bool force, Fil tidy_path, Fil source_file,
+        Dir project_build_folder, FileStatistics stats, bool short_list, NamePrinter name_printer, bool fix,
+        Fil printable_file, string[] only)
     {
         name_printer.Print();
-        var co = await GetExistingOutputOrCallClangTidy(store, log, root, force, tidy_path, project_build_folder, source_file, fix);
+        var co = await GetExistingOutputOrCallClangTidy(store, log, root, force, tidy_path,
+            project_build_folder, source_file, fix);
         return CreateStatisticsAndPrintStatus(stats, short_list, printable_file, only, co);
     }
 
-    private static (ColCounter<string> warnings, ColCounter<string> classes) CreateStatisticsAndPrintStatus(FileStatistics stats, bool short_list, string printable_file,
-        string[] only, TidyOutput co)
+    private static (ColCounter<Fil> warnings, ColCounter<string> classes)
+        CreateStatisticsAndPrintStatus(FileStatistics stats, bool short_list, Fil printable_file,
+            string[] only, TidyOutput co)
     {
         var output = co.Output;
         var time_taken = co.Taken;
-        var warnings = new ColCounter<string>();
+        var warnings = new ColCounter<Fil>();
         var classes = new ColCounter<string>();
         if (false == short_list && only.Length == 0)
         {
@@ -349,19 +336,20 @@ internal static class ClangFacade
         }
         if (false == short_list && only.Length == 0)
         {
-            PrintWarningCounter(classes, printable_file);
+            PrintWarningCounter(classes, printable_file.GetDisplay(), c => c);
             AnsiConsole.WriteLine("");
         }
         return (warnings, classes);
     }
 
     // print warning counter to the console
-    private static void PrintWarningCounter(ColCounter<string> project_counter, string project)
+    private static void PrintWarningCounter<T>(ColCounter<T> project_counter, string project, Func<T, string> display)
+        where T: notnull
     {
         AnsiConsole.WriteLine($"{project_counter.TotalCount()} warnings in {project}.");
         foreach (var (file, count) in project_counter.MostCommon().Take(10))
         {
-            AnsiConsole.WriteLine($"{file} at {count}");
+            AnsiConsole.WriteLine($"{display(file)} at {count}");
         }
     }
 
@@ -370,16 +358,16 @@ internal static class ClangFacade
     // ------------------------------------------------------------------------------
 
     // write the .clang-tidy from the clang-tidy "source"
-    private static void WriteTidyFileToDisk(string root)
+    private static void WriteTidyFileToDisk(Dir root)
     {
-        var content = GenerateClangTidyAsIterator(root).ToArray();
-        File.WriteAllLines(Path.Join(root, ".clang-tidy"), content);
+        var content = GenerateClangTidyAsIterator(root);
+        root.GetFile(".clang-tidy").WriteAllLines(content);
     }
 
     // callback function called when running clang.py make
     internal static void HandleMakeTidyCommand(bool nop)
     {
-        var root = Environment.CurrentDirectory;
+        var root = Dir.CurrentDirectory;
         if (nop)
         {
             PrintGeneratedClangTidy(root);
@@ -392,11 +380,10 @@ internal static class ClangFacade
 
     internal static int HandleTidyListFilesCommand(Log print, bool sort_files)
     {
-        var root = Environment.CurrentDirectory;
+        var root = Dir.CurrentDirectory;
 
-        var files = FileUtil.IterateFiles(new DirectoryInfo(root), false, true)
-            .Where(FileUtil.IsSource)
-            .Select(f => f.FullName);
+        var files = FileUtil.IterateFiles(root, false, true)
+            .Where(FileUtil.IsSource);
 
         if (sort_files)
         {
@@ -406,7 +393,7 @@ internal static class ClangFacade
                 Printer.Header(project);
                 foreach (var file in source_files)
                 {
-                    AnsiConsole.WriteLine(file);
+                    AnsiConsole.WriteLine(file.GetDisplay());
                 }
                 AnsiConsole.WriteLine("");
             }
@@ -415,7 +402,7 @@ internal static class ClangFacade
         {
             foreach (var file in files)
             {
-                AnsiConsole.WriteLine(file);
+                AnsiConsole.WriteLine(file.GetDisplay());
             }
         }
 
@@ -423,7 +410,9 @@ internal static class ClangFacade
     }
 
     // callback function called when running clang.py tidy
-    internal static async Task<int> HandleRunClangTidyCommand(CompileCommandsArguments cc, Log log, bool force, bool headers, bool short_args, bool args_nop, string[] args_filter, string[] args_only, bool args_fix)
+    internal static async Task<int> HandleRunClangTidyCommand(CompileCommandsArguments cc, Log log,
+        bool force, bool headers, bool short_args, bool args_nop, string[] args_filter,
+        string[] args_only, bool args_fix)
     {
         var clang_tidy = Config.Paths.GetClangTidyExecutable(log);
         if (clang_tidy == null)
@@ -431,15 +420,14 @@ internal static class ClangFacade
             return -1;
         }
 
-        var tidy_path = clang_tidy;
-
-        var root = Environment.CurrentDirectory;
+        var root = Dir.CurrentDirectory;
         var cc_file = CompileCommand.FindOrNone(cc, log);
         if (cc_file == null)
         {
             return -1;
         }
-        var project_build_folder = new FileInfo(cc_file).Directory?.FullName;
+
+        var project_build_folder = cc_file.Directory;
         if (project_build_folder is null)
         {
             log.Error("unable to find build folder");
@@ -454,11 +442,11 @@ internal static class ClangFacade
         }
 
         WriteTidyFileToDisk(root);
-        AnsiConsole.WriteLine($"using clang-tidy: {tidy_path}");
+        AnsiConsole.WriteLine($"using clang-tidy: {clang_tidy}");
 
-        var total_counter = new ColCounter<string>();
+        var total_counter = new ColCounter<Fil>();
         var total_classes = new ColCounter<string>();
-        Dictionary<string, List<string>> warnings_per_file = new();
+        Dictionary<string, List<Fil>> warnings_per_file = new();
 
         var data = MapAllFilesInRootOnFirstDir(root, headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource);
         var stats = new FileStatistics();
@@ -466,15 +454,15 @@ internal static class ClangFacade
         foreach (var (project, source_files) in data)
         {
             var first_file = true;
-            var project_counter = new ColCounter<string>();
+            var project_counter = new ColCounter<Fil>();
             foreach (var source_file in source_files)
             {
-                var printable_file = Path.GetRelativePath(root, source_file);
+                var printable_file = source_file;
                 if (FileMatchesAllFilters(source_file, args_filter))
                 {
                     continue;
                 }
-                var print_name = new NamePrinter(printable_file);
+                var print_name = new NamePrinter(printable_file.GetDisplay());
                 if (first_file)
                 {
                     if (false == short_args)
@@ -485,7 +473,9 @@ internal static class ClangFacade
                 }
                 if (args_nop is false)
                 {
-                    var (warnings, classes) = await RunTidyAsync(store, log, root, force, tidy_path, source_file, project_build_folder, stats, short_args, print_name, args_fix, printable_file, args_only);
+                    var (warnings, classes) = await RunTidyAsync(store, log, root, force, clang_tidy,
+                        source_file, project_build_folder, stats, short_args, print_name, args_fix,
+                        printable_file, args_only);
                     if (short_args && warnings.TotalCount() > 0)
                     {
                         break;
@@ -495,14 +485,13 @@ internal static class ClangFacade
                     total_classes.Update(classes);
                     foreach (var k in classes.Keys)
                     {
-                        if (warnings_per_file.TryGetValue(k, out var warnings_list))
+                        // todo(Gustav): make this pattern nicer...
+                        if (warnings_per_file.TryGetValue(k, out var warnings_list) == false)
                         {
-                            warnings_list.Add(printable_file);
+                            warnings_list = new();
+                            warnings_per_file.Add(k, warnings_list);
                         }
-                        else
-                        {
-                            warnings_per_file.Add(k, new() { printable_file });
-                        }
+                        warnings_list.Add(printable_file);
                     }
                 }
                 else
@@ -515,7 +504,7 @@ internal static class ClangFacade
             {
                 if (args_only.Length == 0)
                 {
-                    PrintWarningCounter(project_counter, project);
+                    PrintWarningCounter(project_counter, project, f => f.GetDisplay());
                     AnsiConsole.WriteLine("");
                     AnsiConsole.WriteLine("");
                 }
@@ -525,9 +514,9 @@ internal static class ClangFacade
         if (false == short_args && args_only.Length == 0)
         {
             Printer.Header("TIDY REPORT");
-            PrintWarningCounter(total_counter, "total");
+            PrintWarningCounter(total_counter, "total", f=> f.GetDisplay());
             AnsiConsole.WriteLine("");
-            PrintWarningCounter(total_classes, "classes");
+            PrintWarningCounter(total_classes, "classes", c => c);
             AnsiConsole.WriteLine("");
             Printer.Line();
             AnsiConsole.WriteLine("");
@@ -565,7 +554,7 @@ internal static class ClangFacade
             return -1;
         }
 
-        var root = Environment.CurrentDirectory;
+        var root = Dir.CurrentDirectory;
 
         var data = MapAllFilesInRootOnFirstDir(root, FileUtil.IsHeaderOrSource);
 
@@ -574,13 +563,14 @@ internal static class ClangFacade
             Printer.Header(project);
             foreach (var file in source_files)
             {
-                AnsiConsole.WriteLine(Path.GetRelativePath(root, file));
+                AnsiConsole.WriteLine(file.GetRelative(root));
                 if (nop)
                 {
                     continue;
                 }
 
-                var res = await new ProcessBuilder(clang_format_path, "-i", file).RunAndGetOutputAsync();
+                var res = await new ProcessBuilder(clang_format_path, "-i", file.Path)
+                    .RunAndGetOutputAsync();
                 if (res.ExitCode != 0)
                 {
                     res.PrintOutput(log);

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Text.Json.Serialization;
@@ -9,16 +10,16 @@ namespace Workbench.Shared;
 
 public class CompileCommand
 {
-    public string Directory;
+    public Dir Directory;
     public string Command;
 
-    public CompileCommand(string directory, string command)
+    public CompileCommand(Dir directory, string command)
     {
         Directory = directory;
         Command = command;
     }
 
-    public IEnumerable<string> GetRelativeIncludes()
+    public IEnumerable<Dir> GetRelativeIncludes()
     {
         // shitty commandline parser... beware
         foreach (var c in Command.Split(' '))
@@ -26,7 +27,7 @@ public class CompileCommand
             const string INCLUDE_PREFIX = "-I";
             if (c.StartsWith(INCLUDE_PREFIX) == false) { continue; }
 
-            yield return c[INCLUDE_PREFIX.Length..].Trim();
+            yield return Directory.GetDir(c[INCLUDE_PREFIX.Length..].Trim());
         }
     }
 
@@ -63,9 +64,9 @@ public class CompileCommand
         public string Command = "";
     }
 
-    internal static Dictionary<string, CompileCommand>? LoadCompileCommandsOrNull(Log log, string path)
+    internal static Dictionary<Fil, CompileCommand>? LoadCompileCommandsOrNull(Log log, Fil path)
     {
-        var content = File.ReadAllText(path);
+        var content = path.ReadAllText();
         var store = JsonUtil.Parse<List<CompileCommandJson>>(log, path, content);
 
         if (store == null)
@@ -74,40 +75,30 @@ public class CompileCommand
             return null;
         }
 
-        return store.ToDictionary(entry => entry.File,
-            entry => new CompileCommand(directory: entry.Directory, command: entry.Command)
+        return store.ToDictionary(entry => new Fil(entry.File),
+            entry => new CompileCommand(directory: new Dir(entry.Directory), command: entry.Command)
         );
     }
 
     internal const string COMPILE_COMMANDS_FILE_NAME = "compile_commands.json";
 
-    private static IEnumerable<Found<string>> FindJustTheBuilds()
+    private static IEnumerable<Found<Fil>> FindJustTheBuilds()
     {
-        var cwd = Environment.CurrentDirectory;
+        var cwd = Dir.CurrentDirectory;
         yield return FileUtil
             .PitchforkBuildFolders(cwd)
-            .Select(build_root => Path.Join(build_root, COMPILE_COMMANDS_FILE_NAME))
-            .Select(find_cmake_cache)
+            .Select(build_root => build_root.GetFile(COMPILE_COMMANDS_FILE_NAME))
+            .Select(f => f.ToFoundExist())
             .Collect("pitchfork folders")
             ;
-
-        static FoundEntry<string> find_cmake_cache(string compile_commands)
-        {
-            if (new FileInfo(compile_commands).Exists == false)
-            {
-                return new FoundEntry<string>.Error($"{compile_commands} doesn't exist");
-            }
-
-            return new FoundEntry<string>.Result(compile_commands);
-        }
     }
 
-    private static FoundEntry<string>? GetBuildFromArgument(CompileCommandsArguments settings)
+    private static FoundEntry<Fil>? GetBuildFromArgument(CompileCommandsArguments settings)
     {
         return settings.GetFileFromArgument(COMPILE_COMMANDS_FILE_NAME);
     }
 
-    internal static IEnumerable<Found<string>> ListOverrides(CompileCommandsArguments settings, Log? log)
+    internal static IEnumerable<Found<Fil>> ListOverrides(CompileCommandsArguments settings, Log? log)
     {
         yield return Functional.Params(
                     GetBuildFromArgument(settings))
@@ -117,11 +108,11 @@ public class CompileCommand
         yield return Paths.Find(log, p => p.CompileCommands);
     }
 
-    internal static IEnumerable<Found<string>> ListAll(CompileCommandsArguments settings)
+    internal static IEnumerable<Found<Fil>> ListAll(CompileCommandsArguments settings)
         => ListOverrides(settings, null)
             .Concat(FindJustTheBuilds());
 
-    internal static string? FindOrNone(CompileCommandsArguments settings, Log? log)
+    internal static Fil? FindOrNone(CompileCommandsArguments settings, Log? log)
     {
         return FindJustTheBuilds()
             .FirstValidOrOverride(ListOverrides(settings, log), log, "compile command");
@@ -138,7 +129,7 @@ internal class CompileCommandsArguments : CommandSettings
     [DefaultValue(null)]
     public string? CompileCommands { get; set; }
 
-    public FoundEntry<string>? GetFileFromArgument(string filename)
+    public FoundEntry<Fil>? GetFileFromArgument(string filename)
     {
         var settings = this;
         var found = settings.CompileCommands;
@@ -154,29 +145,34 @@ internal class CompileCommandsArguments : CommandSettings
             found = Path.Join(found, filename);
         }
 
-        return new FoundEntry<string>.Result(found);
+        return new FoundEntry<Fil>.Result(new Fil(found));
     }
 
-    public FoundEntry<string>? GetDirectoryFromArgument()
+    public FoundEntry<Dir>? GetDirectoryFromArgument()
     {
+        //  todo(Gustav): merge with cli
+
         var settings = this;
-        var found = settings.CompileCommands;
+        var arg = settings.CompileCommands;
             
-        if (found == null)
+        if (arg == null)
         {
             return null;
         }
 
-        if (File.Exists(found))
+        var file = new Fil(arg);
+        if(file.Exists)
         {
-            var dir = new FileInfo(found).Directory?.FullName;
+            var dir = file.Directory;
             if (dir == null)
             {
-                return new FoundEntry<string>.Error($"Failed to get directory from file {found}");
+                return new FoundEntry<Dir>.Error($"Failed to get directory from file {arg}");
             }
+
+            return new FoundEntry<Dir>.Result(dir);
         }
 
-        return new FoundEntry<string>.Result(found);
+        return new FoundEntry<Dir>.Result(new Dir(arg));
     }
 }
 

@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 using Spectre.Console;
+using Workbench.Commands.Status;
 using Workbench.Shared;
+using Workbench.Shared.Extensions;
 
 namespace Workbench.Commands.Hero;
 
@@ -8,7 +10,7 @@ namespace Workbench.Commands.Hero;
 // Project
 
 // use root to create pretty display names
-public record OutputFolders(string InputRoot, string OutputDirectory);
+public record OutputFolders(Dir InputRoot, Dir OutputDirectory);
 
 public class UserInput
 {
@@ -16,80 +18,79 @@ public class UserInput
     public List<string> IncludeDirectories { get; set; } = new();
     public List<string> PrecompiledHeaders { get; set; } = new();
 
-    public bool Validate(Log print)
+    public static UserInput? LoadFromFile(Log print, Fil file)
     {
-        var status = true;
-
-        if (ProjectDirectories.Count == 0)
-        {
-            status = false;
-            print.Error("Project directories are empty");
-        }
-
-        if (IncludeDirectories.Count == 0)
-        {
-            status = false;
-            print.Error("Include directories are empty");
-        }
-
-        return status;
-    }
-
-    public static UserInput? LoadFromFile(Log print, string file)
-    {
-        var content = File.ReadAllText(file);
+        var content = file.ReadAllText();
         var data = JsonUtil.Parse<UserInput>(print, file, content);
         return data;
     }
 
-    public void Decorate(Log log, string root)
+    public Project? ToProject(Log log, Dir root, Project? previous_project)
     {
-        decorate_this(root, ProjectDirectories, "Project directories", f => Directory.Exists(f) || File.Exists(f));
-        decorate_this(root, IncludeDirectories, "Include directories", Directory.Exists);
-        return;
+        var project_dirs = decorate_this(root, ProjectDirectories, "Project directories", f => Directory.Exists(f) || File.Exists(f))
+            .Select(FileOrDir.FromExistingOrNull)
+            .IgnoreNull()
+            .ToImmutableArray()
+            ;
+        var include_dirs = decorate_this(root, IncludeDirectories, "Include directories", Directory.Exists)
+            .Select(p => new Dir(p))
+            .ToImmutableArray()
+            ;
+        var pch_files = decorate_this(root, PrecompiledHeaders, "Precompiled headers", p => File.Exists(p))
+            .Select(p => new Fil(p))
+            .ToImmutableArray()
+            ;
 
-        static void decorate_this(string root, List<string> d, string name, Func<string, bool> exists)
+        bool status = true;
+
+        if (project_dirs.Length == 0)
         {
-            var missing = d.Where(d => Path.IsPathFullyQualified(d) == false || exists(d) == false).ToImmutableHashSet();
-            var changes = missing
-                .Select(d => new { Src = d, Dst = Path.Join(root, d) })
-                .Select(d => new { d.Src, d.Dst, Exist = exists(d.Dst) })
-                .ToImmutableArray()
-                ;
+            log.Error("Project directories are empty");
+            status = false;
+        }
 
-            foreach (var x in changes.Where(x => x.Exist))
-            {
-                AnsiConsole.WriteLine($"{x.Src} does not exist in {name}, but was replaced with {x.Dst}");
-            }
+        if (include_dirs.Length == 0)
+        {
+            status = false;
+            log.Error("Include directories are empty");
+        }
 
-            foreach (var x in changes.Where(x => x.Exist == false))
-            {
-                AnsiConsole.WriteLine($"{x.Src} was removed from {name} since it doesn't exist and the replacement {x.Dst} was found");
-            }
+        
+        return status ? new Project(project_dirs, include_dirs, pch_files, previous_project) : null;
 
-            d.RemoveAll(missing.Contains);
-            foreach (var f in d)
-            {
-                AnsiConsole.WriteLine($"{f} was kept in {name}");
-            }
-            d.AddRange(changes.Where(x => x.Exist).Select(x => x.Dst));
+        static IEnumerable<string> decorate_this(Dir root, IEnumerable<string> src, string name, Func<string, bool> exists)
+        {
+            return src
+                .Select(d => new
+                {
+                    Src = d,
+                    IsRelative = !Path.IsPathFullyQualified(d),
+                    Dst = FileUtil.RootPath(root, d)
+                })
+                .Where(x => exists(x.Dst) == false, x =>
+                {
+                    Log.Warning($"{x.Src} was removed from {name} since it doesn't exist and the replacement {x.Dst} was found");
+                })
+                .Select(x => x.Dst);
         }
     }
 }
 
 public class Project
 {
-    public ImmutableArray<string> ScanDirectories { get; }
-    public ImmutableArray<string> IncludeDirectories { get; }
-    public ImmutableArray<string> PrecompiledHeaders { get; }
-    public Dictionary<string, SourceFile> ScannedFiles { get; } = new();
+    public ImmutableArray<FileOrDir> ScanDirectories { get; }
+    public ImmutableArray<Dir> IncludeDirectories { get; }
+    public ImmutableArray<Fil> PrecompiledHeaders { get; }
+    public Dictionary<Fil, SourceFile> ScannedFiles { get; }
     // public DateTime LastScan,
 
-    public Project(UserInput input)
+    public Project(ImmutableArray<FileOrDir> project_directories,
+        ImmutableArray<Dir> include_directories, ImmutableArray<Fil> precompiled_headers, Project? project)
     {
-        ScanDirectories = input.ProjectDirectories.ToImmutableArray();
-        IncludeDirectories = input.IncludeDirectories.ToImmutableArray();
-        PrecompiledHeaders = input.PrecompiledHeaders.ToImmutableArray();
+        ScanDirectories = project_directories;
+        IncludeDirectories = include_directories;
+        PrecompiledHeaders = precompiled_headers;
+        ScannedFiles = project != null ? project.ScannedFiles : new();
         // LastScan = DateTime.Now
     }
 
@@ -109,17 +110,18 @@ public class SourceFile
     public int NumberOfLines { get; set; }
     public bool IsPrecompiled { get; set; }
 
-    public List<string> AbsoluteIncludes { get; set; } // change to a hash set?
+    public List<Fil> AbsoluteIncludes { get; set; } // change to a hash set?
     public bool IsTouched { get; set; }
 
-    public SourceFile(int number_of_lines, List<string> local_includes, List<string> system_includes, bool is_precompiled)
+    public SourceFile(int number_of_lines, List<string> local_includes,
+        List<string> system_includes, bool is_precompiled)
     {
         LocalIncludes = local_includes;
         SystemIncludes = system_includes;
         NumberOfLines = number_of_lines;
         IsPrecompiled = is_precompiled;
 
-        AbsoluteIncludes = new List<string>();
+        AbsoluteIncludes = new();
         IsTouched = false;
     }
 }

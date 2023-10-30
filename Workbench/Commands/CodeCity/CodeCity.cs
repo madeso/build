@@ -54,7 +54,7 @@ internal class Cube
 
 internal class Facade
 {
-    internal static List<Cube> Collect(Log log, string doxygen_xml)
+    internal static List<Cube> Collect(Log log, Dir doxygen_xml)
     {
         const float MIN_SIZE = 2;
         const float NS_SPACING = 1;

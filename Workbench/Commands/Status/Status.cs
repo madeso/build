@@ -9,7 +9,7 @@ internal static class Status
 {
     internal static void HandleStatus(Log log, CompileCommandsArguments cc)
     {
-        var root = Environment.CurrentDirectory;
+        var root = Dir.CurrentDirectory;
         AnsiConsole.WriteLine($"Root: {root}");
 
         FindCMake.FindAllInstallations().PrintFoundList("cmake", FindCMake.FindInstallationOrNull());

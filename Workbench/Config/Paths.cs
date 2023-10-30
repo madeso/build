@@ -11,31 +11,37 @@ namespace Workbench.Config;
 internal class Paths
 {
     [JsonPropertyName("compile_commands")]
-    public string? CompileCommands { get; set; }
+    public Fil? CompileCommands { get; set; }
 
     [JsonPropertyName("git_executable")]
-    public string? GitExecutable { get; set; }
+    public Fil? GitExecutable { get; set; }
 
     [JsonPropertyName("clang_tidy_executable")]
-    public string? ClangTidyExecutable { get; set; }
+    public Fil? ClangTidyExecutable { get; set; }
 
     [JsonPropertyName("clang_format_executable")]
-    public string? ClangFormatExecutable { get; set; }
+    public Fil? ClangFormatExecutable { get; set; }
+    
+    [JsonPropertyName("cpp_lint_executable")]
+    public Fil? CpplintExecutable { get; set; }
 
-    public static string GetPath()
+    [JsonPropertyName("graphviz_executable")]
+    public Fil? GraphvizExecutable { get; set; }
+
+    public static Fil GetPath()
     {
-        return Path.Join(Environment.CurrentDirectory, FileNames.Paths);
+        return Dir.CurrentDirectory.GetFile(FileNames.Paths);
     }
 
     public static Paths? LoadFromDirectoryOrNull(Log? print)
     {
-        return File.Exists(GetPath()) == false
+        return GetPath().Exists == false
             ? new Paths()
             : ConfigFile.LoadOrNull<Paths>(print, GetPath())
             ;
     }
 
-    public static FoundEntry<string>? FindEntry(Log? log, Func<Paths, string?> getter)
+    public static FoundEntry<Fil>? FindEntry(Log? log, Func<Paths, Fil?> getter)
     {
         var cc = LoadFromDirectoryOrNull(log);
         if (cc == null)
@@ -50,10 +56,10 @@ internal class Paths
             return null;
         }
 
-        return new FoundEntry<string>.Result(val);
+        return new FoundEntry<Fil>.Result(val);
     }
 
-    public static Found<string> Find(Log? log, Func<Paths, string?> getter)
+    public static Found<Fil> Find(Log? log, Func<Paths, Fil?> getter)
     {
         return Functional.Params(FindEntry(log, getter))
                 .IgnoreNull()
@@ -66,25 +72,33 @@ internal class Paths
         ConfigFile.Write(GetPath(), p);
     }
 
-    private static IEnumerable<Found<string>> ListOverrides(Log? log, Func<Paths, string?> getter) =>
+    private static IEnumerable<Found<Fil>> ListOverrides(Log? log, Func<Paths, Fil?> getter) =>
         Functional.Params(Find(log, getter));
-    private static IEnumerable<Found<string>> FindDefaultExecutable(Executable exe) =>
+    private static IEnumerable<Found<Fil>> FindDefaultExecutable(Executable exe) =>
         Functional.Params(Which.FindPaths(exe.Name));
 
-    internal static IEnumerable<Found<string>> ListAllExecutables(Func<Paths, string?> getter, Executable exe)
+    internal static IEnumerable<Found<Fil>> ListAllExecutables(Func<Paths, Fil?> getter, Executable exe)
         => ListOverrides(null, getter).Concat(FindDefaultExecutable(exe));
 
-    internal static string? GetExecutableOrSaved(Log? log, Func<Paths, string?> getter,
+    internal static Fil? GetExecutableOrSaved(Log? log, Func<Paths, Fil?> getter,
         Executable exe)
         => FindDefaultExecutable(exe).Concat(ListOverrides(log, getter))
             .RequireFirstValueOrNull(log, exe.FriendlyName);
 
-    internal static string? GetGitExecutable(Log log)
+    internal static Fil? GetGitExecutable(Log log)
         => GetExecutableOrSaved(log, p => p.GitExecutable, DefaultExecutables.Git);
 
-    internal static string? GetClangTidyExecutable(Log log)
+    internal static Fil? GetClangTidyExecutable(Log log)
         => GetExecutableOrSaved(log, p => p.ClangTidyExecutable, DefaultExecutables.ClangTidy);
 
-    internal static string? GetClangFormatExecutable(Log log)
+    internal static Fil? GetClangFormatExecutable(Log log)
         => GetExecutableOrSaved(log, p => p.ClangFormatExecutable, DefaultExecutables.ClangFormat);
+
+
+    // todo(Gustav): remove format in this name
+    internal static Fil? GetCpplintFormatExecutable(Log log)
+        => GetExecutableOrSaved(log, p => p.CpplintExecutable, DefaultExecutables.CppLint);
+
+    internal static Fil? GetGraphvizExecutable(Log log)
+        => GetExecutableOrSaved(log, p => p.GraphvizExecutable, DefaultExecutables.Graphviz);
 }

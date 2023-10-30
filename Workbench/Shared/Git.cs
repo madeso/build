@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Security.AccessControl;
 
 namespace Workbench.Shared;
@@ -11,9 +12,10 @@ public static class Git
         Unknown, Modified
     }
 
-    public record GitStatusEntry(GitStatus Status, string Path);
+    // path is either to a file or directory
+    public record GitStatusEntry(GitStatus Status, FileOrDir Path);
 
-    public static async IAsyncEnumerable<GitStatusEntry> StatusAsync(string git_path, string folder)
+    public static async IAsyncEnumerable<GitStatusEntry> StatusAsync(Fil git_path, Dir folder)
     {
         var output = (await new ProcessBuilder(git_path, "status", "--porcelain=v1")
             .InDirectory(folder)
@@ -27,7 +29,10 @@ public static class Git
             var line = item.Trim().Split(' ', 2, StringSplitOptions.TrimEntries);
             var type = line[0];
 
-            var path = Path.Join(folder, to_path(line[1]));
+            var relative = to_path(line[1]);
+            var absolute = Path.Join(folder.Path, relative);
+            var path = FileOrDir.FromExistingOrNull(absolute);
+            Debug.Assert(path != null);
             switch (type)
             {
                 case "??": yield return new(GitStatus.Unknown, path); break;
@@ -49,10 +54,10 @@ public static class Git
             Author Author, Author Committer, string Summary, string Filename
         );
 
-    public static async IAsyncEnumerable<BlameLine> BlameAsync(string git_path, FileInfo file)
+    public static async IAsyncEnumerable<BlameLine> BlameAsync(Fil git_path, Fil file)
     {
         var result = (await new ProcessBuilder(git_path, "blame", "--porcelain", file.Name)
-            .InDirectory(file.DirectoryName!)
+            .InDirectory(file.Directory!)
             .RunAndGetOutputAsync());
         if (result.ExitCode == 128)
         {
@@ -100,8 +105,8 @@ public static class Git
         Author parse_author(string prefix)
         {
             var name = get_arg(prefix, "");
-            string mail = get_arg($"{prefix}-mail", "");
-            string time_string = get_arg($"{prefix}-time", "0");
+            var mail = get_arg($"{prefix}-mail", "");
+            var time_string = get_arg($"{prefix}-time", "0");
             var seconds = int.Parse(time_string);
             var time = DateTime.UnixEpoch.AddSeconds(seconds).ToLocalTime();
             return new Author(name, mail, time);
@@ -133,7 +138,7 @@ public static class Git
             string Subject
         );
 
-    public static async IAsyncEnumerable<LogLine> LogAsync(string git_path, string folder)
+    public static async IAsyncEnumerable<LogLine> LogAsync(Fil git_path, Dir folder)
     {
         const char SEPARATOR = ';';
         var log_format = string.Join(SEPARATOR, "%h", "%p", "%an", "%ae", "%aI", "%cn", "%ce", "%cI", "%s");
@@ -160,9 +165,9 @@ public static class Git
         Modified, Added,
         Deleted
     }
-    public record FileLine(LineMod Modification, string File);
+    public record FileLine(LineMod Modification, Fil File);
 
-    public static async Task<ImmutableArray<FileLine>> FilesInCommitAsync(string git_path, string folder, string commit)
+    public static async Task<ImmutableArray<FileLine>> FilesInCommitAsync(Fil git_path, Dir folder, string commit)
     {
         // git diff-tree --no-commit-id --name-only bd61ad98 -r
         var output = (await new ProcessBuilder(git_path, "diff-tree", "--no-commit-id", "--name-status", commit, "-r")
@@ -178,7 +183,7 @@ public static class Git
                 "A" => LineMod.Added,
                 "D" => LineMod.Deleted,
                 _ => throw new ArgumentOutOfRangeException(nameof(sp), sp[0], null)
-            }, sp[1]))
+            }, new Fil(sp[1])))
             .ToImmutableArray();
     }
 }

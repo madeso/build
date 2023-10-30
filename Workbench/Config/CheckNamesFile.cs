@@ -23,10 +23,9 @@ internal class CheckNamesFile
     [JsonPropertyName("ignored_files")]
     public HashSet<string> IgnoredFiles { get; set; } = new();
 
-    public static string GetBuildDataPath()
-    {
-        return Path.Join(Environment.CurrentDirectory, FileNames.CheckNames);
-    }
+    // todo(Gustav): rename
+    public static Fil GetBuildDataPath()
+        => Dir.CurrentDirectory.GetFile(FileNames.CheckNames);
 
     public static CheckNamesFile? LoadFromDirectoryOrNull(Log print)
     {

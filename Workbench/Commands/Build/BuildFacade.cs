@@ -13,7 +13,7 @@ internal static class BuildFacade
     {
         var data = new BuildFile
         {
-            Name = new DirectoryInfo(Environment.CurrentDirectory).Name
+            Name = Dir.CurrentDirectory.Name
         };
         data.Dependencies.AddRange(Enum.GetValues<DependencyName>());
 

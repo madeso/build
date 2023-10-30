@@ -41,7 +41,7 @@ internal sealed class PrintCodeHistory : AsyncCommand<PrintCodeHistory.Arg>
                 return -1;
             }
 
-            var cwd = new DirectoryInfo(Environment.CurrentDirectory);
+            var cwd = Dir.CurrentDirectory;
 
             // get files
             var files = FileUtil.IterateFiles(cwd, false, true);
@@ -66,7 +66,7 @@ internal sealed class PrintCodeHistory : AsyncCommand<PrintCodeHistory.Arg>
                 .GroupOnTime(x => x.Time, arg.Resolution, (title, times) => new
                 {
                     Title = title.ToString(arg.Resolution),
-                    Files = times.Select(x => x.File).DistinctBy(x => x.FullName).ToImmutableArray(),
+                    Files = times.Select(x => x.File).Distinct().ToImmutableArray(),
                     times.Count
                 })
                 .ToImmutableArray();

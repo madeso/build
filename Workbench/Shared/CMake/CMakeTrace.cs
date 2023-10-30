@@ -1,30 +1,36 @@
+using System.Collections.Immutable;
 using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Workbench.Shared.Extensions;
 
 namespace Workbench.Shared.CMake
 {
-    public class CMakeTrace
+    public record CMakeTrace(Fil File, int Line, string Cmd, ImmutableArray<string> Args)
     {
-        [JsonPropertyName("file")]
-        public string? File { set; get; } = string.Empty;
+        private class CmakeOutputTrace
+        {
+            [JsonPropertyName("file")]
+            public string? File { set; get; } = string.Empty;
 
-        [JsonPropertyName("line")]
-        public int Line { set; get; }
+            [JsonPropertyName("line")]
+            public int Line { set; get; }
 
-        [JsonPropertyName("cmd")]
-        public string Cmd { set; get; } = string.Empty;
+            [JsonPropertyName("cmd")]
+            public string Cmd { set; get; } = string.Empty;
 
-        [JsonPropertyName("args")]
-        public string[] Args { set; get; } = Array.Empty<string>();
+            [JsonPropertyName("args")]
+            public string[] Args { set; get; } = Array.Empty<string>();
+        }
 
-        public static async Task<IEnumerable<CMakeTrace>> TraceDirectoryAsync(string cmake_executable, string dir)
+        public static async Task<List<CMakeTrace>> TraceDirectoryAsync(Fil cmake_executable, Dir dir)
         {
             List<CMakeTrace> lines = new();
             List<string> error = new();
 
             var stderr = new List<string>();
-            var ret = (await new ProcessBuilder(cmake_executable, "--trace-expand", "--trace-format=json-v1", "-S", Environment.CurrentDirectory, "-B", dir)
+            var ret = (await new ProcessBuilder(cmake_executable, "--trace-expand", "--trace-format=json-v1", "-S",
+                            Dir.CurrentDirectory.Path, "-B", dir.Path)
                     .InDirectory(dir)
                     .RunWithCallbackAsync(null, on_line, err => { on_line(err); stderr.Add(err); }, (err, ex) => { error.Add(err); error.Add(ex.Message); })
                     )
@@ -45,11 +51,11 @@ namespace Workbench.Shared.CMake
             {
                 try
                 {
-                    var parsed = JsonSerializer.Deserialize<CMakeTrace>(src);
+                    var parsed = JsonSerializer.Deserialize<CmakeOutputTrace>(src);
                     if (parsed is { File: not null })
                     {
                         // file != null ignores the version json object
-                        lines.Add(parsed);
+                        lines.Add(new CMakeTrace(new Fil(parsed.File), parsed.Line, parsed.Cmd, parsed.Args.ToImmutableArray()));
                     }
                     else
                     {
@@ -68,25 +74,25 @@ namespace Workbench.Shared.CMake
         }
 
 
-        public IEnumerable<string> ListFilesInLibraryOrExecutable()
+        public IEnumerable<Fil> ListFilesInLibraryOrExecutable()
         {
             return ListFilesInArgs("STATIC");
         }
 
-        public IEnumerable<string> ListFilesInCmakeExecutable()
+        public IEnumerable<Fil> ListFilesInCmakeExecutable()
         {
             return ListFilesInArgs("WIN32", "MACOSX_BUNDLE");
         }
 
-        private IEnumerable<string> ListFilesInArgs(params string[] arguments_to_ignore)
+        private IEnumerable<Fil> ListFilesInArgs(params string[] arguments_to_ignore)
         {
-            var folder = new FileInfo(File!).Directory?.FullName!;
+            var folder = File.Directory!;
 
             return Args
                     .Skip(1) // name of library/app
                     .SkipWhile(arguments_to_ignore.Contains)
                     .SelectMany(a => a.Split(';'))
-                    .Select(f => new FileInfo(Path.Join(folder, f)).FullName)
+                    .Select(f => folder.GetFile(f))
                 ;
         }
 

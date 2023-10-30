@@ -8,7 +8,7 @@ public enum MessageType
     Error, Warning
 }
 
-public record FileLine(string File, int? Line);
+public record FileLine(Fil File, int? Line);
 // public record ErrorClass(string Name, int Code);
 
 public class Log
@@ -55,7 +55,7 @@ public class Log
     private static string ToFileString(FileLine? file)
         => file == null
             ? "missing location"
-            : $"{file.File}({file.Line ?? -1})";
+            : $"{file.File.Path}({file.Line ?? -1})";
 
     private void AddError(string message)
     {

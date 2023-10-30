@@ -19,9 +19,9 @@ public static class Core
     }
 
     /// make sure directory exists 
-    public static void VerifyDirectoryExists(Log print, string dir)
+    public static void VerifyDirectoryExists(Log print, Dir dir)
     {
-        if (Directory.Exists(dir))
+        if (dir.Exists)
         {
             AnsiConsole.WriteLine($"Dir exist, not creating {dir}");
         }
@@ -30,7 +30,7 @@ public static class Core
             AnsiConsole.WriteLine($"Not a directory, creating {dir}");
             try
             {
-                Directory.CreateDirectory(dir);
+                dir.CreateDir();
             }
             catch (Exception x)
             {
@@ -39,20 +39,20 @@ public static class Core
         }
     }
 
-    internal static string[]? ReadFileToLines(string filename)
+    internal static string[]? ReadFileToLines(Fil filename)
     {
-        if (File.Exists(filename))
+        if (filename.Exists)
         {
-            return File.ReadAllLines(filename);
+            return filename.ReadAllLines().ToArray();
         }
         else return null;
     }
 
 
     /// download file if not already downloaded 
-    public static void DownloadFileIfMissing(Log print, string url, string dest)
+    public static void DownloadFileIfMissing(Log print, string url, Fil dest)
     {
-        if (File.Exists(dest))
+        if (dest.Exists)
         {
             AnsiConsole.WriteLine($"Already downloaded {dest}");
         }
@@ -62,19 +62,19 @@ public static class Core
             download_file(url, dest);
         }
 
-        static void download_file(string url, string dest)
+        static void download_file(string url, Fil dest)
         {
             using var client = new HttpClient();
             using var s = client.GetStreamAsync(url);
-            using var fs = new FileStream(dest, FileMode.OpenOrCreate);
+            using var fs = new FileStream(dest.Path, FileMode.OpenOrCreate);
             s.Result.CopyTo(fs);
         }
     }
 
     /// moves all file from one directory to another
-    public static void MoveFiles(Log print, string from, string to)
+    public static void MoveFiles(Log print, Dir from, Dir to)
     {
-        if (Path.Exists(from) == false)
+        if (from.Exists == false)
         {
             print.Error($"Missing src {from} when moving to {to}");
             return;
@@ -83,32 +83,32 @@ public static class Core
         VerifyDirectoryExists(print, to);
         move_files_recursively(from, to);
 
-        static void move_files_recursively(string from, string to)
+        static void move_files_recursively(Dir from, Dir to)
         {
-            var paths = new DirectoryInfo(from);
+            var paths = from;
 
             foreach (var file in paths.EnumerateFiles())
             {
-                var src = Path.Join(from, file.Name);
-                var dst = Path.Join(to, file.Name);
-                File.Move(src, dst);
+                var src = from.GetFile(file.Name);
+                var dst = to.GetFile(file.Name);
+                File.Move(src.Path, dst.Path);
             }
 
             foreach (var dir in paths.EnumerateDirectories())
             {
-                var src = Path.Join(from, dir.Name);
-                var dst = Path.Join(to, dir.Name);
-                Directory.CreateDirectory(dst);
+                var src = from.GetDir(dir.Name);
+                var dst = to.GetDir(dir.Name);
+                Directory.CreateDirectory(dst.Path);
                 move_files_recursively(src, dst);
-                Directory.Delete(src, false);
+                Directory.Delete(src.Path, false);
             }
         }
     }
 
     /// extract a zip file to folder
-    public static void ExtractZip(string zip, string to)
+    public static void ExtractZip(Fil zip, Dir to)
     {
-        ZipFile.ExtractToDirectory(zip, to);
+        ZipFile.ExtractToDirectory(zip.Path, to.Path);
     }
 
     public static string FormatNumber(int num)

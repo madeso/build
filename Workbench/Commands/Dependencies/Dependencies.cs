@@ -11,8 +11,8 @@ public static class Dependencies
 {
     const string NO_NAMESPACE = "|";
 
-    internal static async Task WriteToGraphvizAsync(Log log, string doxygen_xml, string namespace_name,
-        string output_file, ImmutableHashSet<string> ignored_classes, bool include_functions, bool add_arguments,
+    internal static async Task WriteToGraphvizAsync(Log log, Dir doxygen_xml, string namespace_name,
+        Fil output_file, ImmutableHashSet<string> ignored_classes, bool include_functions, bool add_arguments,
         bool add_members, bool cluster_namespace)
     {
         AnsiConsole.WriteLine("Parsing doxygen XML...");
@@ -140,7 +140,7 @@ public static class Dependencies
         await g.SmartWriteFileAsync(output_file, log);
     }
 
-    internal static void PrintLists(Log log, string doxygen_xml, string namespace_name)
+    internal static void PrintLists(Log log, Dir doxygen_xml, string namespace_name)
     {
         AnsiConsole.WriteLine("Parsing doxygen XML...");
         var dox = Doxygen.ParseIndex(doxygen_xml);
@@ -217,7 +217,8 @@ public static class Dependencies
     }
 
     private record Method(CompoundDef? Klass, MemberDefinitionType Function);
-    internal static async Task WriteCallGraphToGraphvizAsync(Log log, string doxygen_xml, string output_file, ClusterCallGraphOn cluster_on)
+    internal static async Task WriteCallGraphToGraphvizAsync(Log log, Dir doxygen_xml,
+        Fil output_file, ClusterCallGraphOn cluster_on)
     {
         // todo(Gustav): option to remove namespace prefixes
 

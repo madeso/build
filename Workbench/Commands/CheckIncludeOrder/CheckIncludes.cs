@@ -183,11 +183,11 @@ public static class IncludeTools
         Log print,
         IncludeData data,
         string line,
-        string filename,
+        Fil filename,
         int line_number
     )
     {
-        var replacer = CreateReplacer(Path.GetFileNameWithoutExtension(filename));
+        var replacer = CreateReplacer(filename.NameWithoutExtension);
 
         foreach (var (index, included_regex_group) in data.IncludeDirectories.Select((value, i) => (i, value)))
         {
@@ -207,8 +207,8 @@ public static class IncludeTools
         if (missing_files.Contains(line) == false)
         {
             missing_files.Add(line);
-            string message = $"{line} is a invalid header";
-            print.PrintError((FileLine?)new(filename, line_number), message);
+            var message = $"{line} is a invalid header";
+            print.PrintError(new(filename, line_number), message);
         }
 
         return null;
@@ -254,7 +254,7 @@ public static class IncludeTools
         HashSet<string> missing_files,
         Log print,
         IncludeData data,
-        string filename,
+        Fil filename,
         bool verbose,
         bool print_include_order_error_for_include,
         MessageType include_error_message
@@ -303,7 +303,7 @@ public static class IncludeTools
         string[] lines,
         ClassifiedFile f,
         Log print,
-        string filename,
+        Fil filename,
         bool print_first_error_only
     )
     {
@@ -340,8 +340,8 @@ public static class IncludeTools
                 {
                     if (print_this_error)
                     {
-                        string message = $"Invalid text after include: {end}";
-                        print.PrintError((FileLine?)new(filename, line_num), message);
+                        var message = $"Invalid text after include: {end}";
+                        print.PrintError(new(filename, line_num), message);
                     }
                     ok = false;
                 }
@@ -350,8 +350,8 @@ public static class IncludeTools
             {
                 if (print_this_error)
                 {
-                    string message = $"Invalid line {line}";
-                    print.PrintError((FileLine?)new(filename, line_num), message);
+                    var message = $"Invalid line {line}";
+                    print.PrintError(new(filename, line_num), message);
                 }
                 ok = false;
             }
@@ -413,7 +413,7 @@ public static class IncludeTools
         Log print,
         IncludeData data,
         bool verbose,
-        string filename,
+        Fil filename,
         CheckAction command
     )
     {
@@ -460,7 +460,7 @@ public static class IncludeTools
 
         if (!(command_is_fix || command_is_check || command_is_list_unfixable))
         {
-            // if we wan't to print the unmatched header we don't care about sorting the headers
+            // if we want to print the unmatched header we don't care about sorting the headers
             return true;
         }
 
@@ -496,7 +496,7 @@ public static class IncludeTools
                 }
                 else
                 {
-                    File.WriteAllLines(filename, file_data);
+                    filename.WriteAllLines(file_data);
                 }
                 break;
             default:
@@ -522,7 +522,7 @@ public static class IncludeTools
 
         var missing_files = new HashSet<string>();
 
-        foreach (var filename in args.Files)
+        foreach (var filename in Cli.ToFiles(args.Files))
         {
             file_count += 1;
             var stored_error = error_count;

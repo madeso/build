@@ -7,7 +7,7 @@ namespace Workbench.Commands.CheckOrderInFile;
 
 internal static class OrderInFile
 {
-    internal static int ClassifyClass(string file, string class_name)
+    internal static int ClassifyClass(Dir file, string class_name)
     {
         var parsed = Doxygen.ParseIndex(file);
 
@@ -36,7 +36,7 @@ internal static class OrderInFile
         return 0;
     }
 
-    public static int Run(Log log, string file, string root)
+    public static int Run(Log log, Dir file, Dir root)
     {
         var parsed = Doxygen.ParseIndex(file);
 
@@ -72,7 +72,7 @@ internal static class OrderInFile
 
     private record CheckError(CompoundDef Class, LocationType? PrimaryFile, LocationType? SecondaryFile, string ErrorMessage);
 
-    private static CheckError? CheckClass(CompoundDef k, string root)
+    private static CheckError? CheckClass(CompoundDef k, Dir root)
     {
         // k.name
         var members = DoxygenUtils.AllMembersForAClass(k).ToArray();
@@ -104,7 +104,8 @@ internal static class OrderInFile
     }
 
     private static void PrintError(
-        Log log, CompoundDef k, LocationType? primary_file, LocationType? secondary_file, string error_message, string root)
+        Log log, CompoundDef k, LocationType? primary_file, LocationType? secondary_file,
+        string error_message, Dir root)
     {
         var members = DoxygenUtils.AllMembersForAClass(k).ToArray();
         log.Error(DoxygenUtils.LocationToString(primary_file, root), error_message);

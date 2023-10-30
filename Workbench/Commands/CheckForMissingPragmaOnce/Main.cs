@@ -37,16 +37,16 @@ internal sealed class CheckForMissingPragmaOnceCommand : Command<CheckForMissing
                 continue;
             }
 
-            AnsiConsole.WriteLine(file);
+            AnsiConsole.WriteLine(file.GetDisplay());
             count += 1;
         }
 
         AnsiConsole.WriteLine($"Found {count} in {total_files} files.");
         return 0;
 
-        static bool contains_pragma_once(string path)
+        static bool contains_pragma_once(Fil path)
         {
-            return File.ReadLines(path)
+            return path.ReadAllLines()
                     .Any(line => line.Contains("#pragma once"))
                 ;
         }

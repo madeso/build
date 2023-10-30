@@ -41,13 +41,13 @@ internal sealed class CatDirCommand : Command<CatDirCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        var dir = new DirectoryInfo(arg.Dir);
+        var dir = new Dir(arg.Dir);
         foreach (var file in FileUtil.IterateFiles(dir, false, true)
             .Where(file => arg.IncludeSources ? FileUtil.IsHeaderOrSource(file) : FileUtil.IsHeader(file))
         )
         {
-            AnsiConsole.WriteLine($"File: {file.FullName}");
-            foreach (var line in File.ReadAllLines(file.FullName))
+            AnsiConsole.WriteLine($"File: {file.GetDisplay()}");
+            foreach (var line in file.ReadAllLines())
             {
                 if (string.IsNullOrWhiteSpace(line)) { continue; }
                 AnsiConsole.WriteLine($"    {line}");
@@ -94,23 +94,23 @@ internal sealed class LsCommand : Command<LsCommand.Arg>
         public string Path { get; set; } = "";
     }
 
+    // todo(Gustav): transform into a spectre tree
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        print_recursive(settings.Path, "");
+        print_recursive(Cli.ToDirectory(settings.Path), "");
         return 0;
 
-        static void print_recursive(string root, string start)
+        static void print_recursive(Dir root, string start)
         {
             var ident = " ".Repeat(4);
 
-            var paths = new DirectoryInfo(root);
-            foreach (var file_path in paths.EnumerateDirectories())
+            foreach (var file_path in root.EnumerateDirectories())
             {
                 AnsiConsole.MarkupLineInterpolated($"{start}{file_path.Name}/");
-                print_recursive(file_path.FullName, $"{start}{ident}");
+                print_recursive(file_path, $"{start}{ident}");
             }
 
-            foreach (var file_path in paths.EnumerateFiles())
+            foreach (var file_path in root.EnumerateFiles())
             {
                 AnsiConsole.MarkupLineInterpolated($"{start}{file_path.Name}");
             }

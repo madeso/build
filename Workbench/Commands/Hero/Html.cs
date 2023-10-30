@@ -1,3 +1,5 @@
+using Workbench.Shared;
+
 namespace Workbench.Commands.Hero;
 
 internal class Html
@@ -86,37 +88,37 @@ internal class Html
     }
 
 
-    internal static string GetSafeInspectFilename(string path, string ext_with_dot)
+    internal static string GetSafeInspectFilename(Fil path, string ext_with_dot)
     {
-        return $"inspect_{GetSafeString(path)}{ext_with_dot}";
+        return $"inspect_{GetSafeString(path.GetDisplay())}{ext_with_dot}";
     }
 
-    public static string GetSafeInspectFilenameHtml(string path)
+    public static string GetSafeInspectFilenameHtml(Fil path)
     {
         return GetSafeInspectFilename(path, ".html");
     }
 
-    public static string GetSafeInspectFilenameWithoutHtml(string path)
+    public static string GetSafeInspectFilenameWithoutHtml(Fil path)
     {
         return GetSafeInspectFilename(path, "");
     }
 
 
-    public static string GetFilename(string? common, string root, string path)
+    public static string GetFilename(Dir? common, Dir root, Fil path)
     {
         if (common != null)
         {
-            var rel = Path.GetRelativePath(common, path);
+            var rel = common.GetRelativeTo(path);
             if (rel.StartsWith("..") == false)
             {
                 return rel;
             }
         }
-        return Path.GetRelativePath(root, path);
+        return root.GetRelativeTo(path);
     }
 
 
-    public static string inspect_filename_link(string? common, string root, string path)
+    public static string inspect_filename_link(Dir? common, Dir root, Fil path)
     {
         var file = GetSafeInspectFilenameHtml(path);
         var name = GetFilename(common, root, path);
@@ -125,17 +127,17 @@ internal class Html
     }
 
 
-    private static string GetPathToCssFile(string root) { return Path.Join(root, "header_hero_report.css"); }
+    private static Fil GetPathToCssFile(Dir root) => root.GetFile("header_hero_report.css");
 
 
-    public static void WriteCssFile(string root)
+    public static void WriteCssFile(Dir root)
     {
-        File.WriteAllText(GetPathToCssFile(root), CSS_SOURCE);
+        GetPathToCssFile(root).WriteAllText(CSS_SOURCE);
     }
 
-    internal void WriteToFile(string path)
+    internal void WriteToFile(Fil path)
     {
-        File.WriteAllText(path, Buffer);
+        path.WriteAllText(Buffer);
     }
 
     private const string CSS_SOURCE = @"
