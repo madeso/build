@@ -75,7 +75,7 @@ internal class Paths
     private static IEnumerable<Found<Fil>> ListOverrides(Log? log, Func<Paths, Fil?> getter) =>
         Functional.Params(Find(log, getter));
     private static IEnumerable<Found<Fil>> FindDefaultExecutable(Executable exe) =>
-        Functional.Params(Which.FindPaths(exe.Name));
+        Functional.Params(Which.FindPaths(exe.PrimaryExecutable));
 
     internal static IEnumerable<Found<Fil>> ListAllExecutables(Func<Paths, Fil?> getter, Executable exe)
         => ListOverrides(null, getter).Concat(FindDefaultExecutable(exe));

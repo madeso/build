@@ -1,10 +1,28 @@
 ﻿namespace Workbench.Shared;
 
 
-public record Executable(string Name)
+public record Executable
 {
-    public string FriendlyName => $"{Name} executable";
-    public string ListName => $"{Name} executables";
+    public string Name { get; init; }
+    public string PrimaryExecutable { get; init; }
+    public string FriendlyName {get; init; }
+    public string ListName {get; init; }
+
+    public Executable(string primary_executable)
+    {
+        Name = primary_executable;
+        PrimaryExecutable = primary_executable;
+        FriendlyName = $"{primary_executable} executable";
+        ListName = $"{primary_executable} executables";
+    }
+
+    public Executable(string primary_executable, string name)
+    {
+        Name = name;
+        PrimaryExecutable = primary_executable;
+        FriendlyName = $"{name} executable";
+        ListName = $"{name} executables";
+    }
 }
 
 public static class DefaultExecutables
@@ -15,5 +33,5 @@ public static class DefaultExecutables
     public static readonly Executable CppLint = new("cpplint");
 
     // todo(Gustav): exapnd name and different executables
-    public static readonly Executable Graphviz = new("dot");
+    public static readonly Executable Graphviz = new("dot", "graphviz");
 }
