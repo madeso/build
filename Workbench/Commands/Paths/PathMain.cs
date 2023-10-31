@@ -18,25 +18,26 @@ public class Main
         {
             config.SetDescription("Get or set custom paths");
             
-            SetupPathCommand.Configure<CompileCommandsArguments>(config, "cc",
+            SetupPathCommand.Configure<CompileCommandsArguments>(config, "cc", "var",
                 (paths, value) => paths.CompileCommands = value,
                 (cc) => CompileCommand.ListAll(cc)
                     .PrintFoundList("compile command", CompileCommand.FindOrNone(cc, null))
                 , cc => ToSelectables(CompileCommand.ListAll(cc)));
 
-            AddExecutable(config, p => p.GitExecutable, DefaultExecutables.Git);
-            AddExecutable(config, p => p.ClangTidyExecutable, DefaultExecutables.ClangTidy);
-            AddExecutable(config, p => p.ClangFormatExecutable, DefaultExecutables.ClangFormat);
-            AddExecutable(config, p => p.GraphvizExecutable, DefaultExecutables.Graphviz);
-            AddExecutable(config, p => p.CpplintExecutable, DefaultExecutables.CppLint);
+            var no_extra = Array.Empty<Found<Fil>>();
+            AddExecutable(config, p => p.GitExecutable, DefaultExecutables.Git, no_extra);
+            AddExecutable(config, p => p.ClangTidyExecutable, DefaultExecutables.ClangTidy, DefaultExecutables.ClangTidyExtra);
+            AddExecutable(config, p => p.ClangFormatExecutable, DefaultExecutables.ClangFormat, DefaultExecutables.ClangFormatExtra);
+            AddExecutable(config, p => p.GraphvizExecutable, DefaultExecutables.Graphviz, DefaultExecutables.GraphvizExtra);
+            AddExecutable(config, p => p.CpplintExecutable, DefaultExecutables.CppLint, no_extra);
         });
     }
 
     private static void AddExecutable(IConfigurator<CommandSettings> config,
         Func<Config.Paths, Fil?> getter,
-        Executable exe)
+        Executable exe, IEnumerable<Found<Fil>> additional)
     {
-        SetupPathCommand.Configure<CompileCommandsArguments>(config, exe.Name,
+        SetupPathCommand.Configure<CompileCommandsArguments>(config, exe.Name, "executable",
             (paths, value) => paths.CompileCommands = value,
             _ => list_all_executables()
                 .PrintFoundList(exe.ListName, get_executable_or_saved())
@@ -59,14 +60,14 @@ public class Main
 
 internal class SetupPathCommand
 {
-    internal static void Configure<TNoArg>(IConfigurator<CommandSettings> root, string name,
+    internal static void Configure<TNoArg>(IConfigurator<CommandSettings> root, string name, string var_name,
         Action<Config.Paths, Fil?> setter, Action<TNoArg> list,
         Func<TNoArg, IEnumerable<Fil>> value_getter)
         where TNoArg: CommandSettings
     {
         root.AddBranch(name, branch =>
         {
-            branch.SetDescription($"Change the {name} var");
+            branch.SetDescription($"Change the {name} {var_name}");
             branch.AddDelegate<SetVarArg>("set", (_, arg) =>
             {
                 return Log.PrintErrorsAtExit(print =>

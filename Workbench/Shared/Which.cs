@@ -37,6 +37,30 @@ public static class Which
             ;
     }
 
+    public static Found<Fil> FindPaths(Func<string, bool> validate_name)
+    {
+        return GetPaths()
+                .SelectMany(dir =>
+                {
+                    return dir.EnumerateFiles()
+                        .Where(file => validate_name(file.NameWithoutExtension))
+                        .Select<Fil, FoundEntry<Fil>>(file => {
+                        if (Core.IsWindows() == false)
+                        {
+                            const UnixFileMode EXECUTE_FLAGS = UnixFileMode.GroupExecute | UnixFileMode.UserExecute | UnixFileMode.OtherExecute;
+                            if ((file.UnixFileMode & EXECUTE_FLAGS) == 0)
+                            {
+                                return new FoundEntry<Fil>.Error($"{file} not marked as executable");
+                            }
+                        }
+
+                        return new FoundEntry<Fil>.Result(file);
+                    });
+                })
+                .Collect("Extra paths")
+            ;
+    }
+
     private static IEnumerable<Dir> GetPaths()
     {
         var targets = new[]
