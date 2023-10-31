@@ -106,8 +106,11 @@ public class Dir
     }
 
     public IEnumerable<Fil> EnumerateFiles()
-        => new DirectoryInfo(Path).EnumerateFiles()
-            .Select(f => new Fil(f.FullName));
+        => Exists
+            ? new DirectoryInfo(Path).EnumerateFiles()
+            .Select(f => new Fil(f.FullName))
+            : Array.Empty<Fil>()
+            ;
 
     public IEnumerable<Dir> EnumerateDirectories()
         => new DirectoryInfo(Path).EnumerateDirectories()
