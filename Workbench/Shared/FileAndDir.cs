@@ -102,6 +102,11 @@ public class Dir
 
     public void CreateDir()
     {
+        if (Exists)
+        {
+            return;
+        }
+
         Directory.CreateDirectory(Path);
     }
 

@@ -50,6 +50,7 @@ internal class Program
             Commands.Paths.Main.Configure(config, "path");
 
             Commands.Folder.Main.Configure(config, "folder");
+            Commands.Doc.Main.Configure(config, "doc");
         });
         return app.Run(args);
     }

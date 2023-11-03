@@ -26,5 +26,6 @@
       <Folder Include="Commands\CheckFileNames\" />
       <Folder Include="Commands\CodeHistory\" />
       <Folder Include="Commands\Folder\" />
+      <Folder Include="Commands\Doc\" />
     </ItemGroup>
 </Project>
