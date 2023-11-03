@@ -51,6 +51,8 @@ internal class Program
 
             Commands.Folder.Main.Configure(config, "folder");
             Commands.Doc.Main.Configure(config, "doc");
+
+            Commands.ExtractWordcloud.Main.Configure(config, "extract-wordcloud");
         });
         return app.Run(args);
     }

@@ -113,6 +113,7 @@ internal static class DoxygenUtils
 
     internal static CompoundDef? FindNamespace(DoxygenType dox, string namespace_name)
     {
+        // todo(Gustav): merge with AllNamespaces above
         return dox.Compounds
                 .Where(c => c.Kind == CompoundKind.Namespace)
                 .FirstOrDefault(c => c.Name == namespace_name)

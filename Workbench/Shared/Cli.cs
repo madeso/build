@@ -73,12 +73,13 @@ public static class Cli
 
     public static Fil ToSingleFile(string arg, string name_if_missing)
     {
+        var cwd = Dir.CurrentDirectory;
         if (string.IsNullOrEmpty(arg))
         {
-            return Dir.CurrentDirectory.GetFile(name_if_missing);
+            return cwd.GetFile(name_if_missing);
         }
 
-        return new Fil(arg);
+        return new Fil(FileUtil.RootPath(cwd, arg));
     }
 
     public static Fil? RequireFile(Log log, string arg, string name)
