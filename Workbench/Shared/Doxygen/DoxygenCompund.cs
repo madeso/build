@@ -964,19 +964,6 @@ class LocationType
         return el.Name switch
         {
             "ulink" => docURLLink.Parse(el),
-            "bold" => docMarkupType.Parse(el),
-            "s" => docMarkupType.Parse(el),
-            "strike" => docMarkupType.Parse(el),
-            "underline" => docMarkupType.Parse(el),
-            "emphasis" => docMarkupType.Parse(el),
-            "computeroutput" => docMarkupType.Parse(el),
-            "subscript" => docMarkupType.Parse(el),
-            "superscript" => docMarkupType.Parse(el),
-            "center" => docMarkupType.Parse(el),
-            "small" => docMarkupType.Parse(el),
-            "cite" => docMarkupType.Parse(el),
-            "del" => docMarkupType.Parse(el),
-            "ins" => docMarkupType.Parse(el),
             "htmlonly" => docHtmlOnlyType.Parse(el),
             "manonly" => string.Parse(el),
             "xmlonly" => string.Parse(el),
@@ -1652,9 +1639,24 @@ public static class docCmdGroupUtil
                 case "ref":
                 case "verbatim":
                 case "image":
-                case "computeroutput":
                 case "anchor":
                 case "orderedlist":
+                    return new UnhandledNode(el.Name);
+
+                case "bold":
+                case "s":
+                case "strike":
+                case "underline":
+                case "emphasis":
+                case "computeroutput":
+                case "subscript":
+                case "superscript":
+                case "center":
+                case "small":
+                case "cite":
+                case "del":
+                case "ins":
+                    // docMarkupType
                     return new UnhandledNode(el.Name);
             }
 
