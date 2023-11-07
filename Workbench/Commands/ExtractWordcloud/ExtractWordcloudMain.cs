@@ -25,7 +25,7 @@ internal class Main
 
 
 [Description("Extract types from doxygen in arguments and return values")]
-internal sealed class ExtractTypesCommand : Command<ExtractTypesCommand.Arg>
+internal sealed partial class ExtractTypesCommand : Command<ExtractTypesCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
@@ -63,7 +63,7 @@ internal sealed class ExtractTypesCommand : Command<ExtractTypesCommand.Arg>
                     foreach (var a in function.Param)
                     {
                         if (a.Type == null) continue;
-                        cc.AddOne(type_to_string(a.Type, klass.Language));
+                        add_types_to_counter(cc, a.Type, klass.Language);
                     }
 
                     if(function.Type != null)
@@ -73,7 +73,7 @@ internal sealed class ExtractTypesCommand : Command<ExtractTypesCommand.Arg>
                             continue;
                         }
 
-                        cc.AddOne(type_to_string(function.Type, klass.Language));
+                        add_types_to_counter(cc, function.Type, klass.Language);
                     }
                 }
             }
@@ -96,7 +96,7 @@ internal sealed class ExtractTypesCommand : Command<ExtractTypesCommand.Arg>
                 }
             }
 
-            static string type_to_string(LinkedTextType a_type, DoxLanguage? lang)
+            static void add_types_to_counter(ColCounter<string> cc, LinkedTextType a_type, DoxLanguage? lang)
             {
                 var type = string.Join("", a_type.Nodes.Select(n =>
                     n switch
@@ -106,33 +106,57 @@ internal sealed class ExtractTypesCommand : Command<ExtractTypesCommand.Arg>
                         _ => throw new ArgumentOutOfRangeException(nameof(n))
                     }
                 ));
-                if (lang == DoxLanguage.Cpp)
+                if (lang is DoxLanguage.Cpp or DoxLanguage.Csharp)
                 {
-                    var suggestion = new StringCleaner()
-                        .RemoveFromEnd("&")
-                        .RemoveFromEnd("*")
-                        .RemoveFromStart("const", null)
-                        .RemoveFromStart("std::shared_ptr<", ">")
-                        .RemoveFromStart("std::unique_ptr<", ">")
-                        .RemoveFromStart("std::optional<", ">")
-                        .RemoveFromStart("std::vector<", ">")
-                        .Run(type.Trim());
-                    var last = suggestion.Split("::")[^1];
-                    var isIdent = (new Regex("^[a-zA-Z_][a-zA-Z0-9_]*$")).IsMatch(last);
-                    if (isIdent)
+                    var t = type.Trim();
+                    if (lang == DoxLanguage.Csharp)
                     {
-                        return last;
+                        t = new StringCleaner().RemoveFromStart("this", null)
+                            .RemoveFromStart("out", null)
+                            .RemoveFromStart("params", null)
+                            .RemoveFromStart("override", null)
+                            .Run(t);
                     }
-                    return suggestion;
+
+                    var types = t.Split(new[] { '<', '>', '[', ']', '(', ')', ',' },
+                        StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+
+                    var sc = new StringCleaner()
+                        .RemoveFromEnd("&")
+                        .RemoveFromEnd("?")
+                        .RemoveFromEnd("*")
+                        .RemoveFromStart("const", null);
+
+                    foreach(var tt in types)
+                    {
+                        var suggestion = sc.Run(tt.Trim());
+                        var add = lang == DoxLanguage.Cpp
+                            ? last_identifier(suggestion, "::")
+                            : last_identifier(suggestion, ".");
+                        if(string.IsNullOrEmpty(add)) continue;
+                        if (add == ".") continue; // doxygen hack for crappy type
+                        cc.AddOne(add);
+                    }
                 }
                 else
                 {
                     // todo(Gustav): add another language
-                    return type;
+                    cc.AddOne(type);
                 }
+            }
+
+            static string last_identifier(string suggestion, string separator)
+            {
+                var last = suggestion.Split(separator)[^1];
+                return SingleIdentifier().IsMatch(last)
+                    ? last
+                    : suggestion;
             }
         });
     }
+
+    [GeneratedRegex("^[a-zA-Z_][a-zA-Z0-9_]*$")]
+    private static partial Regex SingleIdentifier();
 }
 
 class StringCleaner
