@@ -7,7 +7,6 @@ namespace Workbench.Commands.CheckIncludeOrder;
 
 internal record CommonArgs
 (
-    string[] Files,
     bool PrintStatusAtTheEnd,
     bool UseVerboseOutput
 );
@@ -522,7 +521,10 @@ public static class IncludeTools
 
         var missing_files = new HashSet<string>();
 
-        foreach (var filename in Cli.ToFiles(args.Files))
+        var files = FileUtil.FilesInPitchfork(Dir.CurrentDirectory, false)
+            .Where(FileUtil.IsHeaderOrSource);
+
+        foreach (var filename in files)
         {
             file_count += 1;
             var stored_error = error_count;

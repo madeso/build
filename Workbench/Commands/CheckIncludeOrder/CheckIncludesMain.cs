@@ -27,10 +27,6 @@ public static class CheckIncludesCommonExecute
 
 internal class SharedArguments : CommandSettings
 {
-    [Description("Files to look at")]
-    [CommandArgument(0, "<file>")]
-    public string[] Files { get; set; } = Array.Empty<string>();
-
     [Description("Print general file status at the end")]
     [CommandOption("--status")]
     [DefaultValue(false)]
@@ -43,7 +39,7 @@ internal class SharedArguments : CommandSettings
 
     internal CommonArgs ToCommon()
     {
-        return new(Files, PrintStatusAtTheEnd, UseVerboseOutput);
+        return new(PrintStatusAtTheEnd, UseVerboseOutput);
     }
 }
 
