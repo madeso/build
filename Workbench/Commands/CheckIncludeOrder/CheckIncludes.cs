@@ -214,7 +214,7 @@ public static class IncludeTools
         if (missing_files.Contains(line) == false)
         {
             missing_files.Add(line);
-            var message = $"{line} is a invalid header ({include_file})";
+            var message = $"Line '{line}' references a invalid header ({include_file})";
             print.PrintError(new(filename, line_number), message, INCLUDE_CHECK_ERROR);
         }
 
