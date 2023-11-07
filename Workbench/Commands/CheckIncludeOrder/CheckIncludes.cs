@@ -256,7 +256,7 @@ public static class IncludeTools
             var start_quote = line.IndexOf('"');
             if (start_quote == -1) { return ""; }
 
-            var end_quote = line.IndexOf(line, start_quote + 1, '"');
+            var end_quote = line.IndexOf('"', start_quote + 1);
             if (end_quote == -1) { return ""; }
 
             return line[(end_quote + 1)..];
