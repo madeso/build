@@ -115,7 +115,7 @@ internal static class DocFacade
                 DescriptionType.Para p => string.Join("\n", p.Value.Values.Select( xx => xx switch
                 {
                     docCmdGroupText t => $"{t.Value}\n",
-                    docCmdGroupProgramListing p => $"```{p.Language??string.Empty}\n{string.Join("\n", p.Lines)}\n```\n",
+                    docCmdGroupProgramListing program => $"```{program.Language??string.Empty}\n{string.Join("\n", program.Lines)}\n```\n",
                     UnhandledNode u => $"UNHANDLED {u.Name}\n",
                     _ => xx.ToString()
                 })),

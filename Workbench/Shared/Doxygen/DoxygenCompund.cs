@@ -1576,7 +1576,7 @@ public class docCmdGroupProgramListing : docCmdGroup
         this.Language = lang;
         foreach (var xline in root.Elements())
         {
-            if (xline.Name != "codeline") throw new NotImplementedException("not a codeline");;
+            if (xline.Name != "codeline") throw new NotImplementedException("not a codeline");
             var line = string.Empty;
             foreach (var code in xline.Elements())
             {

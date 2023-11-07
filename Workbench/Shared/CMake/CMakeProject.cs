@@ -67,9 +67,9 @@ public class CMakeProject
             }
         }
 
-        public string Name { get; }
-        public string Value { get; }
-        public string? TypeName { get; }
+        private string Name { get; }
+        private string Value { get; }
+        private string? TypeName { get; }
     }
 
     // add argument with a explicit type set

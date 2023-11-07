@@ -113,7 +113,7 @@ static class SlnDepsFunctions
         var graphviz_layout = Cli.GetValueOrDefault(layout_name, "dot");
         var target_file = Cli.GetValueOrDefault(target, path_to_solution_file.ChangeExtension(GRAPHVIZ_EXTENSION_LEADING_DOT));
 
-        gv.WriteFile(target_file);
+        await gv.WriteFileAsync(target_file);
 
         var res = await RunGraphvizAsync(log, target_file, image_format, graphviz_layout);
         if (res == false)

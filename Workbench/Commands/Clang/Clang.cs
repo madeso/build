@@ -57,7 +57,7 @@ internal class NamePrinter
     }
 }
 
-internal static class ClangFacade
+internal static partial class ClangFacade
 {
     private static Fil GetPathToStore(Dir build_folder)
         => build_folder.GetFile(FileNames.ClangTidyStore);
@@ -163,9 +163,7 @@ internal static class ClangFacade
             .Where(extension_filter));
 
     private static bool FileMatchesAllFilters(Fil file, string[]? filters)
-        => filters == null
-            ? false
-            : filters.All(f => file.Path.Contains(f) == false);
+        => filters != null && filters.All(f => file.Path.Contains(f) == false);
 
     private static DateTime GetLastModification(Fil file)
         => file.LastWriteTimeUtc;
@@ -301,7 +299,7 @@ internal static class ClangFacade
                 if (line.Contains("warning: "))
                 {
                     warnings.AddOne(printable_file);
-                    var tidy_class = CLANG_TIDY_WARNING_CLASS.Match(line);
+                    var tidy_class = ClangTidyWarningClass().Match(line);
                     if (tidy_class.Success)
                     {
                         var warning_classes = tidy_class.Groups[1];
@@ -353,7 +351,8 @@ internal static class ClangFacade
         }
     }
 
-    private static readonly Regex CLANG_TIDY_WARNING_CLASS = new(@"\[(\w+([-,]\w+)+)\]");
+    [GeneratedRegex(@"\[(\w+([-,]\w+)+)\]", RegexOptions.Compiled)]
+    private static partial Regex ClangTidyWarningClass();
 
     // ------------------------------------------------------------------------------
 
