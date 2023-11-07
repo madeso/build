@@ -168,6 +168,8 @@ public class Include : IComparable<Include>
 
 public static class IncludeTools
 {
+    private const string INCLUDE_CHECK_ERROR = "CHK3030";
+
     public static TextReplacer CreateReplacer(string file_stem)
     {
         var replacer = new TextReplacer();
@@ -207,7 +209,7 @@ public static class IncludeTools
         {
             missing_files.Add(line);
             var message = $"{line} is a invalid header";
-            print.PrintError(new(filename, line_number), message);
+            print.PrintError(new(filename, line_number), message, INCLUDE_CHECK_ERROR);
         }
 
         return null;
@@ -282,7 +284,7 @@ public static class IncludeTools
                 {
                     FileLine file = new (filename, line_num);
                     var message = $"Include order error for {l}";
-                    print.Print(include_error_message, file, message);
+                    print.Print(include_error_message, file, message, INCLUDE_CHECK_ERROR);
                 }
                 r.HasInvalidOrder = true;
             }
@@ -340,7 +342,7 @@ public static class IncludeTools
                     if (print_this_error)
                     {
                         var message = $"Invalid text after include: {end}";
-                        print.PrintError(new(filename, line_num), message);
+                        print.PrintError(new(filename, line_num), message, INCLUDE_CHECK_ERROR);
                     }
                     ok = false;
                 }
@@ -350,7 +352,7 @@ public static class IncludeTools
                 if (print_this_error)
                 {
                     var message = $"Invalid line {line}";
-                    print.PrintError(new(filename, line_num), message);
+                    print.PrintError(new(filename, line_num), message, INCLUDE_CHECK_ERROR);
                 }
                 ok = false;
             }

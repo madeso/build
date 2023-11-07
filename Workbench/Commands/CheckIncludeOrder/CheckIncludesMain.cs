@@ -87,7 +87,8 @@ internal sealed class MissingPatternsCommand : Command<MissingPatternsCommand.Ar
     {
         return CheckIncludesCommonExecute.WithLoadedIncludeData
             (
-                (print, data) => IncludeTools.CommonMain(settings.ToCommon(), print, data, new CheckAction.MissingPatterns())
+                (print, data) => IncludeTools.CommonMain(settings.ToCommon(), print, data,
+                    new CheckAction.MissingPatterns())
             );
     }
 }

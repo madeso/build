@@ -18,14 +18,28 @@ public class Log
 
     private int error_count = 0;
 
-    internal void PrintError(FileLine? file, string message)
+    internal void PrintError(FileLine? file, string message, string? code)
     {
-        Error(file, $"{ToFileString(file)}: error CHK3030: {message}");
+        // todo(Gustav): require code and make error format a option
+        AddError(code != null
+            ? $"{ToFileString(file)}: error {code}: {message}"
+            : $"{ToFileString(file)}: ERROR: {message}");
     }
 
-    private static void PrintWarning(FileLine? file, string message)
+    internal void Error(FileLine? file, string message)
     {
-        Warning($"{ToFileString(file)}: warning CHK3030: {message}");
+        // todo(Gustav): inline this useless function
+        PrintError(file, message, null);
+    }
+
+    private static void PrintWarning(FileLine? file, string message, string code)
+    {
+        Warning($"{ToFileString(file)}: warning {code}: {message}");
+    }
+
+    public static void Warning(string message)
+    {
+        AnsiConsole.MarkupLineInterpolated($"WARNING: {message}");
     }
 
     internal static void WriteInformation(FileLine? file, string message)
@@ -33,23 +47,18 @@ public class Log
         AnsiConsole.MarkupLineInterpolated($"[blue]{ToFileString(file)}[/]: {message}");
     }
 
-    internal void Print(MessageType message_type, FileLine? file, string message)
+    internal void Print(MessageType message_type, FileLine? file, string message, string code)
     {
         switch (message_type)
         {
-            case MessageType.Error: PrintError(file, message); break;
-            case MessageType.Warning: PrintWarning(file, message); break;
+            case MessageType.Error: PrintError(file, message, code); break;
+            case MessageType.Warning: PrintWarning(file, message, code); break;
         }
     }
 
     public void Error(string text)
     {
         AddError($"ERROR: {text}");
-    }
-
-    internal void Error(FileLine? file, string error)
-    {
-        AddError($"{ToFileString(file)}: ERROR: {error}");
     }
 
     private static string ToFileString(FileLine? file)
@@ -82,11 +91,6 @@ public class Log
                 return false;
             }
         }
-    }
-
-    public static void Warning(string text)
-    {
-        AnsiConsole.MarkupLineInterpolated($"WARNING: {text}");
     }
 
     public static int PrintErrorsAtExit(Func<Log, int> callback)
