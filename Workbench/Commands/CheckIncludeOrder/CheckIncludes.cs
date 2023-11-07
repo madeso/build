@@ -190,6 +190,12 @@ public static class IncludeTools
     {
         var replacer = CreateReplacer(filename.NameWithoutExtension);
 
+        var include_file = line;
+        // remove comments
+        include_file = include_file.Split("//")[0].Split("/*")[0];
+        include_file = exclude('\"', include_file, '\"');
+        include_file = exclude('<', include_file, '>');
+
         foreach (var (index, included_regex_group) in data.IncludeDirectories.Select((value, i) => (i, value)))
         {
             foreach (var included_regex in included_regex_group)
@@ -198,7 +204,7 @@ public static class IncludeTools
 
                 if (re == null) { continue; }
 
-                if (re.IsMatch(line))
+                if (re.IsMatch(include_file))
                 {
                     return index;
                 }
@@ -208,11 +214,20 @@ public static class IncludeTools
         if (missing_files.Contains(line) == false)
         {
             missing_files.Add(line);
-            var message = $"{line} is a invalid header";
+            var message = $"{line} is a invalid header ({include_file})";
             print.PrintError(new(filename, line_number), message, INCLUDE_CHECK_ERROR);
         }
 
         return null;
+
+        static string exclude(char begin, string str, char end)
+        {
+            var bi = str.IndexOf(begin);
+            if (bi == -1) return str;
+            var ei = str.IndexOf(end, bi+1);
+            if(ei == -1) return str;
+            return str.Substring(bi, ei-bi+1);
+        }
     }
 
 
