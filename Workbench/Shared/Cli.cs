@@ -79,7 +79,13 @@ public static class Cli
             return cwd.GetFile(name_if_missing);
         }
 
-        return new Fil(FileUtil.RootPath(cwd, arg));
+        var rooted = FileUtil.RootPath(cwd, arg);
+        if (Directory.Exists(rooted))
+        {
+            return new Dir(rooted).GetFile(name_if_missing);
+        }
+
+        return new Fil(rooted);
     }
 
     public static Fil? RequireFile(Log log, string arg, string name)
