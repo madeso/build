@@ -203,19 +203,28 @@ public static class IncludeTools
         include_file = exclude('\"', include_file, '\"');
         include_file = exclude('<', include_file, '>');
 
+        int? found_index = null;
+        int best_rank = 0;
+
         foreach (var (index, included_regex_group) in data.IncludeDirectories.Select((value, i) => (i, value)))
         {
             foreach (var included_regex in included_regex_group)
             {
                 var (re, rank) = included_regex.GetRegexAndRank(print, replacer);
-
                 if (re == null) { continue; }
 
-                if (re.IsMatch(include_file))
+                var consider_regex = found_index == null || best_rank < rank;
+                if(consider_regex && re.IsMatch(include_file))
                 {
-                    return index;
+                    found_index = index;
+                    best_rank = rank;
                 }
             }
+        }
+
+        if (found_index != null)
+        {
+            return found_index;
         }
 
         if (missing_files.Contains(line) == false)
