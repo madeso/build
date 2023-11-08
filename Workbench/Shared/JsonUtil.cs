@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Workbench.Config;
 
 namespace Workbench.Shared;
 
@@ -12,7 +13,8 @@ public static class JsonUtil
         Converters =
         {
             new FilJsonConverter(),
-            new DirJsonConverter()
+            new DirJsonConverter(),
+            new RegexEntryJsonConverter()
         }
     };
 

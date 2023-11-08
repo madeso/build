@@ -15,27 +15,27 @@ public readonly struct IncludeData
 {
     public List<List<OptionalRegex>> IncludeDirectories { get; }
 
-    private static IEnumerable<OptionalRegex> StringsToRegex(TextReplacer replacer, IEnumerable<string> includes, Log print) =>
+    private static IEnumerable<OptionalRegex> StringsToRegex(TextReplacer replacer, List<RegexEntry> includes, Log print) =>
         includes.Select
         (
-            (Func<string, OptionalRegex>)(regex =>
+            (Func<RegexEntry, OptionalRegex>)(regex =>
             {
-                var regex_source = replacer.Replace(regex);
-                if (regex_source != regex)
+                var regex_source = replacer.Replace(regex.Source);
+                if (regex_source != regex.Source)
                 {
-                    return new OptionalRegexDynamic(regex);
+                    return new OptionalRegexDynamic(regex.Source, regex.Rank);
                 }
                 else
                 {
                     switch (CompileRegex(regex_source))
                     {
                         case RegexOrErr.Value re:
-                            return new OptionalRegexStatic(re.Regex);
+                            return new OptionalRegexStatic(re.Regex, regex.Rank);
 
                         case RegexOrErr.Error err:
                             var error = $"{regex} is invalid regex: {err.Message}";
                             print.Error(error);
-                            return new OptionalRegexFailed(error);
+                            return new OptionalRegexFailed(error, regex.Rank);
                         default:
                             throw new Exception("unhandled case");
                     }
@@ -55,7 +55,7 @@ public readonly struct IncludeData
         }
     }
 
-    public IncludeData(IEnumerable<List<string>> includes, Log print)
+    public IncludeData(IEnumerable<List<RegexEntry>> includes, Log print)
     {
         var replacer = IncludeTools.CreateReplacer("file_stem");
         IncludeDirectories = includes
@@ -65,7 +65,8 @@ public readonly struct IncludeData
 
     private static IncludeData? LoadFromDirectoryOrNull(Log print)
         => ConfigFile.LoadOrNull<CheckIncludesFile, IncludeData>(
-            print, CheckIncludesFile.GetBuildDataPath(), loaded => new IncludeData(loaded.IncludeDirectories, print));
+            print, CheckIncludesFile.GetBuildDataPath(), loaded =>
+                new IncludeData(loaded.IncludeDirectories, print));
 
     public static IncludeData? LoadOrNull(Log print)
         => LoadFromDirectoryOrNull(print);
@@ -73,28 +74,30 @@ public readonly struct IncludeData
 
 public interface OptionalRegex
 {
-    Regex? GetRegex(Log print, TextReplacer replacer);
+    (Regex?, int) GetRegexAndRank(Log print, TextReplacer replacer);
 }
 
 public class OptionalRegexDynamic : OptionalRegex
 {
     private readonly string regex;
+    private readonly int rank;
 
-    public OptionalRegexDynamic(string regex)
+    public OptionalRegexDynamic(string regex, int rank)
     {
         this.regex = regex;
+        this.rank = rank;
     }
 
-    public Regex? GetRegex(Log print, TextReplacer replacer)
+    public (Regex?, int) GetRegexAndRank(Log print, TextReplacer replacer)
     {
         var regex_source = replacer.Replace(regex);
         switch (IncludeData.CompileRegex(regex_source))
         {
             case RegexOrErr.Value re:
-                return re.Regex;
+                return (re.Regex, rank);
             case RegexOrErr.Error error:
                 print.Error($"{regex} -> {regex_source} is invalid regex: {error.Message}");
-                return null;
+                return (null, rank);
             default:
                 throw new ArgumentException("invalid state");
         }
@@ -104,31 +107,34 @@ public class OptionalRegexDynamic : OptionalRegex
 public class OptionalRegexStatic : OptionalRegex
 {
     private readonly Regex regex;
+    private readonly int rank;
 
-    public OptionalRegexStatic(Regex regex)
+    public OptionalRegexStatic(Regex regex, int rank)
     {
         this.regex = regex;
+        this.rank = rank;
     }
 
-    public Regex GetRegex(Log print, TextReplacer replacer)
+    public (Regex?, int) GetRegexAndRank(Log print, TextReplacer replacer)
     {
-        return regex;
+        return (regex, rank);
     }
 }
 
 public class OptionalRegexFailed : OptionalRegex
 {
     private readonly string error;
+    private readonly int rank;
 
-    public OptionalRegexFailed(string error)
+    public OptionalRegexFailed(string error, int rank)
     {
         this.error = error;
+        this.rank = rank;
     }
 
-    public Regex? GetRegex(Log print, TextReplacer replacer)
+    public (Regex?, int) GetRegexAndRank(Log print, TextReplacer replacer)
     {
-        print.Error(error);
-        return null;
+        return (null, rank);
     }
 }
 
@@ -201,7 +207,7 @@ public static class IncludeTools
         {
             foreach (var included_regex in included_regex_group)
             {
-                var re = included_regex.GetRegex(print, replacer);
+                var (re, rank) = included_regex.GetRegexAndRank(print, replacer);
 
                 if (re == null) { continue; }
 
@@ -581,8 +587,8 @@ public static class IncludeTools
     public static int HandleInit(Log print, bool overwrite)
     {
         var data = new CheckIncludesFile();
-        data.IncludeDirectories.Add(new() { "list of regexes", "that are used by check-includes" });
-        data.IncludeDirectories.Add(new() { "they are grouped into arrays, there needs to be a space between each group" });
+        data.IncludeDirectories.Add(new() { new("list of regexes"), new("that are used by check-includes" )});
+        data.IncludeDirectories.Add(new() { new("they are grouped into arrays, there needs to be a space between each group" )});
 
         return ConfigFile.WriteInit(print, overwrite, CheckIncludesFile.GetBuildDataPath(), data);
     }
