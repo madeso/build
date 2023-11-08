@@ -188,7 +188,8 @@ public static class IncludeTools
         int line_number
     )
     {
-        var replacer = CreateReplacer(filename.NameWithoutExtension);
+        // if the name is main.runner.cc just get the main part
+        var replacer = CreateReplacer(filename.NameWithoutExtension.Split('.')[0]);
 
         var include_file = line;
         // remove comments
