@@ -162,6 +162,7 @@ public class Include : IComparable<Include>
         var lhs = this;
         if (lhs.LineClass == rhs.LineClass)
         {
+            // todo(Gustav): make sure this sorts like clang format
             return string.Compare(lhs.Line, rhs.Line, StringComparison.InvariantCulture);
         }
         else
