@@ -410,7 +410,7 @@ public static class IncludeTools
     }
 
 
-    private static IEnumerable<string> compose_new_file_content(int first_line_found, int last_line_found, string[] new_lines, string[] lines)
+    private static IEnumerable<string> ComposeNewFileContent(int first_line_found, int last_line_found, string[] new_lines, string[] lines)
     {
         for (int line_num = 1; line_num < first_line_found; line_num++)
         {
@@ -426,7 +426,7 @@ public static class IncludeTools
         }
     }
 
-    private static void print_lines(IEnumerable<string> lines)
+    private static void PrintLines(IEnumerable<string> lines)
     {
         AnsiConsole.WriteLine("*************************************************");
         foreach (var line in lines)
@@ -519,12 +519,12 @@ public static class IncludeTools
         switch (command)
         {
             case CheckAction.Fix nop:
-                var file_data = compose_new_file_content(first_line, last_line, sorted_include_lines, lines);
+                var file_data = ComposeNewFileContent(first_line, last_line, sorted_include_lines, lines);
 
                 if (nop.Nop)
                 {
                     AnsiConsole.WriteLine($"Will write the following to {filename}");
-                    print_lines(file_data);
+                    PrintLines(file_data);
                 }
                 else
                 {
@@ -533,7 +533,7 @@ public static class IncludeTools
                 break;
             default:
                 AnsiConsole.WriteLine("I think the correct order would be:");
-                print_lines(sorted_include_lines);
+                PrintLines(sorted_include_lines);
                 break;
         }
 
