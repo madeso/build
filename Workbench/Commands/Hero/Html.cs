@@ -56,7 +56,7 @@ internal class Html
 
     internal static string GetSafeInspectFilename(Fil path, string ext_with_dot)
     {
-        return $"inspect_{StringExtensions.GetSafeString(path.GetDisplay())}{ext_with_dot}";
+        return $"inspect_{path.GetDisplay().GetSafeString()}{ext_with_dot}";
     }
 
     public static string GetSafeInspectFilenameHtml(Fil path)

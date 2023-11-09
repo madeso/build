@@ -219,7 +219,7 @@ public class Analytics
         var sf = project.ScannedFiles[path];
         foreach (var include in sf.AbsoluteIncludes)
         {
-            if (include == path) { continue; }
+            if (include.EqualTo(path)) { continue; }
 
             var is_translation_unit = FileUtil.IsTranslationUnit(path);
 

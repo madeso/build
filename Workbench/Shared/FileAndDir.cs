@@ -178,10 +178,9 @@ public class Fil
     public override string ToString() => Path;
     public override int GetHashCode() => Path.GetHashCode();
     public override bool Equals(object? obj)
-    {
-        if(obj is not Fil rhs) return false;
-        return Path == rhs.Path;
-    }
+        => obj is Fil rhs && EqualTo(rhs);
+    public bool EqualTo(Fil rhs)
+        => Path == rhs.Path;
 
     public Fil ChangeExtension(string new_extension)
     {

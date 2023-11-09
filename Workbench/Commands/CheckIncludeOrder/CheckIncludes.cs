@@ -35,7 +35,7 @@ public readonly struct IncludeData
                         case RegexOrErr.Error err:
                             var error = $"{regex} is invalid regex: {err.Message}";
                             print.Error(error);
-                            return new OptionalRegexFailed(error, regex.Rank);
+                            return new OptionalRegexFailed(regex.Rank);
                         default:
                             throw new Exception("unhandled case");
                     }
@@ -123,12 +123,10 @@ public class OptionalRegexStatic : OptionalRegex
 
 public class OptionalRegexFailed : OptionalRegex
 {
-    private readonly string error;
     private readonly int rank;
 
-    public OptionalRegexFailed(string error, int rank)
+    public OptionalRegexFailed(int rank)
     {
-        this.error = error;
         this.rank = rank;
     }
 
