@@ -127,7 +127,7 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
                     gv.Simplify();
                 }
 
-                await Cli.WriteFileAsync(settings.Output, gv.Lines);
+                await gv.SmartWriteFileAsync(Cli.ToSingleFile(settings.Output, "cmake.dot"), printer);
             }
             catch (CMakeTrace.TraceError x)
             {
