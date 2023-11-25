@@ -53,8 +53,8 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
 {
     public sealed class Arg : CommandSettings
     {
-        [Description("File to read")]
-        [CommandArgument(0, "<input file>")]
+        [Description("CMake root")]
+        [CommandArgument(0, "<cmake root>")]
         public string Directory { get; set; } = "";
 
         [Description("Simplify dotfile output")]
@@ -98,13 +98,14 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
                 return -1;
             }
 
-            AnsiConsole.MarkupLineInterpolated($"Loading [green]{settings.Directory}[/].");
+            var dir = Cli.RequireDirectory(printer, settings.Directory, "cmake root");
+            AnsiConsole.MarkupLineInterpolated($"Loading [green]{dir}[/].");
 
             try
             {
                 var ignores = settings.NamesToIgnore.ToImmutableHashSet();
                 AnsiConsole.MarkupLineInterpolated($"Ignoring [red]{ignores.Count}[/] projects.");
-                var lines = await CMakeTrace.TraceDirectoryAsync(cmake, new Dir(settings.Directory));
+                var lines = await CMakeTrace.TraceDirectoryAsync(cmake, dir);
                 var solution = Solution.Parse.CMake(lines);
 
                 if (settings.RemoveInterface)

@@ -32,7 +32,8 @@ namespace Workbench.Shared.CMake
             var ret = (await new ProcessBuilder(cmake_executable, "--trace-expand", "--trace-format=json-v1", "-S",
                             Dir.CurrentDirectory.Path, "-B", dir.Path)
                     .InDirectory(dir)
-                    .RunWithCallbackAsync(null, on_line, err => { on_line(err); stderr.Add(err); }, (err, ex) => { error.Add(err); error.Add(ex.Message); })
+                    .RunWithCallbackAsync(null, on_line, err => { on_line(err); stderr.Add(err); },
+                        (err, ex) => { error.Add(err); error.Add(ex.Message); })
                     )
                     .ExitCode
                 ;
@@ -55,7 +56,7 @@ namespace Workbench.Shared.CMake
                     if (parsed is { File: not null })
                     {
                         // file != null ignores the version json object
-                        lines.Add(new CMakeTrace(new Fil(parsed.File), parsed.Line, parsed.Cmd, parsed.Args.ToImmutableArray()));
+                        lines.Add(new CMakeTrace(string.IsNullOrEmpty(parsed.File) ? null : new Fil(parsed.File), parsed.Line, parsed.Cmd, parsed.Args.ToImmutableArray()));
                     }
                     else
                     {
