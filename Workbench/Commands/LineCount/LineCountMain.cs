@@ -3,6 +3,7 @@ using Spectre.Console;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Workbench.Shared;
+using System.Text.RegularExpressions;
 
 namespace Workbench.Commands.LineCount;
 
@@ -38,6 +39,16 @@ internal sealed class LineCountCommand : Command<LineCountCommand.Arg>
         [CommandOption("--include-empty")]
         [DefaultValue(true)]
         public bool DiscardEmpty { get; set; } = true;
+
+        [CommandOption("--all-lang")]
+        [DefaultValue(false)]
+        public bool AllLanguages { get; set; } = false;
+
+        [CommandOption("--histogram")]
+        [DefaultValue(false)]
+        public bool DisplayHistogram { get; set; } = false;
+
+
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
@@ -45,7 +56,7 @@ internal sealed class LineCountCommand : Command<LineCountCommand.Arg>
         var stats = new Dictionary<int, List<Fil>>();
         var file_count = 0;
 
-        foreach (var file in FileUtil.SourcesFromArgs(arg.Files, FileUtil.IsHeaderOrSource))
+        foreach (var file in FileUtil.SourcesFromArgs(arg.Files, arg.AllLanguages ? f => FileUtil.ClassifySource(f) != Language.Unknown : FileUtil.IsHeaderOrSource))
         {
             file_count += 1;
 
@@ -65,18 +76,43 @@ internal sealed class LineCountCommand : Command<LineCountCommand.Arg>
             }
         }
 
-        AnsiConsole.WriteLine($"Found {file_count} files.");
-        foreach (var (count, files) in stats.OrderBy(x => x.Key))
+        var collected = stats.OrderBy(x => x.Key).Select(kvp => new
         {
-            var c = files.Count;
-            var count_str = arg.Each <= 1 ? $"{count}" : $"{count}-{count + arg.Each - 1}";
-            if (arg.Show && c < 3)
+            Count = kvp.Value.Count,
+            CountStr = arg.Each <= 1 ? $"{kvp.Key}" : $"{kvp.Key}-{kvp.Key + arg.Each - 1}",
+            Files = kvp.Value
+        });
+        
+        AnsiConsole.WriteLine($"Found {file_count} files.");
+
+        if (arg.DisplayHistogram)
+        {
+            if(file_count > 0)
             {
-                AnsiConsole.WriteLine($"{count_str}: {files}");
+                AnsiConsole.Write(new BarChart()
+                    .Width(60)
+                    .Label("[green bold underline]Line counts (files)[/]")
+                    .CenterLabel()
+                    .AddItems(collected, item => new BarChartItem(
+                        item.CountStr, item.Count, Color.Blue)));
             }
-            else
+        }
+        else
+        {
+            foreach (var cc in collected)
             {
-                AnsiConsole.WriteLine($"{count_str}: {c}");
+                if (arg.Show && cc.Count < 3)
+                {
+                    AnsiConsole.WriteLine($"{cc.CountStr}:");
+                    foreach (var f in cc.Files)
+                    {
+                        AnsiConsole.WriteLine($"\t{f}");
+                    }
+                }
+                else
+                {
+                    AnsiConsole.WriteLine($"{cc.CountStr}:\t{cc.Count}");
+                }
             }
         }
 

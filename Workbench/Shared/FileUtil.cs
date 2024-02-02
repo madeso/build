@@ -13,7 +13,8 @@ public enum Language
     CppHeader,
     Unknown,
     ObjectiveCpp,
-    JsonConfig
+    JsonConfig,
+    Swift
 }
 
 internal static class FileUtil
@@ -37,6 +38,7 @@ internal static class FileUtil
             ".tsx" or ".jsx" => Language.React,
             ".js" => Language.Javascript,
             ".ts" => Language.Typescript,
+            ".swift" => Language.Swift,
 
             ".jsonc" => Language.JsonConfig,
 
@@ -55,6 +57,7 @@ internal static class FileUtil
             Language.Typescript => "JavaScript",
             Language.Javascript => "TypeScript",
             Language.JsonConfig => "JSON config",
+            Language.Swift => "Swift",
             Language.CppSource or Language.CppHeader => "C/C++",
             Language.ObjectiveCpp => "Objective-C/C++",
             Language.Unknown => null,
@@ -86,8 +89,9 @@ internal static class FileUtil
 
     public static IEnumerable<Fil> ListFilesFromArgs(IEnumerable<string> args)
     {
-        foreach (var file_or_dir in args)
+        foreach (var unrooted_file_or_dir in args)
         {
+            var file_or_dir = RootPath(Dir.CurrentDirectory, unrooted_file_or_dir);
             if (File.Exists(file_or_dir)) yield return new Fil(file_or_dir);
             else // assume directory
             {
