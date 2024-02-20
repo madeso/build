@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        dotnet_version: [7.0.x]
+        dotnet_version: [8.0.x]
         configuration: [Debug, Release]
 
     runs-on: ${{ matrix.os }}
