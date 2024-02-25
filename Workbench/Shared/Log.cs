@@ -101,6 +101,11 @@ public class Log
         {
             AnsiConsole.MarkupLineInterpolated($"Errors detected: {printer.error_count}");
             AnsiConsole.MarkupLineInterpolated($"Exit code: {ret}");
+            if(ret == 0)
+            {
+                // if there are errors, then never allow a ok
+                return -1;
+            }
         }
 
         return ret;
@@ -114,6 +119,11 @@ public class Log
         {
             AnsiConsole.MarkupLineInterpolated($"Errors detected: {printer.error_count}");
             AnsiConsole.MarkupLineInterpolated($"Exit code: {ret}");
+            if(ret == 0)
+            {
+                // if there are errors, then never allow a ok
+                return -1;
+            }
         }
 
         return ret;
