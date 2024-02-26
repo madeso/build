@@ -225,7 +225,7 @@ public class ProcessBuilder
 
     internal async Task RunAndPrintOutputAsync(Log log)
     {
-        var pe = await RunWithCallbackAsync(null, AnsiConsole.WriteLine, log.Error,
+        var pe = await RunWithCallbackAsync(null, AnsiConsole.WriteLine, Log.Warning,
             (mess, ex) => {
                 log.Error(mess);
                 log.Error(ex.Message);
