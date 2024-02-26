@@ -8,6 +8,7 @@ app.Configure(config =>
     config.PropagateExceptions();
     config.ValidateExamples();
 #endif
+    config.UseStrictParsing();
 
     Commands.MinorCommands.ConfigureLs(config, "ls");
     Commands.MinorCommands.ConfigureCat(config, "cat");
