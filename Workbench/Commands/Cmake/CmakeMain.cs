@@ -99,6 +99,12 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
             }
 
             var dir = Cli.RequireDirectory(printer, settings.Directory, "cmake root");
+            if(dir == null)
+            {
+                printer.Error("Failed to find cmake root");
+                return -1;
+            }
+
             AnsiConsole.MarkupLineInterpolated($"Loading [green]{dir}[/].");
 
             try

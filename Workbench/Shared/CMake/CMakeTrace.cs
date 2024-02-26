@@ -6,7 +6,7 @@ using Workbench.Shared.Extensions;
 
 namespace Workbench.Shared.CMake
 {
-    public record CMakeTrace(Fil File, int Line, string Cmd, ImmutableArray<string> Args)
+    public record CMakeTrace(Fil? File, int Line, string Cmd, ImmutableArray<string> Args)
     {
         private class CmakeOutputTrace
         {
@@ -56,7 +56,8 @@ namespace Workbench.Shared.CMake
                     if (parsed is { File: not null })
                     {
                         // file != null ignores the version json object
-                        lines.Add(new CMakeTrace(string.IsNullOrEmpty(parsed.File) ? null : new Fil(parsed.File), parsed.Line, parsed.Cmd, parsed.Args.ToImmutableArray()));
+                        var traced_file = string.IsNullOrEmpty(parsed.File) ? null : new Fil(parsed.File);
+                        lines.Add(new CMakeTrace(traced_file, parsed.Line, parsed.Cmd, parsed.Args.ToImmutableArray()));
                     }
                     else
                     {
@@ -87,7 +88,10 @@ namespace Workbench.Shared.CMake
 
         private IEnumerable<Fil> ListFilesInArgs(params string[] arguments_to_ignore)
         {
-            var folder = File.Directory!;
+            var folder = File?.Directory;
+
+            if (folder == null)
+                return Enumerable.Empty<Fil>();
 
             return Args
                     .Skip(1) // name of library/app
@@ -112,6 +116,7 @@ namespace Workbench.Shared.CMake
             {
             }
 
+            [Obsolete("Obsolete")]
             protected TraceError(SerializationInfo info, StreamingContext context) : base(info, context)
             {
             }

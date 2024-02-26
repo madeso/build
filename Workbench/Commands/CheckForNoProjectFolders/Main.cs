@@ -58,6 +58,7 @@ internal sealed class CheckForNoProjectFoldersCommand : AsyncCommand<CheckForNoP
 
         foreach (var cmd in await CMakeTrace.TraceDirectoryAsync(cmake, build_root))
         {
+            if(cmd.File == null) continue;
             if (bases.Select(b => FileUtil.FileIsInFolder(cmd.File, b)).Any())
             {
                 if ((new[] { "add_library", "add_executable" }).Contains(cmd.Cmd.ToLowerInvariant()))
