@@ -72,33 +72,33 @@ internal class Paths
         ConfigFile.Write(GetPath(), p);
     }
 
-    private static IEnumerable<Found<Fil>> ListOverrides(Log? log, Func<Paths, Fil?> getter) =>
+    private static IEnumerable<Found<Fil>> FindFromPath(Log? log, Func<Paths, Fil?> getter) =>
         Functional.Params(Find(log, getter));
     private static IEnumerable<Found<Fil>> FindDefaultExecutable(Executable exe) =>
         Functional.Params(Which.FindPaths(exe.PrimaryExecutable));
 
     internal static IEnumerable<Found<Fil>> ListAllExecutables(Func<Paths, Fil?> getter, Executable exe)
-        => ListOverrides(null, getter).Concat(FindDefaultExecutable(exe));
+        => FindFromPath(null, getter).Concat(FindDefaultExecutable(exe));
 
-    internal static Fil? GetExecutableOrSaved(Log? log, Func<Paths, Fil?> getter,
+    internal static Fil? GetSavedOrSearchForExecutable(Log? log, Func<Paths, Fil?> getter,
         Executable exe)
-        => FindDefaultExecutable(exe).Concat(ListOverrides(log, getter))
+        => FindFromPath(log, getter).Concat(FindDefaultExecutable(exe))
             .RequireFirstValueOrNull(log, exe.FriendlyName);
 
     internal static Fil? GetGitExecutable(Log log)
-        => GetExecutableOrSaved(log, p => p.GitExecutable, DefaultExecutables.Git);
+        => GetSavedOrSearchForExecutable(log, p => p.GitExecutable, DefaultExecutables.Git);
 
     internal static Fil? GetClangTidyExecutable(Log log)
-        => GetExecutableOrSaved(log, p => p.ClangTidyExecutable, DefaultExecutables.ClangTidy);
+        => GetSavedOrSearchForExecutable(log, p => p.ClangTidyExecutable, DefaultExecutables.ClangTidy);
 
     internal static Fil? GetClangFormatExecutable(Log log)
-        => GetExecutableOrSaved(log, p => p.ClangFormatExecutable, DefaultExecutables.ClangFormat);
+        => GetSavedOrSearchForExecutable(log, p => p.ClangFormatExecutable, DefaultExecutables.ClangFormat);
 
 
     // todo(Gustav): remove format in this name
     internal static Fil? GetCpplintFormatExecutable(Log log)
-        => GetExecutableOrSaved(log, p => p.CpplintExecutable, DefaultExecutables.CppLint);
+        => GetSavedOrSearchForExecutable(log, p => p.CpplintExecutable, DefaultExecutables.CppLint);
 
     internal static Fil? GetGraphvizExecutable(Log log)
-        => GetExecutableOrSaved(log, p => p.GraphvizExecutable, DefaultExecutables.Graphviz);
+        => GetSavedOrSearchForExecutable(log, p => p.GraphvizExecutable, DefaultExecutables.Graphviz);
 }

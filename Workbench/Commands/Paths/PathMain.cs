@@ -47,7 +47,7 @@ public class Main
         IEnumerable<Found<Fil>> list_all_executables()
             => Config.Paths.ListAllExecutables(getter, exe);
         Fil? get_executable_or_saved()
-            => Config.Paths.GetExecutableOrSaved(null, getter, exe);
+            => Config.Paths.GetSavedOrSearchForExecutable(null, getter, exe);
     }
 
     private static IEnumerable<Fil> ToSelectables(IEnumerable<Found<Fil>> founds)
