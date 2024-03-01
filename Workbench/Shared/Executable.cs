@@ -40,7 +40,7 @@ public static class DefaultExecutables
     public static IEnumerable<Found<Fil>> ClangTidyExtra =
         Functional.Params(Which.FindPaths(name => name.StartsWith("clang-tidy-")));
 
-    // todo(Gustav): exapnd name and different executables
+    // todo(Gustav): expand name and different executables
     public static readonly Executable Graphviz = new("dot", "graphviz");
     public static IEnumerable<Found<Fil>> GraphvizExtra = Functional.Params(Which.FindPaths(name => name switch
     {
