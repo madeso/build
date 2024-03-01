@@ -1,10 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using Spectre.Console;
 using Spectre.Console.Cli;
-using Workbench.Commands.Clang;
-using Workbench.Config;
 using Workbench.Shared;
 using Workbench.Shared.Extensions;
 
@@ -25,20 +22,21 @@ public class Main
                 , cc => ToSelectables(CompileCommand.ListAll(cc)));
 
             var no_extra = Array.Empty<Found<Fil>>();
-            AddExecutable(config, p => p.GitExecutable, DefaultExecutables.Git, no_extra);
-            AddExecutable(config, p => p.ClangTidyExecutable, DefaultExecutables.ClangTidy, DefaultExecutables.ClangTidyExtra);
-            AddExecutable(config, p => p.ClangFormatExecutable, DefaultExecutables.ClangFormat, DefaultExecutables.ClangFormatExtra);
-            AddExecutable(config, p => p.GraphvizExecutable, DefaultExecutables.Graphviz, DefaultExecutables.GraphvizExtra);
-            AddExecutable(config, p => p.CpplintExecutable, DefaultExecutables.CppLint, no_extra);
+            AddExecutable(config, p => p.GitExecutable, (p,v) => p.GitExecutable = v, DefaultExecutables.Git, no_extra);
+            AddExecutable(config, p => p.ClangTidyExecutable, (p,v) => p.ClangTidyExecutable = v, DefaultExecutables.ClangTidy, DefaultExecutables.ClangTidyExtra);
+            AddExecutable(config, p => p.ClangFormatExecutable, (p,v) => p.ClangFormatExecutable = v, DefaultExecutables.ClangFormat, DefaultExecutables.ClangFormatExtra);
+            AddExecutable(config, p => p.GraphvizExecutable, (p,v) => p.GraphvizExecutable = v, DefaultExecutables.Graphviz, DefaultExecutables.GraphvizExtra);
+            AddExecutable(config, p => p.CpplintExecutable, (p,v) => p.CpplintExecutable = v, DefaultExecutables.CppLint, no_extra);
         });
     }
 
     private static void AddExecutable(IConfigurator<CommandSettings> config,
         Func<Config.Paths, Fil?> getter,
+        Action<Config.Paths, Fil?> setter,
         Executable exe, IEnumerable<Found<Fil>> additional)
     {
         SetupPathCommand.Configure<CompileCommandsArguments>(config, exe.Name, "executable",
-            (paths, value) => paths.CompileCommands = value,
+            setter,
             _ => list_all_executables()
                 .PrintFoundList(exe.ListName, get_executable_or_saved())
             , _ => ToSelectables(list_all_executables()));
