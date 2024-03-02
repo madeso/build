@@ -22,18 +22,18 @@ public class Main
                 , cc => ToSelectables(CompileCommand.ListAll(cc)));
 
             var no_extra = Array.Empty<Found<Fil>>();
-            AddExecutable(config, p => p.GitExecutable, (p,v) => p.GitExecutable = v, DefaultExecutables.Git, no_extra);
-            AddExecutable(config, p => p.ClangTidyExecutable, (p,v) => p.ClangTidyExecutable = v, DefaultExecutables.ClangTidy, DefaultExecutables.ClangTidyExtra);
-            AddExecutable(config, p => p.ClangFormatExecutable, (p,v) => p.ClangFormatExecutable = v, DefaultExecutables.ClangFormat, DefaultExecutables.ClangFormatExtra);
-            AddExecutable(config, p => p.GraphvizExecutable, (p,v) => p.GraphvizExecutable = v, DefaultExecutables.Graphviz, DefaultExecutables.GraphvizExtra);
-            AddExecutable(config, p => p.CpplintExecutable, (p,v) => p.CpplintExecutable = v, DefaultExecutables.CppLint, no_extra);
+            AddExecutable(config, p => p.GitExecutable, (p,v) => p.GitExecutable = v, DefaultExecutables.Git);
+            AddExecutable(config, p => p.ClangTidyExecutable, (p,v) => p.ClangTidyExecutable = v, DefaultExecutables.ClangTidy);
+            AddExecutable(config, p => p.ClangFormatExecutable, (p,v) => p.ClangFormatExecutable = v, DefaultExecutables.ClangFormat);
+            AddExecutable(config, p => p.GraphvizExecutable, (p,v) => p.GraphvizExecutable = v, DefaultExecutables.Graphviz);
+            AddExecutable(config, p => p.CpplintExecutable, (p,v) => p.CpplintExecutable = v, DefaultExecutables.CppLint);
         });
     }
 
     private static void AddExecutable(IConfigurator<CommandSettings> config,
         Func<Config.Paths, Fil?> getter,
         Action<Config.Paths, Fil?> setter,
-        Executable exe, IEnumerable<Found<Fil>> additional)
+        Executable exe)
     {
         SetupPathCommand.Configure<CompileCommandsArguments>(config, exe.Name, "executable",
             setter,
@@ -79,7 +79,7 @@ internal class SetupPathCommand
 
                     // todo(Gustav): add additional validations to make sure file is executable
 
-                    var paths = Config.Paths.LoadFromDirectoryOrNull(print);
+                    var paths = Config.Paths.LoadConfigFromCurrentDirectoryOrNull(print);
                     if (paths == null) { return -1; }
 
                     setter(paths, file);
@@ -92,7 +92,7 @@ internal class SetupPathCommand
             {
                 return Log.PrintErrorsAtExit(print =>
                 {
-                    var paths = Config.Paths.LoadFromDirectoryOrNull(print);
+                    var paths = Config.Paths.LoadConfigFromCurrentDirectoryOrNull(print);
                     if (paths == null) { return -1; }
                     setter(paths, null);
                     Config.Paths.Save(paths);
@@ -117,7 +117,7 @@ internal class SetupPathCommand
                         return -1;
                     }
 
-                    var paths = Config.Paths.LoadFromDirectoryOrNull(print);
+                    var paths = Config.Paths.LoadConfigFromCurrentDirectoryOrNull(print);
                     if (paths == null) { return -1; }
 
                     var new_value = AnsiConsole.Prompt(
