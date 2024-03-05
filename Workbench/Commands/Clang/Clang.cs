@@ -237,7 +237,7 @@ internal static partial class ClangFacade
         }
         command.AddArgument(source_file.Path);
 
-        var start = new DateTime();
+        var start = DateTime.Now;
         var output = await command.RunAndGetOutputAsync();
 
         if (output.ExitCode != 0)
@@ -247,7 +247,7 @@ internal static partial class ClangFacade
             // System.Exit(-1);
         }
 
-        var end = new DateTime();
+        var end = DateTime.Now;
         var took = end - start;
         var ret = new TidyOutput(output.Output.Select(x => x.Line).ToArray(), took);
         return ret;
@@ -516,6 +516,7 @@ internal static partial class ClangFacade
             .ReadAll(tuple =>
             {
                 var (cat, source_file, co) = tuple;
+                AnsiConsole.WriteLine($"Collecting {source_file}");
                 var (warnings, classes) =
                     CreateStatisticsAndPrintStatus(stats, short_args, source_file, args_only, co);
 
