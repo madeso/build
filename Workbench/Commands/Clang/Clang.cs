@@ -35,9 +35,9 @@ internal class FileStatistics
         var average_value = TimeSpan.FromSeconds(data.Average(x => x.Value.TotalSeconds));
         var mi = data.MinBy(x => x.Value);
         var ma = data.MaxBy(x => x.Value);
-        AnsiConsole.MarkupLineInterpolated($"average: {average_value}s");
-        AnsiConsole.MarkupLineInterpolated($"max: {ma.Value}s foreach {ma.Key}");
-        AnsiConsole.MarkupLineInterpolated($"min: {mi.Value}s foreach {mi.Key}");
+        AnsiConsole.MarkupLineInterpolated($"average: {average_value}");
+        AnsiConsole.MarkupLineInterpolated($"max: {ma.Value}s for {ma.Key}");
+        AnsiConsole.MarkupLineInterpolated($"min: {mi.Value} for {mi.Key}");
         AnsiConsole.MarkupLineInterpolated($"{data.Count} files");
     }
 }
@@ -263,7 +263,7 @@ internal static partial class ClangFacade
         var classes = new ColCounter<string>();
         if (false == short_list && only.Length == 0)
         {
-            AnsiConsole.WriteLine($"took {time_taken:.2f}s");
+            AnsiConsole.WriteLine($"took {time_taken}");
         }
         stats.Add(printable_file, time_taken);
         var print_empty = false;
@@ -403,8 +403,10 @@ internal static partial class ClangFacade
     // callback function called when running clang.py tidy
     internal static async Task<int> HandleRunClangTidyCommand(CompileCommandsArguments cc, Log log,
         bool force, bool headers, bool short_args, bool args_nop, string[] args_filter,
-        string[] args_only, bool args_fix, int number_of_tasks)
+        string[] the_args_only, bool args_fix, int number_of_tasks)
     {
+        var args_only = the_args_only.Where(x => string.IsNullOrWhiteSpace(x) == false).ToArray();
+
         var clang_tidy = Config.Paths.GetClangTidyExecutable(log);
         if (clang_tidy == null)
         {
