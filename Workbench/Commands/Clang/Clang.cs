@@ -508,6 +508,7 @@ internal static partial class ClangFacade
                 capacity: 100,
                 transform: async source_file =>
                 {
+                    AnsiConsole.WriteLine($"Running {source_file.File}");
                     var co = await GetExistingOutputOrCallClangTidy(store, log, root, force, clang_tidy,
                         project_build_folder, source_file.File, args_fix);
                     return (source_file.Category, source_file.File, co);
