@@ -154,7 +154,8 @@ public static class FoundExtensions
         // only one build folder is valid
         if (valid.Length == 1) return valid[0];
 
-        log?.Error($"Expected 1 {name} but found {valid.Length}!");
+        var found = StringListCombiner.EnglishOr().Combine(valid);
+        log?.Error($"Expected 1 {name} but found {valid.Length}: {found}!");
         return default;
     }
 }
