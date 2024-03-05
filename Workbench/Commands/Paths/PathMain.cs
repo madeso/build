@@ -15,7 +15,7 @@ public class Main
         {
             config.SetDescription("Get or set custom paths");
             
-            SetupPathCommand.Configure<CompileCommandsArguments>(config, "cc", "var",
+            SetupPathCommand.Configure<CompileCommandsArguments>(config, "compile-command", "file",
                 (paths, value) => paths.CompileCommands = value,
                 (cc) => CompileCommand.ListAll(cc)
                     .PrintFoundList("compile command", CompileCommand.FindOrNone(cc, null))
