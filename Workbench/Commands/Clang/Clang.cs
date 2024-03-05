@@ -447,7 +447,7 @@ internal static partial class ClangFacade
         await PleaseRun(log, force, short_args, args_nop, args_filter, args_only,
             args_fix, data, store, root, clang_tidy, project_build_folder, stats, total_counter, total_classes, warnings_per_file, number_of_tasks);
 
-        // if (false == short_args && args_only.Length == 0)
+        if (false == short_args && args_only.Length == 0)
         {
             Printer.Header("TIDY REPORT");
             PrintWarningCounter(total_counter, "total", f=> f.GetDisplay());
