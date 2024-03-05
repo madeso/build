@@ -1,15 +1,19 @@
+using System.Collections.Concurrent;
 using Spectre.Console;
 using System.Text.RegularExpressions;
+using System.Threading.Channels;
+using Open.ChannelExtensions;
 using Workbench.Config;
 using Workbench.Shared;
-using Workbench.Shared.Extensions;
+using Workbench.Commands.Hero;
+using static Workbench.Shared.Solution;
 
 namespace Workbench.Commands.Clang;
 
 
 internal class Store
 {
-    public readonly Dictionary<Fil, StoredTidyUpdate> Cache = new();
+    public readonly ConcurrentDictionary<Fil, StoredTidyUpdate> Cache = new();
 }
 
 internal record TidyOutput(string[] Output, TimeSpan Taken);
@@ -249,18 +253,6 @@ internal static partial class ClangFacade
         return ret;
     }
 
-    // runs the clang-tidy process, printing status to terminal
-    private static async Task<(ColCounter<Fil> warnings, ColCounter<string> classes)> RunTidyAsync(
-        Store store, Log log, Dir root, bool force, Fil tidy_path, Fil source_file,
-        Dir project_build_folder, FileStatistics stats, bool short_list, NamePrinter name_printer, bool fix,
-        Fil printable_file, string[] only)
-    {
-        name_printer.Print();
-        var co = await GetExistingOutputOrCallClangTidy(store, log, root, force, tidy_path,
-            project_build_folder, source_file, fix);
-        return CreateStatisticsAndPrintStatus(stats, short_list, printable_file, only, co);
-    }
-
     private static (ColCounter<Fil> warnings, ColCounter<string> classes)
         CreateStatisticsAndPrintStatus(FileStatistics stats, bool short_list, Fil printable_file,
             string[] only, TidyOutput co)
@@ -411,7 +403,7 @@ internal static partial class ClangFacade
     // callback function called when running clang.py tidy
     internal static async Task<int> HandleRunClangTidyCommand(CompileCommandsArguments cc, Log log,
         bool force, bool headers, bool short_args, bool args_nop, string[] args_filter,
-        string[] args_only, bool args_fix)
+        string[] args_only, bool args_fix, int number_of_tasks)
     {
         var clang_tidy = Config.Paths.GetClangTidyExecutable(log);
         if (clang_tidy == null)
@@ -450,65 +442,8 @@ internal static partial class ClangFacade
         var data = MapAllFilesInRootOnFirstDir(root, headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource);
         var stats = new FileStatistics();
 
-        foreach (var (project, source_files) in data)
-        {
-            var first_file = true;
-            var project_counter = new ColCounter<Fil>();
-            foreach (var source_file in source_files)
-            {
-                var printable_file = source_file;
-                if (FileMatchesAllFilters(source_file, args_filter))
-                {
-                    continue;
-                }
-                var print_name = new NamePrinter(printable_file.GetDisplay());
-                if (first_file)
-                {
-                    if (false == short_args)
-                    {
-                        Printer.Header(project);
-                    }
-                    first_file = false;
-                }
-                if (args_nop is false)
-                {
-                    var (warnings, classes) = await RunTidyAsync(store, log, root, force, clang_tidy,
-                        source_file, project_build_folder, stats, short_args, print_name, args_fix,
-                        printable_file, args_only);
-                    if (short_args && warnings.TotalCount() > 0)
-                    {
-                        break;
-                    }
-                    project_counter.Update(warnings);
-                    total_counter.Update(warnings);
-                    total_classes.Update(classes);
-                    foreach (var k in classes.Keys)
-                    {
-                        // todo(Gustav): make this pattern nicer...
-                        if (warnings_per_file.TryGetValue(k, out var warnings_list) == false)
-                        {
-                            warnings_list = new();
-                            warnings_per_file.Add(k, warnings_list);
-                        }
-                        warnings_list.Add(printable_file);
-                    }
-                }
-                else
-                {
-                    print_name.Print();
-                }
-            }
-
-            if (!first_file && !short_args)
-            {
-                if (args_only.Length == 0)
-                {
-                    PrintWarningCounter(project_counter, project, f => f.GetDisplay());
-                    AnsiConsole.WriteLine("");
-                    AnsiConsole.WriteLine("");
-                }
-            }
-        }
+        await PleaseRun(log, force, short_args, args_nop, args_filter, args_only,
+            args_fix, data, store, root, clang_tidy, project_build_folder, stats, total_counter, total_classes, warnings_per_file, number_of_tasks);
 
         if (false == short_args && args_only.Length == 0)
         {
@@ -541,6 +476,79 @@ internal static partial class ClangFacade
         else
         {
             return 0;
+        }
+    }
+
+    private class CollectedTidyFil
+    {
+        public Fil File { get; set; }
+        public string Category { get; set; }
+
+        public CollectedTidyFil(Fil file, string category)
+        {
+            File = file;
+            Category = category;
+        }
+    }
+    private static async Task PleaseRun(Log log, bool force, bool short_args, bool args_nop, string[] args_filter,
+        string[] args_only, bool args_fix, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
+        Dir project_build_folder, FileStatistics stats, ColCounter<Fil> total_counter, ColCounter<string> total_classes,
+        Dictionary<string, List<Fil>> warnings_per_file, int number_of_tasks)
+    {
+        var files = data.SelectMany(pair => pair.Files.Select(x => new CollectedTidyFil(x, pair.Category)))
+            .Where(source_file => FileMatchesAllFilters(source_file.File, args_filter) == false);
+
+        Dictionary<string, ColCounter<Fil>> pc = new();
+
+        await Channel
+            .CreateUnbounded<CollectedTidyFil>()
+            .Source(files)
+            .PipeAsync(
+                maxConcurrency: number_of_tasks,
+                capacity: 100,
+                transform: async source_file =>
+                {
+                    var co = await GetExistingOutputOrCallClangTidy(store, log, root, force, clang_tidy,
+                        project_build_folder, source_file.File, args_fix);
+                    return (source_file.Category, source_file.File, co);
+                })
+            .ReadAll(tuple =>
+            {
+                var (cat, source_file, co) = tuple;
+                var (warnings, classes) =
+                    CreateStatisticsAndPrintStatus(stats, short_args, source_file, args_only, co);
+
+                if (false == pc.TryGetValue(cat, out var project_counter))
+                {
+                    project_counter = new();
+                    pc[cat] = project_counter;
+                }
+
+                project_counter.Update(warnings);
+                total_counter.Update(warnings);
+                total_classes.Update(classes);
+                foreach (var k in classes.Keys)
+                {
+                    // todo(Gustav): make this pattern nicer...
+                    if (warnings_per_file.TryGetValue(k, out var warnings_list) == false)
+                    {
+                        warnings_list = new();
+                        warnings_per_file.Add(k, warnings_list);
+                    }
+
+                    warnings_list.Add(source_file);
+                }
+            });
+
+
+        if (!short_args && args_only.Length == 0)
+        {
+            foreach (var (project, warnings) in pc)
+            {
+                PrintWarningCounter(warnings, project, f => f.GetDisplay());
+                AnsiConsole.WriteLine("");
+                AnsiConsole.WriteLine("");
+            }
         }
     }
 

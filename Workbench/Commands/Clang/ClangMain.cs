@@ -82,6 +82,12 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
         [CommandOption("--only")]
         [DefaultValue(null)]
         public string[]? Only { get; set; }
+
+
+        [Description("Number of parallell tasks")]
+        [CommandOption("--tasks")]
+        [DefaultValue(3)]
+        public int NumberOfTasks { get; set; } = 3;
     }
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
@@ -94,7 +100,8 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
             settings.Nop,
             settings.Filter,
             settings.Only ?? Array.Empty<string>(),
-            settings.Fix));
+            settings.Fix,
+            settings.NumberOfTasks));
     }
 }
 

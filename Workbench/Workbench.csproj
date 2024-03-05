@@ -16,6 +16,7 @@
         <PackageReference Include="Spectre.Console" Version="0.47.0" />
         <PackageReference Include="Spectre.Console.Cli" Version="0.47.0" />
         <PackageReference Include="StbRectPackSharp" Version="1.0.4" />
+        <PackageReference Include="Open.ChannelExtensions" Version="8.0.2" />
     </ItemGroup>
 
     <ItemGroup>
