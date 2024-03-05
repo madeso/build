@@ -35,9 +35,9 @@ internal class FileStatistics
         var average_value = TimeSpan.FromSeconds(data.Average(x => x.Value.TotalSeconds));
         var mi = data.MinBy(x => x.Value);
         var ma = data.MaxBy(x => x.Value);
-        AnsiConsole.MarkupLineInterpolated($"average: {average_value:.2f}s");
-        AnsiConsole.MarkupLineInterpolated($"max: {ma.Value:.2f}s foreach {ma.Key}");
-        AnsiConsole.MarkupLineInterpolated($"min: {mi.Value:.2f}s foreach {mi.Key}");
+        AnsiConsole.MarkupLineInterpolated($"average: {average_value}s");
+        AnsiConsole.MarkupLineInterpolated($"max: {ma.Value}s foreach {ma.Key}");
+        AnsiConsole.MarkupLineInterpolated($"min: {mi.Value}s foreach {mi.Key}");
         AnsiConsole.MarkupLineInterpolated($"{data.Count} files");
     }
 }
@@ -445,7 +445,7 @@ internal static partial class ClangFacade
         await PleaseRun(log, force, short_args, args_nop, args_filter, args_only,
             args_fix, data, store, root, clang_tidy, project_build_folder, stats, total_counter, total_classes, warnings_per_file, number_of_tasks);
 
-        if (false == short_args && args_only.Length == 0)
+        // if (false == short_args && args_only.Length == 0)
         {
             Printer.Header("TIDY REPORT");
             PrintWarningCounter(total_counter, "total", f=> f.GetDisplay());
