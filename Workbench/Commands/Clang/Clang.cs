@@ -253,10 +253,12 @@ internal static partial class ClangFacade
         return ret;
     }
 
-    private static (ColCounter<Fil> warnings, ColCounter<string> classes)
+    private static (ColCounter<Fil> warnings, ColCounter<string> classes, string[])
         CreateStatisticsAndPrintStatus(FileStatistics stats, bool short_list, Fil printable_file,
             string[] only, TidyOutput co)
     {
+        var lines = new List<string>();
+
         var output = co.Output;
         var time_taken = co.Taken;
         var warnings = new ColCounter<Fil>();
@@ -310,8 +312,9 @@ internal static partial class ClangFacade
                 {
                     if (false == hidden && print_empty)
                     {
-                        AnsiConsole.WriteLine("");
+                        AnsiConsole.WriteLine(string.Empty);
                         print_empty = false;
+                        lines.Add(string.Empty);
                     }
                 }
                 else
@@ -320,6 +323,7 @@ internal static partial class ClangFacade
                     {
                         print_empty = true;
                         AnsiConsole.WriteLine(line);
+                        lines.Add(line);
                     }
                 }
             }
@@ -329,7 +333,7 @@ internal static partial class ClangFacade
             PrintWarningCounter(classes, printable_file.GetDisplay(), c => c);
             AnsiConsole.WriteLine("");
         }
-        return (warnings, classes);
+        return (warnings, classes, lines.ToArray());
     }
 
     // print warning counter to the console
@@ -444,12 +448,22 @@ internal static partial class ClangFacade
         var data = MapAllFilesInRootOnFirstDir(root, headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource);
         var stats = new FileStatistics();
 
-        await PleaseRun(log, force, short_args, args_nop, args_filter, args_only,
+        var errors = await PleaseRun(log, force, short_args, args_nop, args_filter, args_only,
             args_fix, data, store, root, clang_tidy, project_build_folder, stats, total_counter, total_classes, warnings_per_file, number_of_tasks);
 
         if (false == short_args && args_only.Length == 0)
         {
             Printer.Header("TIDY REPORT");
+            foreach (var f in errors.OrderBy(x => x.File))
+            {
+                var panel = new Panel(string.Join(Environment.NewLine, f.Output))
+                {
+                    Header = new PanelHeader(f.File.GetDisplay()),
+                    Expand = true
+                };
+                AnsiConsole.Write(panel);
+            }
+            Printer.Line();
             PrintWarningCounter(total_counter, "total", f=> f.GetDisplay());
             AnsiConsole.WriteLine("");
             PrintWarningCounter(total_classes, "classes", c => c);
@@ -483,8 +497,8 @@ internal static partial class ClangFacade
 
     private class CollectedTidyFil
     {
-        public Fil File { get; set; }
-        public string Category { get; set; }
+        public Fil File { get; }
+        public string Category { get; }
 
         public CollectedTidyFil(Fil file, string category)
         {
@@ -492,7 +506,19 @@ internal static partial class ClangFacade
             Category = category;
         }
     }
-    private static async Task PleaseRun(Log log, bool force, bool short_args, bool args_nop, string[] args_filter,
+
+    private class FileWithError
+    {
+        public Fil File { get; }
+        public string[] Output { get; }
+
+        public FileWithError(Fil file, string[] output)
+        {
+            File = file;
+            Output = output;
+        }
+    }
+    private static async Task<FileWithError[]> PleaseRun(Log log, bool force, bool short_args, bool args_nop, string[] args_filter,
         string[] args_only, bool args_fix, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
         Dir project_build_folder, FileStatistics stats, ColCounter<Fil> total_counter, ColCounter<string> total_classes,
         Dictionary<string, List<Fil>> warnings_per_file, int number_of_tasks)
@@ -501,6 +527,7 @@ internal static partial class ClangFacade
             .Where(source_file => FileMatchesAllFilters(source_file.File, args_filter) == false);
 
         Dictionary<string, ColCounter<Fil>> pc = new();
+        List<FileWithError> errors_to_print = new();
 
         await Channel
             .CreateUnbounded<CollectedTidyFil>()
@@ -511,16 +538,22 @@ internal static partial class ClangFacade
                 transform: async source_file =>
                 {
                     AnsiConsole.WriteLine($"Running {source_file.File}");
-                    var co = args_nop ? new(new string[]{}, new TimeSpan()) : await GetExistingOutputOrCallClangTidy(store, log, root, force, clang_tidy,
-                        project_build_folder, source_file.File, args_fix);
+                    var co = args_nop
+                        ? new(new string[]{}, new TimeSpan())
+                        : await GetExistingOutputOrCallClangTidy(store, log, root, force, clang_tidy, project_build_folder, source_file.File, args_fix);
                     return (source_file.Category, source_file.File, co);
                 })
             .ReadAll(tuple =>
             {
                 var (cat, source_file, co) = tuple;
                 AnsiConsole.WriteLine($"Collecting {source_file}");
-                var (warnings, classes) =
+                var (warnings, classes, lines) =
                     CreateStatisticsAndPrintStatus(stats, short_args, source_file, args_only, co);
+
+                if (warnings.Items.Any())
+                {
+                    errors_to_print.Add(new FileWithError(source_file, lines));
+                }
 
                 if (false == pc.TryGetValue(cat, out var project_counter))
                 {
@@ -554,6 +587,8 @@ internal static partial class ClangFacade
                 AnsiConsole.WriteLine("");
             }
         }
+
+        return errors_to_print.ToArray();
     }
 
     // callback function called when running clang.py format
