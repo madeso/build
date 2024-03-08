@@ -139,7 +139,7 @@ public class Dir
         => Dir.CurrentDirectory.RelativeFromTo(this);
 }
 
-public class Fil
+public class Fil : IComparable<Fil>
 {
     public string Path { get; init; }
 
@@ -177,6 +177,12 @@ public class Fil
 
     public override string ToString() => Path;
     public override int GetHashCode() => Path.GetHashCode();
+    
+    public int CompareTo(Fil? other)
+    {
+        return string.Compare(Path, other?.Path, StringComparison.InvariantCulture);
+    }
+
     public override bool Equals(object? obj)
         => obj is Fil rhs && EqualTo(rhs);
     public bool EqualTo(Fil rhs)
