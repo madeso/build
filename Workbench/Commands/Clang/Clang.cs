@@ -456,9 +456,9 @@ internal static partial class ClangFacade
             Printer.Header("TIDY REPORT");
             foreach (var f in errors.OrderBy(x => x.File))
             {
-                var panel = new Panel(string.Join(Environment.NewLine, f.Output))
+                var panel = new Panel(Markup.Escape(string.Join(Environment.NewLine, f.Output)))
                 {
-                    Header = new PanelHeader(f.File.GetDisplay()),
+                    Header = new PanelHeader(Markup.Escape(f.File.GetDisplay())),
                     Expand = true
                 };
                 AnsiConsole.Write(panel);
