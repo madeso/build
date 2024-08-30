@@ -55,11 +55,20 @@ public static class Cli
 
     public static IEnumerable<Dir> ToDirectories(IEnumerable<string> args)
     {
-        return args.Select(a => new {Arg = a, Folder = Dir.ToExistingDirOrNull(a)})
+        return args.Select(a => new { Arg = a, Folder = ToExistingDirOrNull(a) })
             .SelectNonNull(f => f.Folder, f =>
             {
                 Log.Warning($"{f.Arg} is not a directory");
             });
+    }
+
+    private static Dir? ToExistingDirOrNull(string a)
+    {
+        if (string.IsNullOrEmpty(a)) return null;
+        var cwd = Dir.CurrentDirectory;
+        var p = FileUtil.RootPath(cwd, a);
+        if(p == null) return null;
+        return Dir.ToExistingDirOrNull(p);
     }
 
     public static IEnumerable<Fil> ToFiles(IEnumerable<string> args)
@@ -105,15 +114,15 @@ public static class Cli
         var cwd = Dir.CurrentDirectory;
         bool ok = true;
         var ret = args
-                ?.Select(a => new{Arg = a, Resolved = FileUtil.RootPath(cwd, a)})
-                ?.Select(a => new{a.Arg, a.Resolved, Ret = FileOrDir.FromExistingOrNull(a.Resolved)})
+                ?.Select(a => new { Arg = a, Resolved = FileUtil.RootPath(cwd, a) })
+                ?.Select(a => new { a.Arg, a.Resolved, Ret = FileOrDir.FromExistingOrNull(a.Resolved) })
                 ?.Where(f => f.Ret is { Exists: true }, f =>
                 {
                     log.Error($"{f.Arg} is neither a file nor a directory (resolved to {f.Resolved})");
                     ok = false;
                 })
                 .Select(f => f.Ret!)
-                ?.ToArray()
+                .ToArray()
             ;
 
         if (ok == false)
