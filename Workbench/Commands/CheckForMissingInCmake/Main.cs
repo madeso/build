@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using Workbench.Shared;
 using Workbench.Shared.CMake;
 using Workbench.Shared.Extensions;
+using static Workbench.Shared.Reflect;
 
 namespace Workbench.Commands.CheckForMissingInCmake;
 
@@ -51,9 +52,21 @@ internal sealed class CheckForMissingInCmakeCommand : AsyncCommand<CheckForMissi
                     continue;
                 }
 
-                if (cmd.Cmd.ToLower() == "add_library" || cmd.Cmd.ToLower() == "add_executable")
+                var exeFiles = cmd.Cmd.ToLower() == "add_executable" ? cmd.ListFilesInCmakeExecutable() : Enumerable.Empty<FileInCmake>();
+                var files = cmd.Cmd.ToLower() == "add_library" ? cmd.ListFilesInLibraryOrExecutable() : exeFiles;
+                foreach (var f in files)
                 {
-                    paths.UnionWith(cmd.ListFilesInLibraryOrExecutable());
+                    var full = f.File.Path;
+                    var ends = f.Name.Replace("/", "\\").Replace("\\\\", "\\");
+                    while(ends.StartsWith("."))
+                    {
+                        ends = ends.TrimStart('.').TrimStart('\\');
+                    }
+                    if (full.EndsWith(ends) == false)
+                    {
+                        AnsiConsole.WriteLine("Hrm...");
+                    }
+                    paths.Add(f.File);
                 }
             }
 

@@ -14,7 +14,8 @@ public enum Language
     Unknown,
     ObjectiveCpp,
     JsonConfig,
-    Swift
+    Swift,
+    CMake
 }
 
 internal static class FileUtil
@@ -32,7 +33,7 @@ internal static class FileUtil
         => ClassifySource(path) is Language.CppSource or Language.ObjectiveCpp;
 
     public static Language ClassifySource(Fil f)
-        => f.Extension switch
+        => f.Name == "CMakeLists.txt" ? Language.CMake : f.Extension switch
         {
             ".cs" => Language.CSharp,
             ".tsx" or ".jsx" => Language.React,
@@ -41,6 +42,8 @@ internal static class FileUtil
             ".swift" => Language.Swift,
 
             ".jsonc" => Language.JsonConfig,
+
+            ".cmake" => Language.CMake,
 
             ".cc" or ".cpp" or ".c" or ".cxx" => Language.CppSource,
             ".hh" or ".hpp" or ".h" or ".hxx" or ".inl" or "" => Language.CppHeader,
@@ -60,7 +63,26 @@ internal static class FileUtil
             Language.Swift => "Swift",
             Language.CppSource or Language.CppHeader => "C/C++",
             Language.ObjectiveCpp => "Objective-C/C++",
+            Language.CMake => "CMake",
             Language.Unknown => null,
+            // why is a invalid enum value a valid value???
+            _ => throw new ArgumentOutOfRangeException()
+        };
+
+    public static string ToString(Language lang)
+        => lang switch
+        {
+            Language.CSharp => "C#",
+            Language.React => "React",
+            Language.Typescript => "JavaScript",
+            Language.Javascript => "TypeScript",
+            Language.JsonConfig => "JSON config",
+            Language.Swift => "Swift",
+            Language.CppSource => "C/C++ Source",
+            Language.CppHeader => "C/C++ Header",
+            Language.ObjectiveCpp => "Objective-C/C++",
+            Language.CMake => "CMake",
+            Language.Unknown => "Unknown",
             // why is a invalid enum value a valid value???
             _ => throw new ArgumentOutOfRangeException()
         };

@@ -6,6 +6,8 @@ using Workbench.Shared.Extensions;
 
 namespace Workbench.Shared.CMake
 {
+    public record FileInCmake(string Name, Fil File);
+
     public record CMakeTrace(Fil? File, int Line, string Cmd, ImmutableArray<string> Args)
     {
         private class CmakeOutputTrace
@@ -76,28 +78,28 @@ namespace Workbench.Shared.CMake
         }
 
 
-        public IEnumerable<Fil> ListFilesInLibraryOrExecutable()
+        public IEnumerable<FileInCmake> ListFilesInLibraryOrExecutable()
         {
             return ListFilesInArgs("STATIC");
         }
 
-        public IEnumerable<Fil> ListFilesInCmakeExecutable()
+        public IEnumerable<FileInCmake> ListFilesInCmakeExecutable()
         {
             return ListFilesInArgs("WIN32", "MACOSX_BUNDLE");
         }
 
-        private IEnumerable<Fil> ListFilesInArgs(params string[] arguments_to_ignore)
+        private IEnumerable<FileInCmake> ListFilesInArgs(params string[] arguments_to_ignore)
         {
             var folder = File?.Directory;
 
             if (folder == null)
-                return Enumerable.Empty<Fil>();
+                return Enumerable.Empty<FileInCmake>();
 
             return Args
                     .Skip(1) // name of library/app
                     .SkipWhile(arguments_to_ignore.Contains)
                     .SelectMany(a => a.Split(';'))
-                    .Select(f => folder.GetFile(f))
+                    .Select(f => new FileInCmake(f, folder.GetFile(f)))
                 ;
         }
 

@@ -34,6 +34,8 @@ app.Configure(config =>
     Commands.CheckNames.Main.Configure(config, "check-names");
 
     Commands.LineCount.Main.Configure(config, "line-count");
+    Commands.Cloc.Main.Configure(config, "cloc");
+
     Commands.SlnDeps.Main.Configure(config, "slndeps");
     Commands.CodeCity.Main.Configure(config, "code-city");
     Commands.Todo.Main.Configure(config, "todo");
