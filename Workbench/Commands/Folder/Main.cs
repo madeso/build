@@ -169,10 +169,15 @@ public class FolderTool
         try
         {
             AnsiConsole.WriteLine($"{dir} removing...");
-            var di = new DirectoryInfo(dir.Path);
-            di.Attributes = FileAttributes.Normal;
 
-            Directory.Delete(dir.Path);
+            // why is this here? does it makes sense to change the dir attributes to normal before deleting it?
+            var di = new DirectoryInfo(dir.Path)
+            {
+                Attributes = FileAttributes.Normal
+            };
+
+            // use di here instead of dir.Path so c# stops warning for unused variable
+            Directory.Delete(di.FullName);
         }
         catch (Exception e)
         {
