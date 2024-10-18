@@ -40,7 +40,7 @@ internal sealed class ShowHiddenCommand : Command<ShowHiddenCommand.Arg>
                 return -1;
             }
 
-            FolderTool.Start(dir, FolderTool.Type.Show);
+            FolderTool.ShowHiddenFiles(dir);
             return 0;
         });
     }
@@ -66,7 +66,7 @@ internal sealed class RemoveEmptyCommand : Command<RemoveEmptyCommand.Arg>
             }
 
 
-            FolderTool.Start(dir, FolderTool.Type.Remove);
+            FolderTool.RemoveDirectoriesRec(dir);
             return 0;
         });
     }
@@ -74,26 +74,9 @@ internal sealed class RemoveEmptyCommand : Command<RemoveEmptyCommand.Arg>
 
 public class FolderTool
 {
-    public enum Type { Remove, Show }
-
-    public static void Start(Dir dir, Type type)
+    public static void ShowHiddenFiles(Dir dir)
     {
         AnsiConsole.WriteLine($"Started on {dir}");
-
-        if (type == Type.Remove)
-        {
-            RemoveDirectoriesRec(dir);
-        }
-        else
-        {
-            ShowHiddenFiles(dir);
-        }
-
-        AnsiConsole.WriteLine("done");
-    }
-
-    private static void ShowHiddenFiles(Dir dir)
-    {
         foreach (var d in dir.EnumerateDirectories())
         {
             ShowHiddenFiles(d);
@@ -110,8 +93,10 @@ public class FolderTool
         }
     }
 
-    private static void RemoveDirectoriesRec(Dir dir)
+    public static void RemoveDirectoriesRec(Dir dir)
     {
+        AnsiConsole.WriteLine($"Started on {dir}");
+
         if (false == dir.Exists)
         {
             AnsiConsole.WriteLine($"{dir} doesn't exist");
