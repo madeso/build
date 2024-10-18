@@ -108,10 +108,14 @@ internal sealed class ClocCommand : Command<ClocCommand.Arg>
 
             t.AddEmptyRow();
 
+            var sum_file_count = collected.Select(cc => cc.FileCount).Sum();
+            var sum_empty_lines = collected.Select(cc => cc.EmptyLines).Sum();
+            var sum_total_lines = collected.Select(cc => cc.TotalLines).Sum();
+
             t.AddRow("SUM",
-                collected.Select(cc => cc.FileCount).Sum().ToString("N0"),
-                collected.Select(cc => cc.EmptyLines).Sum().ToString("N0"),
-                collected.Select(cc => cc.TotalLines).Sum().ToString("N0"));
+                sum_file_count.ToString("N0"),
+                sum_empty_lines.ToString("N0"),
+                sum_total_lines.ToString("N0"));
 
             AnsiConsole.Write(t);
         }
