@@ -53,6 +53,11 @@ internal sealed class RemoveEmptyCommand : Command<RemoveEmptyCommand.Arg>
         [Description("Directory to recursivly remove if empty")]
         [CommandArgument(2, "[dir]")]
         public string Directory { get; init; } = string.Empty;
+
+        [Description("Display the contents of the directory if it counts less than this value")]
+        [CommandOption("--min")]
+        [DefaultValue(null)]
+        public int? MinFileCount { get; init; } = null;
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
@@ -66,7 +71,7 @@ internal sealed class RemoveEmptyCommand : Command<RemoveEmptyCommand.Arg>
             }
 
 
-            FolderTool.RemoveDirectoriesRec(dir);
+            FolderTool.RemoveDirectoriesRec(dir, arg.MinFileCount ?? 0);
             return 0;
         });
     }
@@ -93,7 +98,7 @@ public class FolderTool
         }
     }
 
-    public static void RemoveDirectoriesRec(Dir dir)
+    public static void RemoveDirectoriesRec(Dir dir, int min_file_count)
     {
         AnsiConsole.WriteLine($"Started on {dir}");
 
@@ -106,7 +111,7 @@ public class FolderTool
         var dirs = dir.EnumerateDirectories().ToImmutableArray();
         foreach (var sub in dirs)
         {
-            RemoveDirectoriesRec(sub);
+            RemoveDirectoriesRec(sub, min_file_count);
         }
 
         var files = dir.EnumerateFiles().ToImmutableArray();
@@ -136,7 +141,7 @@ public class FolderTool
                 }
             }
 
-            if (valid_files.Count < 10)
+            if (valid_files.Count < min_file_count)
             {
                 foreach (var f in valid_files)
                 {
