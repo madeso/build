@@ -188,6 +188,7 @@ public class FolderTool
         var f = filename.Path.ToLower();
         if (f.EndsWith("thumbs.db")) return true;
         if (f.EndsWith("desktop.ini")) return true;
+        if (f == ".ds_store") return true;
         return false;
     }
 
