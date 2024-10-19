@@ -43,11 +43,17 @@ internal sealed class ClocCommand : Command<ClocCommand.Arg>
         [CommandOption("--histogram")]
         [DefaultValue(false)]
         public bool DisplayHistogram { get; set; } = false;
+
+        [Description("Add files for language")]
+        [CommandOption("--lang")]
+        [DefaultValue(false)]
+        public bool AddLanguageFiles { get; set; } = false;
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var stats = new Dictionary<Language, Stat>();
+        var parsed = new Dictionary<Language, List<Fil>>();
 
         foreach (var file in FileUtil.ListFilesFromArgs(arg.Files))
         {
@@ -56,6 +62,16 @@ internal sealed class ClocCommand : Command<ClocCommand.Arg>
             if (arg.IncludeUnknown == false && lang == Language.Unknown)
             {
                 continue;
+            }
+
+            if(arg.AddLanguageFiles)
+            {
+                if (parsed.TryGetValue(lang, out var file_list) == false)
+                {
+                    file_list = new List<Fil>();
+                    parsed.Add(lang, file_list);
+                }
+                file_list.Add(file);
             }
             
             if (stats.TryGetValue(lang, out var data_values) == false)
@@ -118,6 +134,21 @@ internal sealed class ClocCommand : Command<ClocCommand.Arg>
                 sum_total_lines.ToString("N0"));
 
             AnsiConsole.Write(t);
+
+            if (arg.AddLanguageFiles)
+            {
+                var cwd = Dir.CurrentDirectory;
+                foreach (var (lang, list) in parsed)
+                {
+                    var ft = new Table();
+                    ft.AddColumn(FileUtil.ToString(lang));
+                    foreach (var f in list)
+                    {
+                        ft.AddRow(f.GetRelative(cwd));
+                    }
+                    AnsiConsole.Write(ft);
+                }
+            }
         }
 
         return 0;
