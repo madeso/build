@@ -57,8 +57,8 @@ internal static class FileUtil
         {
             Language.CSharp => "C#",
             Language.React => "React",
-            Language.Typescript => "JavaScript",
-            Language.Javascript => "TypeScript",
+            Language.Typescript => "TypeScript",
+            Language.Javascript => "JavaScript",
             Language.JsonConfig => "JSON config",
             Language.Swift => "Swift",
             Language.CppSource or Language.CppHeader => "C/C++",
@@ -74,8 +74,8 @@ internal static class FileUtil
         {
             Language.CSharp => "C#",
             Language.React => "React",
-            Language.Typescript => "JavaScript",
-            Language.Javascript => "TypeScript",
+            Language.Typescript => "TypeScript",
+            Language.Javascript => "JavaScript",
             Language.JsonConfig => "JSON config",
             Language.Swift => "Swift",
             Language.CppSource => "C/C++ Source",
