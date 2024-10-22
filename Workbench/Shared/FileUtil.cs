@@ -6,7 +6,8 @@ namespace Workbench.Shared;
 public enum Language
 {
     CSharp,
-    React,
+    ReactJavascript,
+    ReactTypescript,
     Typescript,
     Javascript,
     CppSource,
@@ -36,7 +37,8 @@ internal static class FileUtil
         => f.Name == "CMakeLists.txt" ? Language.CMake : f.Extension switch
         {
             ".cs" => Language.CSharp,
-            ".tsx" or ".jsx" => Language.React,
+            ".tsx" => Language.ReactTypescript,
+            ".jsx" => Language.ReactJavascript,
             ".js" => Language.Javascript,
             ".ts" => Language.Typescript,
             ".swift" => Language.Swift,
@@ -56,7 +58,8 @@ internal static class FileUtil
         => ClassifySource(f) switch
         {
             Language.CSharp => "C#",
-            Language.React => "React",
+            Language.ReactJavascript => "React (js)",
+            Language.ReactTypescript => "React (ts)",
             Language.Typescript => "TypeScript",
             Language.Javascript => "JavaScript",
             Language.JsonConfig => "JSON config",
@@ -73,7 +76,8 @@ internal static class FileUtil
         => lang switch
         {
             Language.CSharp => "C#",
-            Language.React => "React",
+            Language.ReactJavascript => "React (js)",
+            Language.ReactTypescript => "React (ts)",
             Language.Typescript => "TypeScript",
             Language.Javascript => "JavaScript",
             Language.JsonConfig => "JSON config",
