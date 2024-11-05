@@ -149,8 +149,55 @@ internal sealed class ClocCommand : Command<ClocCommand.Arg>
                     AnsiConsole.Write(ft);
                 }
             }
+
+            var x = Cocomo.Calculate(sum_total_lines / 1000.0, SoftwareProject.Organic, 1.0f);
+            AnsiConsole.MarkupLineInterpolated($"COCOMO estimation it took [BLUE]{MonthToString(x.PesonMonths)}[/] to make, a team of [BLUE]{(int)Math.Ceiling(x.EffectiveNumberOfPersons)}[/] could do it in [BLUE]{MonthToString(x.DevelopmentTime)}[/]");
         }
 
         return 0;
+    }
+
+    static string MonthToString(double m)
+    {
+        int years = 0;
+        if (m > 12)
+        {
+            years = (int) Math.Floor(m / 12);
+            m -= years * 12;
+        }
+
+        var months = (int) Math.Ceiling(m);
+
+        var ms = months == 1 ? "1 month" : $"{months} months";
+        var ys = years == 1 ? "1 year" : $"{years} years";
+        return years > 0 ? $"{ys}, {ms}" : ms;
+    }
+}
+
+internal enum SoftwareProject
+{
+    Organic,
+    SemiDetached,
+    Embedded
+}
+
+// https://en.wikipedia.org/wiki/COCOMO
+internal record Cocomo(double PesonMonths, double DevelopmentTime, double EffectiveNumberOfPersons)
+{
+    // eaf = effort adjustment factor = Typical values for EAF range from 0.9 to 1.4. 
+    public static Cocomo Calculate(double kloc, SoftwareProject sp, double eaf)
+    {
+        var (a, b, c) = sp switch
+        {
+            SoftwareProject.Organic => (3.2, 1.05, 0.38),
+            SoftwareProject.SemiDetached => (3.0, 1.12, 0.35),
+            SoftwareProject.Embedded => (2.8, 1.20, 0.32),
+            _ => throw new Exception("Invalid type")
+        };
+
+        var person_months = a * Math.Pow(kloc, b) * eaf;
+        var development_time = 2.5 * Math.Pow(person_months, c);
+        var effective_number_of_persons = person_months / development_time;
+        return new Cocomo(person_months, development_time, effective_number_of_persons);
     }
 }
