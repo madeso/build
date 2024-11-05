@@ -16,7 +16,9 @@ public enum Language
     ObjectiveCpp,
     JsonConfig,
     Swift,
-    CMake
+    CMake,
+    Razor,
+    Css
 }
 
 internal static class FileUtil
@@ -42,6 +44,9 @@ internal static class FileUtil
             ".js" => Language.Javascript,
             ".ts" => Language.Typescript,
             ".swift" => Language.Swift,
+            
+            ".razor" => Language.Razor,
+            ".css" => Language.Css,
 
             ".jsonc" => Language.JsonConfig,
 
@@ -64,6 +69,8 @@ internal static class FileUtil
             Language.Javascript => "JavaScript",
             Language.JsonConfig => "JSON config",
             Language.Swift => "Swift",
+            Language.Razor => "Razor",
+            Language.Css => "CSS",
             Language.CppSource or Language.CppHeader => "C/C++",
             Language.ObjectiveCpp => "Objective-C/C++",
             Language.CMake => "CMake",
@@ -82,6 +89,8 @@ internal static class FileUtil
             Language.Javascript => "JavaScript",
             Language.JsonConfig => "JSON config",
             Language.Swift => "Swift",
+            Language.Razor => "Razor",
+            Language.Css => "CSS",
             Language.CppSource => "C/C++ Source",
             Language.CppHeader => "C/C++ Header",
             Language.ObjectiveCpp => "Objective-C/C++",
