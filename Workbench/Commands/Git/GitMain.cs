@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices.Marshalling;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using Workbench.Shared;
@@ -44,6 +45,11 @@ internal sealed class StatusCommand : AsyncCommand<StatusCommand.Arg>
         [Description("Git root to use")]
         [CommandArgument(0, "[git root]")]
         public string Root { get; set; } = "";
+
+        [Description("Show metrics instead of files")]
+        [CommandOption("--metrics")]
+        [DefaultValue(false)]
+        public bool ShowMetrics { get; set; } = false;
     }
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
@@ -62,32 +68,84 @@ internal sealed class StatusCommand : AsyncCommand<StatusCommand.Arg>
                 return -1;
             }
 
+            var unknowns = new ColCounter<string>();
+            var modified = new ColCounter<string>();
+            var added = new ColCounter<string>();
+
             AnsiConsole.MarkupLineInterpolated($"Status for [green]{settings.Root}[/].");
             await foreach (var line in Shared.Git.StatusAsync(git_path, root))
             {
-                string status = string.Empty;
+                string io_type = string.Empty;
+
                 if (line.Path.IsFile)
                 {
-                    status = "file";
+                    io_type = "file";
+
+                    var x = line.Path.AsFile?.Extension ?? "";
+                    switch(line.Status)
+                    {
+                        case Shared.Git.GitStatus.Unknown:
+                            unknowns.AddOne(x);
+                            break;
+                        case Shared.Git.GitStatus.Modified:
+                            modified.AddOne(x);
+                            break;
+                        case Shared.Git.GitStatus.Added:
+                            added.AddOne(x);
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException($"status not handled {line.Status}");
+                    }
                 }
 
                 if (line.Path.IsDirectory)
                 {
-                    status = "dir";
+                    io_type = "dir";
                 }
 
-                switch (line.Status)
+                if(settings.ShowMetrics == false)
                 {
-                    case Shared.Git.GitStatus.Unknown:
-                        AnsiConsole.MarkupLineInterpolated($"Unknown [green]{line.Path}[/] ([blue]{status}[/]).");
-                        break;
-                    case Shared.Git.GitStatus.Modified:
-                        AnsiConsole.MarkupLineInterpolated($"Modified [blue]{line.Path}[/]  ([blue]{status}[/]).");
-                        break;
+                    switch (line.Status)
+                    {
+                        case Shared.Git.GitStatus.Unknown:
+                            AnsiConsole.MarkupLineInterpolated($"Unknown [green]{line.Path}[/] ([blue]{io_type}[/]).");
+                            break;
+                        case Shared.Git.GitStatus.Modified:
+                            AnsiConsole.MarkupLineInterpolated($"Modified [blue]{line.Path}[/]  ([blue]{io_type}[/]).");
+                            break;
+                        case Shared.Git.GitStatus.Added:
+                            AnsiConsole.MarkupLineInterpolated($"Added [blue]{line.Path}[/]  ([blue]{io_type}[/]).");
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException($"status not handled {line.Status}");
+                    }
                 }
             }
 
+            if(settings.ShowMetrics)
+            {
+                print("unknowns", unknowns);
+                print("modified", modified);
+                print("added", added);
+            }
+
             return 0;
+
+            static void print(string title, ColCounter<string> counts)
+            {
+                if (!counts.Keys.Any())
+                {
+                    return;
+                }
+
+                int max = 10;
+                AnsiConsole.MarkupLineInterpolated($"{title}:");
+                foreach (var (what, count) in counts.MostCommon().Take(max))
+                {
+                    AnsiConsole.MarkupLineInterpolated($"- [GREEN]{what}[/] ([BLUE]{count}[/])");
+                }
+                AnsiConsole.WriteLine();
+            }
         });
     }
 }

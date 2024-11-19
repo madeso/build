@@ -9,7 +9,8 @@ public static class Git
 {
     public enum GitStatus
     {
-        Unknown, Modified
+        Unknown, Modified,
+        Added
     }
 
     // path is either to a file or directory
@@ -37,6 +38,7 @@ public static class Git
             {
                 case "??": yield return new(GitStatus.Unknown, path); break;
                 case "M": yield return new(GitStatus.Modified, path); break;
+                case "A": yield return new(GitStatus.Added, path); break;
                 default: throw new Exception($"Unhandled type <{type}> for line <{item}>");
             }
 
