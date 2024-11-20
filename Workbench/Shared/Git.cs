@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Security.AccessControl;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Workbench.Shared;
 
@@ -44,8 +46,22 @@ public static class Git
 
             continue;
 
-            static string to_path(string v) => v.Trim().Replace("\"", "").Replace('/', '\\');
+            static string to_path(string v) => Unesacpe(v.Trim()).Replace("\"", "").Replace('/', '\\');
         }
+    }
+
+    private static string Unesacpe(string s)
+    {
+        // todo(Gustav): add more escape characters?
+        var r = new Regex(@"\\([0-9]+)\\([0-9]+)");
+        return r.Replace(s, m =>
+        {
+            var first_byte = Convert.ToInt32(m.Groups[1].Value, 8);
+            var second_byte = Convert.ToInt32(m.Groups[2].Value, 8);
+            var bytes = new[] { (byte)first_byte, (byte)second_byte };
+            var r = Encoding.UTF8.GetString(bytes);
+            return r;
+        });
     }
 
     public record Author(string Name, string Mail, DateTime Time);
