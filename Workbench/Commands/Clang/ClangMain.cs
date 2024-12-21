@@ -45,7 +45,7 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
     public sealed class Arg : CompileCommandsArguments
     {
         [Description("combinatory filter on what to run")]
-        [CommandArgument(0, "<filter>")]
+        [CommandArgument(0, "[filter]")]
         public string[] Filter { get; set; } = Array.Empty<string>();
 
         [Description("don't do anything")]

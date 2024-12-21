@@ -163,7 +163,7 @@ internal static partial class ClangFacade
             ).ToArray();
 
     private static CategoryAndFiles[] MapAllFilesInRootOnFirstDir(Dir root, Func<Fil, bool> extension_filter)
-        => MapFilesOnFirstDir(root, FileUtil.IterateFiles(root, false, true)
+        => MapFilesOnFirstDir(root, FileUtil.FilesInPitchfork(root, false)
             .Where(extension_filter));
 
     private static bool FileMatchesAllFilters(Fil file, string[]? filters)
