@@ -83,6 +83,10 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
         [DefaultValue(null)]
         public string[]? Only { get; set; }
 
+        [Description("Html output directory")]
+        [CommandOption("--html")]
+        [DefaultValue(null)]
+        public string? HtmlDir { get; set; }
 
         [Description("Number of parallell tasks")]
         [CommandOption("--tasks")]
@@ -92,6 +96,17 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
+        Dir? html_dir = null;
+
+        if(settings.HtmlDir != null)
+        {
+            html_dir = Cli.ToDirPath(settings.HtmlDir);
+            if(html_dir == null)
+            {
+                Console.WriteLine($"Failed to parse html ouput directory {settings.HtmlDir}");
+                return -1;
+            }
+        }
         return await Log.PrintErrorsAtExitAsync(print => ClangFacade.HandleRunClangTidyCommand(
             settings, print,
             settings.Force,
@@ -101,7 +116,8 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
             settings.Filter,
             settings.Only ?? Array.Empty<string>(),
             settings.Fix,
-            settings.NumberOfTasks));
+            settings.NumberOfTasks,
+            html_dir));
     }
 }
 

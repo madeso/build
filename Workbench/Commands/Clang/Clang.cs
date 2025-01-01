@@ -126,6 +126,121 @@ internal class NamePrinter
     }
 }
 
+internal record Link(string Title, string link);
+internal class HtmlRoot
+{
+    string name;
+    Dir relative;
+    Dir output;
+
+    List<Link> links = new ();
+
+    public HtmlRoot(Dir d, string n)
+    {
+        this.name = n;
+        this.output = d;
+        this.relative = Dir.CurrentDirectory;
+    }
+
+    public void AddFile(string name, Fil target)
+    {
+        links.Add(new Link(name, this.output.RelativeFromTo(target)));
+    }
+
+    public void Complete()
+    {
+        List<string> output = new ();
+
+        output.Add($"<html>");
+        output.Add($"<head>");
+        output.Add("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
+        output.Add("<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/water.css@2/out/water.css\">");
+        output.Add($"<title>{name}</title>");
+        output.Add($"</head>");
+        output.Add($"<body>");
+
+        output.Add($"<h1>{name}</h1>");
+
+        // todo(clean up output)
+        output.Add($"<ul>");
+        foreach(var l in links)
+        {
+            output.Add($"<li>");
+            output.Add($"<a href={l.link}> {l.Title} </a>");
+            output.Add($"</li>");
+        }
+        output.Add($"</ul>");
+
+        output.Add($"</body>");
+        output.Add($"</html>");
+
+        var target = this.output.GetFile("index.html");
+
+        target.Directory?.CreateDir();
+        target.WriteAllLines(output);
+        Console.WriteLine($"Wrote html to {target}");
+    }
+
+    public string GetRelative(Fil f)
+        => this.relative.RelativeFromTo(f);
+
+    public Fil GetOutput(Fil f, string ext)
+        => this.output.GetFile(GetRelative(f)).ChangeExtension(ext);
+}
+
+internal class HtmlWriter
+{
+    string name;
+    Fil target;
+
+    readonly List<string> lines = new ();
+
+    public HtmlWriter(HtmlRoot root, Fil f)
+    {
+        this.name = root.GetRelative(f);
+        this.target = root.GetOutput(f, ".html");
+
+        root.AddFile(name, target);
+        root.Complete();
+    }
+
+
+    public void OnLine(string s)
+    {
+        lines.Add(s);
+    }
+
+    public void Complete()
+    {
+        List<string> output = new ();
+
+        output.Add($"<html>");
+        output.Add($"<head>");
+        output.Add("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
+        output.Add("<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/water.css@2/out/water.css\">");
+        output.Add($"<title>{name}</title>");
+        output.Add($"</head>");
+        output.Add($"<body>");
+
+        output.Add($"<h1>{name}</h1>");
+
+        output.Add($"<pre>");
+        // todo(clean up output)
+        foreach(var l in lines)
+        {
+            output.Add(l);
+        }
+        output.Add($"</pre>");
+
+        output.Add($"</body>");
+        output.Add($"</html>");
+
+        target.Directory?.CreateDir();
+        target.WriteAllLines(output);
+        Console.WriteLine($"Wrote html to {target}");
+    }
+}
+
 internal static partial class ClangFacade
 {
     private static Fil GetPathToStore(Dir build_folder)
@@ -328,7 +443,7 @@ internal static partial class ClangFacade
 
     private static (ColCounter<Fil> warnings, ColCounter<string> classes, string[])
         CreateStatisticsAndPrintStatus(FileStatistics stats, bool short_list, Fil printable_file,
-            string[] only, TidyOutput co)
+            string[] only, TidyOutput co, Action<string> on_line)
     {
         var lines = new List<string>();
 
@@ -385,7 +500,7 @@ internal static partial class ClangFacade
                 {
                     if (false == hidden && print_empty)
                     {
-                        Console.WriteLine(string.Empty);
+                        on_line(string.Empty);
                         print_empty = false;
                         lines.Add(string.Empty);
                     }
@@ -395,7 +510,7 @@ internal static partial class ClangFacade
                     if (false == hidden)
                     {
                         print_empty = true;
-                        Console.WriteLine(line);
+                        on_line(line);
                         lines.Add(line);
                     }
                 }
@@ -480,7 +595,7 @@ internal static partial class ClangFacade
     // callback function called when running clang.py tidy
     internal static async Task<int> HandleRunClangTidyCommand(CompileCommandsArguments cc, Log log,
         bool force, bool headers, bool short_args, bool args_nop, string[] args_filter,
-        string[] the_args_only, bool args_fix, int number_of_tasks)
+        string[] the_args_only, bool args_fix, int number_of_tasks, Dir? html_root)
     {
         var args_only = the_args_only.Where(x => string.IsNullOrWhiteSpace(x) == false).ToArray();
 
@@ -522,7 +637,7 @@ internal static partial class ClangFacade
         var stats = new FileStatistics();
 
         var errors = await PleaseRun(log, force, short_args, args_nop, args_filter, args_only,
-            args_fix, data, store, root, clang_tidy, project_build_folder, stats, total_counter, total_classes, warnings_per_file, number_of_tasks);
+            args_fix, data, store, root, clang_tidy, project_build_folder, stats, total_counter, total_classes, warnings_per_file, number_of_tasks, html_root);
 
         if (false == short_args && args_only.Length == 0)
         {
@@ -594,13 +709,15 @@ internal static partial class ClangFacade
     private static async Task<FileWithError[]> PleaseRun(Log log, bool force, bool short_args, bool args_nop, string[] args_filter,
         string[] args_only, bool args_fix, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
         Dir project_build_folder, FileStatistics stats, ColCounter<Fil> total_counter, ColCounter<string> total_classes,
-        Dictionary<string, List<Fil>> warnings_per_file, int number_of_tasks)
+        Dictionary<string, List<Fil>> warnings_per_file, int number_of_tasks, Dir? html_target)
     {
         var files = data.SelectMany(pair => pair.Files.Select(x => new CollectedTidyFil(x, pair.Category)))
             .Where(source_file => FileMatchesAllFilters(source_file.File, args_filter) == false);
 
         Dictionary<string, ColCounter<Fil>> pc = new();
         List<FileWithError> errors_to_print = new();
+
+        var html_root = html_target == null ? null : new HtmlRoot(html_target, "Tidy report");
 
         await Channel
             .CreateUnbounded<CollectedTidyFil>()
@@ -620,8 +737,20 @@ internal static partial class ClangFacade
             {
                 var (cat, source_file, co) = tuple;
                 AnsiConsole.WriteLine($"Collecting {source_file}");
+                var html_writer = html_root == null ? null : new HtmlWriter(html_root, source_file);
                 var (warnings, classes, lines) =
-                    CreateStatisticsAndPrintStatus(stats, short_args, source_file, args_only, co);
+                    CreateStatisticsAndPrintStatus(stats, short_args, source_file, args_only, co, line => {
+                        if(html_writer == null)
+                        {
+                            Console.WriteLine(line);
+                        }
+                        else
+                        {
+                            html_writer.OnLine(line);
+                        }
+                    });
+                
+                html_writer?.Complete();
 
                 if (warnings.Items.Any())
                 {
@@ -649,6 +778,8 @@ internal static partial class ClangFacade
                     warnings_list.Add(source_file);
                 }
             });
+
+        if(html_root != null) html_root.Complete();
 
 
         if (!short_args && args_only.Length == 0)

@@ -62,13 +62,21 @@ public static class Cli
             });
     }
 
-    private static Dir? ToExistingDirOrNull(string a)
+    public static Dir? ToDirPath(string a)
     {
         if (string.IsNullOrEmpty(a)) return null;
         var cwd = Dir.CurrentDirectory;
         var p = FileUtil.RootPath(cwd, a);
         if(p == null) return null;
-        return Dir.ToExistingDirOrNull(p);
+        return new Dir(p);
+    }
+
+    private static Dir? ToExistingDirOrNull(string a)
+    {
+        var p = ToDirPath(a);
+        if(p == null) return null;
+        if(p.Exists == false) return null;
+        return p;
     }
 
     public static IEnumerable<Fil> ToFiles(IEnumerable<string> args)
