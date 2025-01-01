@@ -134,8 +134,10 @@ internal static partial class ClangFacade
     private static Store? LoadStore(Log print, Dir build_folder)
     {
         var file_name = GetPathToStore(build_folder);
+        AnsiConsole.MarkupLineInterpolated($"Loading store from {file_name}");
         if (!file_name.Exists)
         {
+            Console.WriteLine("Failed to load");
             return new Store();
         }
 
@@ -274,6 +276,7 @@ internal static partial class ClangFacade
             GetLastModificationForFiles(new[] { clang_tidy_source, source_file }));
         store.Cache[source_file] = data;
         SaveStore(project_build_folder, store);
+        Console.WriteLine($"Stored in cache {store.Cache.Count}");
     }
 
     // runs clang-tidy and returns all the text output
