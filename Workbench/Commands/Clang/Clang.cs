@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Collections.Concurrent;
 using Spectre.Console;
 using System.Text.RegularExpressions;
@@ -161,7 +162,6 @@ internal class HtmlRoot
 
         output.Add($"<h1>{name}</h1>");
 
-        // todo(clean up output)
         output.Add($"<ul>");
         foreach(var l in links)
         {
@@ -186,6 +186,78 @@ internal class HtmlRoot
 
     public Fil GetOutput(Fil f, string ext)
         => this.output.GetFile(GetRelative(f)).ChangeExtension(ext);
+}
+
+class TidyMessage
+{
+    public string file {get; set;} = string.Empty;
+    public int line {get; set;} = 0;
+    public int column {get; set;} = 0;
+    public string type {get; set;} = string.Empty;
+    public string message {get; set;} = string.Empty;
+    public string? category {get; set;} = null;
+    public List<string> code {get; set;} = new();
+
+    public static IEnumerable<TidyMessage> Parse(IEnumerable<string> lines)
+    {
+        var reg = new Regex(@"(?<file>[^:]+):(?<line>[0-9]+):(?<col>[0-9]+): (?<type>[^:]+):(?<mess>[^[]+) \[(?<cat>[^]]+)\]");
+        var reg2 = new Regex(@"(?<file>[^:]+):(?<line>[0-9]+):(?<col>[0-9]+): (?<type>[^$]+):(?<mess>[^$]+)");
+        TidyMessage? current = null;
+        foreach(var l in lines)
+        {
+            var is_code = l.TrimStart() != l; // does the line start with space?
+            if(is_code)
+            {
+                if(current == null) throw new Exception("Invalid output");
+                current.code.Add(l);
+            }
+            else
+            {
+                if(current != null) yield return current;
+
+                var parsed = reg.Match(l);
+                if(parsed.Success == false) parsed = reg2.Match(l);
+                if(parsed.Success == false) throw new Exception($"Invalid line: {l}");
+                string? cat = parsed.Groups["cat"].Value;
+                if(string.IsNullOrEmpty(cat)) cat = null;
+                current = new TidyMessage
+                {
+                    file = parsed.Groups["file"].Value,
+                    line = int.Parse(parsed.Groups["line"].Value),
+                    column = int.Parse(parsed.Groups["col"].Value),
+                    type = parsed.Groups["type"].Value,
+                    message = parsed.Groups["mess"].Value,
+                    category = cat,
+                };
+            }
+        }
+
+        if(current != null) yield return current;
+    }
+}
+
+class TidyGroup
+{
+    public List<TidyMessage> messages {get; set;} = new();
+
+    public static IEnumerable<TidyGroup> Parse(IEnumerable<string> lines)
+    {
+        TidyGroup? current = null;
+        foreach(var mess in TidyMessage.Parse(lines))
+        {
+            if(current == null || mess.type != "note")
+            {
+                if(current != null) yield return current;
+                current = new TidyGroup();
+            }
+            current.messages.Add(mess);
+        }
+
+        if(current != null)
+        {
+            yield return current;
+        }
+    }
 }
 
 internal class HtmlWriter
@@ -224,13 +296,39 @@ internal class HtmlWriter
 
         output.Add($"<h1>{name}</h1>");
 
-        output.Add($"<pre>");
-        // todo(clean up output)
-        foreach(var l in lines)
+        var grouped = TidyGroup.Parse(lines).ToImmutableArray();
+        foreach(var g in grouped)
         {
-            output.Add(l);
+            foreach(var m in g.messages)
+            {
+                var is_note = m.type == "note";
+
+                if(is_note == false)
+                {
+                    output.Add("<hr>");
+                    output.Add($"<h3>{m.type}: {m.message}</h3>");
+                }
+
+                if(m.category != null)
+                {
+                    output.Add($"<code>[{m.category}]</code>");
+                }
+
+                if(is_note)
+                {
+                    output.Add($"<p>{m.message}</p>");
+                }
+
+                output.Add($"<p><i>{m.file} {m.line}: {m.column}</i></p>");
+
+                output.Add($"<pre>");
+                foreach(var l in m.code)
+                {
+                    output.Add(l);
+                }
+                output.Add($"</pre>");
+            }
         }
-        output.Add($"</pre>");
 
         output.Add($"</body>");
         output.Add($"</html>");
