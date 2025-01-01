@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Spectre.Console;
 using System.Text.RegularExpressions;
+using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Open.ChannelExtensions;
 using Workbench.Config;
@@ -11,14 +12,78 @@ using static Workbench.Shared.Solution;
 namespace Workbench.Commands.Clang;
 
 
-internal class Store
+public class Store
 {
-    public readonly ConcurrentDictionary<Fil, StoredTidyUpdate> Cache = new();
+    public ConcurrentDictionary<Fil, StoredTidyUpdate> Cache {get; set;}
+
+    public Store()
+    {
+        this.Cache = new();
+    }
+
+    public Store(JsonStore s)
+    {
+        this.Cache = new(s.Cache.Select(x => new KeyValuePair<Fil, StoredTidyUpdate>(x.File, x.Output)));
+    }
 }
 
-internal record TidyOutput(string[] Output, TimeSpan Taken);
-internal record StoredTidyUpdate(string[] Output, TimeSpan Taken, DateTime Modified);
-internal record CategoryAndFiles(string Category, Fil[] Files);
+public class JsonCacheEntry
+{
+    [JsonPropertyName("file")]
+    public Fil File {get; set;}
+
+    [JsonPropertyName("output")]
+    public StoredTidyUpdate Output {get; set;}
+
+    public JsonCacheEntry()
+    {
+        this.File = Dir.CurrentDirectory.GetFile("missing.txt");
+        this.Output = new(new string[] {},TimeSpan.Zero, DateTime.Now);
+    }
+    public JsonCacheEntry(Fil f, StoredTidyUpdate o)
+    {
+        this.File = f;
+        this.Output = o;
+    }
+}
+
+public class JsonStore
+{
+    [JsonPropertyName("cache")]
+    public List<JsonCacheEntry> Cache {get; set;}
+
+    public JsonStore()
+    {
+        Cache = new();
+    }
+
+    public JsonStore(Store s)
+    {
+        this.Cache = new(s.Cache.Select(x => new JsonCacheEntry(x.Key, x.Value)));
+    }
+}
+
+public record TidyOutput(string[] Output, TimeSpan Taken);
+public class StoredTidyUpdate
+{
+    [JsonPropertyName("output")]
+    public string[] Output {get; set;}
+
+    [JsonPropertyName("taken")]
+    public TimeSpan Taken {get; set;}
+
+    [JsonPropertyName("modified")]
+    public DateTime Modified {get; set;}
+
+    public StoredTidyUpdate( string[] output, TimeSpan taken, DateTime modified )
+    {
+        this.Output = output;
+        this.Taken = taken;
+        this.Modified = modified;
+    }
+}
+
+public record CategoryAndFiles(string Category, Fil[] Files);
 
 internal class FileStatistics
 {
@@ -75,14 +140,19 @@ internal static partial class ClangFacade
         }
 
         var content = file_name.ReadAllText();
-        var loaded = JsonUtil.Parse<Store>(print, file_name, content);
-        return loaded;
+        if(string.IsNullOrWhiteSpace(content))
+        {
+            return new Store();
+        }
+        var loaded = JsonUtil.Parse<JsonStore>(print, file_name, content);
+
+        return loaded != null ? new(loaded) : null;
     }
 
     private static void SaveStore(Dir build_folder, Store data)
     {
         var file_name = GetPathToStore(build_folder);
-        file_name.WriteAllText(JsonUtil.Write(data));
+        file_name.WriteAllText(JsonUtil.Write(new JsonStore(data)));
     }
 
     private static bool IsFileIgnoredByClangTidy(Fil path)
