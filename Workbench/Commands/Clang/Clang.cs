@@ -264,16 +264,30 @@ internal class HtmlWriter
 {
     string name;
     Fil target;
+    HtmlRoot root;
 
     readonly List<string> lines = new ();
 
     public HtmlWriter(HtmlRoot root, Fil f)
     {
+        this.root = root;
         this.name = root.GetRelative(f);
         this.target = root.GetOutput(f, ".html");
 
         root.AddFile(name, target);
         root.Complete();
+    }
+
+
+    private string TryRelative(string path)
+    {
+        var f = new Fil(path);
+        var suggested = root.GetRelative(f);
+
+        // if returned path includes back references, just use full path?
+        if(suggested.StartsWith(".")) return path;
+
+        return suggested;
     }
 
 
@@ -319,7 +333,7 @@ internal class HtmlWriter
                     output.Add($"<p>{m.message}</p>");
                 }
 
-                output.Add($"<p><i>{m.file} {m.line}: {m.column}</i></p>");
+                output.Add($"<p><i>{TryRelative(m.file)} {m.line} : {m.column}</i></p>");
 
                 output.Add($"<pre>");
                 foreach(var l in m.code)
