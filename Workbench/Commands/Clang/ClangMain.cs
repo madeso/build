@@ -75,7 +75,7 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
 
         [Description("Force clang-tidy to run, even if there is a result")]
         [CommandOption("--force")]
-        [DefaultValue(true)]
+        [DefaultValue(false)]
         public bool Force { get; set; }
 
         [Description("Only tidy files matching theese")]
