@@ -385,7 +385,7 @@ internal static partial class ClangFacade
                 {
                     if (false == hidden && print_empty)
                     {
-                        AnsiConsole.WriteLine(string.Empty);
+                        Console.WriteLine(string.Empty);
                         print_empty = false;
                         lines.Add(string.Empty);
                     }
@@ -395,7 +395,7 @@ internal static partial class ClangFacade
                     if (false == hidden)
                     {
                         print_empty = true;
-                        AnsiConsole.WriteLine(line);
+                        Console.WriteLine(line);
                         lines.Add(line);
                     }
                 }
