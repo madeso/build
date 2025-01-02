@@ -256,7 +256,10 @@ class TidyMessage
 
                 var parsed = reg.Match(l);
                 if(parsed.Success == false) parsed = reg2.Match(l);
-                if(parsed.Success == false) throw new Exception($"Invalid line: {l}");
+                if(parsed.Success == false)
+                {
+                    Console.WriteLine($"WARNING: Invalid line: {l}");
+                }
                 string? cat = parsed.Groups["cat"].Value;
                 if(string.IsNullOrEmpty(cat)) cat = null;
                 current = new TidyMessage
