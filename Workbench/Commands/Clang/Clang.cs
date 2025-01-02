@@ -351,7 +351,8 @@ internal class HtmlWriter
         output.Add($"<h1>{name}</h1>");
 
         var grouped = TidyGroup.Parse(lines).ToImmutableArray();
-        int count = 0;
+        var count = new HashSet<string>();
+
         foreach(var g in grouped)
         {
             foreach(var m in g.messages)
@@ -362,12 +363,12 @@ internal class HtmlWriter
                 {
                     output.Add("<hr>");
                     output.Add($"<h3>{m.type}: {m.message}</h3>");
-                    count += 1;
                 }
 
                 if(m.category != null)
                 {
                     output.Add($"<code>[{m.category}]</code>");
+                    count.Add(m.category);
                 }
 
                 if(is_note)
@@ -393,8 +394,8 @@ internal class HtmlWriter
         target.WriteAllLines(output);
         Console.WriteLine($"Wrote html to {target}");
 
-        this.link.Totals = count;
-        this.link.Categories = grouped.Length;
+        this.link.Totals = grouped.Length;
+        this.link.Categories = count.Count;
         this.root.Complete();
     }
 }
