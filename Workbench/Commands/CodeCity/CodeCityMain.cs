@@ -29,7 +29,7 @@ internal sealed class WriteCodeCity : Command<WriteCodeCity.Arg>
                     return -1;
                 }
                 var cubes = Facade.Collect(printer, dox);
-                new Fil(arg.OutputFile).WriteAllLines(Facade.HtmlLines("CodeCity", cubes));
+                Cli.ToSingleFile(arg.OutputFile, "code-city.html").WriteAllLines(Facade.HtmlLines("CodeCity", cubes));
                 return 0;
             }
         );
