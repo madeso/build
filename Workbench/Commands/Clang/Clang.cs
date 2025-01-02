@@ -127,14 +127,27 @@ internal class NamePrinter
     }
 }
 
-internal record Link(string Title, string link);
+internal class HtmlLink
+{
+    public HtmlLink(string t, string l)
+    {
+        this.Title = t;
+        this.Link = l;
+    }
+
+    public string Title {get; private set;}
+    public string Link {get; private set;}
+
+    public int Categories {get; set;} = -1;
+    public int Totals {get; set;} = -1;
+}
 internal class HtmlRoot
 {
     string name;
     Dir relative;
     Dir output;
 
-    List<Link> links = new ();
+    List<HtmlLink> links = new ();
 
     public HtmlRoot(Dir d, string n)
     {
@@ -143,9 +156,11 @@ internal class HtmlRoot
         this.relative = Dir.CurrentDirectory;
     }
 
-    public void AddFile(string name, Fil target)
+    public HtmlLink AddFile(string name, Fil target)
     {
-        links.Add(new Link(name, this.output.RelativeFromTo(target)));
+        var link = new HtmlLink(name, this.output.RelativeFromTo(target));
+        links.Add(link);
+        return link;
     }
 
     public void Complete()
@@ -162,14 +177,32 @@ internal class HtmlRoot
 
         output.Add($"<h1>{name}</h1>");
 
-        output.Add($"<ul>");
+        var align = " style=\"text-align: end\"";
+
+        output.Add("<table style=\"width: 100%\">");
+        output.Add("<colgroup>");
+            output.Add("<col span=\"1\" style=\"width: 70%;\">");
+            output.Add("<col span=\"1\" style=\"width: 15%;\">");
+            output.Add("<col span=\"1\" style=\"width: 15%;\">");
+        output.Add("</colgroup>");
+        output.Add("<thead>");
+            output.Add($"<tr>");
+                output.Add("<th>File</th>");
+                output.Add($"<th{align}>Categories</th>");
+                output.Add($"<th{align}>Totals</th>");
+            output.Add($"</tr>");
+        output.Add("</thead>");
+        output.Add("<tbody>");
         foreach(var l in links)
         {
-            output.Add($"<li>");
-            output.Add($"<a href={l.link}> {l.Title} </a>");
-            output.Add($"</li>");
+            output.Add($"<tr>");
+                output.Add($"<td><a href={l.Link}>{l.Title}</a></td>");
+                output.Add($"<td{align}>{Q(l.Categories)}</td>");
+                output.Add($"<td{align}>{Q(l.Totals)}</td>");
+            output.Add($"</tr>");
         }
-        output.Add($"</ul>");
+        output.Add("</tbody>");
+        output.Add($"</table>");
 
         output.Add($"</body>");
         output.Add($"</html>");
@@ -179,6 +212,12 @@ internal class HtmlRoot
         target.Directory?.CreateDir();
         target.WriteAllLines(output);
         Console.WriteLine($"Wrote html to {target}");
+
+        static string Q(int i)
+        {
+            if(i >= 0) return $"{i}";
+            else return "?";
+        }
     }
 
     public string GetRelative(Fil f)
@@ -265,6 +304,7 @@ internal class HtmlWriter
     string name;
     Fil target;
     HtmlRoot root;
+    HtmlLink link;
 
     readonly List<string> lines = new ();
 
@@ -274,7 +314,7 @@ internal class HtmlWriter
         this.name = root.GetRelative(f);
         this.target = root.GetOutput(f, ".html");
 
-        root.AddFile(name, target);
+        this.link = root.AddFile(name, target);
         root.Complete();
     }
 
@@ -311,6 +351,7 @@ internal class HtmlWriter
         output.Add($"<h1>{name}</h1>");
 
         var grouped = TidyGroup.Parse(lines).ToImmutableArray();
+        int count = 0;
         foreach(var g in grouped)
         {
             foreach(var m in g.messages)
@@ -321,6 +362,7 @@ internal class HtmlWriter
                 {
                     output.Add("<hr>");
                     output.Add($"<h3>{m.type}: {m.message}</h3>");
+                    count += 1;
                 }
 
                 if(m.category != null)
@@ -350,6 +392,10 @@ internal class HtmlWriter
         target.Directory?.CreateDir();
         target.WriteAllLines(output);
         Console.WriteLine($"Wrote html to {target}");
+
+        this.link.Totals = count;
+        this.link.Categories = grouped.Length;
+        this.root.Complete();
     }
 }
 
