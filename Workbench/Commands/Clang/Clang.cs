@@ -193,7 +193,7 @@ internal class HtmlRoot
             output.Add($"</tr>");
         output.Add("</thead>");
         output.Add("<tbody>");
-        foreach(var l in links)
+        foreach(var l in links.OrderByDescending(l=>l.Totals))
         {
             output.Add($"<tr>");
                 output.Add($"<td><a href={l.Link}>{l.Title}</a></td>");
