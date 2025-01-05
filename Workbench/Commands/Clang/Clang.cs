@@ -239,8 +239,7 @@ class TidyMessage
 
     public static IEnumerable<TidyMessage> Parse(IEnumerable<string> lines)
     {
-        var reg = new Regex(@"(?<file>[^:]+):(?<line>[0-9]+):(?<col>[0-9]+): (?<type>[^:]+):(?<mess>[^[]+) \[(?<cat>[^]]+)\]");
-        var reg2 = new Regex(@"(?<file>[^:]+):(?<line>[0-9]+):(?<col>[0-9]+): (?<type>[^$]+):(?<mess>[^$]+)");
+        var reg = new Regex(@"(?<file>[^:]+):(?<line>[0-9]+):(?<col>[0-9]+): (?<type>[^$]+):(?<mess>[^$]+)");
         TidyMessage? current = null;
         foreach(var l in lines)
         {
@@ -260,15 +259,23 @@ class TidyMessage
             {
                 if(current != null) yield return current;
 
-                var parsed = reg.Match(l);
-                if(parsed.Success == false) parsed = reg2.Match(l);
+                var l2 = l;
+
+                var tidy_class = ClangFacade.ClangTidyWarningClass().Match(l2);
+                if (tidy_class.Success)
+                {
+                    l2 = l2.Substring(0, tidy_class.Index).Trim();
+                }
+
+                var parsed = reg.Match(l2);
                 if(parsed.Success == false)
                 {
                     Console.WriteLine($"WARNING: Invalid line: '{l}'");
                     current = null;
                     continue;
                 }
-                string? cat = parsed.Groups["cat"].Value;
+                string? cat = null;
+                if(tidy_class.Success) cat = tidy_class.Groups[1].Value;
                 if(string.IsNullOrEmpty(cat)) cat = null;
                 current = new TidyMessage
                 {
@@ -706,7 +713,7 @@ internal static partial class ClangFacade
     }
 
     [GeneratedRegex(@"\[(\w+([-,]\w+)+)\]", RegexOptions.Compiled)]
-    private static partial Regex ClangTidyWarningClass();
+    public static partial Regex ClangTidyWarningClass();
 
     // ------------------------------------------------------------------------------
 
