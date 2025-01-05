@@ -244,10 +244,16 @@ class TidyMessage
         TidyMessage? current = null;
         foreach(var l in lines)
         {
+            if(string.IsNullOrEmpty(l)) continue;
+
             var is_code = l.TrimStart() != l; // does the line start with space?
             if(is_code)
             {
-                if(current == null) throw new Exception("Invalid output");
+                if(current == null)
+                {
+                    Console.WriteLine($"WARNING: Unexpected code line: '{l}'");
+                    continue;
+                }
                 current.code.Add(l);
             }
             else
@@ -258,7 +264,9 @@ class TidyMessage
                 if(parsed.Success == false) parsed = reg2.Match(l);
                 if(parsed.Success == false)
                 {
-                    Console.WriteLine($"WARNING: Invalid line: {l}");
+                    Console.WriteLine($"WARNING: Invalid line: '{l}'");
+                    current = null;
+                    continue;
                 }
                 string? cat = parsed.Groups["cat"].Value;
                 if(string.IsNullOrEmpty(cat)) cat = null;
