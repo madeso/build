@@ -471,6 +471,64 @@ internal static class ClangTidyFile
     }
 }
 
+internal static class ClangFiles
+{
+    private static CategoryAndFiles[] MapFilesOnFirstDir(Dir root, IEnumerable<Fil> files_iterator)
+        => files_iterator
+            .Select(f => new { Path = f, Cat = FileUtil.GetFirstFolder(root, f) })
+            // ignore external and build folders
+            .Where(f => f.Cat != "external").Where(f => f.Cat.StartsWith("build") == false)
+            // perform actual grouping
+            .GroupBy
+            (
+                x => x.Cat,
+                (cat, files) => new CategoryAndFiles(
+                    cat,
+                    files
+                        // sort files
+                        .Select(x => x.Path)
+                        .OrderBy(p => p.Name)
+                        .ThenByDescending(p => p.Extension)
+                        .ToArray()
+                )
+            ).ToArray();
+
+    internal static CategoryAndFiles[] MapAllFilesInRootOnFirstDir(Dir root, Func<Fil, bool> extension_filter)
+        => MapFilesOnFirstDir(root, FileUtil.FilesInPitchfork(root, false)
+            .Where(extension_filter));
+
+    internal static int HandleTidyListFilesCommand(Log print, bool sort_files)
+    {
+        var root = Dir.CurrentDirectory;
+
+        var files = FileUtil.IterateFiles(root, false, true)
+            .Where(FileUtil.IsSource);
+
+        if (sort_files)
+        {
+            var sorted = MapFilesOnFirstDir(root, files);
+            foreach (var (project, source_files) in sorted)
+            {
+                Printer.Header(project);
+                foreach (var file in source_files)
+                {
+                    AnsiConsole.WriteLine(file.GetDisplay());
+                }
+                AnsiConsole.WriteLine("");
+            }
+        }
+        else
+        {
+            foreach (var file in files)
+            {
+                AnsiConsole.WriteLine(file.GetDisplay());
+            }
+        }
+
+        return 0;
+    }
+}
+
 internal static partial class ClangFacade
 {
     private static Fil GetPathToStore(Dir build_folder)
@@ -509,30 +567,6 @@ internal static partial class ClangFacade
 
         return first_line.StartsWith("// clang-tidy: ignore");
     }
-
-    private static CategoryAndFiles[] MapFilesOnFirstDir(Dir root, IEnumerable<Fil> files_iterator)
-     => files_iterator
-            .Select(f => new { Path = f, Cat = FileUtil.GetFirstFolder(root, f) })
-            // ignore external and build folders
-            .Where(f => f.Cat != "external").Where(f => f.Cat.StartsWith("build") == false)
-            // perform actual grouping
-            .GroupBy
-            (
-                x => x.Cat,
-                (cat, files) => new CategoryAndFiles(
-                    cat,
-                    files
-                        // sort files
-                        .Select(x => x.Path)
-                        .OrderBy(p => p.Name)
-                        .ThenByDescending(p => p.Extension)
-                        .ToArray()
-                )
-            ).ToArray();
-
-    private static CategoryAndFiles[] MapAllFilesInRootOnFirstDir(Dir root, Func<Fil, bool> extension_filter)
-        => MapFilesOnFirstDir(root, FileUtil.FilesInPitchfork(root, false)
-            .Where(extension_filter));
 
     private static bool FileMatchesAllFilters(Fil file, string[]? filters)
         => filters != null && filters.All(f => file.Path.Contains(f) == false);
@@ -721,37 +755,6 @@ internal static partial class ClangFacade
 
     // ------------------------------------------------------------------------------
 
-    internal static int HandleTidyListFilesCommand(Log print, bool sort_files)
-    {
-        var root = Dir.CurrentDirectory;
-
-        var files = FileUtil.IterateFiles(root, false, true)
-            .Where(FileUtil.IsSource);
-
-        if (sort_files)
-        {
-            var sorted = MapFilesOnFirstDir(root, files);
-            foreach (var (project, source_files) in sorted)
-            {
-                Printer.Header(project);
-                foreach (var file in source_files)
-                {
-                    AnsiConsole.WriteLine(file.GetDisplay());
-                }
-                AnsiConsole.WriteLine("");
-            }
-        }
-        else
-        {
-            foreach (var file in files)
-            {
-                AnsiConsole.WriteLine(file.GetDisplay());
-            }
-        }
-
-        return 0;
-    }
-
     // callback function called when running clang.py tidy
     internal static async Task<int> HandleRunClangTidyCommand(CompileCommandsArguments cc, Log log,
         bool force, bool headers, bool short_args, bool args_nop, string[] args_filter,
@@ -793,7 +796,7 @@ internal static partial class ClangFacade
         var total_classes = new ColCounter<string>();
         Dictionary<string, List<Fil>> warnings_per_file = new();
 
-        var data = MapAllFilesInRootOnFirstDir(root, headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource);
+        var data = ClangFiles.MapAllFilesInRootOnFirstDir(root, headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource);
         var stats = new FileStatistics();
 
         var errors = await PleaseRun(log, force, short_args, args_nop, args_filter, args_only,
@@ -966,7 +969,7 @@ internal static partial class ClangFacade
 
         var root = Dir.CurrentDirectory;
 
-        var data = MapAllFilesInRootOnFirstDir(root, FileUtil.IsHeaderOrSource);
+        var data = ClangFiles.MapAllFilesInRootOnFirstDir(root, FileUtil.IsHeaderOrSource);
 
         foreach (var (project, source_files) in data)
         {

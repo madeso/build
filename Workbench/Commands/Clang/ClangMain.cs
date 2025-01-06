@@ -36,7 +36,7 @@ internal sealed class ListClangTidyCommand : Command<ListClangTidyCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Log.PrintErrorsAtExit(print => ClangFacade.HandleTidyListFilesCommand(print, settings.Sort));
+        return Log.PrintErrorsAtExit(print => ClangFiles.HandleTidyListFilesCommand(print, settings.Sort));
     }
 }
 
