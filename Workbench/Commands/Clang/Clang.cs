@@ -108,25 +108,6 @@ internal class FileStatistics
     }
 }
 
-internal class NamePrinter
-{
-    private readonly string name;
-    private bool printed = false;
-
-    public NamePrinter(string name)
-    {
-        this.name = name;
-    }
-
-    internal void Print()
-    {
-        if (printed) { return; }
-
-        AnsiConsole.WriteLine(name);
-        printed = true;
-    }
-}
-
 internal class HtmlLink
 {
     public HtmlLink(string t, string l)
