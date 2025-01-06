@@ -242,7 +242,7 @@ class TidyMessage
 
                 var l2 = l;
 
-                var tidy_class = ClangFacade.ClangTidyWarningClass().Match(l2);
+                var tidy_class = ClangTIdyParsing.ClangTidyWarningClass().Match(l2);
                 if (tidy_class.Success)
                 {
                     l2 = l2.Substring(0, tidy_class.Index).Trim();
@@ -529,7 +529,13 @@ internal static class ClangFiles
     }
 }
 
-internal static partial class ClangFacade
+internal static partial class ClangTIdyParsing
+{
+    [GeneratedRegex(@"\[(\w+([-,]\w+)+)\]", RegexOptions.Compiled)]
+    public static partial Regex ClangTidyWarningClass();
+}
+
+internal static class ClangTidy
 {
     private static Fil GetPathToStore(Dir build_folder)
         => build_folder.GetFile(FileNames.ClangTidyStore);
@@ -696,7 +702,7 @@ internal static partial class ClangFacade
                 if (line.Contains("warning: "))
                 {
                     warnings.AddOne(printable_file);
-                    var tidy_class = ClangTidyWarningClass().Match(line);
+                    var tidy_class = ClangTIdyParsing.ClangTidyWarningClass().Match(line);
                     if (tidy_class.Success)
                     {
                         var warning_classes = tidy_class.Groups[1];
@@ -749,9 +755,6 @@ internal static partial class ClangFacade
             AnsiConsole.WriteLine($"{display(file)} at {count}");
         }
     }
-
-    [GeneratedRegex(@"\[(\w+([-,]\w+)+)\]", RegexOptions.Compiled)]
-    public static partial Regex ClangTidyWarningClass();
 
     // ------------------------------------------------------------------------------
 
@@ -869,6 +872,7 @@ internal static partial class ClangFacade
             Output = output;
         }
     }
+
     private static async Task<FileWithError[]> PleaseRun(Log log, bool force, bool short_args, bool args_nop, string[] args_filter,
         string[] args_only, bool args_fix, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
         Dir project_build_folder, FileStatistics stats, ColCounter<Fil> total_counter, ColCounter<string> total_classes,
@@ -957,7 +961,10 @@ internal static partial class ClangFacade
 
         return errors_to_print.ToArray();
     }
+}
 
+internal static class ClangFormat
+{
     // callback function called when running clang.py format
     internal static async Task<int> HandleClangFormatCommand(Log log, bool nop)
     {

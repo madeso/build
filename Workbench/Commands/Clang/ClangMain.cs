@@ -107,7 +107,7 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
                 return -1;
             }
         }
-        return await Log.PrintErrorsAtExitAsync(print => ClangFacade.HandleRunClangTidyCommand(
+        return await Log.PrintErrorsAtExitAsync(print => ClangTidy.HandleRunClangTidyCommand(
             settings, print,
             settings.Force,
             settings.Headers,
@@ -134,7 +134,7 @@ internal sealed class RunClangFormatCommand : AsyncCommand<RunClangFormatCommand
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return await Log.PrintErrorsAtExitAsync(async print =>
-            await ClangFacade.HandleClangFormatCommand(print, settings.Nop));
+            await ClangFormat.HandleClangFormatCommand(print, settings.Nop));
     }
 }
 
