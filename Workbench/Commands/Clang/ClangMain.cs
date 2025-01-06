@@ -19,7 +19,7 @@ internal sealed class MakeClangTidyCommand : Command<MakeClangTidyCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        ClangFacade.HandleMakeTidyCommand(settings.Nop);
+        ClangTidyFile.HandleMakeTidyCommand(settings.Nop);
         return 0;
     }
 }

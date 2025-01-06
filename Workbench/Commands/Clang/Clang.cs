@@ -399,49 +399,12 @@ internal class HtmlWriter
     }
 }
 
-internal static partial class ClangFacade
+internal static class ClangTidyFile
 {
-    private static Fil GetPathToStore(Dir build_folder)
-        => build_folder.GetFile(FileNames.ClangTidyStore);
-
-    private static Store? LoadStore(Log print, Dir build_folder)
-    {
-        var file_name = GetPathToStore(build_folder);
-        AnsiConsole.MarkupLineInterpolated($"Loading store from {file_name}");
-        if (!file_name.Exists)
-        {
-            Console.WriteLine("Failed to load");
-            return new Store();
-        }
-
-        var content = file_name.ReadAllText();
-        if(string.IsNullOrWhiteSpace(content))
-        {
-            return new Store();
-        }
-        var loaded = JsonUtil.Parse<JsonStore>(print, file_name, content);
-
-        return loaded != null ? new(loaded) : null;
-    }
-
-    private static void SaveStore(Dir build_folder, Store data)
-    {
-        var file_name = GetPathToStore(build_folder);
-        file_name.WriteAllText(JsonUtil.Write(new JsonStore(data)));
-    }
-
-    private static bool IsFileIgnoredByClangTidy(Fil path)
-    {
-        var first_line = path.ReadAllLines().FirstOrDefault();
-        if (first_line == null) { return false; }
-
-        return first_line.StartsWith("// clang-tidy: ignore");
-    }
-
-    private static Fil GetPathToClangTidySource(Dir root)
+    internal static Fil GetPathToClangTidySource(Dir root)
         => root.GetFile("clang-tidy");
 
-    // return a iterator over the the "compiled" .clang-tidy lines
+    // return a iterator over the "compiled" .clang-tidy lines
     private static IEnumerable<string> GenerateClangTidyAsIterator(Dir root)
     {
         var clang_tidy_file = GetPathToClangTidySource(root).ReadAllLines();
@@ -487,6 +450,66 @@ internal static partial class ClangFacade
         }
     }
 
+    // write the .clang-tidy from the clang-tidy "source"
+    internal static void WriteTidyFileToDisk(Dir root)
+    {
+        var content = GenerateClangTidyAsIterator(root);
+        root.GetFile(".clang-tidy").WriteAllLines(content);
+    }
+
+    internal static void HandleMakeTidyCommand(bool nop)
+    {
+        var root = Dir.CurrentDirectory;
+        if (nop)
+        {
+            PrintGeneratedClangTidy(root);
+        }
+        else
+        {
+            WriteTidyFileToDisk(root);
+        }
+    }
+}
+
+internal static partial class ClangFacade
+{
+    private static Fil GetPathToStore(Dir build_folder)
+        => build_folder.GetFile(FileNames.ClangTidyStore);
+
+    private static Store? LoadStore(Log print, Dir build_folder)
+    {
+        var file_name = GetPathToStore(build_folder);
+        AnsiConsole.MarkupLineInterpolated($"Loading store from {file_name}");
+        if (!file_name.Exists)
+        {
+            Console.WriteLine("Failed to load");
+            return new Store();
+        }
+
+        var content = file_name.ReadAllText();
+        if(string.IsNullOrWhiteSpace(content))
+        {
+            return new Store();
+        }
+        var loaded = JsonUtil.Parse<JsonStore>(print, file_name, content);
+
+        return loaded != null ? new(loaded) : null;
+    }
+
+    private static void SaveStore(Dir build_folder, Store data)
+    {
+        var file_name = GetPathToStore(build_folder);
+        file_name.WriteAllText(JsonUtil.Write(new JsonStore(data)));
+    }
+
+    private static bool IsFileIgnoredByClangTidy(Fil path)
+    {
+        var first_line = path.ReadAllLines().FirstOrDefault();
+        if (first_line == null) { return false; }
+
+        return first_line.StartsWith("// clang-tidy: ignore");
+    }
+
     private static CategoryAndFiles[] MapFilesOnFirstDir(Dir root, IEnumerable<Fil> files_iterator)
      => files_iterator
             .Select(f => new { Path = f, Cat = FileUtil.GetFirstFolder(root, f) })
@@ -525,7 +548,7 @@ internal static partial class ClangFacade
 
     private static TidyOutput? GetExistingOutputOrNull(Store store, Dir root, Fil source_file)
     {
-        var root_file = GetPathToClangTidySource(root);
+        var root_file = ClangTidyFile.GetPathToClangTidySource(root);
 
         if (store.Cache.TryGetValue(source_file, out var stored) == false)
         {
@@ -543,7 +566,7 @@ internal static partial class ClangFacade
     private static void StoreOutput(Store store, Dir root, Dir project_build_folder,
         Fil source_file, TidyOutput output)
     {
-        var clang_tidy_source = GetPathToClangTidySource(root);
+        var clang_tidy_source = ClangTidyFile.GetPathToClangTidySource(root);
 
         var data = new StoredTidyUpdate(output.Output, output.Taken,
             GetLastModificationForFiles(new[] { clang_tidy_source, source_file }));
@@ -698,27 +721,6 @@ internal static partial class ClangFacade
 
     // ------------------------------------------------------------------------------
 
-    // write the .clang-tidy from the clang-tidy "source"
-    private static void WriteTidyFileToDisk(Dir root)
-    {
-        var content = GenerateClangTidyAsIterator(root);
-        root.GetFile(".clang-tidy").WriteAllLines(content);
-    }
-
-    // callback function called when running clang.py make
-    internal static void HandleMakeTidyCommand(bool nop)
-    {
-        var root = Dir.CurrentDirectory;
-        if (nop)
-        {
-            PrintGeneratedClangTidy(root);
-        }
-        else
-        {
-            WriteTidyFileToDisk(root);
-        }
-    }
-
     internal static int HandleTidyListFilesCommand(Log print, bool sort_files)
     {
         var root = Dir.CurrentDirectory;
@@ -784,7 +786,7 @@ internal static partial class ClangFacade
             return -1;
         }
 
-        WriteTidyFileToDisk(root);
+        ClangTidyFile.WriteTidyFileToDisk(root);
         AnsiConsole.WriteLine($"using clang-tidy: {clang_tidy}");
 
         var total_counter = new ColCounter<Fil>();
