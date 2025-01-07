@@ -852,8 +852,12 @@ internal static class ClangTidy
         ClangTidyFile.WriteTidyFileToDisk(root);
         AnsiConsole.WriteLine($"using clang-tidy: {clang_tidy}");
 
-        var data = ClangFiles.MapAllFilesInRootOnFirstDir(root, also_include_headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource);
-        var stats = await RunAllFiles(log, args, data, store, root, clang_tidy, project_build_folder);
+        var html_root = args.HtmlRoot == null ? null : new HtmlRoot(args.HtmlRoot, "Tidy report");
+
+        var files = ClangFiles.MapAllFilesInRootOnFirstDir(root, also_include_headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource);
+        var stats = await RunAllFiles(log, args, files, store, root, clang_tidy, project_build_folder, html_root);
+
+        html_root?.Complete();
 
         if (!args.ShortArgs && args.Only.Length == 0)
         {
@@ -864,7 +868,6 @@ internal static class ClangTidy
                 AnsiConsole.WriteLine("");
             }
         }
-
         if (false == args.ShortArgs && args.Only.Length == 0)
         {
             PrintReportToConsole(stats);
@@ -927,14 +930,12 @@ internal static class ClangTidy
     }
 
     private static async Task<GlobalStatistics> RunAllFiles(Log log, Args args, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
-        Dir project_build_folder)
+        Dir project_build_folder, HtmlRoot? html_root)
     {
         var files = data.SelectMany(pair => pair.Files.Select(x => new CollectedTidyFil(x, pair.Category)))
             .Where(source_file => FileMatchesAllFilters(source_file.File, args.Filter) == false);
 
         var stats = new GlobalStatistics();
-
-        var html_root = args.HtmlRoot == null ? null : new HtmlRoot(args.HtmlRoot, "Tidy report");
 
         await Channel
             .CreateUnbounded<CollectedTidyFil>()
@@ -984,8 +985,6 @@ internal static class ClangTidy
                     stats.GetWarningsList(k).Add(source_file);
                 }
             });
-
-        if (html_root != null) html_root.Complete();
 
         return stats;
     }
