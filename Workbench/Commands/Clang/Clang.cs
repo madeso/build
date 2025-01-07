@@ -98,7 +98,7 @@ internal class FileWithError
     }
 }
 
-internal class FileStatistics
+internal class GlobalStatistics
 {
     private readonly Dictionary<Fil, TimeSpan> times_per_file = new();
 
@@ -145,6 +145,13 @@ internal class FileStatistics
         WarningsPerFile.Add(k, warnings_list);
         return warnings_list;
     }
+}
+
+internal class FileStats
+{
+    public List<string> lines = [];
+    public ColCounter<Fil> warnings = new();
+    public ColCounter<string> classes = new();
 }
 
 internal class HtmlLink
@@ -701,36 +708,32 @@ internal static class ClangTidy
         return ret;
     }
 
-    private static (ColCounter<Fil> warnings, ColCounter<string> classes, string[])
-        CreateStatisticsAndPrintStatus(FileStatistics stats, bool short_list, Fil printable_file,
-            string[] only, TidyOutput co, Action<string> on_line)
+    private static FileStats CreateStatisticsAndPrintStatus(bool short_list, Fil source_file,
+            string[] only_show_these_classes, TidyOutput tidy_output, Action<string> on_line)
     {
-        var lines = new List<string>();
-        var warnings = new ColCounter<Fil>();
-        var classes = new ColCounter<string>();
+        var stats = new FileStats();
 
-        if (false == short_list && only.Length == 0)
+        if (false == short_list && only_show_these_classes.Length == 0)
         {
-            AnsiConsole.WriteLine($"took {co.Taken}");
+            AnsiConsole.WriteLine($"took {tidy_output.Taken}");
         }
-        stats.AddTimeTaken(printable_file, co.Taken);
 
         var print_empty = false;
-        var hidden = only.Length > 0;
-        foreach (var line in RemoveStatusLines(co.Output))
+        var hidden = only_show_these_classes.Length > 0;
+        foreach (var line in RemoveStatusLines(tidy_output.Output))
         {
             if (line.Contains("warning: "))
             {
-                warnings.AddOne(printable_file);
+                stats.warnings.AddOne(source_file);
                 var tidy_class = ClangTIdyParsing.ClangTidyWarningClass().Match(line);
                 if (tidy_class.Success)
                 {
                     var warning_classes = tidy_class.Groups[1];
                     foreach (var warning_class in warning_classes.Value.Split(','))
                     {
-                        classes.AddOne(warning_class);
-                        hidden = only.Length > 0;
-                        if (only.Contains(warning_class))
+                        stats.classes.AddOne(warning_class);
+                        hidden = only_show_these_classes.Length > 0;
+                        if (only_show_these_classes.Contains(warning_class))
                         {
                             hidden = false;
                         }
@@ -743,7 +746,7 @@ internal static class ClangTidy
                 {
                     on_line(string.Empty);
                     print_empty = false;
-                    lines.Add(string.Empty);
+                    stats.lines.Add(string.Empty);
                 }
             }
             else
@@ -752,17 +755,18 @@ internal static class ClangTidy
                 {
                     print_empty = true;
                     on_line(line);
-                    lines.Add(line);
+                    stats.lines.Add(line);
                 }
             }
         }
 
-        if (false == short_list && only.Length == 0)
+        if (false == short_list && only_show_these_classes.Length == 0)
         {
-            PrintWarningCounter(classes, printable_file.GetDisplay(), c => c);
+            PrintWarningCounter(stats.classes, source_file.GetDisplay(), c => c);
             AnsiConsole.WriteLine("");
         }
-        return (warnings, classes, lines.ToArray());
+
+        return stats;
     }
 
     private static IEnumerable<string> RemoveStatusLines(string[] output)
@@ -876,7 +880,7 @@ internal static class ClangTidy
         }
     }
 
-    private static void PrintReportToConsole(FileStatistics stats)
+    private static void PrintReportToConsole(GlobalStatistics stats)
     {
         Printer.Header("TIDY REPORT");
         foreach (var f in stats.Errors.OrderBy(x => x.File))
@@ -922,13 +926,13 @@ internal static class ClangTidy
         }
     }
 
-    private static async Task<FileStatistics> RunAllFiles(Log log, Args args, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
+    private static async Task<GlobalStatistics> RunAllFiles(Log log, Args args, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
         Dir project_build_folder)
     {
         var files = data.SelectMany(pair => pair.Files.Select(x => new CollectedTidyFil(x, pair.Category)))
             .Where(source_file => FileMatchesAllFilters(source_file.File, args.Filter) == false);
 
-        var stats = new FileStatistics();
+        var stats = new GlobalStatistics();
 
         var html_root = args.HtmlRoot == null ? null : new HtmlRoot(args.HtmlRoot, "Tidy report");
 
@@ -951,8 +955,9 @@ internal static class ClangTidy
                 var (cat, source_file, tidy_output) = tuple;
                 AnsiConsole.WriteLine($"Collecting {source_file}");
                 var html_writer = html_root == null ? null : new HtmlWriter(html_root, source_file);
-                var (warnings, classes, lines) =
-                    CreateStatisticsAndPrintStatus(stats, args.ShortArgs, source_file, args.Only, tidy_output, line =>
+
+                stats.AddTimeTaken(source_file, tidy_output.Taken);
+                var fs = CreateStatisticsAndPrintStatus(args.ShortArgs, source_file, args.Only, tidy_output, line =>
                     {
                         if (html_writer == null)
                         {
@@ -966,15 +971,15 @@ internal static class ClangTidy
 
                 html_writer?.Complete();
 
-                if (warnings.Items.Any())
+                if (fs.warnings.Items.Any())
                 {
-                    stats.Errors.Add(new FileWithError(source_file, lines));
+                    stats.Errors.Add(new FileWithError(source_file, fs.lines.ToArray()));
                 }
 
-                stats.GetProjectCounter(cat).Update(warnings);
-                stats.TotalCounter.Update(warnings);
-                stats.TotalClasses.Update(classes);
-                foreach (var k in classes.Keys)
+                stats.GetProjectCounter(cat).Update(fs.warnings);
+                stats.TotalCounter.Update(fs.warnings);
+                stats.TotalClasses.Update(fs.classes);
+                foreach (var k in fs.classes.Keys)
                 {
                     stats.GetWarningsList(k).Add(source_file);
                 }
