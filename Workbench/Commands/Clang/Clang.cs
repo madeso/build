@@ -86,6 +86,18 @@ public class StoredTidyUpdate
 
 public record CategoryAndFiles(string Category, Fil[] Files);
 
+internal class FileWithError
+{
+    public Fil File { get; }
+    public string[] Output { get; }
+
+    public FileWithError(Fil file, string[] output)
+    {
+        File = file;
+        Output = output;
+    }
+}
+
 internal class FileStatistics
 {
     private readonly Dictionary<Fil, TimeSpan> times_per_file = new();
@@ -96,6 +108,8 @@ internal class FileStatistics
 
     public ColCounter<Fil> TotalCounter {get;} = new();
     public ColCounter<string> TotalClasses { get; } = new();
+
+    public List<FileWithError> Errors { get; } = new();
 
     internal void AddTimeTaken(Fil file, TimeSpan time)
     {
@@ -835,9 +849,7 @@ internal static class ClangTidy
         AnsiConsole.WriteLine($"using clang-tidy: {clang_tidy}");
 
         var data = ClangFiles.MapAllFilesInRootOnFirstDir(root, also_include_headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource);
-        var stats = new FileStatistics();
-
-        var errors = await RunAllFiles(log, args, data, store, root, clang_tidy, project_build_folder, stats);
+        var stats = await RunAllFiles(log, args, data, store, root, clang_tidy, project_build_folder);
 
         if (!args.ShortArgs && args.Only.Length == 0)
         {
@@ -851,7 +863,7 @@ internal static class ClangTidy
 
         if (false == args.ShortArgs && args.Only.Length == 0)
         {
-            PrintReportToConsole(errors, stats);
+            PrintReportToConsole(stats);
         }
 
         if (stats.TotalCounter.TotalCount() > 0)
@@ -864,10 +876,10 @@ internal static class ClangTidy
         }
     }
 
-    private static void PrintReportToConsole(FileWithError[] errors, FileStatistics stats)
+    private static void PrintReportToConsole(FileStatistics stats)
     {
         Printer.Header("TIDY REPORT");
-        foreach (var f in errors.OrderBy(x => x.File))
+        foreach (var f in stats.Errors.OrderBy(x => x.File))
         {
             var panel = new Panel(Markup.Escape(string.Join(Environment.NewLine, f.Output)))
             {
@@ -910,25 +922,13 @@ internal static class ClangTidy
         }
     }
 
-    private class FileWithError
-    {
-        public Fil File { get; }
-        public string[] Output { get; }
-
-        public FileWithError(Fil file, string[] output)
-        {
-            File = file;
-            Output = output;
-        }
-    }
-
-    private static async Task<FileWithError[]> RunAllFiles(Log log, Args args, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
-        Dir project_build_folder, FileStatistics stats)
+    private static async Task<FileStatistics> RunAllFiles(Log log, Args args, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
+        Dir project_build_folder)
     {
         var files = data.SelectMany(pair => pair.Files.Select(x => new CollectedTidyFil(x, pair.Category)))
             .Where(source_file => FileMatchesAllFilters(source_file.File, args.Filter) == false);
 
-        List<FileWithError> errors_to_print = new();
+        var stats = new FileStatistics();
 
         var html_root = args.HtmlRoot == null ? null : new HtmlRoot(args.HtmlRoot, "Tidy report");
 
@@ -968,7 +968,7 @@ internal static class ClangTidy
 
                 if (warnings.Items.Any())
                 {
-                    errors_to_print.Add(new FileWithError(source_file, lines));
+                    stats.Errors.Add(new FileWithError(source_file, lines));
                 }
 
                 stats.GetProjectCounter(cat).Update(warnings);
@@ -982,7 +982,7 @@ internal static class ClangTidy
 
         if (html_root != null) html_root.Complete();
 
-        return errors_to_print.ToArray();
+        return stats;
     }
 }
 
