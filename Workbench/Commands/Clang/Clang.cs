@@ -15,7 +15,7 @@ namespace Workbench.Commands.Clang;
 
 public class Store
 {
-    public ConcurrentDictionary<Fil, StoredTidyUpdate> Cache {get; set;}
+    public ConcurrentDictionary<Fil, StoredTidyUpdate> Cache { get; set; }
 
     public Store()
     {
@@ -31,15 +31,15 @@ public class Store
 public class JsonCacheEntry
 {
     [JsonPropertyName("file")]
-    public Fil File {get; set;}
+    public Fil File { get; set; }
 
     [JsonPropertyName("output")]
-    public StoredTidyUpdate Output {get; set;}
+    public StoredTidyUpdate Output { get; set; }
 
     public JsonCacheEntry()
     {
         this.File = Dir.CurrentDirectory.GetFile("missing.txt");
-        this.Output = new(new string[] {},TimeSpan.Zero, DateTime.Now);
+        this.Output = new(new string[] { }, TimeSpan.Zero, DateTime.Now);
     }
     public JsonCacheEntry(Fil f, StoredTidyUpdate o)
     {
@@ -51,7 +51,7 @@ public class JsonCacheEntry
 public class JsonStore
 {
     [JsonPropertyName("cache")]
-    public List<JsonCacheEntry> Cache {get; set;}
+    public List<JsonCacheEntry> Cache { get; set; }
 
     public JsonStore()
     {
@@ -68,15 +68,15 @@ public record TidyOutput(string[] Output, TimeSpan Taken);
 public class StoredTidyUpdate
 {
     [JsonPropertyName("output")]
-    public string[] Output {get; set;}
+    public string[] Output { get; set; }
 
     [JsonPropertyName("taken")]
-    public TimeSpan Taken {get; set;}
+    public TimeSpan Taken { get; set; }
 
     [JsonPropertyName("modified")]
-    public DateTime Modified {get; set;}
+    public DateTime Modified { get; set; }
 
-    public StoredTidyUpdate( string[] output, TimeSpan taken, DateTime modified )
+    public StoredTidyUpdate(string[] output, TimeSpan taken, DateTime modified)
     {
         this.Output = output;
         this.Taken = taken;
@@ -116,11 +116,11 @@ internal class HtmlLink
         this.Link = l;
     }
 
-    public string Title {get; private set;}
-    public string Link {get; private set;}
+    public string Title { get; private set; }
+    public string Link { get; private set; }
 
-    public int Categories {get; set;} = -1;
-    public int Totals {get; set;} = -1;
+    public int Categories { get; set; } = -1;
+    public int Totals { get; set; } = -1;
 }
 internal class HtmlRoot
 {
@@ -128,7 +128,7 @@ internal class HtmlRoot
     Dir relative;
     Dir output;
 
-    List<HtmlLink> links = new ();
+    List<HtmlLink> links = new();
 
     public HtmlRoot(Dir d, string n)
     {
@@ -146,7 +146,7 @@ internal class HtmlRoot
 
     public void Complete()
     {
-        List<string> output = new ();
+        List<string> output = new();
 
         output.Add($"<html>");
         output.Add($"<head>");
@@ -162,24 +162,24 @@ internal class HtmlRoot
 
         output.Add("<table style=\"width: 100%\">");
         output.Add("<colgroup>");
-            output.Add("<col span=\"1\" style=\"width: 70%;\">");
-            output.Add("<col span=\"1\" style=\"width: 15%;\">");
-            output.Add("<col span=\"1\" style=\"width: 15%;\">");
+        output.Add("<col span=\"1\" style=\"width: 70%;\">");
+        output.Add("<col span=\"1\" style=\"width: 15%;\">");
+        output.Add("<col span=\"1\" style=\"width: 15%;\">");
         output.Add("</colgroup>");
         output.Add("<thead>");
-            output.Add($"<tr>");
-                output.Add("<th>File</th>");
-                output.Add($"<th{align}>Categories</th>");
-                output.Add($"<th{align}>Totals</th>");
-            output.Add($"</tr>");
+        output.Add($"<tr>");
+        output.Add("<th>File</th>");
+        output.Add($"<th{align}>Categories</th>");
+        output.Add($"<th{align}>Totals</th>");
+        output.Add($"</tr>");
         output.Add("</thead>");
         output.Add("<tbody>");
-        foreach(var l in links.OrderByDescending(l=>l.Totals))
+        foreach (var l in links.OrderByDescending(l => l.Totals))
         {
             output.Add($"<tr>");
-                output.Add($"<td><a href={l.Link}>{l.Title}</a></td>");
-                output.Add($"<td{align}>{Q(l.Categories)}</td>");
-                output.Add($"<td{align}>{Q(l.Totals)}</td>");
+            output.Add($"<td><a href={l.Link}>{l.Title}</a></td>");
+            output.Add($"<td{align}>{Q(l.Categories)}</td>");
+            output.Add($"<td{align}>{Q(l.Totals)}</td>");
             output.Add($"</tr>");
         }
         output.Add("</tbody>");
@@ -196,7 +196,7 @@ internal class HtmlRoot
 
         static string Q(int i)
         {
-            if(i >= 0) return $"{i}";
+            if (i >= 0) return $"{i}";
             else return "?";
         }
     }
@@ -210,26 +210,26 @@ internal class HtmlRoot
 
 class TidyMessage
 {
-    public string file {get; set;} = string.Empty;
-    public int line {get; set;} = 0;
-    public int column {get; set;} = 0;
-    public string type {get; set;} = string.Empty;
-    public string message {get; set;} = string.Empty;
-    public string? category {get; set;} = null;
-    public List<string> code {get; set;} = new();
+    public string file { get; set; } = string.Empty;
+    public int line { get; set; } = 0;
+    public int column { get; set; } = 0;
+    public string type { get; set; } = string.Empty;
+    public string message { get; set; } = string.Empty;
+    public string? category { get; set; } = null;
+    public List<string> code { get; set; } = new();
 
     public static IEnumerable<TidyMessage> Parse(IEnumerable<string> lines)
     {
         var reg = new Regex(@"(?<file>[^:]+):(?<line>[0-9]+):(?<col>[0-9]+): (?<type>[^$]+):(?<mess>[^$]+)");
         TidyMessage? current = null;
-        foreach(var l in lines)
+        foreach (var l in lines)
         {
-            if(string.IsNullOrEmpty(l)) continue;
+            if (string.IsNullOrEmpty(l)) continue;
 
             var is_code = l.TrimStart() != l; // does the line start with space?
-            if(is_code)
+            if (is_code)
             {
-                if(current == null)
+                if (current == null)
                 {
                     Console.WriteLine($"WARNING: Unexpected code line: '{l}'");
                     continue;
@@ -238,7 +238,7 @@ class TidyMessage
             }
             else
             {
-                if(current != null) yield return current;
+                if (current != null) yield return current;
 
                 var l2 = l;
 
@@ -249,15 +249,15 @@ class TidyMessage
                 }
 
                 var parsed = reg.Match(l2);
-                if(parsed.Success == false)
+                if (parsed.Success == false)
                 {
                     Console.WriteLine($"WARNING: Invalid line: '{l}'");
                     current = null;
                     continue;
                 }
                 string? cat = null;
-                if(tidy_class.Success) cat = tidy_class.Groups[1].Value;
-                if(string.IsNullOrEmpty(cat)) cat = null;
+                if (tidy_class.Success) cat = tidy_class.Groups[1].Value;
+                if (string.IsNullOrEmpty(cat)) cat = null;
                 current = new TidyMessage
                 {
                     file = parsed.Groups["file"].Value,
@@ -270,28 +270,28 @@ class TidyMessage
             }
         }
 
-        if(current != null) yield return current;
+        if (current != null) yield return current;
     }
 }
 
 class TidyGroup
 {
-    public List<TidyMessage> messages {get; set;} = new();
+    public List<TidyMessage> messages { get; set; } = new();
 
     public static IEnumerable<TidyGroup> Parse(IEnumerable<string> lines)
     {
         TidyGroup? current = null;
-        foreach(var mess in TidyMessage.Parse(lines))
+        foreach (var mess in TidyMessage.Parse(lines))
         {
-            if(current == null || mess.type != "note")
+            if (current == null || mess.type != "note")
             {
-                if(current != null) yield return current;
+                if (current != null) yield return current;
                 current = new TidyGroup();
             }
             current.messages.Add(mess);
         }
 
-        if(current != null)
+        if (current != null)
         {
             yield return current;
         }
@@ -305,7 +305,7 @@ internal class HtmlWriter
     HtmlRoot root;
     HtmlLink link;
 
-    readonly List<string> lines = new ();
+    readonly List<string> lines = new();
 
     public HtmlWriter(HtmlRoot root, Fil f)
     {
@@ -324,7 +324,7 @@ internal class HtmlWriter
         var suggested = root.GetRelative(f);
 
         // if returned path includes back references, just use full path?
-        if(suggested.StartsWith(".")) return path;
+        if (suggested.StartsWith(".")) return path;
 
         return suggested;
     }
@@ -337,7 +337,7 @@ internal class HtmlWriter
 
     public void Complete()
     {
-        List<string> output = new ();
+        List<string> output = new();
 
         output.Add($"<html>");
         output.Add($"<head>");
@@ -352,25 +352,25 @@ internal class HtmlWriter
         var grouped = TidyGroup.Parse(lines).ToImmutableArray();
         var count = new HashSet<string>();
 
-        foreach(var g in grouped)
+        foreach (var g in grouped)
         {
-            foreach(var m in g.messages)
+            foreach (var m in g.messages)
             {
                 var is_note = m.type == "note";
 
-                if(is_note == false)
+                if (is_note == false)
                 {
                     output.Add("<hr>");
                     output.Add($"<h3>{m.type}: {m.message}</h3>");
                 }
 
-                if(m.category != null)
+                if (m.category != null)
                 {
                     output.Add($"<code>[{m.category}]</code>");
                     count.Add(m.category);
                 }
 
-                if(is_note)
+                if (is_note)
                 {
                     output.Add($"<p>{m.message}</p>");
                 }
@@ -378,7 +378,7 @@ internal class HtmlWriter
                 output.Add($"<p><i>{TryRelative(m.file)} {m.line} : {m.column}</i></p>");
 
                 output.Add($"<pre>");
-                foreach(var l in m.code)
+                foreach (var l in m.code)
                 {
                     output.Add(l);
                 }
@@ -551,7 +551,7 @@ internal static class ClangTidy
         }
 
         var content = file_name.ReadAllText();
-        if(string.IsNullOrWhiteSpace(content))
+        if (string.IsNullOrWhiteSpace(content))
         {
             return new Store();
         }
@@ -667,18 +667,66 @@ internal static class ClangTidy
             string[] only, TidyOutput co, Action<string> on_line)
     {
         var lines = new List<string>();
-
-        var output = co.Output;
-        var time_taken = co.Taken;
         var warnings = new ColCounter<Fil>();
         var classes = new ColCounter<string>();
+
         if (false == short_list && only.Length == 0)
         {
-            AnsiConsole.WriteLine($"took {time_taken}");
+            AnsiConsole.WriteLine($"took {co.Taken}");
         }
-        stats.Add(printable_file, time_taken);
+        stats.Add(printable_file, co.Taken);
+
         var print_empty = false;
         var hidden = only.Length > 0;
+        foreach (var line in RemoveStatusLines(co.Output))
+        {
+            if (line.Contains("warning: "))
+            {
+                warnings.AddOne(printable_file);
+                var tidy_class = ClangTIdyParsing.ClangTidyWarningClass().Match(line);
+                if (tidy_class.Success)
+                {
+                    var warning_classes = tidy_class.Groups[1];
+                    foreach (var warning_class in warning_classes.Value.Split(','))
+                    {
+                        classes.AddOne(warning_class);
+                        hidden = only.Length > 0;
+                        if (only.Contains(warning_class))
+                        {
+                            hidden = false;
+                        }
+                    }
+                }
+            }
+            if (line.Trim() == "")
+            {
+                if (false == hidden && print_empty)
+                {
+                    on_line(string.Empty);
+                    print_empty = false;
+                    lines.Add(string.Empty);
+                }
+            }
+            else
+            {
+                if (false == hidden)
+                {
+                    print_empty = true;
+                    on_line(line);
+                    lines.Add(line);
+                }
+            }
+        }
+        if (false == short_list && only.Length == 0)
+        {
+            PrintWarningCounter(classes, printable_file.GetDisplay(), c => c);
+            AnsiConsole.WriteLine("");
+        }
+        return (warnings, classes, lines.ToArray());
+    }
+
+    private static IEnumerable<string> RemoveStatusLines(string[] output)
+    {
         foreach (var line in output)
         {
             if (line.Contains("warnings generated"))
@@ -699,55 +747,26 @@ internal static class ClangTidy
             }
             else
             {
-                if (line.Contains("warning: "))
-                {
-                    warnings.AddOne(printable_file);
-                    var tidy_class = ClangTIdyParsing.ClangTidyWarningClass().Match(line);
-                    if (tidy_class.Success)
-                    {
-                        var warning_classes = tidy_class.Groups[1];
-                        foreach (var warning_class in warning_classes.Value.Split(','))
-                        {
-                            classes.AddOne(warning_class);
-                            hidden = only.Length > 0;
-                            if (only.Contains(warning_class))
-                            {
-                                hidden = false;
-                            }
-                        }
-                    }
-                }
-                if (line.Trim() == "")
-                {
-                    if (false == hidden && print_empty)
-                    {
-                        on_line(string.Empty);
-                        print_empty = false;
-                        lines.Add(string.Empty);
-                    }
-                }
-                else
-                {
-                    if (false == hidden)
-                    {
-                        print_empty = true;
-                        on_line(line);
-                        lines.Add(line);
-                    }
-                }
+                yield return line;
             }
         }
-        if (false == short_list && only.Length == 0)
-        {
-            PrintWarningCounter(classes, printable_file.GetDisplay(), c => c);
-            AnsiConsole.WriteLine("");
-        }
-        return (warnings, classes, lines.ToArray());
+    }
+
+    public class Args(Dir? html_root, int task_count, bool fix, string[] filter, bool nop, bool short_args, bool force, string[] only)
+    {
+        public Dir? HtmlRoot { get; } = html_root;
+        public int NumberOfTasks { get; } = task_count;
+        public bool Fix { get; } = fix;
+        public bool Force { get; } = force;
+        public bool ShortArgs { get; } = short_args;
+        public bool Nop { get; } = nop;
+        public string[] Filter { get; } = filter;
+        public string[] Only { get; } = only;
     }
 
     // print warning counter to the console
     private static void PrintWarningCounter<T>(ColCounter<T> project_counter, string project, Func<T, string> display)
-        where T: notnull
+        where T : notnull
     {
         AnsiConsole.WriteLine($"{project_counter.TotalCount()} warnings in {project}.");
         foreach (var (file, count) in project_counter.MostCommon().Take(10))
@@ -756,15 +775,9 @@ internal static class ClangTidy
         }
     }
 
-    // ------------------------------------------------------------------------------
-
     // callback function called when running clang.py tidy
-    internal static async Task<int> HandleRunClangTidyCommand(CompileCommandsArguments cc, Log log,
-        bool force, bool headers, bool short_args, bool args_nop, string[] args_filter,
-        string[] the_args_only, bool args_fix, int number_of_tasks, Dir? html_root)
+    internal static async Task<int> HandleRunClangTidyCommand(CompileCommandsArguments cc, Log log, bool also_include_headers, Args args)
     {
-        var args_only = the_args_only.Where(x => string.IsNullOrWhiteSpace(x) == false).ToArray();
-
         var clang_tidy = Config.Paths.GetClangTidyExecutable(log);
         if (clang_tidy == null)
         {
@@ -799,44 +812,14 @@ internal static class ClangTidy
         var total_classes = new ColCounter<string>();
         Dictionary<string, List<Fil>> warnings_per_file = new();
 
-        var data = ClangFiles.MapAllFilesInRootOnFirstDir(root, headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource);
+        var data = ClangFiles.MapAllFilesInRootOnFirstDir(root, also_include_headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource);
         var stats = new FileStatistics();
 
-        var errors = await PleaseRun(log, force, short_args, args_nop, args_filter, args_only,
-            args_fix, data, store, root, clang_tidy, project_build_folder, stats, total_counter, total_classes, warnings_per_file, number_of_tasks, html_root);
+        var errors = await RunAllFiles(log, args, data, store, root, clang_tidy, project_build_folder, stats, total_counter, total_classes, warnings_per_file);
 
-        if (false == short_args && args_only.Length == 0)
+        if (false == args.ShortArgs && args.Only.Length == 0)
         {
-            Printer.Header("TIDY REPORT");
-            foreach (var f in errors.OrderBy(x => x.File))
-            {
-                var panel = new Panel(Markup.Escape(string.Join(Environment.NewLine, f.Output)))
-                {
-                    Header = new PanelHeader(Markup.Escape(f.File.GetDisplay())),
-                    Expand = true
-                };
-                AnsiConsole.Write(panel);
-            }
-            Printer.Line();
-            PrintWarningCounter(total_counter, "total", f=> f.GetDisplay());
-            AnsiConsole.WriteLine("");
-            PrintWarningCounter(total_classes, "classes", c => c);
-            AnsiConsole.WriteLine("");
-            Printer.Line();
-            AnsiConsole.WriteLine("");
-            foreach (var (k, v) in warnings_per_file)
-            {
-                AnsiConsole.WriteLine($"{k}:");
-                foreach (var f in v)
-                {
-                    AnsiConsole.WriteLine($"  {f}");
-                }
-                AnsiConsole.WriteLine("");
-            }
-
-            Printer.Line();
-            AnsiConsole.WriteLine("");
-            stats.Print();
+            PrintReportToConsole(errors, total_counter, total_classes, warnings_per_file, stats);
         }
 
         if (total_counter.TotalCount() > 0)
@@ -847,6 +830,40 @@ internal static class ClangTidy
         {
             return 0;
         }
+    }
+
+    private static void PrintReportToConsole(FileWithError[] errors, ColCounter<Fil> total_counter, ColCounter<string> total_classes, Dictionary<string, List<Fil>> warnings_per_file, FileStatistics stats)
+    {
+        Printer.Header("TIDY REPORT");
+        foreach (var f in errors.OrderBy(x => x.File))
+        {
+            var panel = new Panel(Markup.Escape(string.Join(Environment.NewLine, f.Output)))
+            {
+                Header = new PanelHeader(Markup.Escape(f.File.GetDisplay())),
+                Expand = true
+            };
+            AnsiConsole.Write(panel);
+        }
+        Printer.Line();
+        PrintWarningCounter(total_counter, "total", f => f.GetDisplay());
+        AnsiConsole.WriteLine("");
+        PrintWarningCounter(total_classes, "classes", c => c);
+        AnsiConsole.WriteLine("");
+        Printer.Line();
+        AnsiConsole.WriteLine("");
+        foreach (var (k, v) in warnings_per_file)
+        {
+            AnsiConsole.WriteLine($"{k}:");
+            foreach (var f in v)
+            {
+                AnsiConsole.WriteLine($"  {f}");
+            }
+            AnsiConsole.WriteLine("");
+        }
+
+        Printer.Line();
+        AnsiConsole.WriteLine("");
+        stats.Print();
     }
 
     private class CollectedTidyFil
@@ -873,31 +890,30 @@ internal static class ClangTidy
         }
     }
 
-    private static async Task<FileWithError[]> PleaseRun(Log log, bool force, bool short_args, bool args_nop, string[] args_filter,
-        string[] args_only, bool args_fix, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
+    private static async Task<FileWithError[]> RunAllFiles(Log log, Args args, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
         Dir project_build_folder, FileStatistics stats, ColCounter<Fil> total_counter, ColCounter<string> total_classes,
-        Dictionary<string, List<Fil>> warnings_per_file, int number_of_tasks, Dir? html_target)
+        Dictionary<string, List<Fil>> warnings_per_file)
     {
         var files = data.SelectMany(pair => pair.Files.Select(x => new CollectedTidyFil(x, pair.Category)))
-            .Where(source_file => FileMatchesAllFilters(source_file.File, args_filter) == false);
+            .Where(source_file => FileMatchesAllFilters(source_file.File, args.Filter) == false);
 
         Dictionary<string, ColCounter<Fil>> pc = new();
         List<FileWithError> errors_to_print = new();
 
-        var html_root = html_target == null ? null : new HtmlRoot(html_target, "Tidy report");
+        var html_root = args.HtmlRoot == null ? null : new HtmlRoot(args.HtmlRoot, "Tidy report");
 
         await Channel
             .CreateUnbounded<CollectedTidyFil>()
             .Source(files)
             .PipeAsync(
-                maxConcurrency: number_of_tasks,
+                maxConcurrency: args.NumberOfTasks,
                 capacity: 100,
                 transform: async source_file =>
                 {
                     AnsiConsole.WriteLine($"Running {source_file.File}");
-                    var co = args_nop
-                        ? new(new string[]{}, new TimeSpan())
-                        : await GetExistingOutputOrCallClangTidy(store, log, root, force, clang_tidy, project_build_folder, source_file.File, args_fix);
+                    var co = args.Nop
+                        ? new(new string[] { }, new TimeSpan())
+                        : await GetExistingOutputOrCallClangTidy(store, log, root, args.Force, clang_tidy, project_build_folder, source_file.File, args.Fix);
                     return (source_file.Category, source_file.File, co);
                 })
             .ReadAll(tuple =>
@@ -906,8 +922,9 @@ internal static class ClangTidy
                 AnsiConsole.WriteLine($"Collecting {source_file}");
                 var html_writer = html_root == null ? null : new HtmlWriter(html_root, source_file);
                 var (warnings, classes, lines) =
-                    CreateStatisticsAndPrintStatus(stats, short_args, source_file, args_only, co, line => {
-                        if(html_writer == null)
+                    CreateStatisticsAndPrintStatus(stats, args.ShortArgs, source_file, args.Only, co, line =>
+                    {
+                        if (html_writer == null)
                         {
                             Console.WriteLine(line);
                         }
@@ -916,7 +933,7 @@ internal static class ClangTidy
                             html_writer.OnLine(line);
                         }
                     });
-                
+
                 html_writer?.Complete();
 
                 if (warnings.Items.Any())
@@ -946,10 +963,10 @@ internal static class ClangTidy
                 }
             });
 
-        if(html_root != null) html_root.Complete();
+        if (html_root != null) html_root.Complete();
 
 
-        if (!short_args && args_only.Length == 0)
+        if (!args.ShortArgs && args.Only.Length == 0)
         {
             foreach (var (project, warnings) in pc)
             {

@@ -109,15 +109,10 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
         }
         return await Log.PrintErrorsAtExitAsync(print => ClangTidy.HandleRunClangTidyCommand(
             settings, print,
-            settings.Force,
             settings.Headers,
-            settings.Short,
-            settings.Nop,
-            settings.Filter,
-            settings.Only ?? Array.Empty<string>(),
-            settings.Fix,
-            settings.NumberOfTasks,
-            html_dir));
+            new ClangTidy.Args(html_dir, settings.NumberOfTasks, settings.Fix, settings.Filter, settings.Nop, settings.Short, settings.Force,
+                (settings.Only ?? Array.Empty<string>()).Where(x => string.IsNullOrWhiteSpace(x) == false).ToArray()
+            )));
     }
 }
 
