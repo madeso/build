@@ -88,23 +88,48 @@ public record CategoryAndFiles(string Category, Fil[] Files);
 
 internal class FileStatistics
 {
-    private readonly Dictionary<Fil, TimeSpan> data = new();
+    private readonly Dictionary<Fil, TimeSpan> times_per_file = new();
 
-    internal void Add(Fil file, TimeSpan time)
+    public Dictionary<string, ColCounter<Fil>> ProjectCounters { get; }= new();
+
+    public Dictionary<string, List<Fil>> WarningsPerFile { get; } = new();
+
+    public ColCounter<Fil> TotalCounter {get;} = new();
+    public ColCounter<string> TotalClasses { get; } = new();
+
+    internal void AddTimeTaken(Fil file, TimeSpan time)
     {
-        data.Add(file, time);
+        times_per_file.Add(file, time);
     }
 
-    internal void Print()
+    internal void PrintTimeTaken()
     {
-        if (data.Count == 0) { return; }
-        var average_value = TimeSpan.FromSeconds(data.Average(x => x.Value.TotalSeconds));
-        var mi = data.MinBy(x => x.Value);
-        var ma = data.MaxBy(x => x.Value);
+        if (times_per_file.Count == 0) { return; }
+        var average_value = TimeSpan.FromSeconds(times_per_file.Average(x => x.Value.TotalSeconds));
+        var mi = times_per_file.MinBy(x => x.Value);
+        var ma = times_per_file.MaxBy(x => x.Value);
         AnsiConsole.MarkupLineInterpolated($"average: {average_value}");
         AnsiConsole.MarkupLineInterpolated($"max: {ma.Value}s for {ma.Key}");
         AnsiConsole.MarkupLineInterpolated($"min: {mi.Value} for {mi.Key}");
-        AnsiConsole.MarkupLineInterpolated($"{data.Count} files");
+        AnsiConsole.MarkupLineInterpolated($"{times_per_file.Count} files");
+    }
+
+    public ColCounter<Fil> GetProjectCounter(string cat)
+    {
+        if (ProjectCounters.TryGetValue(cat, out var project_counter)) return project_counter;
+
+        project_counter = new();
+        ProjectCounters[cat] = project_counter;
+        return project_counter;
+    }
+
+    public List<Fil> GetWarningsList(string k)
+    {
+        if (WarningsPerFile.TryGetValue(k, out var warnings_list)) return warnings_list;
+
+        warnings_list = new();
+        WarningsPerFile.Add(k, warnings_list);
+        return warnings_list;
     }
 }
 
@@ -674,7 +699,7 @@ internal static class ClangTidy
         {
             AnsiConsole.WriteLine($"took {co.Taken}");
         }
-        stats.Add(printable_file, co.Taken);
+        stats.AddTimeTaken(printable_file, co.Taken);
 
         var print_empty = false;
         var hidden = only.Length > 0;
@@ -717,6 +742,7 @@ internal static class ClangTidy
                 }
             }
         }
+
         if (false == short_list && only.Length == 0)
         {
             PrintWarningCounter(classes, printable_file.GetDisplay(), c => c);
@@ -808,21 +834,27 @@ internal static class ClangTidy
         ClangTidyFile.WriteTidyFileToDisk(root);
         AnsiConsole.WriteLine($"using clang-tidy: {clang_tidy}");
 
-        var total_counter = new ColCounter<Fil>();
-        var total_classes = new ColCounter<string>();
-        Dictionary<string, List<Fil>> warnings_per_file = new();
-
         var data = ClangFiles.MapAllFilesInRootOnFirstDir(root, also_include_headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource);
         var stats = new FileStatistics();
 
-        var errors = await RunAllFiles(log, args, data, store, root, clang_tidy, project_build_folder, stats, total_counter, total_classes, warnings_per_file);
+        var errors = await RunAllFiles(log, args, data, store, root, clang_tidy, project_build_folder, stats);
+
+        if (!args.ShortArgs && args.Only.Length == 0)
+        {
+            foreach (var (project, warnings) in stats.ProjectCounters)
+            {
+                PrintWarningCounter(warnings, project, f => f.GetDisplay());
+                AnsiConsole.WriteLine("");
+                AnsiConsole.WriteLine("");
+            }
+        }
 
         if (false == args.ShortArgs && args.Only.Length == 0)
         {
-            PrintReportToConsole(errors, total_counter, total_classes, warnings_per_file, stats);
+            PrintReportToConsole(errors, stats);
         }
 
-        if (total_counter.TotalCount() > 0)
+        if (stats.TotalCounter.TotalCount() > 0)
         {
             return -1;
         }
@@ -832,7 +864,7 @@ internal static class ClangTidy
         }
     }
 
-    private static void PrintReportToConsole(FileWithError[] errors, ColCounter<Fil> total_counter, ColCounter<string> total_classes, Dictionary<string, List<Fil>> warnings_per_file, FileStatistics stats)
+    private static void PrintReportToConsole(FileWithError[] errors, FileStatistics stats)
     {
         Printer.Header("TIDY REPORT");
         foreach (var f in errors.OrderBy(x => x.File))
@@ -845,13 +877,13 @@ internal static class ClangTidy
             AnsiConsole.Write(panel);
         }
         Printer.Line();
-        PrintWarningCounter(total_counter, "total", f => f.GetDisplay());
+        PrintWarningCounter(stats.TotalCounter, "total", f => f.GetDisplay());
         AnsiConsole.WriteLine("");
-        PrintWarningCounter(total_classes, "classes", c => c);
+        PrintWarningCounter(stats.TotalClasses, "classes", c => c);
         AnsiConsole.WriteLine("");
         Printer.Line();
         AnsiConsole.WriteLine("");
-        foreach (var (k, v) in warnings_per_file)
+        foreach (var (k, v) in stats.WarningsPerFile)
         {
             AnsiConsole.WriteLine($"{k}:");
             foreach (var f in v)
@@ -863,7 +895,7 @@ internal static class ClangTidy
 
         Printer.Line();
         AnsiConsole.WriteLine("");
-        stats.Print();
+        stats.PrintTimeTaken();
     }
 
     private class CollectedTidyFil
@@ -891,13 +923,11 @@ internal static class ClangTidy
     }
 
     private static async Task<FileWithError[]> RunAllFiles(Log log, Args args, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
-        Dir project_build_folder, FileStatistics stats, ColCounter<Fil> total_counter, ColCounter<string> total_classes,
-        Dictionary<string, List<Fil>> warnings_per_file)
+        Dir project_build_folder, FileStatistics stats)
     {
         var files = data.SelectMany(pair => pair.Files.Select(x => new CollectedTidyFil(x, pair.Category)))
             .Where(source_file => FileMatchesAllFilters(source_file.File, args.Filter) == false);
 
-        Dictionary<string, ColCounter<Fil>> pc = new();
         List<FileWithError> errors_to_print = new();
 
         var html_root = args.HtmlRoot == null ? null : new HtmlRoot(args.HtmlRoot, "Tidy report");
@@ -911,18 +941,18 @@ internal static class ClangTidy
                 transform: async source_file =>
                 {
                     AnsiConsole.WriteLine($"Running {source_file.File}");
-                    var co = args.Nop
-                        ? new(new string[] { }, new TimeSpan())
+                    var tidy_output = args.Nop
+                        ? new([], new())
                         : await GetExistingOutputOrCallClangTidy(store, log, root, args.Force, clang_tidy, project_build_folder, source_file.File, args.Fix);
-                    return (source_file.Category, source_file.File, co);
+                    return (source_file.Category, source_file.File, tidy_output);
                 })
             .ReadAll(tuple =>
             {
-                var (cat, source_file, co) = tuple;
+                var (cat, source_file, tidy_output) = tuple;
                 AnsiConsole.WriteLine($"Collecting {source_file}");
                 var html_writer = html_root == null ? null : new HtmlWriter(html_root, source_file);
                 var (warnings, classes, lines) =
-                    CreateStatisticsAndPrintStatus(stats, args.ShortArgs, source_file, args.Only, co, line =>
+                    CreateStatisticsAndPrintStatus(stats, args.ShortArgs, source_file, args.Only, tidy_output, line =>
                     {
                         if (html_writer == null)
                         {
@@ -941,40 +971,16 @@ internal static class ClangTidy
                     errors_to_print.Add(new FileWithError(source_file, lines));
                 }
 
-                if (false == pc.TryGetValue(cat, out var project_counter))
-                {
-                    project_counter = new();
-                    pc[cat] = project_counter;
-                }
-
-                project_counter.Update(warnings);
-                total_counter.Update(warnings);
-                total_classes.Update(classes);
+                stats.GetProjectCounter(cat).Update(warnings);
+                stats.TotalCounter.Update(warnings);
+                stats.TotalClasses.Update(classes);
                 foreach (var k in classes.Keys)
                 {
-                    // todo(Gustav): make this pattern nicer...
-                    if (warnings_per_file.TryGetValue(k, out var warnings_list) == false)
-                    {
-                        warnings_list = new();
-                        warnings_per_file.Add(k, warnings_list);
-                    }
-
-                    warnings_list.Add(source_file);
+                    stats.GetWarningsList(k).Add(source_file);
                 }
             });
 
         if (html_root != null) html_root.Complete();
-
-
-        if (!args.ShortArgs && args.Only.Length == 0)
-        {
-            foreach (var (project, warnings) in pc)
-            {
-                PrintWarningCounter(warnings, project, f => f.GetDisplay());
-                AnsiConsole.WriteLine("");
-                AnsiConsole.WriteLine("");
-            }
-        }
 
         return errors_to_print.ToArray();
     }
