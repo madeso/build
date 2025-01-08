@@ -168,9 +168,9 @@ internal class HtmlLink
     public int Totals { get; set; } = -1;
 }
 
-class TidyMessage
+class TidyMessage(Fil a_fil)
 {
-    public string File { get; set; } = string.Empty;
+    public Fil File { get; } = a_fil;
     public int Line { get; set; } = 0;
     public int Column { get; set; } = 0;
     public string Type { get; set; } = string.Empty;
@@ -216,15 +216,14 @@ class TidyMessage
                     continue;
                 }
                 string? cat = null;
-                if (tidy_class.Success) cat = tidy_class.Groups[1].Value;
+                if (tidy_class.Success) cat = tidy_class.Groups[1].Value.Trim();
                 if (string.IsNullOrEmpty(cat)) cat = null;
-                current = new TidyMessage
+                current = new TidyMessage(new Fil(parsed.Groups["file"].Value.Trim()))
                 {
-                    File = parsed.Groups["file"].Value,
                     Line = int.Parse(parsed.Groups["line"].Value),
                     Column = int.Parse(parsed.Groups["col"].Value),
-                    Type = parsed.Groups["type"].Value,
-                    Message = parsed.Groups["mess"].Value,
+                    Type = parsed.Groups["type"].Value.Trim(),
+                    Message = parsed.Groups["mess"].Value.Trim(),
                     Category = cat,
                 };
             }
@@ -475,8 +474,17 @@ internal class ConsoleOutput(Args args) : IOutput
             AnsiConsole.WriteLine($"took {report.TimeTaken}");
         }
 
+        bool first = true;
         foreach (var g in report.GroupedMessages)
         {
+            if(first) first = false;
+            else
+            {
+                for(int i=0; i<4; i+=1)
+                {
+                    Console.WriteLine();
+                }
+            }
             if (only_show_these_classes.Length > 0)
             {
                 var all_warning_classes = g.messages.First().GetClasses();
@@ -484,10 +492,14 @@ internal class ConsoleOutput(Args args) : IOutput
                 if (!show_this_warning) continue;
             }
 
+            bool first_message = true;
             foreach (var m in g.messages)
             {
+                if(first_message) first_message = false;
+                else Console.WriteLine();
+
                 var cs = m.Category != null ? $"[{m.Category}]" : string.Empty;
-                Console.WriteLine($"{m.File} ({m.Line}/{m.Column}) {m.Type}: {m.Message}{cs}");
+                Console.WriteLine($"{m.File.GetRelativeOrFullPath()} ({m.Line}/{m.Column}) {m.Type}: {m.Message}{cs}");
                 foreach (var line in m.Code)
                 {
                     Console.WriteLine(line);
@@ -527,7 +539,7 @@ internal class ConsoleOutput(Args args) : IOutput
             AnsiConsole.WriteLine($"{k}:");
             foreach (var f in v)
             {
-                AnsiConsole.WriteLine($"  {f}");
+                AnsiConsole.WriteLine($"  {f.GetRelativeOrFullPath()}");
             }
             AnsiConsole.WriteLine("");
         }
@@ -677,7 +689,7 @@ internal class HtmlOutput(Dir args_html_root) : IOutput
                     output.Add($"<p>{m.Message}</p>");
                 }
 
-                output.Add($"<p><i>{TryRelative(m.File)} {m.Line} : {m.Column}</i></p>");
+                output.Add($"<p><i>{m.File.GetRelativeOrFullPath()} {m.Line} : {m.Column}</i></p>");
 
                 output.Add($"<pre>");
                 foreach (var l in m.Code)

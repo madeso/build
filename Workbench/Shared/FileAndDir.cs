@@ -149,6 +149,17 @@ public class Fil : IComparable<Fil>
         Path = SysPath.GetFullPath(new FileInfo(path).FullName);
     }
 
+    public string GetRelativeOrFullPath(Dir? a_root_relative = null)
+    {
+        var root_relative = a_root_relative ?? Dir.CurrentDirectory;
+        var suggested = root_relative.RelativeFromTo(this);
+
+        // if returned path includes back references, just use full path
+        if (suggested.StartsWith(".")) return Path;
+
+        return suggested;
+    }
+
     public bool Exists => File.Exists(Path);
 
     public Dir? Directory => Dir.Create(new FileInfo(Path).Directory?.FullName);
