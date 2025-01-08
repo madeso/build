@@ -8,6 +8,7 @@ using Open.ChannelExtensions;
 using Workbench.Config;
 using Workbench.Shared;
 using static Workbench.Commands.Clang.ClangTidy;
+using System.Xml.Linq;
 
 namespace Workbench.Commands.Clang;
 
@@ -166,91 +167,6 @@ internal class HtmlLink
     public int Categories { get; set; } = -1;
     public int Totals { get; set; } = -1;
 }
-internal class HtmlRoot
-{
-    string name;
-    Dir relative;
-    Dir output;
-
-    List<HtmlLink> links = new();
-
-    public HtmlRoot(Dir d, string n)
-    {
-        this.name = n;
-        this.output = d;
-        this.relative = Dir.CurrentDirectory;
-    }
-
-    public HtmlLink AddFile(string name, Fil target)
-    {
-        var link = new HtmlLink(name, this.output.RelativeFromTo(target));
-        links.Add(link);
-        return link;
-    }
-
-    public void Complete()
-    {
-        List<string> output = new();
-
-        output.Add($"<html>");
-        output.Add($"<head>");
-        output.Add("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
-        output.Add("<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/water.css@2/out/water.css\">");
-        output.Add($"<title>{name}</title>");
-        output.Add($"</head>");
-        output.Add($"<body>");
-
-        output.Add($"<h1>{name}</h1>");
-
-        var align = " style=\"text-align: end\"";
-
-        output.Add("<table style=\"width: 100%\">");
-        output.Add("<colgroup>");
-        output.Add("<col span=\"1\" style=\"width: 70%;\">");
-        output.Add("<col span=\"1\" style=\"width: 15%;\">");
-        output.Add("<col span=\"1\" style=\"width: 15%;\">");
-        output.Add("</colgroup>");
-        output.Add("<thead>");
-        output.Add($"<tr>");
-        output.Add("<th>File</th>");
-        output.Add($"<th{align}>Categories</th>");
-        output.Add($"<th{align}>Totals</th>");
-        output.Add($"</tr>");
-        output.Add("</thead>");
-        output.Add("<tbody>");
-        foreach (var l in links.OrderByDescending(l => l.Totals))
-        {
-            output.Add($"<tr>");
-            output.Add($"<td><a href={l.Link}>{l.Title}</a></td>");
-            output.Add($"<td{align}>{Q(l.Categories)}</td>");
-            output.Add($"<td{align}>{Q(l.Totals)}</td>");
-            output.Add($"</tr>");
-        }
-        output.Add("</tbody>");
-        output.Add($"</table>");
-
-        output.Add($"</body>");
-        output.Add($"</html>");
-
-        var target = this.output.GetFile("index.html");
-
-        target.Directory?.CreateDir();
-        target.WriteAllLines(output);
-        Console.WriteLine($"Wrote html to {target}");
-
-        static string Q(int i)
-        {
-            if (i >= 0) return $"{i}";
-            else return "?";
-        }
-    }
-
-    public string GetRelative(Fil f)
-        => this.relative.RelativeFromTo(f);
-
-    public Fil GetOutput(Fil f, string ext)
-        => this.output.GetFile(GetRelative(f)).ChangeExtension(ext);
-}
 
 class TidyMessage
 {
@@ -345,101 +261,6 @@ class TidyGroup
     }
 }
 
-internal class HtmlWriter
-{
-    private readonly string name;
-    private readonly Fil target;
-    private readonly HtmlRoot root;
-    private readonly HtmlLink link;
-
-    public HtmlWriter(HtmlRoot root, Fil f)
-    {
-        this.root = root;
-        this.name = root.GetRelative(f);
-        this.target = root.GetOutput(f, ".html");
-
-        this.link = root.AddFile(name, target);
-        root.Complete();
-    }
-
-
-    private string TryRelative(string path)
-    {
-        var f = new Fil(path);
-        var suggested = root.GetRelative(f);
-
-        // if returned path includes back references, just use full path?
-        if (suggested.StartsWith(".")) return path;
-
-        return suggested;
-    }
-
-    public void Complete(SingleFileReport lines)
-    {
-        var grouped = lines.GroupedMessages;
-
-        // todo(Gustav): expand with more data from the report
-
-        List<string> output = new();
-
-        output.Add($"<html>");
-        output.Add($"<head>");
-        output.Add("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
-        output.Add("<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/water.css@2/out/water.css\">");
-        output.Add($"<title>{name}</title>");
-        output.Add($"</head>");
-        output.Add($"<body>");
-
-        output.Add($"<h1>{name}</h1>");
-
-        var count = new HashSet<string>();
-
-        foreach (var g in grouped)
-        {
-            foreach (var m in g.messages)
-            {
-                var is_note = m.Type == "note";
-
-                if (is_note == false)
-                {
-                    output.Add("<hr>");
-                    output.Add($"<h3>{m.Type}: {m.Message}</h3>");
-                }
-
-                if (m.Category != null)
-                {
-                    output.Add($"<code>[{m.Category}]</code>");
-                    count.Add(m.Category);
-                }
-
-                if (is_note)
-                {
-                    output.Add($"<p>{m.Message}</p>");
-                }
-
-                output.Add($"<p><i>{TryRelative(m.File)} {m.Line} : {m.Column}</i></p>");
-
-                output.Add($"<pre>");
-                foreach (var l in m.Code)
-                {
-                    output.Add(l);
-                }
-                output.Add($"</pre>");
-            }
-        }
-
-        output.Add($"</body>");
-        output.Add($"</html>");
-
-        target.Directory?.CreateDir();
-        target.WriteAllLines(output);
-        Console.WriteLine($"Wrote html to {target}");
-
-        this.link.Totals = grouped.Length;
-        this.link.Categories = count.Count;
-        this.root.Complete();
-    }
-}
 
 internal static class ClangTidyFile
 {
@@ -593,13 +414,13 @@ internal class SingleFileReport
     public FileStats Stats;
 }
 
-internal interface Output
+internal interface IOutput
 {
     void WriteFinalReport(GlobalStatistics stats);
     void SingleFileReport(Fil source_file, SingleFileReport report);
 }
 
-internal class ConsoleOutput(Args args) : Output
+internal class ConsoleOutput(Args args) : IOutput
 {
     // print warning counter to the console
     private static void PrintWarningCounter<T>(ColCounter<T> project_counter, string project, Func<T, string> display)
@@ -703,19 +524,167 @@ internal class ConsoleOutput(Args args) : Output
     }
 }
 
-internal class HtmlOutput(Dir args_html_root) : Output
+internal class HtmlOutput(Dir args_html_root) : IOutput
 {
-    private readonly HtmlRoot html_root = new(args_html_root, "Tidy report");
+    private readonly string root_name = "Tidy report";
+    private readonly Dir root_relative = Dir.CurrentDirectory;
+    private readonly Dir root_output = args_html_root;
+    private readonly List<HtmlLink> root_links = new();
+
+    public HtmlLink AddFile(string name, Fil target)
+    {
+        var link = new HtmlLink(name, this.root_output.RelativeFromTo(target));
+        root_links.Add(link);
+        return link;
+    }
+
+    public void WriteIndexFile()
+    {
+        List<string> output = new();
+
+        output.Add($"<html>");
+        output.Add($"<head>");
+        output.Add("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
+        output.Add("<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/water.css@2/out/water.css\">");
+        output.Add($"<title>{root_name}</title>");
+        output.Add($"</head>");
+        output.Add($"<body>");
+
+        output.Add($"<h1>{root_name}</h1>");
+
+        var align = " style=\"text-align: end\"";
+
+        output.Add("<table style=\"width: 100%\">");
+        output.Add("<colgroup>");
+        output.Add("<col span=\"1\" style=\"width: 70%;\">");
+        output.Add("<col span=\"1\" style=\"width: 15%;\">");
+        output.Add("<col span=\"1\" style=\"width: 15%;\">");
+        output.Add("</colgroup>");
+        output.Add("<thead>");
+        output.Add($"<tr>");
+        output.Add("<th>File</th>");
+        output.Add($"<th{align}>Categories</th>");
+        output.Add($"<th{align}>Totals</th>");
+        output.Add($"</tr>");
+        output.Add("</thead>");
+        output.Add("<tbody>");
+        foreach (var l in root_links.OrderByDescending(l => l.Totals))
+        {
+            output.Add($"<tr>");
+            output.Add($"<td><a href={l.Link}>{l.Title}</a></td>");
+            output.Add($"<td{align}>{Q(l.Categories)}</td>");
+            output.Add($"<td{align}>{Q(l.Totals)}</td>");
+            output.Add($"</tr>");
+        }
+        output.Add("</tbody>");
+        output.Add($"</table>");
+
+        output.Add($"</body>");
+        output.Add($"</html>");
+
+        var target = this.root_output.GetFile("index.html");
+
+        target.Directory?.CreateDir();
+        target.WriteAllLines(output);
+        Console.WriteLine($"Wrote html to {target}");
+
+        static string Q(int i)
+        {
+            if (i >= 0) return $"{i}";
+            else return "?";
+        }
+    }
+
+    public string GetRelative(Fil f)
+        => this.root_relative.RelativeFromTo(f);
+
+    public Fil GetOutput(Fil f, string ext)
+        => this.root_output.GetFile(GetRelative(f)).ChangeExtension(ext);
 
     public void WriteFinalReport(GlobalStatistics stats)
     {
-        html_root.Complete();
+        WriteIndexFile();
+    }
+
+    private string TryRelative(string path)
+    {
+        var f = new Fil(path);
+        var suggested = GetRelative(f);
+
+        // if returned path includes back references, just use full path?
+        if (suggested.StartsWith(".")) return path;
+
+        return suggested;
     }
 
     public void SingleFileReport(Fil source_file, SingleFileReport report)
     {
-        var html_writer = new HtmlWriter(html_root, source_file);
-        html_writer.Complete(report);
+        var name = GetRelative(source_file);
+        var target = GetOutput(source_file, ".html");
+
+        var grouped = report.GroupedMessages;
+
+        // todo(Gustav): expand with more data from the report
+
+        List<string> output = new();
+
+        output.Add($"<html>");
+        output.Add($"<head>");
+        output.Add("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
+        output.Add("<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/water.css@2/out/water.css\">");
+        output.Add($"<title>{name}</title>");
+        output.Add($"</head>");
+        output.Add($"<body>");
+
+        output.Add($"<h1>{name}</h1>");
+
+        var count = new HashSet<string>();
+
+        foreach (var g in grouped)
+        {
+            foreach (var m in g.messages)
+            {
+                var is_note = m.Type == "note";
+
+                if (is_note == false)
+                {
+                    output.Add("<hr>");
+                    output.Add($"<h3>{m.Type}: {m.Message}</h3>");
+                }
+
+                if (m.Category != null)
+                {
+                    output.Add($"<code>[{m.Category}]</code>");
+                    count.Add(m.Category);
+                }
+
+                if (is_note)
+                {
+                    output.Add($"<p>{m.Message}</p>");
+                }
+
+                output.Add($"<p><i>{TryRelative(m.File)} {m.Line} : {m.Column}</i></p>");
+
+                output.Add($"<pre>");
+                foreach (var l in m.Code)
+                {
+                    output.Add(l);
+                }
+                output.Add($"</pre>");
+            }
+        }
+
+        output.Add($"</body>");
+        output.Add($"</html>");
+
+        target.Directory?.CreateDir();
+        target.WriteAllLines(output);
+        Console.WriteLine($"Wrote html to {target}");
+
+        var link = AddFile(name, target);
+        link.Totals = grouped.Length;
+        link.Categories = count.Count;
+        WriteIndexFile();
     }
 }
 
@@ -942,7 +911,7 @@ internal static class ClangTidy
         ClangTidyFile.WriteTidyFileToDisk(root);
         AnsiConsole.WriteLine($"using clang-tidy: {clang_tidy}");
 
-        Output output = args.HtmlRoot == null ? new ConsoleOutput(args) : new HtmlOutput(args.HtmlRoot);
+        IOutput output = args.HtmlRoot == null ? new ConsoleOutput(args) : new HtmlOutput(args.HtmlRoot);
 
         var files = ClangFiles.MapAllFilesInRootOnFirstDir(root, also_include_headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource);
         var stats = await RunAllFiles(log, args, files, store, root, clang_tidy, project_build_folder, output);
@@ -972,7 +941,7 @@ internal static class ClangTidy
     }
 
     private static async Task<GlobalStatistics> RunAllFiles(Log log, Args args, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
-        Dir project_build_folder, Output html_root)
+        Dir project_build_folder, IOutput html_root)
     {
         var files = data.SelectMany(pair => pair.Files.Select(x => new CollectedTidyFil(x, pair.Category)))
             .Where(source_file => FileMatchesAllFilters(source_file.File, args.Filter) == false);
