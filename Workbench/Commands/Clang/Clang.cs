@@ -152,21 +152,6 @@ internal class FileStats
     public ColCounter<string> Classes { get; } = new();
 }
 
-internal class HtmlLink
-{
-    public HtmlLink(string t, string l)
-    {
-        this.Title = t;
-        this.Link = l;
-    }
-
-    public string Title { get; private set; }
-    public string Link { get; private set; }
-
-    public int Categories { get; set; } = -1;
-    public int Totals { get; set; } = -1;
-}
-
 class TidyMessage(Fil a_fil)
 {
     public Fil File { get; } = a_fil;
@@ -498,7 +483,7 @@ internal class ConsoleOutput(Args args) : IOutput
                 else Console.WriteLine();
 
                 var cs = m.Category != null ? $"[{m.Category}]" : string.Empty;
-                Console.WriteLine($"{m.File.GetRelativeOrFullPath()} ({m.Line}/{m.Column}) {m.Type}: {m.Message}{cs}");
+                Console.WriteLine($"{m.File.GetDisplay()} ({m.Line}/{m.Column}) {m.Type}: {m.Message}{cs}");
                 foreach (var line in m.Code)
                 {
                     Console.WriteLine(line);
@@ -527,7 +512,7 @@ internal class ConsoleOutput(Args args) : IOutput
             AnsiConsole.WriteLine($"{k}:");
             foreach (var f in v)
             {
-                AnsiConsole.WriteLine($"  {f.GetRelativeOrFullPath()}");
+                AnsiConsole.WriteLine($"  {f.GetDisplay()}");
             }
             AnsiConsole.WriteLine("");
         }
@@ -552,13 +537,37 @@ internal class HtmlOutput(Dir args_html_root) : IOutput
     private readonly Dir root_relative = Dir.CurrentDirectory;
     private readonly Dir root_output = args_html_root;
     private readonly List<HtmlLink> root_links = new();
+    private readonly Dictionary<Fil, HtmlLink> source_file_to_link = new();
     private GlobalStatistics? global_stats = null;
 
-    public HtmlLink AddFile(string name, Fil target)
+    private sealed class HtmlLink
     {
-        var link = new HtmlLink(name, this.root_output.RelativeFromTo(target));
-        root_links.Add(link);
-        return link;
+        public HtmlLink(string ti, string li, TimeSpan ta, int ca, int to)
+        {
+            Title = ti;
+            Link = li;
+            TimeTaken = ta;
+            Categories = ca;
+            Totals = to;
+        }
+
+        public string Title { get; }
+        public string Link { get; }
+        public TimeSpan TimeTaken { get; }
+        public int Categories { get; }
+        public int Totals { get; }
+    }
+
+    private string LinkToFile(Fil source_file)
+    {
+        if(source_file_to_link.TryGetValue(source_file, out var link))
+        {
+            return $"<a href=\"{link.Link}\">{link.Title}</a>";
+        }
+        else
+        {
+            return source_file.GetDisplay();
+        }
     }
 
     public void WriteIndexFile()
@@ -581,8 +590,8 @@ internal class HtmlOutput(Dir args_html_root) : IOutput
             if(tt != null)
             {
                 output.Add($"<p><b>average</b>: {tt.average_value}</p>");
-                output.Add($"<p><b>max</b>: {tt.ma.Value}s for {tt.ma.Key.GetDisplay()}</p>");
-                output.Add($"<p><b>min</b>: {tt.mi.Value} for {tt.mi.Key.GetDisplay()}</p>");
+                output.Add($"<p><b>max</b>: {tt.ma.Value}s for {LinkToFile(tt.ma.Key)}</p>");
+                output.Add($"<p><b>min</b>: {tt.mi.Value} for {LinkToFile(tt.mi.Key)}</p>");
                 output.Add($"<p>{tt.times_per_file_count} files</p>");
             }
 
@@ -603,7 +612,7 @@ internal class HtmlOutput(Dir args_html_root) : IOutput
                 output.Add("<ul>");
                 foreach (var f in v)
                 {
-                    output.Add($"<li>{f.GetRelativeOrFullPath()}</li>");
+                    output.Add($"<li>{LinkToFile(f)}</li>");
                 }
                 output.Add("</ul>");
                 AnsiConsole.WriteLine("");
@@ -722,7 +731,7 @@ internal class HtmlOutput(Dir args_html_root) : IOutput
                     output.Add($"<p>{m.Message}</p>");
                 }
 
-                output.Add($"<p><i>{m.File.GetRelativeOrFullPath()} {m.Line} : {m.Column}</i></p>");
+                output.Add($"<p><i>{LinkToFile(m.File)} {m.Line} : {m.Column}</i></p>");
 
                 output.Add($"<pre>");
                 foreach (var l in m.Code)
@@ -748,10 +757,15 @@ internal class HtmlOutput(Dir args_html_root) : IOutput
         target.WriteAllLines(output);
         Console.WriteLine($"Wrote html to {target}");
 
-        var link = AddFile(name, target);
-        link.Totals = grouped.Length;
-        link.Categories = count.Count;
+        AddFile(source_file, name, target, report.TimeTaken, grouped.Length, count.Count);
         WriteIndexFile();
+    }
+
+    private void AddFile(Fil source_file, string name, Fil target, TimeSpan time_taken, int totals, int categories)
+    {
+        var link = new HtmlLink(name, this.root_output.RelativeFromTo(target), time_taken, categories, totals);
+        root_links.Add(link);
+        source_file_to_link.Add(source_file, link);
     }
 }
 
