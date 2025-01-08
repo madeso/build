@@ -525,9 +525,9 @@ internal class ConsoleOutput(Args args) : IOutput
         var tt = stats.GetTimeTaken();
         if(tt != null)
         {
-            AnsiConsole.MarkupLineInterpolated($"average: {tt.average_value}");
-            AnsiConsole.MarkupLineInterpolated($"max: {tt.ma.Value}s for {tt.ma.Key.GetDisplay()}");
-            AnsiConsole.MarkupLineInterpolated($"min: {tt.mi.Value} for {tt.mi.Key.GetDisplay()}");
+            AnsiConsole.MarkupLineInterpolated($"average: {tt.average_value.ToHumanString()}");
+            AnsiConsole.MarkupLineInterpolated($"max: {tt.ma.Value.ToHumanString()} for {tt.ma.Key.GetDisplay()}");
+            AnsiConsole.MarkupLineInterpolated($"min: {tt.mi.Value.ToHumanString()} for {tt.mi.Key.GetDisplay()}");
             AnsiConsole.MarkupLineInterpolated($"{tt.times_per_file_count} files");
         }
     }
