@@ -151,6 +151,7 @@ public class Fil : IComparable<Fil>
 
     public string GetRelativeOrFullPath(Dir? a_root_relative = null)
     {
+        // merge and rename to GetDisplay
         var root_relative = a_root_relative ?? Dir.CurrentDirectory;
         var suggested = root_relative.RelativeFromTo(this);
 
