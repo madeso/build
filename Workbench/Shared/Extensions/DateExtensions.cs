@@ -102,12 +102,13 @@ internal static class DateExtensions
             r.Add($"{span.Minutes} minutes");
         }
 
-        if (span.Seconds != 0)
+        if (span.Seconds != 0 || span.Milliseconds != 0)
         {
-            r.Add($"{span.Seconds} seconds");
+            var s = span.Seconds + (span.Milliseconds/1000.0);
+            r.Add($"{s:0.0}s");
         }
 
-        return StringListCombiner.EnglishAnd("same time").Combine(r);
+        return StringListCombiner.EnglishAnd("no time elapsed").Combine(r);
     }
 
 

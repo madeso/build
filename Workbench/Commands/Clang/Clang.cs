@@ -10,6 +10,8 @@ using Workbench.Shared;
 using static Workbench.Commands.Clang.ClangTidy;
 using System.Xml.Linq;
 
+using Workbench.Shared.Extensions;
+
 namespace Workbench.Commands.Clang;
 
 
@@ -584,46 +586,38 @@ internal class HtmlOutput(Dir args_html_root) : IOutput
 
         output.Add($"<h1>{root_name}</h1>");
 
-        if(global_stats != null)
-        {
-            var tt = global_stats.GetTimeTaken();
-            if(tt != null)
-            {
-                output.Add($"<p><b>average</b>: {tt.average_value}</p>");
-                output.Add($"<p><b>max</b>: {tt.ma.Value}s for {LinkToFile(tt.ma.Key)}</p>");
-                output.Add($"<p><b>min</b>: {tt.mi.Value} for {LinkToFile(tt.mi.Key)}</p>");
-                output.Add($"<p>{tt.times_per_file_count} files</p>");
-            }
+        var tt = global_stats?.GetTimeTaken();
 
+        if(global_stats != null && tt != null)
+        {
+            output.Add("<h2>Summary</h2>");
             var project_counter = global_stats.TotalClasses;
-            output.Add($"<h2>{project_counter.TotalCount()} warnings</h2>");
+            output.Add($"<p>{project_counter.TotalCount()} warnings in {tt.times_per_file_count} files</p>");
             output.Add("<ul>");
-            foreach (var (file, count) in project_counter.MostCommon().Take(10))
+            foreach (var (klass, count) in project_counter.MostCommon())
             {
-                output.Add($"<li>{file} at {count}</li>");
+                output.Add($"<li>{count}x <code>{klass}</code></li>");
+
+                if(global_stats.WarningsPerFile.TryGetValue(klass, out var v))
+                {
+                    output.Add("<ul>");
+                    foreach (var f in v)
+                    {
+                        output.Add($"<li>{LinkToFile(f)}</li>");
+                    }
+                    output.Add("</ul>");
+                }
             }
             output.Add("</ul>");
 
-            // todo(Gustav): merge these 2 lists
-
-            foreach (var (k, v) in global_stats.WarningsPerFile)
-            {
-                output.Add($"<h3>{k}</h3>");
-                output.Add("<ul>");
-                foreach (var f in v)
-                {
-                    output.Add($"<li>{LinkToFile(f)}</li>");
-                }
-                output.Add("</ul>");
-                AnsiConsole.WriteLine("");
-            }
+            output.Add("<h2>All files</h2>");
         }
 
         var align = " style=\"text-align: end\"";
-
         output.Add("<table style=\"width: 100%\">");
         output.Add("<colgroup>");
-        output.Add("<col span=\"1\" style=\"width: 70%;\">");
+        output.Add("<col span=\"1\" style=\"width: 55%;\">");
+        output.Add("<col span=\"1\" style=\"width: 15%;\">");
         output.Add("<col span=\"1\" style=\"width: 15%;\">");
         output.Add("<col span=\"1\" style=\"width: 15%;\">");
         output.Add("</colgroup>");
@@ -632,6 +626,7 @@ internal class HtmlOutput(Dir args_html_root) : IOutput
         output.Add("<th>File</th>");
         output.Add($"<th{align}>Categories</th>");
         output.Add($"<th{align}>Totals</th>");
+        output.Add($"<th{align}>Time</th>");
         output.Add($"</tr>");
         output.Add("</thead>");
         output.Add("<tbody>");
@@ -641,10 +636,19 @@ internal class HtmlOutput(Dir args_html_root) : IOutput
             output.Add($"<td><a href={l.Link}>{l.Title}</a></td>");
             output.Add($"<td{align}>{Q(l.Categories)}</td>");
             output.Add($"<td{align}>{Q(l.Totals)}</td>");
+            output.Add($"<td{align}>{l.TimeTaken.ToHumanString()}</td>");
             output.Add($"</tr>");
         }
         output.Add("</tbody>");
-        output.Add($"</table>");
+        output.Add("</table>");
+
+        if(tt != null)
+        {
+            output.Add("<h3>Timings</h3>");
+            output.Add($"<p><b>average</b>: {tt.average_value.ToHumanString()}</p>");
+            output.Add($"<p><b>max</b>: {tt.ma.Value.ToHumanString()} for {LinkToFile(tt.ma.Key)}</p>");
+            output.Add($"<p><b>min</b>: {tt.mi.Value.ToHumanString()} for {LinkToFile(tt.mi.Key)}</p>");
+        }
 
         output.Add($"</body>");
         output.Add($"</html>");
