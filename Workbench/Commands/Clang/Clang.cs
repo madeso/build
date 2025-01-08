@@ -934,7 +934,7 @@ internal static class ClangTidy
         }
     }
 
-    private class CollectedTidyFil
+    private sealed class CollectedTidyFil
     {
         public Fil File { get; }
         public string Category { get; }
