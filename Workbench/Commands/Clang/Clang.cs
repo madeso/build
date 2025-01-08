@@ -7,6 +7,7 @@ using System.Threading.Channels;
 using Open.ChannelExtensions;
 using Workbench.Config;
 using Workbench.Shared;
+using static Workbench.Commands.Clang.ClangTidy;
 
 namespace Workbench.Commands.Clang;
 
@@ -100,11 +101,11 @@ internal class GlobalStatistics
 {
     private readonly Dictionary<Fil, TimeSpan> times_per_file = new();
 
-    public Dictionary<string, ColCounter<Fil>> ProjectCounters { get; }= new();
+    public Dictionary<string, ColCounter<Fil>> ProjectCounters { get; } = new();
 
     public Dictionary<string, List<Fil>> WarningsPerFile { get; } = new();
 
-    public ColCounter<Fil> TotalCounter {get;} = new();
+    public ColCounter<Fil> TotalCounter { get; } = new();
     public ColCounter<string> TotalClasses { get; } = new();
 
     // public List<FileWithError> Errors { get; } = new();
@@ -147,8 +148,8 @@ internal class GlobalStatistics
 
 internal class FileStats
 {
-    public ColCounter<Fil> warnings = new();
-    public ColCounter<string> classes = new();
+    public ColCounter<Fil> Warnings { get; } = new();
+    public ColCounter<string> Classes { get; } = new();
 }
 
 internal class HtmlLink
@@ -253,13 +254,13 @@ internal class HtmlRoot
 
 class TidyMessage
 {
-    public string file { get; set; } = string.Empty;
-    public int line { get; set; } = 0;
-    public int column { get; set; } = 0;
-    public string type { get; set; } = string.Empty;
-    public string message { get; set; } = string.Empty;
-    public string? category { get; set; } = null;
-    public List<string> code { get; set; } = new();
+    public string File { get; set; } = string.Empty;
+    public int Line { get; set; } = 0;
+    public int Column { get; set; } = 0;
+    public string Type { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public string? Category { get; set; } = null;
+    public List<string> Code { get; set; } = new();
 
     public static IEnumerable<TidyMessage> Parse(IEnumerable<string> lines)
     {
@@ -277,7 +278,7 @@ class TidyMessage
                     Console.WriteLine($"WARNING: Unexpected code line: '{l}'");
                     continue;
                 }
-                current.code.Add(l);
+                current.Code.Add(l);
             }
             else
             {
@@ -303,12 +304,12 @@ class TidyMessage
                 if (string.IsNullOrEmpty(cat)) cat = null;
                 current = new TidyMessage
                 {
-                    file = parsed.Groups["file"].Value,
-                    line = int.Parse(parsed.Groups["line"].Value),
-                    column = int.Parse(parsed.Groups["col"].Value),
-                    type = parsed.Groups["type"].Value,
-                    message = parsed.Groups["mess"].Value,
-                    category = cat,
+                    File = parsed.Groups["file"].Value,
+                    Line = int.Parse(parsed.Groups["line"].Value),
+                    Column = int.Parse(parsed.Groups["col"].Value),
+                    Type = parsed.Groups["type"].Value,
+                    Message = parsed.Groups["mess"].Value,
+                    Category = cat,
                 };
             }
         }
@@ -317,7 +318,7 @@ class TidyMessage
     }
 
     public IEnumerable<string> GetClasses()
-        => category!.Split(',').Select(s => s.Trim());
+        => Category!.Split(',').Select(s => s.Trim());
 }
 
 class TidyGroup
@@ -329,7 +330,7 @@ class TidyGroup
         TidyGroup? current = null;
         foreach (var mess in TidyMessage.Parse(lines))
         {
-            if (current == null || mess.type != "note")
+            if (current == null || mess.Type != "note")
             {
                 if (current != null) yield return current;
                 current = new TidyGroup();
@@ -346,10 +347,10 @@ class TidyGroup
 
 internal class HtmlWriter
 {
-    string name;
-    Fil target;
-    HtmlRoot root;
-    HtmlLink link;
+    private readonly string name;
+    private readonly Fil target;
+    private readonly HtmlRoot root;
+    private readonly HtmlLink link;
 
     public HtmlWriter(HtmlRoot root, Fil f)
     {
@@ -397,29 +398,29 @@ internal class HtmlWriter
         {
             foreach (var m in g.messages)
             {
-                var is_note = m.type == "note";
+                var is_note = m.Type == "note";
 
                 if (is_note == false)
                 {
                     output.Add("<hr>");
-                    output.Add($"<h3>{m.type}: {m.message}</h3>");
+                    output.Add($"<h3>{m.Type}: {m.Message}</h3>");
                 }
 
-                if (m.category != null)
+                if (m.Category != null)
                 {
-                    output.Add($"<code>[{m.category}]</code>");
-                    count.Add(m.category);
+                    output.Add($"<code>[{m.Category}]</code>");
+                    count.Add(m.Category);
                 }
 
                 if (is_note)
                 {
-                    output.Add($"<p>{m.message}</p>");
+                    output.Add($"<p>{m.Message}</p>");
                 }
 
-                output.Add($"<p><i>{TryRelative(m.file)} {m.line} : {m.column}</i></p>");
+                output.Add($"<p><i>{TryRelative(m.File)} {m.Line} : {m.Column}</i></p>");
 
                 output.Add($"<pre>");
-                foreach (var l in m.code)
+                foreach (var l in m.Code)
                 {
                     output.Add(l);
                 }
@@ -580,8 +581,8 @@ internal class SingleFileReport
 {
     public SingleFileReport(TimeSpan taken, IEnumerable<string> lines, FileStats file_stats)
     {
-        Messages = [..lines];
-        GroupedMessages = [..TidyGroup.Parse(Messages)];
+        Messages = [.. lines];
+        GroupedMessages = [.. TidyGroup.Parse(Messages)];
         TimeTaken = taken;
         Stats = file_stats;
     }
@@ -592,123 +593,134 @@ internal class SingleFileReport
     public FileStats Stats;
 }
 
+internal interface Output
+{
+    void WriteFinalReport(GlobalStatistics stats);
+    void SingleFileReport(Fil source_file, SingleFileReport report);
+}
+
+internal class ConsoleOutput(Args args) : Output
+{
+    // print warning counter to the console
+    private static void PrintWarningCounter<T>(ColCounter<T> project_counter, string project, Func<T, string> display)
+        where T : notnull
+    {
+        AnsiConsole.WriteLine($"{project_counter.TotalCount()} warnings in {project}.");
+        foreach (var (file, count) in project_counter.MostCommon().Take(10))
+        {
+            AnsiConsole.WriteLine($"{display(file)} at {count}");
+        }
+    }
+
+    public void WriteFinalReport(GlobalStatistics stats)
+    {
+        if (!args.ShortArgs && args.Only.Length == 0)
+        {
+            foreach (var (project, warnings) in stats.ProjectCounters)
+            {
+                PrintWarningCounter(warnings, project, f => f.GetDisplay());
+                AnsiConsole.WriteLine("");
+                AnsiConsole.WriteLine("");
+            }
+        }
+        if (false == args.ShortArgs && args.Only.Length == 0)
+        {
+            PrintReportToConsole(stats);
+        }
+    }
+
+    public void SingleFileReport(Fil source_file, SingleFileReport report)
+    {
+        var short_list = args.ShortArgs;
+        var only_show_these_classes = args.Only;
+        var stats = report.Stats;
+
+        if (false == short_list && only_show_these_classes.Length == 0)
+        {
+            AnsiConsole.WriteLine($"took {report.TimeTaken}");
+        }
+
+        foreach (var g in report.GroupedMessages)
+        {
+            if (only_show_these_classes.Length > 0)
+            {
+                var all_warning_classes = g.messages.First().GetClasses();
+                var show_this_warning = all_warning_classes.Any(warning_class => only_show_these_classes.Contains(warning_class));
+                if (!show_this_warning) continue;
+            }
+
+            foreach (var m in g.messages)
+            {
+                var cs = m.Category != null ? $"[{m.Category}]" : string.Empty;
+                Console.WriteLine($"{m.File} ({m.Line}/{m.Column}) {m.Type}: {m.Message}{cs}");
+                foreach (var line in m.Code)
+                {
+                    Console.WriteLine(line);
+                }
+            }
+        }
+
+        if (false == short_list && only_show_these_classes.Length == 0)
+        {
+            PrintWarningCounter(stats.Classes, source_file.GetDisplay(), c => c);
+            AnsiConsole.WriteLine("");
+        }
+    }
+
+    private static void PrintReportToConsole(GlobalStatistics stats)
+    {
+        Printer.Header("TIDY REPORT");
+        // why?
+        // foreach (var f in stats.Errors.OrderBy(x => x.File))
+        // {
+        //     var panel = new Panel(Markup.Escape(string.Join(Environment.NewLine, f.Output)))
+        //     {
+        //         Header = new PanelHeader(Markup.Escape(f.File.GetDisplay())),
+        //         Expand = true
+        //     };
+        //     AnsiConsole.Write(panel);
+        // }
+        // Printer.Line();
+        PrintWarningCounter(stats.TotalCounter, "total", f => f.GetDisplay());
+        AnsiConsole.WriteLine("");
+        PrintWarningCounter(stats.TotalClasses, "classes", c => c);
+        AnsiConsole.WriteLine("");
+        Printer.Line();
+        AnsiConsole.WriteLine("");
+        foreach (var (k, v) in stats.WarningsPerFile)
+        {
+            AnsiConsole.WriteLine($"{k}:");
+            foreach (var f in v)
+            {
+                AnsiConsole.WriteLine($"  {f}");
+            }
+            AnsiConsole.WriteLine("");
+        }
+
+        Printer.Line();
+        AnsiConsole.WriteLine("");
+        stats.PrintTimeTaken();
+    }
+}
+
+internal class HtmlOutput(Dir args_html_root) : Output
+{
+    private readonly HtmlRoot html_root = new(args_html_root, "Tidy report");
+
+    public void WriteFinalReport(GlobalStatistics stats)
+    {
+        html_root.Complete();
+    }
+
+    public void SingleFileReport(Fil source_file, SingleFileReport report)
+    {
+        var html_writer = new HtmlWriter(html_root, source_file);
+        html_writer.Complete(report);
+    }
+}
+
 internal static class ClangTidy
 {
-    private interface Output
-    {
-        void WrtieFinalReport(GlobalStatistics stats);
-        void SingleFileReport(Fil source_file, SingleFileReport report);
-    }
-
-    private class ConsoleOutput(Args args) : Output
-    {
-        public void WrtieFinalReport(GlobalStatistics stats)
-        {
-            if (!args.ShortArgs && args.Only.Length == 0)
-            {
-                foreach (var (project, warnings) in stats.ProjectCounters)
-                {
-                    PrintWarningCounter(warnings, project, f => f.GetDisplay());
-                    AnsiConsole.WriteLine("");
-                    AnsiConsole.WriteLine("");
-                }
-            }
-            if (false == args.ShortArgs && args.Only.Length == 0)
-            {
-                PrintReportToConsole(stats);
-            }
-        }
-
-        public void SingleFileReport(Fil source_file, SingleFileReport report)
-        {
-            var short_list = args.ShortArgs;
-            var only_show_these_classes = args.Only;
-            var stats = report.Stats;
-
-            if (false == short_list && only_show_these_classes.Length == 0)
-            {
-                AnsiConsole.WriteLine($"took {report.TimeTaken}");
-            }
-
-            foreach (var g in report.GroupedMessages)
-            {
-                if (only_show_these_classes.Length > 0)
-                {
-                    var all_warning_classes = g.messages.First().GetClasses();
-                    var show_this_warning = all_warning_classes.Any(warning_class => only_show_these_classes.Contains(warning_class));
-                    if (!show_this_warning) continue;
-                }
-
-                foreach (var m in g.messages)
-                {
-                    var cs = m.category != null ? $"[{m.category}]" : string.Empty;
-                    Console.WriteLine($"{m.file} ({m.line}/{m.column}) {m.type}: {m.message}{cs}");
-                    foreach (var line in m.code)
-                    {
-                        Console.WriteLine(line);
-                    }
-                }
-            }
-
-            if (false == short_list && only_show_these_classes.Length == 0)
-            {
-                PrintWarningCounter(stats.classes, source_file.GetDisplay(), c => c);
-                AnsiConsole.WriteLine("");
-            }
-        }
-
-        private static void PrintReportToConsole(GlobalStatistics stats)
-        {
-            Printer.Header("TIDY REPORT");
-            // why?
-            // foreach (var f in stats.Errors.OrderBy(x => x.File))
-            // {
-            //     var panel = new Panel(Markup.Escape(string.Join(Environment.NewLine, f.Output)))
-            //     {
-            //         Header = new PanelHeader(Markup.Escape(f.File.GetDisplay())),
-            //         Expand = true
-            //     };
-            //     AnsiConsole.Write(panel);
-            // }
-            // Printer.Line();
-            PrintWarningCounter(stats.TotalCounter, "total", f => f.GetDisplay());
-            AnsiConsole.WriteLine("");
-            PrintWarningCounter(stats.TotalClasses, "classes", c => c);
-            AnsiConsole.WriteLine("");
-            Printer.Line();
-            AnsiConsole.WriteLine("");
-            foreach (var (k, v) in stats.WarningsPerFile)
-            {
-                AnsiConsole.WriteLine($"{k}:");
-                foreach (var f in v)
-                {
-                    AnsiConsole.WriteLine($"  {f}");
-                }
-                AnsiConsole.WriteLine("");
-            }
-
-            Printer.Line();
-            AnsiConsole.WriteLine("");
-            stats.PrintTimeTaken();
-        }
-    }
-
-    private class HtmlOutput(Dir args_html_root) : Output
-    {
-        private readonly HtmlRoot html_root = new(args_html_root, "Tidy report");
-
-        public void WrtieFinalReport(GlobalStatistics stats)
-        {
-            html_root.Complete();
-        }
-
-        public void SingleFileReport(Fil source_file, SingleFileReport report)
-        {
-            var html_writer = new HtmlWriter(html_root, source_file);
-            html_writer.Complete(report);
-        }
-    }
-
     private static Fil GetPathToStore(Dir build_folder)
         => build_folder.GetFile(FileNames.ClangTidyStore);
 
@@ -825,7 +837,6 @@ internal static class ClangTidy
         {
             log.Error($"Error: {output.ExitCode}");
             output.PrintOutput(log);
-            // System.Exit(-1);
         }
 
         var end = DateTime.Now;
@@ -843,14 +854,14 @@ internal static class ClangTidy
         {
             if (line.Contains("warning: "))
             {
-                stats.warnings.AddOne(source_file);
+                stats.Warnings.AddOne(source_file);
                 var tidy_class = ClangTIdyParsing.ClangTidyWarningClass().Match(line);
                 if (tidy_class.Success)
                 {
                     var warning_classes = tidy_class.Groups[1];
                     foreach (var warning_class in warning_classes.Value.Split(','))
                     {
-                        stats.classes.AddOne(warning_class);
+                        stats.Classes.AddOne(warning_class);
                     }
                 }
             }
@@ -898,17 +909,6 @@ internal static class ClangTidy
         public string[] Only { get; } = only;
     }
 
-    // print warning counter to the console
-    private static void PrintWarningCounter<T>(ColCounter<T> project_counter, string project, Func<T, string> display)
-        where T : notnull
-    {
-        AnsiConsole.WriteLine($"{project_counter.TotalCount()} warnings in {project}.");
-        foreach (var (file, count) in project_counter.MostCommon().Take(10))
-        {
-            AnsiConsole.WriteLine($"{display(file)} at {count}");
-        }
-    }
-
     // callback function called when running clang.py tidy
     internal static async Task<int> HandleRunClangTidyCommand(CompileCommandsArguments cc, Log log, bool also_include_headers, Args args)
     {
@@ -947,7 +947,7 @@ internal static class ClangTidy
         var files = ClangFiles.MapAllFilesInRootOnFirstDir(root, also_include_headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource);
         var stats = await RunAllFiles(log, args, files, store, root, clang_tidy, project_build_folder, output);
 
-        output.WrtieFinalReport(stats);
+        output.WriteFinalReport(stats);
 
         if (stats.TotalCounter.TotalCount() > 0)
         {
@@ -1010,10 +1010,10 @@ internal static class ClangTidy
                 //     stats.Errors.Add(new FileWithError(source_file, file_stats.lines.ToArray()));
                 // }
 
-                stats.GetProjectCounter(cat).Update(file_stats.warnings);
-                stats.TotalCounter.Update(file_stats.warnings);
-                stats.TotalClasses.Update(file_stats.classes);
-                foreach (var k in file_stats.classes.Keys)
+                stats.GetProjectCounter(cat).Update(file_stats.Warnings);
+                stats.TotalCounter.Update(file_stats.Warnings);
+                stats.TotalClasses.Update(file_stats.Classes);
+                foreach (var k in file_stats.Classes.Keys)
                 {
                     stats.GetWarningsList(k).Add(source_file);
                 }
