@@ -334,9 +334,22 @@ internal static class ClangTidyFile
     }
 }
 
+public enum FileSection
+{
+    AllFiles, AllExceptThoseIgnoredByClangTidy
+}
+
 internal static class ClangFiles
 {
-    private static CategoryAndFiles[] MapFilesOnFirstDir(Dir root, IEnumerable<Fil> files_iterator)
+    private static bool IsFileIgnoredByClangTidy(Fil path)
+    {
+        var first_line = path.ReadAllLines().FirstOrDefault();
+        if (first_line == null) { return false; }
+
+        return first_line.StartsWith("// clang-tidy: ignore");
+    }
+
+    private static CategoryAndFiles[] MapFilesOnFirstDir(Dir root, FileSection fs, IEnumerable<Fil> files_iterator)
         => files_iterator
             .Select(f => new { Path = f, Cat = FileUtil.GetFirstFolder(root, f) })
             // ignore external and build folders
@@ -350,17 +363,18 @@ internal static class ClangFiles
                     files
                         // sort files
                         .Select(x => x.Path)
+                        .Where(f => fs == FileSection.AllFiles || !IsFileIgnoredByClangTidy(f))
                         .OrderBy(p => p.Name)
                         .ThenByDescending(p => p.Extension)
                         .ToArray()
                 )
             ).ToArray();
 
-    internal static CategoryAndFiles[] MapAllFilesInRootOnFirstDir(Dir root, Func<Fil, bool> extension_filter)
-        => MapFilesOnFirstDir(root, FileUtil.FilesInPitchfork(root, false)
+    internal static CategoryAndFiles[] MapAllFilesInRootOnFirstDir(Dir root, Func<Fil, bool> extension_filter, FileSection fs)
+        => MapFilesOnFirstDir(root, fs, FileUtil.FilesInPitchfork(root, false)
             .Where(extension_filter));
 
-    internal static int HandleTidyListFilesCommand(Log print, bool sort_files)
+    internal static int HandleTidyListFilesCommand(Log print, bool sort_files, FileSection fs)
     {
         var root = Dir.CurrentDirectory;
 
@@ -369,7 +383,7 @@ internal static class ClangFiles
 
         if (sort_files)
         {
-            var sorted = MapFilesOnFirstDir(root, files);
+            var sorted = MapFilesOnFirstDir(root, fs, files);
             foreach (var (project, source_files) in sorted)
             {
                 Printer.Header(project);
@@ -719,14 +733,6 @@ internal static class ClangTidy
         file_name.WriteAllText(JsonUtil.Write(new JsonStore(data)));
     }
 
-    private static bool IsFileIgnoredByClangTidy(Fil path)
-    {
-        var first_line = path.ReadAllLines().FirstOrDefault();
-        if (first_line == null) { return false; }
-
-        return first_line.StartsWith("// clang-tidy: ignore");
-    }
-
     private static bool FileMatchesAllFilters(Fil file, string[]? filters)
         => filters != null && filters.All(f => file.Path.Contains(f) == false);
 
@@ -913,7 +919,7 @@ internal static class ClangTidy
 
         IOutput output = args.HtmlRoot == null ? new ConsoleOutput(args) : new HtmlOutput(args.HtmlRoot);
 
-        var files = ClangFiles.MapAllFilesInRootOnFirstDir(root, also_include_headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource);
+        var files = ClangFiles.MapAllFilesInRootOnFirstDir(root, also_include_headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource, FileSection.AllExceptThoseIgnoredByClangTidy);
         var stats = await RunAllFiles(log, args, files, store, root, clang_tidy, project_build_folder, output);
 
         output.WriteFinalReport(stats);
@@ -1005,7 +1011,7 @@ internal static class ClangFormat
 
         var root = Dir.CurrentDirectory;
 
-        var data = ClangFiles.MapAllFilesInRootOnFirstDir(root, FileUtil.IsHeaderOrSource);
+        var data = ClangFiles.MapAllFilesInRootOnFirstDir(root, FileUtil.IsHeaderOrSource, FileSection.AllFiles);
 
         foreach (var (project, source_files) in data)
         {

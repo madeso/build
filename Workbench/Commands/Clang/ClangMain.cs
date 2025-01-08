@@ -32,11 +32,17 @@ internal sealed class ListClangTidyCommand : Command<ListClangTidyCommand.Arg>
         [CommandOption("--sort")]
         [DefaultValue(false)]
         public bool Sort { get; set; }
+
+        [Description("hide files ignored by clang tidy")]
+        [CommandOption("--ignore-tidy")]
+        [DefaultValue(false)]
+        public bool Tidy { get; set; }
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Log.PrintErrorsAtExit(print => ClangFiles.HandleTidyListFilesCommand(print, settings.Sort));
+        var fs = settings.Tidy ? FileSection.AllExceptThoseIgnoredByClangTidy : FileSection.AllFiles;
+        return Log.PrintErrorsAtExit(print => ClangFiles.HandleTidyListFilesCommand(print, settings.Sort, fs));
     }
 }
 
