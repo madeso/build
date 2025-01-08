@@ -98,6 +98,8 @@ internal class FileWithError
     }
 }
 
+internal record TimeTaken(TimeSpan average_value, KeyValuePair<Fil, TimeSpan> mi, KeyValuePair<Fil, TimeSpan> ma, int times_per_file_count);
+
 internal class GlobalStatistics
 {
     private readonly Dictionary<Fil, TimeSpan> times_per_file = new();
@@ -116,16 +118,13 @@ internal class GlobalStatistics
         times_per_file.Add(file, time);
     }
 
-    internal void PrintTimeTaken()
+    internal TimeTaken? GetTimeTaken()
     {
-        if (times_per_file.Count == 0) { return; }
+        if (times_per_file.Count == 0) { return null; }
         var average_value = TimeSpan.FromSeconds(times_per_file.Average(x => x.Value.TotalSeconds));
         var mi = times_per_file.MinBy(x => x.Value);
         var ma = times_per_file.MaxBy(x => x.Value);
-        AnsiConsole.MarkupLineInterpolated($"average: {average_value}");
-        AnsiConsole.MarkupLineInterpolated($"max: {ma.Value}s for {ma.Key}");
-        AnsiConsole.MarkupLineInterpolated($"min: {mi.Value} for {mi.Key}");
-        AnsiConsole.MarkupLineInterpolated($"{times_per_file.Count} files");
+        return new TimeTaken(average_value, mi, ma, times_per_file.Count);
     }
 
     public ColCounter<Fil> GetProjectCounter(string cat)
@@ -517,17 +516,6 @@ internal class ConsoleOutput(Args args) : IOutput
     private static void PrintReportToConsole(GlobalStatistics stats)
     {
         Printer.Header("TIDY REPORT");
-        // why?
-        // foreach (var f in stats.Errors.OrderBy(x => x.File))
-        // {
-        //     var panel = new Panel(Markup.Escape(string.Join(Environment.NewLine, f.Output)))
-        //     {
-        //         Header = new PanelHeader(Markup.Escape(f.File.GetDisplay())),
-        //         Expand = true
-        //     };
-        //     AnsiConsole.Write(panel);
-        // }
-        // Printer.Line();
         PrintWarningCounter(stats.TotalCounter, "total", f => f.GetDisplay());
         AnsiConsole.WriteLine("");
         PrintWarningCounter(stats.TotalClasses, "classes", c => c);
@@ -546,7 +534,15 @@ internal class ConsoleOutput(Args args) : IOutput
 
         Printer.Line();
         AnsiConsole.WriteLine("");
-        stats.PrintTimeTaken();
+
+        var tt = stats.GetTimeTaken();
+        if(tt != null)
+        {
+            AnsiConsole.MarkupLineInterpolated($"average: {tt.average_value}");
+            AnsiConsole.MarkupLineInterpolated($"max: {tt.ma.Value}s for {tt.ma.Key.GetDisplay()}");
+            AnsiConsole.MarkupLineInterpolated($"min: {tt.mi.Value} for {tt.mi.Key.GetDisplay()}");
+            AnsiConsole.MarkupLineInterpolated($"{tt.times_per_file_count} files");
+        }
     }
 }
 
@@ -556,6 +552,7 @@ internal class HtmlOutput(Dir args_html_root) : IOutput
     private readonly Dir root_relative = Dir.CurrentDirectory;
     private readonly Dir root_output = args_html_root;
     private readonly List<HtmlLink> root_links = new();
+    private GlobalStatistics? global_stats = null;
 
     public HtmlLink AddFile(string name, Fil target)
     {
@@ -577,6 +574,41 @@ internal class HtmlOutput(Dir args_html_root) : IOutput
         output.Add($"<body>");
 
         output.Add($"<h1>{root_name}</h1>");
+
+        if(global_stats != null)
+        {
+            var tt = global_stats.GetTimeTaken();
+            if(tt != null)
+            {
+                output.Add($"<p><b>average</b>: {tt.average_value}</p>");
+                output.Add($"<p><b>max</b>: {tt.ma.Value}s for {tt.ma.Key.GetDisplay()}</p>");
+                output.Add($"<p><b>min</b>: {tt.mi.Value} for {tt.mi.Key.GetDisplay()}</p>");
+                output.Add($"<p>{tt.times_per_file_count} files</p>");
+            }
+
+            var project_counter = global_stats.TotalClasses;
+            output.Add($"<h2>{project_counter.TotalCount()} warnings</h2>");
+            output.Add("<ul>");
+            foreach (var (file, count) in project_counter.MostCommon().Take(10))
+            {
+                output.Add($"<li>{file} at {count}</li>");
+            }
+            output.Add("</ul>");
+
+            // todo(Gustav): merge these 2 lists
+
+            foreach (var (k, v) in global_stats.WarningsPerFile)
+            {
+                output.Add($"<h3>{k}</h3>");
+                output.Add("<ul>");
+                foreach (var f in v)
+                {
+                    output.Add($"<li>{f.GetRelativeOrFullPath()}</li>");
+                }
+                output.Add("</ul>");
+                AnsiConsole.WriteLine("");
+            }
+        }
 
         var align = " style=\"text-align: end\"";
 
@@ -629,6 +661,7 @@ internal class HtmlOutput(Dir args_html_root) : IOutput
 
     public void WriteFinalReport(GlobalStatistics stats)
     {
+        global_stats = stats;
         WriteIndexFile();
     }
 
@@ -699,6 +732,14 @@ internal class HtmlOutput(Dir args_html_root) : IOutput
                 output.Add($"</pre>");
             }
         }
+
+        // print original report for debugging...
+        output.Add($"<!--");
+        foreach(var line in report.Messages)
+        {
+            output.Add(line);
+        }
+        output.Add($"-->");
 
         output.Add($"</body>");
         output.Add($"</html>");
