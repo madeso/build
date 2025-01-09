@@ -88,19 +88,7 @@ public class StoredTidyUpdate
 
 public record CategoryAndFiles(string Category, Fil[] Files);
 
-internal class FileWithError
-{
-    public Fil File { get; }
-    private string[] Output { get; }
-
-    public FileWithError(Fil file, string[] output)
-    {
-        File = file;
-        Output = output;
-    }
-}
-
-internal record TimeTaken(TimeSpan average_value, KeyValuePair<Fil, TimeSpan> mi, KeyValuePair<Fil, TimeSpan> ma, int times_per_file_count);
+internal record TimeTaken(TimeSpan AverageValue, KeyValuePair<Fil, TimeSpan> Min, KeyValuePair<Fil, TimeSpan> Max, int TimesPerFileCount);
 
 internal class GlobalStatistics
 {
@@ -112,8 +100,6 @@ internal class GlobalStatistics
 
     public ColCounter<Fil> TotalCounter { get; } = new();
     public ColCounter<string> TotalClasses { get; } = new();
-
-    // public List<FileWithError> Errors { get; } = new();
 
     internal void AddTimeTaken(Fil file, TimeSpan time)
     {
@@ -159,6 +145,7 @@ class TidyMessage(Fil a_fil)
     public Fil File { get; } = a_fil;
     public int Line { get; set; } = 0;
     public int Column { get; set; } = 0;
+    // todo(Gustav) parse out to a enum
     public string Type { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
     public string? Category { get; set; } = null;
@@ -188,7 +175,7 @@ class TidyMessage(Fil a_fil)
 
                 var l2 = l;
 
-                var tidy_class = ClangTIdyParsing.ClangTidyWarningClass().Match(l2);
+                var tidy_class = ClangTidyParsing.ClangTidyWarningClass().Match(l2);
                 if (tidy_class.Success)
                 {
                     l2 = l2.Substring(0, tidy_class.Index).Trim();
@@ -224,7 +211,8 @@ class TidyMessage(Fil a_fil)
 
 class TidyGroup
 {
-    public List<TidyMessage> messages { get; set; } = new();
+    // todo(Gustav): replace message type with something more appropriate
+    public List<TidyMessage> Messages { get; set; } = new();
 
     public static IEnumerable<TidyGroup> Parse(IEnumerable<string> lines)
     {
@@ -236,7 +224,7 @@ class TidyGroup
                 if (current != null) yield return current;
                 current = new TidyGroup();
             }
-            current.messages.Add(mess);
+            current.Messages.Add(mess);
         }
 
         if (current != null)
@@ -391,7 +379,7 @@ internal static class ClangFiles
     }
 }
 
-internal static partial class ClangTIdyParsing
+internal static partial class ClangTidyParsing
 {
     [GeneratedRegex(@"\[(\w+([-,]\w+)+)\]", RegexOptions.Compiled)]
     public static partial Regex ClangTidyWarningClass();
@@ -473,13 +461,13 @@ internal class ConsoleOutput(Args args) : IOutput
             }
             if (only_show_these_classes.Length > 0)
             {
-                var all_warning_classes = g.messages.First().GetClasses();
+                var all_warning_classes = g.Messages.First().GetClasses();
                 var show_this_warning = all_warning_classes.Any(warning_class => only_show_these_classes.Contains(warning_class));
                 if (!show_this_warning) continue;
             }
 
             bool first_message = true;
-            foreach (var m in g.messages)
+            foreach (var m in g.Messages)
             {
                 if(first_message) first_message = false;
                 else Console.WriteLine();
@@ -525,19 +513,18 @@ internal class ConsoleOutput(Args args) : IOutput
         var tt = stats.GetTimeTaken();
         if(tt != null)
         {
-            AnsiConsole.MarkupLineInterpolated($"average: {tt.average_value.ToHumanString()}");
-            AnsiConsole.MarkupLineInterpolated($"max: {tt.ma.Value.ToHumanString()} for {tt.ma.Key.GetDisplay()}");
-            AnsiConsole.MarkupLineInterpolated($"min: {tt.mi.Value.ToHumanString()} for {tt.mi.Key.GetDisplay()}");
-            AnsiConsole.MarkupLineInterpolated($"{tt.times_per_file_count} files");
+            AnsiConsole.MarkupLineInterpolated($"average: {tt.AverageValue.ToHumanString()}");
+            AnsiConsole.MarkupLineInterpolated($"max: {tt.Max.Value.ToHumanString()} for {tt.Max.Key.GetDisplay()}");
+            AnsiConsole.MarkupLineInterpolated($"min: {tt.Min.Value.ToHumanString()} for {tt.Min.Key.GetDisplay()}");
+            AnsiConsole.MarkupLineInterpolated($"{tt.TimesPerFileCount} files");
         }
     }
 }
 
-internal class HtmlOutput(Dir args_html_root) : IOutput
+internal class HtmlOutput(Dir root_output) : IOutput
 {
     private readonly string root_name = "Tidy report";
     private readonly Dir root_relative = Dir.CurrentDirectory;
-    private readonly Dir root_output = args_html_root;
     private readonly List<HtmlLink> root_links = new();
     private readonly Dictionary<Fil, HtmlLink> source_file_to_link = new();
     private GlobalStatistics? global_stats = null;
@@ -561,16 +548,10 @@ internal class HtmlOutput(Dir args_html_root) : IOutput
     }
 
     private string LinkToFile(Fil source_file)
-    {
-        if(source_file_to_link.TryGetValue(source_file, out var link))
-        {
-            return $"<a href=\"{link.Link}\">{link.Title}</a>";
-        }
-        else
-        {
-            return source_file.GetDisplay();
-        }
-    }
+        => source_file_to_link.TryGetValue(source_file, out var link)
+            ? $"<a href=\"{link.Link}\">{link.Title}</a>"
+            : source_file.GetDisplay()
+            ;
 
     public void WriteIndexFile()
     {
@@ -592,7 +573,7 @@ internal class HtmlOutput(Dir args_html_root) : IOutput
         {
             output.Add("<h2>Summary</h2>");
             var project_counter = global_stats.TotalClasses;
-            output.Add($"<p>{project_counter.TotalCount()} warnings in {tt.times_per_file_count} files</p>");
+            output.Add($"<p>{project_counter.TotalCount()} warnings in {tt.TimesPerFileCount} files</p>");
             output.Add("<ul>");
             foreach (var (klass, count) in project_counter.MostCommon())
             {
@@ -645,32 +626,33 @@ internal class HtmlOutput(Dir args_html_root) : IOutput
         if(tt != null)
         {
             output.Add("<h3>Timings</h3>");
-            output.Add($"<p><b>average</b>: {tt.average_value.ToHumanString()}</p>");
-            output.Add($"<p><b>max</b>: {tt.ma.Value.ToHumanString()} for {LinkToFile(tt.ma.Key)}</p>");
-            output.Add($"<p><b>min</b>: {tt.mi.Value.ToHumanString()} for {LinkToFile(tt.mi.Key)}</p>");
+            output.Add($"<p><b>average</b>: {tt.AverageValue.ToHumanString()}</p>");
+            output.Add($"<p><b>max</b>: {tt.Max.Value.ToHumanString()} for {LinkToFile(tt.Max.Key)}</p>");
+            output.Add($"<p><b>min</b>: {tt.Min.Value.ToHumanString()} for {LinkToFile(tt.Min.Key)}</p>");
         }
 
         output.Add($"</body>");
         output.Add($"</html>");
 
-        var target = this.root_output.GetFile("index.html");
+        var target = root_output.GetFile("index.html");
 
         target.Directory?.CreateDir();
         target.WriteAllLines(output);
         Console.WriteLine($"Wrote html to {target}");
+        return;
 
         static string Q(int i)
-        {
-            if (i >= 0) return $"{i}";
-            else return "?";
-        }
+            => i >= 0
+                ? $"{i}"
+                : "?"
+        ;
     }
 
     public string GetRelative(Fil f)
         => this.root_relative.RelativeFromTo(f);
 
     public Fil GetOutput(Fil f, string ext)
-        => this.root_output.GetFile(GetRelative(f)).ChangeExtension(ext);
+        => root_output.GetFile(GetRelative(f)).ChangeExtension(ext);
 
     public void WriteFinalReport(GlobalStatistics stats)
     {
@@ -678,25 +660,10 @@ internal class HtmlOutput(Dir args_html_root) : IOutput
         WriteIndexFile();
     }
 
-    private string TryRelative(string path)
-    {
-        var f = new Fil(path);
-        var suggested = GetRelative(f);
-
-        // if returned path includes back references, just use full path?
-        if (suggested.StartsWith(".")) return path;
-
-        return suggested;
-    }
-
     public void SingleFileReport(Fil source_file, SingleFileReport report)
     {
         var name = GetRelative(source_file);
         var target = GetOutput(source_file, ".html");
-
-        var grouped = report.GroupedMessages;
-
-        // todo(Gustav): expand with more data from the report
 
         List<string> output = new();
 
@@ -712,9 +679,9 @@ internal class HtmlOutput(Dir args_html_root) : IOutput
 
         var count = new HashSet<string>();
 
-        foreach (var g in grouped)
+        foreach (var g in report.GroupedMessages)
         {
-            foreach (var m in g.messages)
+            foreach (var m in g.Messages)
             {
                 var is_note = m.Type == "note";
 
@@ -761,13 +728,13 @@ internal class HtmlOutput(Dir args_html_root) : IOutput
         target.WriteAllLines(output);
         Console.WriteLine($"Wrote html to {target}");
 
-        AddFile(source_file, name, target, report.TimeTaken, grouped.Length, count.Count);
+        AddFile(source_file, name, target, report.TimeTaken, report.GroupedMessages.Length, count.Count);
         WriteIndexFile();
     }
 
     private void AddFile(Fil source_file, string name, Fil target, TimeSpan time_taken, int totals, int categories)
     {
-        var link = new HtmlLink(name, this.root_output.RelativeFromTo(target), time_taken, categories, totals);
+        var link = new HtmlLink(name, root_output.RelativeFromTo(target), time_taken, categories, totals);
         root_links.Add(link);
         source_file_to_link.Add(source_file, link);
     }
@@ -901,7 +868,7 @@ internal static class ClangTidy
             if (line.Contains("warning: "))
             {
                 stats.Warnings.AddOne(source_file);
-                var tidy_class = ClangTIdyParsing.ClangTidyWarningClass().Match(line);
+                var tidy_class = ClangTidyParsing.ClangTidyWarningClass().Match(line);
                 if (tidy_class.Success)
                 {
                     var warning_classes = tidy_class.Groups[1];
@@ -916,7 +883,7 @@ internal static class ClangTidy
         return stats;
     }
 
-    private static IEnumerable<string> RemoveStatusLines(string[] output)
+    private static IEnumerable<string> RemoveStatusLines(IEnumerable<string> output)
     {
         foreach (var line in output)
         {
@@ -1005,16 +972,10 @@ internal static class ClangTidy
         }
     }
 
-    private sealed class CollectedTidyFil
+    private sealed class CollectedTidyFil(Fil file, string category)
     {
-        public Fil File { get; }
-        public string Category { get; }
-
-        public CollectedTidyFil(Fil file, string category)
-        {
-            File = file;
-            Category = category;
-        }
+        public Fil File { get; } = file;
+        public string Category { get; } = category;
     }
 
     private static async Task<GlobalStatistics> RunAllFiles(Log log, Args args, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
@@ -1050,11 +1011,6 @@ internal static class ClangTidy
                 var report = new SingleFileReport(tidy_output.Taken, RemoveStatusLines(tidy_output.Output), file_stats);
 
                 html_root.SingleFileReport(source_file, report);
-
-                // if (file_stats.warnings.Items.Any())
-                // {
-                //     stats.Errors.Add(new FileWithError(source_file, file_stats.lines.ToArray()));
-                // }
 
                 stats.GetProjectCounter(cat).Update(file_stats.Warnings);
                 stats.TotalCounter.Update(file_stats.Warnings);
