@@ -7,6 +7,10 @@ Properties/*
 Workbench/bin
 Workbench/obj
 
+Test/bin
+Test/obj
+*.lutconfig
+
 # contains debug settings...
 Workbench/Properties
 
@@ -14,3 +18,4 @@ junk/
 project.wb.json
 *.bak
 *.user
+
