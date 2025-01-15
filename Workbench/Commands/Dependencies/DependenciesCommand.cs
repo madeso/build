@@ -51,6 +51,8 @@ internal sealed class ListGraphvizCommand : AsyncCommand<ListGraphvizCommand.Arg
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var cwd = Dir.CurrentDirectory;
+        var paths = new Config.RealPaths();
+
         return await CliUtil.PrintErrorsAtExitAsync(async printer =>
             {
                 var dox = Cli.RequireDirectory(cwd, printer, arg.DoxygenXml, "doxygen xml folder");
@@ -59,7 +61,7 @@ internal sealed class ListGraphvizCommand : AsyncCommand<ListGraphvizCommand.Arg
                     return -1;
                 }
 
-                await Dependencies.WriteToGraphvizAsync(cwd, printer, dox,
+                await Dependencies.WriteToGraphvizAsync(paths, cwd, printer, dox,
                     arg.NamespaceFilter, new Fil(arg.OutputFile),
                     arg.IgnoredClasses.ToImmutableHashSet(),
                     !(arg.NoIncludeFunctions ?? false),
@@ -94,6 +96,8 @@ internal sealed class ListCallGraph : AsyncCommand<ListCallGraph.Arg>
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var cwd = Dir.CurrentDirectory;
+        var paths = new Config.RealPaths();
+
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
             var dox = Cli.RequireDirectory(cwd, log, arg.DoxygenXml, "Doxygen xml folder");
@@ -102,7 +106,7 @@ internal sealed class ListCallGraph : AsyncCommand<ListCallGraph.Arg>
                 return -1;
             }
 
-            await Dependencies.WriteCallGraphToGraphvizAsync(cwd,
+            await Dependencies.WriteCallGraphToGraphvizAsync(paths, cwd,
                 log, dox, new Fil(arg.OutputFile),
                 arg.ClusterOn ?? Dependencies.ClusterCallGraphOn.None);
             

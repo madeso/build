@@ -20,9 +20,10 @@ internal sealed class BlameCommand : AsyncCommand<BlameCommand.Arg>
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
+        var paths = new Config.RealPaths();
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
-            var git_path = Config.Paths.GetGitExecutable(cwd, log);
+            var git_path = paths.GetGitExecutable(cwd, log);
             if (git_path == null)
             {
                 return -1;
@@ -56,9 +57,10 @@ internal sealed class StatusCommand : AsyncCommand<StatusCommand.Arg>
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
+        var paths = new Config.RealPaths();
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
-            var git_path = Config.Paths.GetGitExecutable(cwd, log);
+            var git_path = paths.GetGitExecutable(cwd, log);
             if (git_path == null)
             {
                 return -1;
@@ -199,9 +201,10 @@ internal sealed class RemoveUnknownCommand : AsyncCommand<RemoveUnknownCommand.A
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
+        var paths = new Config.RealPaths();
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
-            var git_path = Config.Paths.GetGitExecutable(cwd, log);
+            var git_path = paths.GetGitExecutable(cwd, log);
             if (git_path == null)
             {
                 return -1;
@@ -259,8 +262,9 @@ internal sealed class AuthorsCommand : AsyncCommand<AuthorsCommand.Arg>
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
             var cwd = Dir.CurrentDirectory;
+            var paths = new Config.RealPaths();
 
-            var git_path = Config.Paths.GetGitExecutable(cwd, log);
+            var git_path = paths.GetGitExecutable(cwd, log);
             if (git_path == null)
             {
                 return -1;

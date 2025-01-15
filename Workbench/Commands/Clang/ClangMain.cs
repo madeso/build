@@ -105,6 +105,8 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
+        var paths = new Config.RealPaths();
+
         Dir? html_dir = null;
 
         if(settings.HtmlDir != null)
@@ -118,7 +120,7 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
         }
 
         var tidy = new ClangTidy();
-        return await CliUtil.PrintErrorsAtExitAsync(print => tidy.HandleRunClangTidyCommand(cwd,
+        return await CliUtil.PrintErrorsAtExitAsync(print => tidy.HandleRunClangTidyCommand(paths, cwd,
             settings, print,
             settings.Headers,
             new ClangTidy.Args(html_dir, settings.NumberOfTasks, settings.Fix, settings.Filter, settings.Nop, settings.Short, settings.Force,
@@ -140,8 +142,10 @@ internal sealed class RunClangFormatCommand : AsyncCommand<RunClangFormatCommand
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
+        var paths = new Config.RealPaths();
+
         return await CliUtil.PrintErrorsAtExitAsync(async print =>
-            await ClangFormat.HandleClangFormatCommand(cwd, print, settings.Nop));
+            await ClangFormat.HandleClangFormatCommand(paths, cwd, print, settings.Nop));
     }
 }
 

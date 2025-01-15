@@ -68,6 +68,8 @@ internal sealed class GenerateCommand : AsyncCommand<GenerateCommand.Arg>
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg args)
     {
         var cwd = Dir.CurrentDirectory;
+        var paths = new Config.RealPaths();
+
         return await CliUtil.PrintErrorsAtExitAsync(async printer =>
         {
             var sln = Cli.RequireFile(cwd, printer, args.Solution, "solution file");
@@ -75,7 +77,7 @@ internal sealed class GenerateCommand : AsyncCommand<GenerateCommand.Arg>
             {
                 return -1;
             }
-            return await SlnDepsFunctions.HandleGenerateAsync(cwd, printer, args.Target, args.Format,
+            return await SlnDepsFunctions.HandleGenerateAsync(paths, cwd, printer, args.Target, args.Format,
                 args.MakeExclusionList(), args.Simplify, args.Reverse, sln, args.Style);
         });
     }

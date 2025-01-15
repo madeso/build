@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Workbench.Config;
 using Workbench.Shared.Extensions;
 
 namespace Workbench.Shared;
@@ -212,9 +213,9 @@ public class Graphviz
         await path.WriteAllLinesAsync(Lines);
     }
 
-    public async Task<string[]> WriteSvgAsync(Dir cwd, Log log)
+    public async Task<string[]> WriteSvgAsync(Config.Paths paths, Dir cwd, Log log)
     {
-        var dot = Config.Paths.GetGraphvizExecutable(cwd, log);
+        var dot = paths.GetGraphvizExecutable(cwd, log);
 
         if (dot == null)
         {
@@ -245,9 +246,9 @@ public class Graphviz
         return ret;
     }
 
-    public async IAsyncEnumerable<string> WriteHtmlAsync(Dir cwd, Log log, Fil file, bool use_max_width = false)
+    public async IAsyncEnumerable<string> WriteHtmlAsync(Dir cwd, Log log, Fil file, Paths paths, bool use_max_width = false)
     {
-        var svg = await WriteSvgAsync(cwd, log);
+        var svg = await WriteSvgAsync(paths, cwd, log);
 
         yield return "<!DOCTYPE html>";
         yield return "<html>";
@@ -302,25 +303,25 @@ public class Graphviz
         yield return "</html>";
     }
 
-    public async Task SmartWriteFileAsync(Dir cwd, Fil path, Log log)
+    public async Task SmartWriteFileAsync(Paths paths, Dir cwd, Fil target_file, Log log)
     {
         var am = new ActionMapper();
         am.Add(async () =>
         {
-            await WriteFileAsync(path);
+            await WriteFileAsync(target_file);
         }, "", ".gv", ".graphviz", ".dot");
         am.Add(async () =>
         {
             // todo(Gustav): don't write svg if we failed
-            await path.WriteAllLinesAsync(await WriteSvgAsync(cwd, log));
+            await target_file.WriteAllLinesAsync(await WriteSvgAsync(paths, cwd, log));
         }, ".svg");
         am.Add(async () =>
         {
             // todo(Gustav): don't write html if we failed
-            await path.WriteAllLinesAsync(await WriteHtmlAsync(cwd, log, path).ToListAsync());
+            await target_file.WriteAllLinesAsync(await WriteHtmlAsync(cwd, log, target_file, paths).ToListAsync());
         }, ".htm", ".html");
 
-        var ext = path.Extension;
+        var ext = target_file.Extension;
         if (false == await am.Run(ext))
         {
             log.Error($"Unknown extension {ext}, supported: {StringListCombiner.EnglishAnd().Combine(am.Names)}");

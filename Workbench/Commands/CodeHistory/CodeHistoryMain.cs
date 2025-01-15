@@ -33,10 +33,11 @@ internal sealed class PrintCodeHistory : AsyncCommand<PrintCodeHistory.Arg>
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var cwd = Dir.CurrentDirectory;
+        var paths = new Config.RealPaths();
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
 
-            var git_path = Config.Paths.GetGitExecutable(cwd, log);
+            var git_path = paths.GetGitExecutable(cwd, log);
             if (git_path == null)
             {
                 return -1;

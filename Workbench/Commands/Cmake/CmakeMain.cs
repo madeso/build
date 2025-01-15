@@ -91,6 +91,8 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
+        var paths = new Config.RealPaths();
+
         return await CliUtil.PrintErrorsAtExitAsync(async printer => {
             var cmake = FindCMake.RequireInstallationOrNull(printer);
 
@@ -135,7 +137,7 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
                     gv.Simplify();
                 }
 
-                await gv.SmartWriteFileAsync(cwd, Cli.ToSingleFile(cwd, settings.Output, "cmake.dot"), printer);
+                await gv.SmartWriteFileAsync(paths, cwd, Cli.ToSingleFile(cwd, settings.Output, "cmake.dot"), printer);
             }
             catch (CMakeTrace.TraceError x)
             {

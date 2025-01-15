@@ -2,6 +2,10 @@
 
 namespace Test;
 
+internal class FakePath : Workbench.Config.Paths
+{
+}
+
 internal class VfsReadTest : VfsRead
 {
     private class Entry

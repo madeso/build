@@ -126,12 +126,14 @@ internal sealed class ListInfoCommand : AsyncCommand<ListInfoCommand.Arg>
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var cwd = Dir.CurrentDirectory;
-        return await CliUtil.PrintErrorsAtExitAsync(async log => await Run(cwd, arg, log));
+        var paths = new Config.RealPaths();
+
+        return await CliUtil.PrintErrorsAtExitAsync(async log => await Run(paths, cwd, arg, log));
     }
 
-    private static async Task<int> Run(Dir cwd, Arg arg, Log log)
+    private static async Task<int> Run(Config.Paths paths, Dir cwd, Arg arg, Log log)
     {
-        var git_path = Config.Paths.GetGitExecutable(cwd, log);
+        var git_path = paths.GetGitExecutable(cwd, log);
         if (git_path == null)
         {
             return -1;
@@ -205,12 +207,14 @@ internal sealed class GitFilesCommand : AsyncCommand<GitFilesCommand.Arg>
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var cwd = Dir.CurrentDirectory;
-        return await CliUtil.PrintErrorsAtExitAsync(async log => await Run(cwd, arg, log));
+        var paths = new Config.RealPaths();
+
+        return await CliUtil.PrintErrorsAtExitAsync(async log => await Run(paths, cwd, arg, log));
     }
 
-    private static async Task<int> Run(Dir cwd, Arg arg, Log log)
+    private static async Task<int> Run(Config.Paths paths, Dir cwd, Arg arg, Log log)
     {
-        var git_path = Config.Paths.GetGitExecutable(cwd, log);
+        var git_path = paths.GetGitExecutable(cwd, log);
         if (git_path == null)
         {
             return -1;
@@ -250,7 +254,7 @@ internal sealed class GitFilesCommand : AsyncCommand<GitFilesCommand.Arg>
 
         var gvf = Cli.ToSingleFile(cwd, arg.OutputFile, "file-dependencies.html");
         AnsiConsole.WriteLine($"Writing graphviz to {gvf} with {gv.NodeCount} nodes and {gv.EdgeCount} edges");
-        await gv.SmartWriteFileAsync(cwd, gvf, log);
+        await gv.SmartWriteFileAsync(paths, cwd, gvf, log);
 
         AnsiConsole.WriteLine("Done!");
         return 0;

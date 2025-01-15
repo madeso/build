@@ -74,6 +74,8 @@ internal sealed class FilesCommand : Command<FilesCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var cwd = Dir.CurrentDirectory;
+        var paths = new Config.RealPaths();
+
         return CliUtil.PrintErrorsAtExit(print =>
         {
             var sources = Cli.ToExistingFileOrDir(cwd, arg.Sources, print);
@@ -83,7 +85,7 @@ internal sealed class FilesCommand : Command<FilesCommand.Arg>
             }
 
             return ListHeaderFunctions.HandleFiles(cwd, print,
-                CompileCommand.FindOrNone(cwd, arg, print), sources,
+                CompileCommand.FindOrNone(cwd, arg, print, paths), sources,
                 arg.MostCommonCount);
         });
     }
@@ -129,8 +131,10 @@ internal sealed class IncludeListCommand : Command<IncludeListCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
+        var paths = new Config.RealPaths();
+
         return CliUtil.PrintErrorsAtExit(print => Includes.HandleListIncludesCommand(cwd, print,
-            CompileCommand.FindOrNone(cwd, settings, print),
+            CompileCommand.FindOrNone(cwd, settings, print, paths),
             settings.Files, settings.PrintFiles, settings.PrintStats, settings.PrintMax,
             settings.PrintList, settings.Count, settings.Limit));
     }
@@ -166,8 +170,10 @@ internal sealed class IncludeGraphvizCommand : Command<IncludeGraphvizCommand.Ar
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
+        var paths = new Config.RealPaths();
+
         return CliUtil.PrintErrorsAtExit(print =>
-            Includes.HandleIncludeGraphvizCommand(cwd, print, CompileCommand.FindOrNone(cwd, settings, print),
+            Includes.HandleIncludeGraphvizCommand(cwd, print, CompileCommand.FindOrNone(cwd, settings, print, paths),
                 settings.Files, settings.Limit, settings.Group, settings.Cluster));
     }
 }

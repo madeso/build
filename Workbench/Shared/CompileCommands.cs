@@ -97,24 +97,24 @@ public class CompileCommand
         return settings.GetFileFromArgument(COMPILE_COMMANDS_FILE_NAME);
     }
 
-    internal static IEnumerable<Found<Fil>> ListOverrides(Dir cwd, CompileCommandsArguments settings, Log? log)
+    internal static IEnumerable<Found<Fil>> ListOverrides(Paths paths, Dir cwd, CompileCommandsArguments settings, Log? log)
     {
         yield return Functional.Params(
                     GetBuildFromArgument(settings))
                 .IgnoreNull()
                 .Collect("commandline")
             ;
-        yield return Paths.Find(cwd, log, p => p.CompileCommands);
+        yield return paths.Find(cwd, log, p => p.CompileCommands);
     }
 
-    internal static IEnumerable<Found<Fil>> ListAll(Dir cwd, CompileCommandsArguments settings)
-        => ListOverrides(cwd, settings, null)
+    internal static IEnumerable<Found<Fil>> ListAll(Dir cwd, CompileCommandsArguments settings, Paths paths)
+        => ListOverrides(paths, cwd, settings, null)
             .Concat(FindJustTheBuilds(cwd));
 
-    internal static Fil? FindOrNone(Dir cwd, CompileCommandsArguments settings, Log? log)
+    internal static Fil? FindOrNone(Dir cwd, CompileCommandsArguments settings, Log? log, Paths paths)
     {
         return FindJustTheBuilds(cwd)
-            .FirstValidOrOverride(ListOverrides(cwd, settings, log), log, "compile command");
+            .FirstValidOrOverride(ListOverrides(paths, cwd, settings, log), log, "compile command");
     }
 }
 

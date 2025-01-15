@@ -48,6 +48,8 @@ internal sealed class RunCommand : AsyncCommand<RunCommand.Arg>
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var cwd = Dir.CurrentDirectory;
+        var paths = new Config.RealPaths();
+
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
             var root = Cli.RequireDirectory(cwd, log, arg.Root, "root");
@@ -55,7 +57,7 @@ internal sealed class RunCommand : AsyncCommand<RunCommand.Arg>
             {
                 return -1;
             }
-            return await CliUtil.PrintErrorsAtExitAsync(async print => await Cpplint.HandleRun(cwd, print, root));
+            return await CliUtil.PrintErrorsAtExitAsync(async print => await Cpplint.HandleRun(paths, cwd, print, root));
         });
     }
 }

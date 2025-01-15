@@ -4,26 +4,30 @@ using Workbench.Shared.Extensions;
 
 namespace Workbench.Config;
 
-internal static class Paths
+internal class RealPaths : Paths
 {
-    public static Fil GetConfigFileFromCurrentDirectory(Dir cwd)
+}
+
+public abstract class Paths
+{
+    public Fil GetConfigFileFromCurrentDirectory(Dir cwd)
         => cwd.GetFile(FileNames.Paths);
 
-    public static SavedPaths? LoadConfigFromCurrentDirectoryOrNull(Dir cwd, Log? print)
+    public SavedPaths? LoadConfigFromCurrentDirectoryOrNull(Dir cwd, Log? print)
         => GetConfigFileFromCurrentDirectory(cwd).Exists == false
             ? new SavedPaths()
             : ConfigFile.LoadOrNull<SavedPaths>(print, GetConfigFileFromCurrentDirectory(cwd));
 
-    public static FoundEntry<Fil>? FindEntry(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter)
+    public FoundEntry<Fil>? FindEntry(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter)
     {
-        var cc = LoadConfigFromCurrentDirectoryOrNull(cwd, log);
-        if (cc == null)
+        var saved_paths = LoadConfigFromCurrentDirectoryOrNull(cwd, log);
+        if (saved_paths == null)
         {
             // todo(Gustav): handle errors better
             return null;
         }
 
-        var val = getter(cc);
+        var val = getter(saved_paths);
         if (val == null)
         {
             return null;
@@ -32,45 +36,45 @@ internal static class Paths
         return new FoundEntry<Fil>.Result(val);
     }
 
-    public static Found<Fil> Find(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter)
+    public Found<Fil> Find(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter)
         => Functional.Params(FindEntry(cwd, log, getter))
             .IgnoreNull()
             .Collect($"{FileNames.Paths} file");
 
-    public static void Save(Dir cwd, SavedPaths p)
+    public void Save(Dir cwd, SavedPaths p)
         => ConfigFile.Write(GetConfigFileFromCurrentDirectory(cwd), p);
 
-    private static IEnumerable<Found<Fil>> FindFromPath(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter)
+    private IEnumerable<Found<Fil>> FindFromPath(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter)
         => Functional.Params(Find(cwd, log, getter));
 
-    private static IEnumerable<Found<Fil>> FindPrimaryExecutable(Executable exe)
+    private IEnumerable<Found<Fil>> FindPrimaryExecutable(Executable exe)
         => Functional.Params(Which.FindPaths(exe.PrimaryExecutable));
 
-    internal static IEnumerable<Found<Fil>> ListAllExecutables(Dir cwd, Func<SavedPaths, Fil?> getter, Executable exe, Log? log = null)
+    internal IEnumerable<Found<Fil>> ListAllExecutables(Dir cwd, Func<SavedPaths, Fil?> getter, Executable exe, Log? log = null)
         => FindFromPath(cwd, null, getter).Concat(FindPrimaryExecutable(exe)).Concat(
             exe.Additional());
 
-    internal static Fil? GetSavedOrSearchForExecutable(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter, Executable exe)
+    internal Fil? GetSavedOrSearchForExecutable(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter, Executable exe)
         => ListAllExecutables(cwd, getter, exe, log)
             .RequireFirstValueOrNull(log, exe.FriendlyName);
 
-    internal static Fil? GetGitExecutable(Dir cwd, Log log)
+    internal Fil? GetGitExecutable(Dir cwd, Log log)
         => GetSavedOrSearchForExecutable(cwd, log, p => p.GitExecutable, DefaultExecutables.Git);
 
-    internal static Fil? GetClangTidyExecutable(Dir cwd, Log log)
+    internal Fil? GetClangTidyExecutable(Dir cwd, Log log)
         => GetSavedOrSearchForExecutable(cwd, log, p => p.ClangTidyExecutable, DefaultExecutables.ClangTidy);
 
-    internal static Fil? GetClangFormatExecutable(Dir cwd, Log log)
+    internal Fil? GetClangFormatExecutable(Dir cwd, Log log)
         => GetSavedOrSearchForExecutable(cwd, log, p => p.ClangFormatExecutable, DefaultExecutables.ClangFormat);
 
-    internal static Fil? GetCppLintExecutable(Dir cwd, Log log)
+    internal Fil? GetCppLintExecutable(Dir cwd, Log log)
         => GetSavedOrSearchForExecutable(cwd, log, p => p.CpplintExecutable, DefaultExecutables.CppLint);
 
-    internal static Fil? GetGraphvizExecutable(Dir cwd, Log log)
+    internal Fil? GetGraphvizExecutable(Dir cwd, Log log)
         => GetSavedOrSearchForExecutable(cwd, log, p => p.GraphvizExecutable, DefaultExecutables.Graphviz);
 }
 
-internal class SavedPaths
+public class SavedPaths
 {
     [JsonPropertyName("compile_commands")]
     public Fil? CompileCommands { get; set; }

@@ -5,6 +5,7 @@ using Xunit;
 using Workbench.Commands.Clang;
 using Workbench.Shared;
 using static Workbench.Commands.CheckIncludeOrder.CheckAction;
+using Workbench.Shared.CMake;
 
 namespace Test;
 
@@ -17,9 +18,10 @@ public class TestClang : TestBase
     {
         var tidy = new ClangTidy();
         var cwd = new Dir(@"C:\test\");
+        var paths = new FakePath();
 
         var args = new ClangTidy.Args(null, 1, false, ["libs"], true, false, false, []);
-        var ret = await tidy.HandleRunClangTidyCommand(cwd, new CompileCommandsArguments(), log, false, args);
+        var ret = await tidy.HandleRunClangTidyCommand(paths, cwd, new CompileCommandsArguments(), log, false, args);
         using (new AssertionScope())
         {
             ret.Should().Be(-1);

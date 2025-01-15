@@ -23,9 +23,11 @@ internal sealed class DebugCommand : Command<DebugCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
+        var paths = new Config.RealPaths();
+
         return CliUtil.PrintErrorsAtExit(print =>
         {
-            Status.HandleStatus(cwd, print, settings);
+            Status.HandleStatus(cwd, print, settings, paths);
             return 0;
         });
     }

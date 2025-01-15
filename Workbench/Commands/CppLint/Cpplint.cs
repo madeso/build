@@ -24,9 +24,9 @@ public static class Cpplint
     }
 
 
-    public static async Task<int> HandleRun(Dir cwd, Log log, Dir root)
+    public static async Task<int> HandleRun(Config.Paths paths, Dir cwd, Log log, Dir root)
     {
-        var cpplint = Config.Paths.GetCppLintExecutable(cwd, log);
+        var cpplint = paths.GetCppLintExecutable(cwd, log);
         if (cpplint == null)
         {
             return -1;

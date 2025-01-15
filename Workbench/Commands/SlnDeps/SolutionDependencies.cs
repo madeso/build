@@ -66,9 +66,9 @@ static class SlnDepsFunctions
     // logic
     // ======================================================================================================================
 
-    private static async Task<bool> RunGraphvizAsync(Dir cwd, Log log, Fil target_file, string image_format, string graphviz_layout)
+    private static async Task<bool> RunGraphvizAsync(Config.Paths paths, Dir cwd, Log log, Fil target_file, string image_format, string graphviz_layout)
     {
-        var dot = Config.Paths.GetGraphvizExecutable(cwd, log);
+        var dot = paths.GetGraphvizExecutable(cwd, log);
         if (dot == null)
         {
             return false;
@@ -90,7 +90,7 @@ static class SlnDepsFunctions
     // Handlers
     // ======================================================================================================================
 
-    public static async Task<int> HandleGenerateAsync(Dir cwd, Log log, string target,
+    public static async Task<int> HandleGenerateAsync(Config.Paths paths, Dir cwd, Log log, string target,
             string format,
             ExclusionList exclude,
             bool simplify,
@@ -115,7 +115,7 @@ static class SlnDepsFunctions
 
         await gv.WriteFileAsync(target_file);
 
-        var res = await RunGraphvizAsync(cwd, log, target_file, image_format, graphviz_layout);
+        var res = await RunGraphvizAsync(paths, cwd, log, target_file, image_format, graphviz_layout);
         if (res == false)
         {
             return -1;

@@ -920,15 +920,15 @@ public class ClangTidy
     }
 
     // callback function called when running clang.py tidy
-    public async Task<int> HandleRunClangTidyCommand(Dir cwd, CompileCommandsArguments cc, Log log, bool also_include_headers, Args args)
+    public async Task<int> HandleRunClangTidyCommand(Config.Paths paths, Dir cwd, CompileCommandsArguments cc, Log log, bool also_include_headers, Args args)
     {
-        var clang_tidy = Config.Paths.GetClangTidyExecutable(cwd, log);
+        var clang_tidy = paths.GetClangTidyExecutable(cwd, log);
         if (clang_tidy == null)
         {
             return -1;
         }
 
-        var cc_file = CompileCommand.FindOrNone(cwd, cc, log);
+        var cc_file = CompileCommand.FindOrNone(cwd, cc, log, paths);
         if (cc_file == null)
         {
             return -1;
@@ -1024,9 +1024,9 @@ public class ClangTidy
 internal static class ClangFormat
 {
     // callback function called when running clang.py format
-    internal static async Task<int> HandleClangFormatCommand(Dir cwd, Log log, bool nop)
+    internal static async Task<int> HandleClangFormatCommand(Config.Paths paths, Dir cwd, Log log, bool nop)
     {
-        var clang_format_path = Config.Paths.GetClangFormatExecutable(cwd, log);
+        var clang_format_path = paths.GetClangFormatExecutable(cwd, log);
         if (clang_format_path == null)
         {
             return -1;
