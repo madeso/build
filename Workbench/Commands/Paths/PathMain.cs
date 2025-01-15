@@ -31,8 +31,8 @@ public class Main
     }
 
     private static void AddExecutable(IConfigurator<CommandSettings> config,
-        Func<Config.Paths, Fil?> getter,
-        Action<Config.Paths, Fil?> setter,
+        Func<Config.SavedPaths, Fil?> getter,
+        Action<Config.SavedPaths, Fil?> setter,
         Executable exe)
     {
         SetupPathCommand.Configure<CompileCommandsArguments>(config, exe.Name, "executable",
@@ -59,7 +59,7 @@ public class Main
 internal class SetupPathCommand
 {
     internal static void Configure<TNoArg>(IConfigurator<CommandSettings> root, string name, string var_name,
-        Action<Config.Paths, Fil?> setter,
+        Action<Config.SavedPaths, Fil?> setter,
         Action<TNoArg, Dir> list,
         Func<TNoArg, Dir, IEnumerable<Fil>> value_getter)
         where TNoArg: CommandSettings
