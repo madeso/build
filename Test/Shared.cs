@@ -119,7 +119,7 @@ internal class VfsWriteTest : VfsWrite
     }
 }
 
-internal class RunTest : Run
+internal class LoggableTest : Loggable
 {
     public List<string> Errors { get; } = new();
 
@@ -132,7 +132,7 @@ internal class RunTest : Run
     {
     }
 
-    public void WriteError(string message)
+    public void Error(string message)
     {
         Errors.Add(message);
     }
@@ -145,7 +145,7 @@ internal class RunTest : Run
 
 public class TestBase
 {
-    internal RunTest run = new();
+    internal LoggableTest log = new();
     internal VfsReadTest read = new();
     internal VfsWriteTest write = new();
 }

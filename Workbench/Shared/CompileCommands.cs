@@ -119,10 +119,7 @@ public class CompileCommand
     }
 }
 
-
-
-
-internal class CompileCommandsArguments : CommandSettings
+public class CompileCommandsArguments : CommandSettings
 {
     [Description("the path to compile_commands.json")]
     [CommandOption("--compile-commands")]

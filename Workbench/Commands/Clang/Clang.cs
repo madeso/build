@@ -740,7 +740,7 @@ internal class HtmlOutput(Dir root_output) : IOutput
     }
 }
 
-internal static class ClangTidy
+public class ClangTidy
 {
     private static Fil GetPathToStore(Dir build_folder)
         => build_folder.GetFile(FileNames.ClangTidyStore);
@@ -923,7 +923,7 @@ internal static class ClangTidy
     }
 
     // callback function called when running clang.py tidy
-    internal static async Task<int> HandleRunClangTidyCommand(CompileCommandsArguments cc, Log log, bool also_include_headers, Args args)
+    public async Task<int> HandleRunClangTidyCommand(CompileCommandsArguments cc, Log log, bool also_include_headers, Args args)
     {
         var clang_tidy = Config.Paths.GetClangTidyExecutable(log);
         if (clang_tidy == null)

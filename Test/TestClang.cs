@@ -2,6 +2,8 @@
 using FluentAssertions;
 using FluentAssertions.Execution;
 using Xunit;
+using Workbench.Commands.Clang;
+using Workbench.Shared;
 
 namespace Test;
 
@@ -12,6 +14,9 @@ public class TestClang : TestBase
     [Fact]
     public async Task if_clang_tidy_is_missing_then_fail()
     {
+        var tidy = new ClangTidy();
+
+        // await tidy.HandleRunClangTidyCommand(new CompileCommandsArguments(), log, false, new ClangTidy.Args());
         /*
         var cwd = new DirectoryInfo(@"C:\test\");
         read.AddContent(cwd.GetFile(Constants.ROOT_FILENAME_WITH_EXTENSION), "{}");

@@ -216,6 +216,23 @@ public class Fil : IComparable<Fil>
 
 
 
+public interface VfsRead
+{
+    public bool Exists(Fil path);
+    public Task<string> ReadAllTextAsync(Fil path);
+
+    public IEnumerable<Fil> GetFiles(Dir dir);
+    public IEnumerable<Dir> GetDirectories(Dir root);
+    public IEnumerable<Fil> GetFilesRec(Dir dir);
+}
+
+public interface VfsWrite
+{
+    public Task WriteAllTextAsync(Fil path, string contents);
+}
+
+
+
 // json serialization
 public class FilJsonConverter : JsonConverter<Fil>
 {

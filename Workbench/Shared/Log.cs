@@ -9,9 +9,14 @@ public enum MessageType
 }
 
 public record FileLine(Fil File, int? Line);
-// public record ErrorClass(string Name, int Code);
 
-public class Log
+
+public interface Loggable
+{
+    void Error(string message);
+}
+
+public class Log : Loggable
 {
 
     // todo(Gustav): merge all functions into a few powerful versions together with output options on the log

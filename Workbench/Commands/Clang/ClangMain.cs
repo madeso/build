@@ -113,7 +113,9 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
                 return -1;
             }
         }
-        return await Log.PrintErrorsAtExitAsync(print => ClangTidy.HandleRunClangTidyCommand(
+
+        var tidy = new ClangTidy();
+        return await Log.PrintErrorsAtExitAsync(print => tidy.HandleRunClangTidyCommand(
             settings, print,
             settings.Headers,
             new ClangTidy.Args(html_dir, settings.NumberOfTasks, settings.Fix, settings.Filter, settings.Nop, settings.Short, settings.Force,
