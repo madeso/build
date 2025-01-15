@@ -35,7 +35,7 @@ internal sealed class InitCommand : Command<InitCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Log.PrintErrorsAtExit(print => BuildFacade.HandleInit(print, settings.Overwrite));
+        return CliUtil.PrintErrorsAtExit(print => BuildFacade.HandleInit(print, settings.Overwrite));
     }
 }
 

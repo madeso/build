@@ -20,7 +20,7 @@ internal sealed class CheckFileNamesCommand : Command<CheckFileNamesCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Log.PrintErrorsAtExit(print => CheckFileNames(print, settings.Files));
+        return CliUtil.PrintErrorsAtExit(print => CheckFileNames(print, settings.Files));
     }
 
     public static int CheckFileNames(Log print, string[] args_files)

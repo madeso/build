@@ -32,7 +32,7 @@ internal sealed class PrintCodeHistory : AsyncCommand<PrintCodeHistory.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return await Log.PrintErrorsAtExitAsync(async log =>
+        return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
 
             var git_path = Config.Paths.GetGitExecutable(log);

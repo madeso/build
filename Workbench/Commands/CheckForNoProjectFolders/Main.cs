@@ -28,7 +28,7 @@ internal sealed class CheckForNoProjectFoldersCommand : AsyncCommand<CheckForNoP
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return await Log.PrintErrorsAtExitAsync(async log =>
+        return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
             var cmake = FindCMake.RequireInstallationOrNull(log);
             if (cmake == null)

@@ -4,6 +4,7 @@ using FluentAssertions.Execution;
 using Xunit;
 using Workbench.Commands.Clang;
 using Workbench.Shared;
+using static Workbench.Commands.CheckIncludeOrder.CheckAction;
 
 namespace Test;
 
@@ -16,7 +17,13 @@ public class TestClang : TestBase
     {
         var tidy = new ClangTidy();
 
-        // await tidy.HandleRunClangTidyCommand(new CompileCommandsArguments(), log, false, new ClangTidy.Args());
+        var args = new ClangTidy.Args(null, 1, false, ["libs"], true, false, false, []);
+        var ret = await tidy.HandleRunClangTidyCommand(new CompileCommandsArguments(), log, false, args);
+        using (new AssertionScope())
+        {
+            ret.Should().Be(-1);
+            log.Errors.Should().Equal(["Failed to find valid clang-tidy executable"]);
+        }
         /*
         var cwd = new DirectoryInfo(@"C:\test\");
         read.AddContent(cwd.GetFile(Constants.ROOT_FILENAME_WITH_EXTENSION), "{}");

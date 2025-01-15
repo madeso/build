@@ -21,7 +21,7 @@ internal sealed class WriteCodeCity : Command<WriteCodeCity.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return Log.PrintErrorsAtExit(printer =>
+        return CliUtil.PrintErrorsAtExit(printer =>
             {
                 var dox = Cli.RequireDirectory(printer, arg.DoxygenXml, "Doxygen xml folder");
                 if (dox == null)

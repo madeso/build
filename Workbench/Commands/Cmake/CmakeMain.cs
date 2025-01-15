@@ -20,7 +20,7 @@ internal sealed class TraceCommand : AsyncCommand<TraceCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return await Log.PrintErrorsAtExitAsync(async printer => {
+        return await CliUtil.PrintErrorsAtExitAsync(async printer => {
             var cmake = FindCMake.RequireInstallationOrNull(printer);
 
             if (cmake == null)
@@ -89,7 +89,7 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return await Log.PrintErrorsAtExitAsync(async printer => {
+        return await CliUtil.PrintErrorsAtExitAsync(async printer => {
             var cmake = FindCMake.RequireInstallationOrNull(printer);
 
             if(cmake == null)

@@ -68,7 +68,7 @@ internal class SetupPathCommand
             branch.SetDescription($"Change the {name} {var_name}");
             branch.AddDelegate<SetVarArg>("set", (_, arg) =>
             {
-                return Log.PrintErrorsAtExit(print =>
+                return CliUtil.PrintErrorsAtExit(print =>
                 {
                     var file = new Fil(arg.Value);
                     if (file.Exists == false)
@@ -90,7 +90,7 @@ internal class SetupPathCommand
 
             branch.AddDelegate<NoArgs>("clear", (_, _) =>
             {
-                return Log.PrintErrorsAtExit(print =>
+                return CliUtil.PrintErrorsAtExit(print =>
                 {
                     var paths = Config.Paths.LoadConfigFromCurrentDirectoryOrNull(print);
                     if (paths == null) { return -1; }
@@ -108,7 +108,7 @@ internal class SetupPathCommand
 
             branch.AddDelegate<TNoArg>("choose", (_, args) =>
             {
-                return Log.PrintErrorsAtExit(print =>
+                return CliUtil.PrintErrorsAtExit(print =>
                 {
                     var values = value_getter(args).ToImmutableArray();
                     if (values.Length <= 1)

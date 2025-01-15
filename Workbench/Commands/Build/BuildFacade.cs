@@ -122,7 +122,7 @@ internal static class BuildFacade
 
     public static async Task<int> WithLoadedBuildDataAsync(Func<Log, BuildData, Task<int>> callback)
     {
-        return await Log.PrintErrorsAtExitAsync(async print =>
+        return await CliUtil.PrintErrorsAtExitAsync(async print =>
         {
             var data = BuildData.LoadOrNull(print);
             if (data == null)

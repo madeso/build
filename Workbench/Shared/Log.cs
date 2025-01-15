@@ -11,19 +11,26 @@ public enum MessageType
 public record FileLine(Fil File, int? Line);
 
 
-public interface Loggable
+public interface Log
 {
+    void Error(FileLine? file, string message);
     void Error(string message);
+    void Warning(string message);
+
+    void Print(MessageType message_type, FileLine? file, string message, string code);
+
+    void PrintError(FileLine? file, string message, string? code);
+    void WriteInformation(FileLine? file, string message);
 }
 
-public class Log : Loggable
+public class LogToConsole : Log
 {
 
     // todo(Gustav): merge all functions into a few powerful versions together with output options on the log
 
-    private int error_count = 0;
+    internal int error_count = 0;
 
-    internal void PrintError(FileLine? file, string message, string? code)
+    public void PrintError(FileLine? file, string message, string? code)
     {
         // todo(Gustav): require code and make error format a option
         AddError(code != null
@@ -31,7 +38,7 @@ public class Log : Loggable
             : $"{ToFileString(file)}: ERROR: {message}");
     }
 
-    internal void Error(FileLine? file, string message)
+    public void Error(FileLine? file, string message)
     {
         // todo(Gustav): inline this useless function
         PrintError(file, message, null);
@@ -47,12 +54,12 @@ public class Log : Loggable
         AnsiConsole.MarkupLineInterpolated($"WARNING: {message}");
     }
 
-    internal void WriteInformation(FileLine? file, string message)
+    public void WriteInformation(FileLine? file, string message)
     {
         AnsiConsole.MarkupLineInterpolated($"[blue]{ToFileString(file)}[/]: {message}");
     }
 
-    internal void Print(MessageType message_type, FileLine? file, string message, string code)
+    public void Print(MessageType message_type, FileLine? file, string message, string code)
     {
         switch (message_type)
         {
@@ -97,10 +104,13 @@ public class Log : Loggable
             }
         }
     }
+}
 
+public static class CliUtil
+{
     public static int PrintErrorsAtExit(Func<Log, int> callback)
     {
-        var printer = new Log();
+        var printer = new LogToConsole();
         var ret = callback(printer);
         if (printer.error_count > 0)
         {
@@ -118,7 +128,7 @@ public class Log : Loggable
 
     public static async Task<int> PrintErrorsAtExitAsync(Func<Log, Task<int>> callback)
     {
-        var printer = new Log();
+        var printer = new LogToConsole();
         var ret = await callback(printer);
         if (printer.error_count > 0)
         {
@@ -134,4 +144,3 @@ public class Log : Loggable
         return ret;
     }
 }
-

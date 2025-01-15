@@ -94,7 +94,7 @@ public static class FoundExtensions
         var found = GetFirstValueOrNull(founds);
         if (found == null)
         {
-            log?.Error($"Failed to valid {name}");
+            log?.Error($"Failed to find valid {name}");
         }
         return found;
     }

@@ -119,7 +119,7 @@ internal class VfsWriteTest : VfsWrite
     }
 }
 
-internal class LoggableTest : Loggable
+internal class LoggableTest : Log
 {
     public List<string> Errors { get; } = new();
 
@@ -128,13 +128,34 @@ internal class LoggableTest : Loggable
         return Errors.Count > 0;
     }
 
-    public void Status(string message)
+    public void Error(FileLine? file, string message)
     {
+        throw new NotImplementedException();
     }
 
     public void Error(string message)
     {
         Errors.Add(message);
+    }
+
+    public void Warning(string message)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void Print(MessageType message_type, FileLine? file, string message, string code)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void PrintError(FileLine? file, string message, string? code)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void WriteInformation(FileLine? file, string message)
+    {
+        throw new NotImplementedException();
     }
 
     internal string GetOutput()

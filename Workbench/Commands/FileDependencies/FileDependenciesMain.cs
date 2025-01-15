@@ -125,7 +125,7 @@ internal sealed class ListInfoCommand : AsyncCommand<ListInfoCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return await Log.PrintErrorsAtExitAsync(async log => await Run(arg, log));
+        return await CliUtil.PrintErrorsAtExitAsync(async log => await Run(arg, log));
     }
 
     private static async Task<int> Run(Arg arg, Log log)
@@ -204,7 +204,7 @@ internal sealed class GitFilesCommand : AsyncCommand<GitFilesCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return await Log.PrintErrorsAtExitAsync(async log => await Run(arg, log));
+        return await CliUtil.PrintErrorsAtExitAsync(async log => await Run(arg, log));
     }
 
     private static async Task<int> Run(Arg arg, Log log)

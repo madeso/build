@@ -17,7 +17,7 @@ internal sealed class CheckCommand : Command<CheckCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return Log.PrintErrorsAtExit(printer =>
+        return CliUtil.PrintErrorsAtExit(printer =>
         {
             var dox = Cli.RequireDirectory(printer, arg.DoxygenXml, "doxygen xml folder");
             if (dox == null)
@@ -42,7 +42,7 @@ internal sealed class InitCommand : Command<InitCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Log.PrintErrorsAtExit(print => CheckNamesRunner.HandleInit(print, settings.Overwrite));
+        return CliUtil.PrintErrorsAtExit(print => CheckNamesRunner.HandleInit(print, settings.Overwrite));
     }
 }
 

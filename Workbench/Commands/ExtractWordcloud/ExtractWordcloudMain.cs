@@ -40,7 +40,7 @@ internal sealed partial class ExtractTypesCommand : Command<ExtractTypesCommand.
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return Log.PrintErrorsAtExit(log =>
+        return CliUtil.PrintErrorsAtExit(log =>
         {
             var dox = Cli.RequireDirectory(log, arg.DoxygenXml, "Doxygen xml folder");
             if (dox == null)

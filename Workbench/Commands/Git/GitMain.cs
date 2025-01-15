@@ -19,7 +19,7 @@ internal sealed class BlameCommand : AsyncCommand<BlameCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return await Log.PrintErrorsAtExitAsync(async log =>
+        return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
             var git_path = Config.Paths.GetGitExecutable(log);
             if (git_path == null)
@@ -54,7 +54,7 @@ internal sealed class StatusCommand : AsyncCommand<StatusCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return await Log.PrintErrorsAtExitAsync(async log =>
+        return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
             var git_path = Config.Paths.GetGitExecutable(log);
             if (git_path == null)
@@ -196,7 +196,7 @@ internal sealed class RemoveUnknownCommand : AsyncCommand<RemoveUnknownCommand.A
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return await Log.PrintErrorsAtExitAsync(async log =>
+        return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
             var git_path = Config.Paths.GetGitExecutable(log);
             if (git_path == null)
@@ -253,7 +253,7 @@ internal sealed class AuthorsCommand : AsyncCommand<AuthorsCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return await Log.PrintErrorsAtExitAsync(async log =>
+        return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
             var git_path = Config.Paths.GetGitExecutable(log);
             if (git_path == null)

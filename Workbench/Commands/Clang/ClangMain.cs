@@ -42,7 +42,7 @@ internal sealed class ListClangTidyCommand : Command<ListClangTidyCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var fs = settings.Tidy ? FileSection.AllExceptThoseIgnoredByClangTidy : FileSection.AllFiles;
-        return Log.PrintErrorsAtExit(print => ClangFiles.HandleTidyListFilesCommand(print, settings.Sort, fs));
+        return CliUtil.PrintErrorsAtExit(print => ClangFiles.HandleTidyListFilesCommand(print, settings.Sort, fs));
     }
 }
 
@@ -115,7 +115,7 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
         }
 
         var tidy = new ClangTidy();
-        return await Log.PrintErrorsAtExitAsync(print => tidy.HandleRunClangTidyCommand(
+        return await CliUtil.PrintErrorsAtExitAsync(print => tidy.HandleRunClangTidyCommand(
             settings, print,
             settings.Headers,
             new ClangTidy.Args(html_dir, settings.NumberOfTasks, settings.Fix, settings.Filter, settings.Nop, settings.Short, settings.Force,
@@ -136,7 +136,7 @@ internal sealed class RunClangFormatCommand : AsyncCommand<RunClangFormatCommand
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return await Log.PrintErrorsAtExitAsync(async print =>
+        return await CliUtil.PrintErrorsAtExitAsync(async print =>
             await ClangFormat.HandleClangFormatCommand(print, settings.Nop));
     }
 }

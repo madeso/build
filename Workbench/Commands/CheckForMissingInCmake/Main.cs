@@ -29,7 +29,7 @@ internal sealed class CheckForMissingInCmakeCommand : AsyncCommand<CheckForMissi
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg args)
     {
-        return await Log.PrintErrorsAtExitAsync(async print =>
+        return await CliUtil.PrintErrorsAtExitAsync(async print =>
         {
             var cmake = FindCMake.RequireInstallationOrNull(print);
             if (cmake == null)

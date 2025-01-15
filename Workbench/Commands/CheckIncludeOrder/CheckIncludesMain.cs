@@ -9,7 +9,7 @@ public static class CheckIncludesCommonExecute
 {
     public static int WithLoadedIncludeData(Func<Log, IncludeData, int> callback)
     {
-        return Log.PrintErrorsAtExit(print =>
+        return CliUtil.PrintErrorsAtExit(print =>
         {
             var data = IncludeData.LoadOrNull(print);
             if (data == null)
@@ -72,7 +72,7 @@ internal sealed class InitCommand : Command<InitCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Log.PrintErrorsAtExit(print => IncludeTools.HandleInit(print, settings.Overwrite));
+        return CliUtil.PrintErrorsAtExit(print => IncludeTools.HandleInit(print, settings.Overwrite));
     }
 }
 

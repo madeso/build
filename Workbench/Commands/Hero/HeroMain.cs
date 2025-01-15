@@ -36,7 +36,7 @@ internal sealed class NewHeroCommand : Command<NewHeroCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Log.PrintErrorsAtExit(print =>
+        return CliUtil.PrintErrorsAtExit(print =>
             UiFacade.HandleNewHero(settings.ProjectFile, settings.Overwrite, print));
     }
 }
@@ -56,7 +56,7 @@ internal sealed class RunHeroHtmlCommand : Command<RunHeroHtmlCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Log.PrintErrorsAtExit(print =>
+        return CliUtil.PrintErrorsAtExit(print =>
         {
             var project_file = Cli.RequireFile(print, settings.ProjectFile, "project file");
             if (project_file == null)
@@ -103,7 +103,7 @@ internal sealed class RunHeroDotCommand : Command<RunHeroDotCommand.Arg>
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
-        => Log.PrintErrorsAtExit(print =>
+        => CliUtil.PrintErrorsAtExit(print =>
         {
             var project_file = Cli.RequireFile(print, args.ProjectFile, "project file");
             if (project_file == null)

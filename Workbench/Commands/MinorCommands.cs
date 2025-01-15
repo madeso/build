@@ -106,7 +106,7 @@ internal sealed class LsCommand : Command<LsCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return Log.PrintErrorsAtExit(log =>
+        return CliUtil.PrintErrorsAtExit(log =>
         {
             var dir = Cli.RequireDirectory(log, settings.Path, "path");
             if (dir == null)

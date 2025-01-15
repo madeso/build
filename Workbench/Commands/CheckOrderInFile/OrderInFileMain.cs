@@ -17,7 +17,7 @@ internal sealed class OrderInFileCommand : Command<OrderInFileCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return Log.PrintErrorsAtExit(printer =>
+        return CliUtil.PrintErrorsAtExit(printer =>
         {
             var dox = Cli.RequireDirectory(printer, arg.DoxygenXml, "doxygen xml folder");
             if (dox == null)
@@ -44,7 +44,7 @@ internal sealed class ClassifyClass : Command<ClassifyClass.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return Log.PrintErrorsAtExit(log =>
+        return CliUtil.PrintErrorsAtExit(log =>
         {
             var dox = Cli.RequireDirectory(log, arg.DoxygenXml, "doxygen xml folder");
             if (dox == null)

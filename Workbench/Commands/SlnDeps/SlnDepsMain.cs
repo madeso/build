@@ -67,7 +67,7 @@ internal sealed class GenerateCommand : AsyncCommand<GenerateCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg args)
     {
-        return await Log.PrintErrorsAtExitAsync(async printer =>
+        return await CliUtil.PrintErrorsAtExitAsync(async printer =>
         {
             var sln = Cli.RequireFile(printer, args.Solution, "solution file");
             if (sln == null)
@@ -89,7 +89,7 @@ internal sealed class WriteCommand : Command<WriteCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
-        return Log.PrintErrorsAtExit(printer =>
+        return CliUtil.PrintErrorsAtExit(printer =>
         {
             var sln = Cli.RequireFile(printer, args.Solution, "solution file");
             if (sln == null)
@@ -111,7 +111,7 @@ internal sealed class SourceCommand : Command<SourceCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
-        return Log.PrintErrorsAtExit(printer =>
+        return CliUtil.PrintErrorsAtExit(printer =>
         {
             var sln = Cli.RequireFile(printer, args.Solution, "solution file");
             if (sln == null)
@@ -134,7 +134,7 @@ internal sealed class ListCommand : Command<ListCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
-        return Log.PrintErrorsAtExit(printer =>
+        return CliUtil.PrintErrorsAtExit(printer =>
         {
             var sln = Cli.RequireFile(printer, args.Solution, "solution file");
             if (sln == null)
