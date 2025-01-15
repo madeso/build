@@ -41,7 +41,7 @@ internal sealed class CheckForMissingInCmakeCommand : AsyncCommand<CheckForMissi
             var build_root = FindCMake.RequireBuildOrNone(args, print);
             if (build_root == null) { return -1; }
 
-            var bases = Cli.ToDirectories(args.Folders)
+            var bases = Cli.ToDirectories(print, args.Folders)
                 .ToImmutableArray();
 
             var paths = new HashSet<Fil>();

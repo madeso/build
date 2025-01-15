@@ -53,12 +53,12 @@ public static class Cli
         return null;
     }
 
-    public static IEnumerable<Dir> ToDirectories(IEnumerable<string> args)
+    public static IEnumerable<Dir> ToDirectories(Log log, IEnumerable<string> args)
     {
         return args.Select(a => new { Arg = a, Folder = ToExistingDirOrNull(a) })
             .SelectNonNull(f => f.Folder, f =>
             {
-                Log.Warning($"{f.Arg} is not a directory");
+                log.Warning($"{f.Arg} is not a directory");
             });
     }
 
@@ -79,12 +79,12 @@ public static class Cli
         return p;
     }
 
-    public static IEnumerable<Fil> ToFiles(IEnumerable<string> args)
+    public static IEnumerable<Fil> ToFiles(Log log, IEnumerable<string> args)
     {
         return args.Select(a => new {Arg = a, File = Fil.ToExistingDirOrNull(a)})
             .SelectNonNull(f => f.File, f =>
             {
-                Log.Warning($"{f.Arg} is not a file");
+                log.Warning($"{f.Arg} is not a file");
             });
     }
 

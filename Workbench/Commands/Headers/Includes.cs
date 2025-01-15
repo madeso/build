@@ -202,8 +202,8 @@ public class Includes
     private static IEnumerable<Fil> GetAllTranslationUnits(IEnumerable<string> files)
         => FileUtil.SourcesFromArgs(files, FileUtil.IsSource);
 
-    private static ImmutableArray<Dir> CompleteLimitArg(IEnumerable<string> args_limit)
-        => Cli.ToDirectories(args_limit).ToImmutableArray();
+    private static ImmutableArray<Dir> CompleteLimitArg(Log log, IEnumerable<string> args_limit)
+        => Cli.ToDirectories(log, args_limit).ToImmutableArray();
 
     public static int HandleListIncludesCommand(Log print, Fil? compile_commands_arg,
         string[] args_files,
@@ -227,7 +227,7 @@ public class Includes
         var total_counter = new ColCounter<string>();
         var max_counter = new ColCounter<string>();
 
-        var limit = CompleteLimitArg(args_limit);
+        var limit = CompleteLimitArg(print, args_limit);
 
         var number_of_translation_units = 0;
 
@@ -291,7 +291,7 @@ public class Includes
         var compile_commands = CompileCommand.LoadCompileCommandsOrNull(print, compile_commands_arg);
         if (compile_commands == null) { return -1; }
 
-        var limit = CompleteLimitArg(args_limit);
+        var limit = CompleteLimitArg(print, args_limit);
 
         var gv = new Graphvizer();
 

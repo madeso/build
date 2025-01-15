@@ -43,7 +43,7 @@ internal sealed class CheckForNoProjectFoldersCommand : AsyncCommand<CheckForNoP
                 return -1;
             }
 
-            return await CheckForNoProjectFolders(Cli.ToDirectories(settings.Directories), build_root, cmake);
+            return await CheckForNoProjectFolders(Cli.ToDirectories(log, settings.Directories), build_root, cmake);
         });
     }
 

@@ -37,17 +37,17 @@ public class Log : Loggable
         PrintError(file, message, null);
     }
 
-    private static void PrintWarning(FileLine? file, string message, string code)
+    private void PrintWarning(FileLine? file, string message, string code)
     {
         Warning($"{ToFileString(file)}: warning {code}: {message}");
     }
 
-    public static void Warning(string message)
+    public void Warning(string message)
     {
         AnsiConsole.MarkupLineInterpolated($"WARNING: {message}");
     }
 
-    internal static void WriteInformation(FileLine? file, string message)
+    internal void WriteInformation(FileLine? file, string message)
     {
         AnsiConsole.MarkupLineInterpolated($"[blue]{ToFileString(file)}[/]: {message}");
     }

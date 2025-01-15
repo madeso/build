@@ -33,16 +33,16 @@ public class UserInput
 
     public Project? ToProject(Log log, Dir root, Project? previous_project)
     {
-        var project_dirs = decorate_this(root, ProjectDirectories, "Project directories", f => Directory.Exists(f) || File.Exists(f))
+        var project_dirs = decorate_this(log, root, ProjectDirectories, "Project directories", f => Directory.Exists(f) || File.Exists(f))
             .Select(FileOrDir.FromExistingOrNull)
             .IgnoreNull()
             .ToImmutableArray()
             ;
-        var include_dirs = decorate_this(root, IncludeDirectories, "Include directories", Directory.Exists)
+        var include_dirs = decorate_this(log, root, IncludeDirectories, "Include directories", Directory.Exists)
             .Select(p => new Dir(p))
             .ToImmutableArray()
             ;
-        var pch_files = decorate_this(root, PrecompiledHeaders, "Precompiled headers", File.Exists)
+        var pch_files = decorate_this(log, root, PrecompiledHeaders, "Precompiled headers", File.Exists)
             .Select(p => new Fil(p))
             .ToImmutableArray()
             ;
@@ -64,7 +64,7 @@ public class UserInput
         
         return status ? new Project(project_dirs, include_dirs, pch_files, previous_project) : null;
 
-        static IEnumerable<string> decorate_this(Dir root, IEnumerable<string> src, string name, Func<string, bool> exists)
+        static IEnumerable<string> decorate_this(Log log, Dir root, IEnumerable<string> src, string name, Func<string, bool> exists)
         {
             return src
                 .Select(d => new
@@ -75,7 +75,7 @@ public class UserInput
                 })
                 .Where(x => exists(x.Dst), x =>
                 {
-                    Log.Warning($"{x.Src} was removed from {name} since it doesn't exist and the replacement {x.Dst} wasn't found");
+                    log.Warning($"{x.Src} was removed from {name} since it doesn't exist and the replacement {x.Dst} wasn't found");
                 })
                 .Select(x => x.Dst);
         }

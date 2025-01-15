@@ -100,7 +100,7 @@ public class BuildEnvironment
 
             if (args.ForceChange)
             {
-                Log.Warning($"Compiler changed via argument from {Compiler} to {args.Compiler}");
+                log.Warning($"Compiler changed via argument from {Compiler} to {args.Compiler}");
                 Compiler = args.Compiler;
             }
             else
@@ -123,7 +123,7 @@ public class BuildEnvironment
 
             if (args.ForceChange)
             {
-                Log.Warning($"Platform changed via argument from {Platform} to {args.Platform}");
+                log.Warning($"Platform changed via argument from {Platform} to {args.Platform}");
                 Platform = args.Platform;
             }
             else
