@@ -35,7 +35,8 @@ internal sealed class InitCommand : Command<InitCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CliUtil.PrintErrorsAtExit(print => BuildFacade.HandleInit(print, settings.Overwrite));
+        var cwd = Dir.CurrentDirectory;
+        return CliUtil.PrintErrorsAtExit(print => BuildFacade.HandleInit(cwd, print, settings.Overwrite));
     }
 }
 
@@ -47,7 +48,8 @@ internal sealed class StatusCommand : AsyncCommand<StatusCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return await BuildFacade.WithLoadedBuildDataAsync(async (log, data) =>
+        var cwd = Dir.CurrentDirectory;
+        return await BuildFacade.WithLoadedBuildDataAsync(cwd, async (log, data) =>
         {
             await Task.Delay(0); // hack since all build data are async
             return BuildFacade.HandleBuildStatus(log, data);
@@ -63,7 +65,8 @@ internal sealed class InstallCommand : AsyncCommand<InstallCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return await BuildFacade.HandleGenericBuildAsync(settings, BuildFacade.HandleInstallAsync);
+        var cwd = Dir.CurrentDirectory;
+        return await BuildFacade.HandleGenericBuildAsync(cwd, settings, BuildFacade.HandleInstallAsync);
     }
 }
 
@@ -80,9 +83,9 @@ internal sealed class CmakeCommand : AsyncCommand<CmakeCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return await BuildFacade.HandleGenericBuildAsync(
-            settings,
-            (printer, env, data) => BuildFacade.HandleCmakeAsync(settings.Nop, printer, env, data));
+        var cwd = Dir.CurrentDirectory;
+        return await BuildFacade.HandleGenericBuildAsync(cwd, settings,
+            (_, printer, env, data) => BuildFacade.HandleCmakeAsync(cwd, settings.Nop, printer, env, data));
     }
 }
 
@@ -95,7 +98,8 @@ internal sealed class DevCommand : AsyncCommand<DevCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return await BuildFacade.HandleGenericBuildAsync(settings, BuildFacade.HandleDevAsync);
+        var cwd = Dir.CurrentDirectory;
+        return await BuildFacade.HandleGenericBuildAsync(cwd, settings, BuildFacade.HandleDevAsync);
     }
 }
 
@@ -108,6 +112,7 @@ internal sealed class BuildCommand : AsyncCommand<BuildCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return await BuildFacade.HandleGenericBuildAsync(settings, BuildFacade.HandleBuildAsync);
+        var cwd = Dir.CurrentDirectory;
+        return await BuildFacade.HandleGenericBuildAsync(cwd, settings, BuildFacade.HandleBuildAsync);
     }
 }

@@ -19,7 +19,8 @@ internal sealed class MakeClangTidyCommand : Command<MakeClangTidyCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        ClangTidyFile.HandleMakeTidyCommand(settings.Nop);
+        var cwd = Dir.CurrentDirectory;
+        ClangTidyFile.HandleMakeTidyCommand(cwd, settings.Nop);
         return 0;
     }
 }
@@ -41,8 +42,9 @@ internal sealed class ListClangTidyCommand : Command<ListClangTidyCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
+        var cwd = Dir.CurrentDirectory;
         var fs = settings.Tidy ? FileSection.AllExceptThoseIgnoredByClangTidy : FileSection.AllFiles;
-        return CliUtil.PrintErrorsAtExit(print => ClangFiles.HandleTidyListFilesCommand(print, settings.Sort, fs));
+        return CliUtil.PrintErrorsAtExit(print => ClangFiles.HandleTidyListFilesCommand(cwd, print, settings.Sort, fs));
     }
 }
 
@@ -102,11 +104,12 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
+        var cwd = Dir.CurrentDirectory;
         Dir? html_dir = null;
 
         if(settings.HtmlDir != null)
         {
-            html_dir = Cli.ToDirPath(settings.HtmlDir);
+            html_dir = Cli.ToDirPath(cwd, settings.HtmlDir);
             if(html_dir == null)
             {
                 Console.WriteLine($"Failed to parse html ouput directory {settings.HtmlDir}");
@@ -115,7 +118,7 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
         }
 
         var tidy = new ClangTidy();
-        return await CliUtil.PrintErrorsAtExitAsync(print => tidy.HandleRunClangTidyCommand(
+        return await CliUtil.PrintErrorsAtExitAsync(print => tidy.HandleRunClangTidyCommand(cwd,
             settings, print,
             settings.Headers,
             new ClangTidy.Args(html_dir, settings.NumberOfTasks, settings.Fix, settings.Filter, settings.Nop, settings.Short, settings.Force,
@@ -136,8 +139,9 @@ internal sealed class RunClangFormatCommand : AsyncCommand<RunClangFormatCommand
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
+        var cwd = Dir.CurrentDirectory;
         return await CliUtil.PrintErrorsAtExitAsync(async print =>
-            await ClangFormat.HandleClangFormatCommand(print, settings.Nop));
+            await ClangFormat.HandleClangFormatCommand(cwd, print, settings.Nop));
     }
 }
 

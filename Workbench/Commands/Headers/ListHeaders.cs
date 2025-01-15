@@ -680,7 +680,7 @@ internal static class ListHeaderFunctions
 
 
     internal static int HandleFiles(
-        Log print, Fil? ccpath, IEnumerable<FileOrDir> sources, int most_common_count)
+        Dir cwd, Log print, Fil? ccpath, IEnumerable<FileOrDir> sources, int most_common_count)
     {
         if (ccpath == null) { return -1; }
 
@@ -719,7 +719,7 @@ internal static class ListHeaderFunctions
 
         foreach (var (file, count) in stats.Includes.MostCommon().Take(most_common_count))
         {
-            var d = file.GetDisplay();
+            var d = file.GetDisplay(cwd);
             var times = count / (double)stats.FileCount;
             AnsiConsole.WriteLine($" - {d} {times:.2}x ({count}/{stats.FileCount})");
         }

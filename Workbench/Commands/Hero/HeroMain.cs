@@ -56,14 +56,15 @@ internal sealed class RunHeroHtmlCommand : Command<RunHeroHtmlCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
+        var cwd = Dir.CurrentDirectory;
         return CliUtil.PrintErrorsAtExit(print =>
         {
-            var project_file = Cli.RequireFile(print, settings.ProjectFile, "project file");
+            var project_file = Cli.RequireFile(cwd, print, settings.ProjectFile, "project file");
             if (project_file == null)
             {
                 return -1;
             }
-            return UiFacade.HandleRunHeroHtml(project_file, Cli.ToOutputDirectory(settings.OutputDirectory),
+            return UiFacade.HandleRunHeroHtml(cwd, project_file, Cli.ToOutputDirectory(cwd, settings.OutputDirectory),
                 print);
         });
     }
@@ -105,21 +106,22 @@ internal sealed class RunHeroDotCommand : Command<RunHeroDotCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
         => CliUtil.PrintErrorsAtExit(print =>
         {
-            var project_file = Cli.RequireFile(print, args.ProjectFile, "project file");
+            var cwd = Dir.CurrentDirectory;
+            var project_file = Cli.RequireFile(cwd, print, args.ProjectFile, "project file");
             if (project_file == null)
             {
                 return -1;
             }
 
-            var exclude = Cli.ToExistingFileOrDir(args.Exclude, print);
+            var exclude = Cli.ToExistingFileOrDir(cwd, args.Exclude, print);
             if (exclude == null)
             {
                 return -1;
             }
 
             return UiFacade.RunHeroGraphviz(
-                project_file,
-                Cli.ToSingleFile(args.OutputFile, ""),
+                cwd, project_file,
+                Cli.ToSingleFile(cwd, args.OutputFile, ""),
                 args.SimplifyGraphviz,
                 args.OnlyHeaders,
                 args.Cluster,

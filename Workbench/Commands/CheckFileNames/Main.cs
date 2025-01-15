@@ -20,22 +20,23 @@ internal sealed class CheckFileNamesCommand : Command<CheckFileNamesCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CliUtil.PrintErrorsAtExit(print => CheckFileNames(print, settings.Files));
+        var cwd = Dir.CurrentDirectory;
+        return CliUtil.PrintErrorsAtExit(print => CheckFileNames(cwd, print, settings.Files));
     }
 
-    public static int CheckFileNames(Log print, string[] args_files)
+    public static int CheckFileNames(Dir cwd, Log print, string[] args_files)
     {
         //todo(Gustav): merge with main Execute
         var files = 0;
         var errors = 0;
 
-        foreach (var file in FileUtil.SourcesFromArgs(args_files, FileUtil.IsHeaderOrSource))
+        foreach (var file in FileUtil.SourcesFromArgs(cwd, args_files, FileUtil.IsHeaderOrSource))
         {
             files += 1;
             if (file.Name.Contains('-'))
             {
                 errors += 1;
-                print.Error($"file name mismatch: {file.GetDisplay()}");
+                print.Error($"file name mismatch: {file.GetDisplay(cwd)}");
             }
         }
 

@@ -54,7 +54,7 @@ internal class ProcessExitWithOutput
 public class ProcessBuilder
 {
     internal async Task<ProcessExit> RunWithCallbackAsync(
-        IEnumerable<string>? input, Action<string> on_stdout, Action<string> on_stderr, Action<string, Exception> on_fail)
+        Dir cwd, IEnumerable<string>? input, Action<string> on_stdout, Action<string> on_stderr, Action<string, Exception> on_fail)
     {
         // Prepare the process to run
         ProcessStartInfo start = new()
@@ -63,7 +63,7 @@ public class ProcessBuilder
             FileName = Executable.Path,
             UseShellExecute = false,
 
-            WorkingDirectory = (WorkingDirectory?? Dir.CurrentDirectory).Path,
+            WorkingDirectory = (WorkingDirectory?? cwd).Path,
 
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -105,11 +105,11 @@ public class ProcessBuilder
         }
     }
 
-    internal async Task<ProcessExitWithOutput> RunAndGetOutputAsync()
+    internal async Task<ProcessExitWithOutput> RunAndGetOutputAsync(Dir cwd)
     {
         var output = new List<OutputLine>();
 
-        var ret = await RunWithCallbackAsync(null,
+        var ret = await RunWithCallbackAsync(cwd, null,
             line => output.Add(new OutputLine(line, false)),
             line => output.Add(new OutputLine(line, true)),
             (line, ex) => {
@@ -120,11 +120,11 @@ public class ProcessBuilder
         return new(ret, output.ToArray());
     }
 
-    internal async Task<ProcessExitWithOutput> RunAndGetOutputAsync(IEnumerable<string> lines)
+    internal async Task<ProcessExitWithOutput> RunAndGetOutputAsync(Dir cwd, IEnumerable<string> lines)
     {
         var output = new List<OutputLine>();
 
-        var ret = await RunWithCallbackAsync(lines,
+        var ret = await RunWithCallbackAsync(cwd, lines,
             line => output.Add(new OutputLine(line, false)),
             line => output.Add(new OutputLine(line, true)),
             (line, ex) => {
@@ -223,9 +223,9 @@ public class ProcessBuilder
         return $"{Executable} {args}";
     }
 
-    internal async Task RunAndPrintOutputAsync(Log log)
+    internal async Task RunAndPrintOutputAsync(Dir cwd, Log log)
     {
-        var pe = await RunWithCallbackAsync(null, AnsiConsole.WriteLine, log.Warning,
+        var pe = await RunWithCallbackAsync(cwd, null, AnsiConsole.WriteLine, log.Warning,
             (mess, ex) => {
                 log.Error(mess);
                 log.Error(ex.Message);

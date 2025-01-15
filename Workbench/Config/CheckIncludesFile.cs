@@ -62,6 +62,6 @@ internal class CheckIncludesFile
     public List<List<RegexEntry>> IncludeDirectories { get; set; } = new();
 
     // todo(Gustav): rename
-    public static Fil GetBuildDataPath()
-        => Dir.CurrentDirectory.GetFile(FileNames.CheckIncludes);
+    public static Fil GetBuildDataPath(Dir cwd)
+        => cwd.GetFile(FileNames.CheckIncludes);
 }

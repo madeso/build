@@ -135,8 +135,8 @@ public class Dir
     public string GetRelativeTo(Fil f) => SysPath.GetRelativePath(Path, f.Path);
     public string RelativeFromTo(Fil to) => SysPath.GetRelativePath(Path, to.Path);
 
-    public string GetDisplay()
-        => Dir.CurrentDirectory.RelativeFromTo(this);
+    public string GetDisplay(Dir cwd)
+        => cwd.RelativeFromTo(this);
 }
 
 public class Fil : IComparable<Fil>
@@ -149,10 +149,10 @@ public class Fil : IComparable<Fil>
         Path = SysPath.GetFullPath(new FileInfo(path).FullName);
     }
 
-    public string GetRelativeOrFullPath(Dir? a_root_relative = null)
+    public string GetRelativeOrFullPath(Dir cwd, Dir? a_root_relative = null)
     {
         // merge and rename to GetDisplay
-        var root_relative = a_root_relative ?? Dir.CurrentDirectory;
+        var root_relative = a_root_relative ?? cwd;
         var suggested = root_relative.RelativeFromTo(this);
 
         // if returned path includes back references, just use full path
@@ -170,7 +170,7 @@ public class Fil : IComparable<Fil>
     public DateTime LastWriteTimeUtc => new FileInfo(Path).LastWriteTimeUtc;
     public UnixFileMode UnixFileMode => new FileInfo(Path).UnixFileMode;
 
-    public string GetDisplay() => Dir.CurrentDirectory.GetRelativeTo(this);
+    public string GetDisplay(Dir cwd) => cwd.GetRelativeTo(this);
     public string GetRelative(Dir root) => root.GetRelativeTo(this);
 
     public bool IsInFolder(Dir folder) => FileUtil.FileIsInFolder(this, folder);

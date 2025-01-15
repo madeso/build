@@ -31,6 +31,8 @@ internal sealed class CheckForMissingInCmakeCommand : AsyncCommand<CheckForMissi
     {
         return await CliUtil.PrintErrorsAtExitAsync(async print =>
         {
+            var cwd = Dir.CurrentDirectory;
+
             var cmake = FindCMake.RequireInstallationOrNull(print);
             if (cmake == null)
             {
@@ -38,14 +40,14 @@ internal sealed class CheckForMissingInCmakeCommand : AsyncCommand<CheckForMissi
                 return -1;
             }
 
-            var build_root = FindCMake.RequireBuildOrNone(args, print);
+            var build_root = FindCMake.RequireBuildOrNone(cwd, args, print);
             if (build_root == null) { return -1; }
 
-            var bases = Cli.ToDirectories(print, args.Folders)
+            var bases = Cli.ToDirectories(cwd, print, args.Folders)
                 .ToImmutableArray();
 
             var paths = new HashSet<Fil>();
-            foreach (var cmd in await CMakeTrace.TraceDirectoryAsync(cmake, build_root))
+            foreach (var cmd in await CMakeTrace.TraceDirectoryAsync(cwd, cmake, build_root))
             {
                 if (!bases.Select(b => FileUtil.FileIsInFolder(cmd.File!, b)).Any())
                 {
@@ -71,7 +73,7 @@ internal sealed class CheckForMissingInCmakeCommand : AsyncCommand<CheckForMissi
             }
 
             var count = 0;
-            foreach (var file in FileUtil.SourcesFromArgs(args.Folders, FileUtil.IsHeaderOrSource))
+            foreach (var file in FileUtil.SourcesFromArgs(cwd, args.Folders, FileUtil.IsHeaderOrSource))
             {
                 var resolved = file;
                 if (paths.Contains(resolved) == false)

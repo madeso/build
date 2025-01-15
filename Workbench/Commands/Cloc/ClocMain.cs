@@ -52,10 +52,11 @@ internal sealed class ClocCommand : Command<ClocCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
+        var cwd = Dir.CurrentDirectory;
         var stats = new Dictionary<Language, Stat>();
         var parsed = new Dictionary<Language, List<Fil>>();
 
-        foreach (var file in FileUtil.ListFilesFromArgs(arg.Files))
+        foreach (var file in FileUtil.ListFilesFromArgs(cwd, arg.Files))
         {
             var lang = FileUtil.ClassifySource(file);
 
@@ -137,7 +138,6 @@ internal sealed class ClocCommand : Command<ClocCommand.Arg>
 
             if (arg.AddLanguageFiles)
             {
-                var cwd = Dir.CurrentDirectory;
                 foreach (var (lang, list) in parsed)
                 {
                     var ft = new Table();

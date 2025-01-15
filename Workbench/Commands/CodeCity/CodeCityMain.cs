@@ -21,15 +21,16 @@ internal sealed class WriteCodeCity : Command<WriteCodeCity.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
+        var cwd = Dir.CurrentDirectory;
         return CliUtil.PrintErrorsAtExit(printer =>
             {
-                var dox = Cli.RequireDirectory(printer, arg.DoxygenXml, "Doxygen xml folder");
+                var dox = Cli.RequireDirectory(cwd, printer, arg.DoxygenXml, "Doxygen xml folder");
                 if (dox == null)
                 {
                     return -1;
                 }
                 var cubes = Facade.Collect(printer, dox);
-                Cli.ToSingleFile(arg.OutputFile, "code-city.html").WriteAllLines(Facade.HtmlLines("CodeCity", cubes));
+                Cli.ToSingleFile(cwd, arg.OutputFile, "code-city.html").WriteAllLines(Facade.HtmlLines("CodeCity", cubes));
                 return 0;
             }
         );

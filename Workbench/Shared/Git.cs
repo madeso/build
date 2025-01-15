@@ -18,11 +18,11 @@ public static class Git
     // path is either to a file or directory
     public record GitStatusEntry(GitStatus Status, FileOrDir Path);
 
-    public static async IAsyncEnumerable<GitStatusEntry> StatusAsync(Fil git_path, Dir folder)
+    public static async IAsyncEnumerable<GitStatusEntry> StatusAsync(Dir cwd, Fil git_path, Dir folder)
     {
         var output = (await new ProcessBuilder(git_path, "status", "--porcelain=v1")
             .InDirectory(folder)
-            .RunAndGetOutputAsync())
+            .RunAndGetOutputAsync(cwd))
             .RequireSuccess()
             ;
         foreach (var item in output.Select(x => x.Line))
@@ -72,11 +72,11 @@ public static class Git
             Author Author, Author Committer, string Summary, string Filename
         );
 
-    public static async IAsyncEnumerable<BlameLine> BlameAsync(Fil git_path, Fil file)
+    public static async IAsyncEnumerable<BlameLine> BlameAsync(Dir cwd, Fil git_path, Fil file)
     {
         var result = (await new ProcessBuilder(git_path, "blame", "--porcelain", file.Name)
             .InDirectory(file.Directory!)
-            .RunAndGetOutputAsync());
+            .RunAndGetOutputAsync(cwd));
         if (result.ExitCode == 128)
         {
             // hope this means that the file isn't known to git...
@@ -156,14 +156,14 @@ public static class Git
             string Subject
         );
 
-    public static async IAsyncEnumerable<LogLine> LogAsync(Fil git_path, Dir folder)
+    public static async IAsyncEnumerable<LogLine> LogAsync(Dir cwd, Fil git_path, Dir folder)
     {
         const char SEPARATOR = ';';
         var log_format = string.Join(SEPARATOR, "%h", "%p", "%an", "%ae", "%aI", "%cn", "%ce", "%cI", "%s");
         var sep_count = log_format.Count(c => c == SEPARATOR);
         var output = (await new ProcessBuilder(git_path, "log", $"--format=format:{log_format}")
                 .InDirectory(folder)
-                .RunAndGetOutputAsync())
+                .RunAndGetOutputAsync(cwd))
                 .RequireSuccess()
             ;
         foreach (var line in output.Select(x => x.Line))
@@ -185,12 +185,12 @@ public static class Git
     }
     public record FileLine(LineMod Modification, Fil File);
 
-    public static async Task<ImmutableArray<FileLine>> FilesInCommitAsync(Fil git_path, Dir folder, string commit)
+    public static async Task<ImmutableArray<FileLine>> FilesInCommitAsync(Dir cwd, Fil git_path, Dir folder, string commit)
     {
         // git diff-tree --no-commit-id --name-only bd61ad98 -r
         var output = (await new ProcessBuilder(git_path, "diff-tree", "--no-commit-id", "--name-status", commit, "-r")
                 .InDirectory(folder)
-                .RunAndGetOutputAsync())
+                .RunAndGetOutputAsync(cwd))
             .RequireSuccess();
 
         return output

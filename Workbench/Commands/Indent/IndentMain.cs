@@ -38,12 +38,13 @@ internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Settings settings)
     {
+        var cwd = Dir.CurrentDirectory;
         var folder = settings.SearchPath ?? Directory.GetCurrentDirectory();
 
         var dir = new Dir(folder);
         if (dir.Exists == false)
         {
-            AnsiConsole.MarkupLineInterpolated($"[blue]ERROR[/]: Unable to open [red]{dir.GetDisplay()}[/]");
+            AnsiConsole.MarkupLineInterpolated($"[blue]ERROR[/]: Unable to open [red]{dir.GetDisplay(cwd)}[/]");
             return -1;
         }
         var files = FileUtil.IterateFiles(dir, settings.IncludeHidden, settings.Recursive)
@@ -98,7 +99,8 @@ internal sealed class ListIndentsCommand : Command<ListIndentsCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return IndentFunctions.HandleListIndents(settings.Files, settings.Each, settings.Show, settings.DisplayHistogram, settings.DiscardEmpty);
+        var cwd = Dir.CurrentDirectory;
+        return IndentFunctions.HandleListIndents(cwd, settings.Files, settings.Each, settings.Show, settings.DisplayHistogram, settings.DiscardEmpty);
     }
 }
 

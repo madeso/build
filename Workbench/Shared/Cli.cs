@@ -27,11 +27,11 @@ public static class Cli
         }
     }
 
-    public static Dir? RequireDirectory(Log log, string? arg, string name)
+    public static Dir? RequireDirectory(Dir cwd, Log log, string? arg, string name)
     {
-        if (string.IsNullOrEmpty(arg)) return Dir.CurrentDirectory;
+        if (string.IsNullOrEmpty(arg)) return cwd;
 
-        var rooted = FileUtil.RootPath(Dir.CurrentDirectory, arg);
+        var rooted = FileUtil.RootPath(cwd, arg);
 
         var dd = new Dir(rooted);
         if (dd.Exists) return dd;
@@ -53,27 +53,26 @@ public static class Cli
         return null;
     }
 
-    public static IEnumerable<Dir> ToDirectories(Log log, IEnumerable<string> args)
+    public static IEnumerable<Dir> ToDirectories(Dir cwd, Log log, IEnumerable<string> args)
     {
-        return args.Select(a => new { Arg = a, Folder = ToExistingDirOrNull(a) })
+        return args.Select(a => new { Arg = a, Folder = ToExistingDirOrNull(cwd, a) })
             .SelectNonNull(f => f.Folder, f =>
             {
                 log.Warning($"{f.Arg} is not a directory");
             });
     }
 
-    public static Dir? ToDirPath(string a)
+    public static Dir? ToDirPath(Dir cwd, string a)
     {
         if (string.IsNullOrEmpty(a)) return null;
-        var cwd = Dir.CurrentDirectory;
         var p = FileUtil.RootPath(cwd, a);
         if(p == null) return null;
         return new Dir(p);
     }
 
-    private static Dir? ToExistingDirOrNull(string a)
+    private static Dir? ToExistingDirOrNull(Dir cwd, string a)
     {
-        var p = ToDirPath(a);
+        var p = ToDirPath(cwd, a);
         if(p == null) return null;
         if(p.Exists == false) return null;
         return p;
@@ -88,9 +87,8 @@ public static class Cli
             });
     }
 
-    public static Fil ToSingleFile(string arg, string name_if_missing)
+    public static Fil ToSingleFile(Dir cwd, string arg, string name_if_missing)
     {
-        var cwd = Dir.CurrentDirectory;
         if (string.IsNullOrEmpty(arg))
         {
             return cwd.GetFile(name_if_missing);
@@ -105,9 +103,9 @@ public static class Cli
         return new Fil(rooted);
     }
 
-    public static Fil? RequireFile(Log log, string arg, string name)
+    public static Fil? RequireFile(Dir cwd, Log log, string arg, string name)
     {
-        var file = new Fil(FileUtil.RootPath(Dir.CurrentDirectory, arg));
+        var file = new Fil(FileUtil.RootPath(cwd, arg));
         if (file.Exists == false)
         {
             log.Error($"File '{arg}', passed for {name}, doesn't exist ({file})");
@@ -117,9 +115,8 @@ public static class Cli
         return file;
     }
 
-    public static FileOrDir[]? ToExistingFileOrDir(IEnumerable<string>? args, Log log)
+    public static FileOrDir[]? ToExistingFileOrDir(Dir cwd, IEnumerable<string>? args, Log log)
     {
-        var cwd = Dir.CurrentDirectory;
         bool ok = true;
         var ret = args
                 ?.Select(a => new { Arg = a, Resolved = FileUtil.RootPath(cwd, a) })
@@ -172,11 +169,11 @@ public static class Cli
         }
     }
 
-    public static Dir ToOutputDirectory(string arg)
+    public static Dir ToOutputDirectory(Dir cwd, string arg)
     {
-        if (string.IsNullOrEmpty(arg)) return Dir.CurrentDirectory;
+        if (string.IsNullOrEmpty(arg)) return cwd;
 
-        var rooted = FileUtil.RootPath(Dir.CurrentDirectory, arg);
+        var rooted = FileUtil.RootPath(cwd, arg);
 
         return new Dir(rooted);
     }

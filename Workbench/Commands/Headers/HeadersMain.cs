@@ -40,11 +40,12 @@ internal sealed class LinesCommand : Command<LinesCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
+        var cwd = Dir.CurrentDirectory;
         return CliUtil.PrintErrorsAtExit
         (
             print =>
             {
-                var input = Cli.RequireFile(print, arg.FileName, "filename");
+                var input = Cli.RequireFile(cwd, print, arg.FileName, "filename");
                 if (input == null)
                 {
                     return -1;
@@ -72,16 +73,17 @@ internal sealed class FilesCommand : Command<FilesCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
+        var cwd = Dir.CurrentDirectory;
         return CliUtil.PrintErrorsAtExit(print =>
         {
-            var sources = Cli.ToExistingFileOrDir(arg.Sources, print);
+            var sources = Cli.ToExistingFileOrDir(cwd, arg.Sources, print);
             if (sources == null)
             {
                 return -1;
             }
 
-            return ListHeaderFunctions.HandleFiles(print,
-                CompileCommand.FindOrNone(arg, print), sources,
+            return ListHeaderFunctions.HandleFiles(cwd, print,
+                CompileCommand.FindOrNone(cwd, arg, print), sources,
                 arg.MostCommonCount);
         });
     }
@@ -126,8 +128,9 @@ internal sealed class IncludeListCommand : Command<IncludeListCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CliUtil.PrintErrorsAtExit(print => Includes.HandleListIncludesCommand(print,
-            CompileCommand.FindOrNone(settings, print),
+        var cwd = Dir.CurrentDirectory;
+        return CliUtil.PrintErrorsAtExit(print => Includes.HandleListIncludesCommand(cwd, print,
+            CompileCommand.FindOrNone(cwd, settings, print),
             settings.Files, settings.PrintFiles, settings.PrintStats, settings.PrintMax,
             settings.PrintList, settings.Count, settings.Limit));
     }
@@ -162,8 +165,9 @@ internal sealed class IncludeGraphvizCommand : Command<IncludeGraphvizCommand.Ar
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
+        var cwd = Dir.CurrentDirectory;
         return CliUtil.PrintErrorsAtExit(print =>
-            Includes.HandleIncludeGraphvizCommand(print, CompileCommand.FindOrNone(settings, print),
+            Includes.HandleIncludeGraphvizCommand(cwd, print, CompileCommand.FindOrNone(cwd, settings, print),
                 settings.Files, settings.Limit, settings.Group, settings.Cluster));
     }
 }

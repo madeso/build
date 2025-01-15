@@ -212,9 +212,9 @@ public class Graphviz
         await path.WriteAllLinesAsync(Lines);
     }
 
-    public async Task<string[]> WriteSvgAsync(Log log)
+    public async Task<string[]> WriteSvgAsync(Dir cwd, Log log)
     {
-        var dot = Config.Paths.GetGraphvizExecutable(log);
+        var dot = Config.Paths.GetGraphvizExecutable(cwd, log);
 
         if (dot == null)
         {
@@ -225,7 +225,7 @@ public class Graphviz
             dot,
             "-Tsvg"
         );
-        var output = await cmdline.RunAndGetOutputAsync(Lines);
+        var output = await cmdline.RunAndGetOutputAsync(cwd, Lines);
 
         if (output.ExitCode != 0)
         {
@@ -245,9 +245,9 @@ public class Graphviz
         return ret;
     }
 
-    public async IAsyncEnumerable<string> WriteHtmlAsync(Log log, Fil file, bool use_max_width = false)
+    public async IAsyncEnumerable<string> WriteHtmlAsync(Dir cwd, Log log, Fil file, bool use_max_width = false)
     {
-        var svg = await WriteSvgAsync(log);
+        var svg = await WriteSvgAsync(cwd, log);
 
         yield return "<!DOCTYPE html>";
         yield return "<html>";
@@ -302,7 +302,7 @@ public class Graphviz
         yield return "</html>";
     }
 
-    public async Task SmartWriteFileAsync(Fil path, Log log)
+    public async Task SmartWriteFileAsync(Dir cwd, Fil path, Log log)
     {
         var am = new ActionMapper();
         am.Add(async () =>
@@ -312,12 +312,12 @@ public class Graphviz
         am.Add(async () =>
         {
             // todo(Gustav): don't write svg if we failed
-            await path.WriteAllLinesAsync(await WriteSvgAsync(log));
+            await path.WriteAllLinesAsync(await WriteSvgAsync(cwd, log));
         }, ".svg");
         am.Add(async () =>
         {
             // todo(Gustav): don't write html if we failed
-            await path.WriteAllLinesAsync(await WriteHtmlAsync(log, path).ToListAsync());
+            await path.WriteAllLinesAsync(await WriteHtmlAsync(cwd, log, path).ToListAsync());
         }, ".htm", ".html");
 
         var ext = path.Extension;

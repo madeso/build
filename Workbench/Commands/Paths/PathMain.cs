@@ -17,9 +17,9 @@ public class Main
             
             SetupPathCommand.Configure<CompileCommandsArguments>(config, "compile-command", "file",
                 (paths, value) => paths.CompileCommands = value,
-                (cc) => CompileCommand.ListAll(cc)
-                    .PrintFoundList("compile command", CompileCommand.FindOrNone(cc, null))
-                , cc => ToSelectables(CompileCommand.ListAll(cc)));
+                (cc, cwd) => CompileCommand.ListAll(cwd, cc)
+                    .PrintFoundList("compile command", CompileCommand.FindOrNone(cwd, cc, null))
+                , (cc, cwd) => ToSelectables(CompileCommand.ListAll(cwd, cc)));
 
             var no_extra = Array.Empty<Found<Fil>>();
             AddExecutable(config, p => p.GitExecutable, (p,v) => p.GitExecutable = v, DefaultExecutables.Git);
@@ -37,15 +37,15 @@ public class Main
     {
         SetupPathCommand.Configure<CompileCommandsArguments>(config, exe.Name, "executable",
             setter,
-            _ => list_all_executables()
-                .PrintFoundList(exe.ListName, get_executable_or_saved())
-            , _ => ToSelectables(list_all_executables()));
+            (_, cwd) => list_all_executables(cwd)
+                .PrintFoundList(exe.ListName, get_executable_or_saved(cwd))
+            , (_, cwd) => ToSelectables(list_all_executables(cwd)));
         return;
 
-        IEnumerable<Found<Fil>> list_all_executables()
-            => Config.Paths.ListAllExecutables(getter, exe);
-        Fil? get_executable_or_saved()
-            => Config.Paths.GetSavedOrSearchForExecutable(null, getter, exe);
+        IEnumerable<Found<Fil>> list_all_executables(Dir cwd)
+            => Config.Paths.ListAllExecutables(cwd, getter, exe);
+        Fil? get_executable_or_saved(Dir cwd)
+            => Config.Paths.GetSavedOrSearchForExecutable(cwd, null, getter, exe);
     }
 
     private static IEnumerable<Fil> ToSelectables(IEnumerable<Found<Fil>> founds)
@@ -59,8 +59,9 @@ public class Main
 internal class SetupPathCommand
 {
     internal static void Configure<TNoArg>(IConfigurator<CommandSettings> root, string name, string var_name,
-        Action<Config.Paths, Fil?> setter, Action<TNoArg> list,
-        Func<TNoArg, IEnumerable<Fil>> value_getter)
+        Action<Config.Paths, Fil?> setter,
+        Action<TNoArg, Dir> list,
+        Func<TNoArg, Dir, IEnumerable<Fil>> value_getter)
         where TNoArg: CommandSettings
     {
         root.AddBranch(name, branch =>
@@ -68,6 +69,7 @@ internal class SetupPathCommand
             branch.SetDescription($"Change the {name} {var_name}");
             branch.AddDelegate<SetVarArg>("set", (_, arg) =>
             {
+                var cwd = Dir.CurrentDirectory;
                 return CliUtil.PrintErrorsAtExit(print =>
                 {
                     var file = new Fil(arg.Value);
@@ -79,45 +81,48 @@ internal class SetupPathCommand
 
                     // todo(Gustav): add additional validations to make sure file is executable
 
-                    var paths = Config.Paths.LoadConfigFromCurrentDirectoryOrNull(print);
+                    var paths = Config.Paths.LoadConfigFromCurrentDirectoryOrNull(cwd, print);
                     if (paths == null) { return -1; }
 
                     setter(paths, file);
-                    Config.Paths.Save(paths);
+                    Config.Paths.Save(cwd, paths);
                     return 0;
                 });
             }).WithDescription($"Set the value of {name}");
 
             branch.AddDelegate<NoArgs>("clear", (_, _) =>
             {
+                var cwd = Dir.CurrentDirectory;
                 return CliUtil.PrintErrorsAtExit(print =>
                 {
-                    var paths = Config.Paths.LoadConfigFromCurrentDirectoryOrNull(print);
+                    var paths = Config.Paths.LoadConfigFromCurrentDirectoryOrNull(cwd, print);
                     if (paths == null) { return -1; }
                     setter(paths, null);
-                    Config.Paths.Save(paths);
+                    Config.Paths.Save(cwd, paths);
                     return 0;
                 });
             }).WithDescription($"Clear the value of {name}");
 
             branch.AddDelegate<TNoArg>("list", (_, args) =>
             {
-                list(args);
+                var cwd = Dir.CurrentDirectory;
+                list(args, cwd);
                 return 0;
             }).WithDescription($"List all values of {name}");
 
             branch.AddDelegate<TNoArg>("choose", (_, args) =>
             {
+                var cwd = Dir.CurrentDirectory;
                 return CliUtil.PrintErrorsAtExit(print =>
                 {
-                    var values = value_getter(args).ToImmutableArray();
+                    var values = value_getter(args, cwd).ToImmutableArray();
                     if (values.Length <= 1)
                     {
                         print.Error($"Not enough values to choose from, found {values.Length}");
                         return -1;
                     }
 
-                    var paths = Config.Paths.LoadConfigFromCurrentDirectoryOrNull(print);
+                    var paths = Config.Paths.LoadConfigFromCurrentDirectoryOrNull(cwd, print);
                     if (paths == null) { return -1; }
 
                     var new_value = AnsiConsole.Prompt(
@@ -128,7 +133,7 @@ internal class SetupPathCommand
                             .AddChoices(values));
 
                     setter(paths, new_value);
-                    Config.Paths.Save(paths);
+                    Config.Paths.Save(cwd, paths);
                     AnsiConsole.WriteLine($"{name} changed to {new_value}");
                     return 0;
                 });

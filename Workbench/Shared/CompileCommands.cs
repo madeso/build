@@ -82,9 +82,8 @@ public class CompileCommand
 
     internal const string COMPILE_COMMANDS_FILE_NAME = "compile_commands.json";
 
-    private static IEnumerable<Found<Fil>> FindJustTheBuilds()
+    private static IEnumerable<Found<Fil>> FindJustTheBuilds(Dir cwd)
     {
-        var cwd = Dir.CurrentDirectory;
         yield return FileUtil
             .PitchforkBuildFolders(cwd)
             .Select(build_root => build_root.GetFile(COMPILE_COMMANDS_FILE_NAME))
@@ -98,24 +97,24 @@ public class CompileCommand
         return settings.GetFileFromArgument(COMPILE_COMMANDS_FILE_NAME);
     }
 
-    internal static IEnumerable<Found<Fil>> ListOverrides(CompileCommandsArguments settings, Log? log)
+    internal static IEnumerable<Found<Fil>> ListOverrides(Dir cwd, CompileCommandsArguments settings, Log? log)
     {
         yield return Functional.Params(
                     GetBuildFromArgument(settings))
                 .IgnoreNull()
                 .Collect("commandline")
             ;
-        yield return Paths.Find(log, p => p.CompileCommands);
+        yield return Paths.Find(cwd, log, p => p.CompileCommands);
     }
 
-    internal static IEnumerable<Found<Fil>> ListAll(CompileCommandsArguments settings)
-        => ListOverrides(settings, null)
-            .Concat(FindJustTheBuilds());
+    internal static IEnumerable<Found<Fil>> ListAll(Dir cwd, CompileCommandsArguments settings)
+        => ListOverrides(cwd, settings, null)
+            .Concat(FindJustTheBuilds(cwd));
 
-    internal static Fil? FindOrNone(CompileCommandsArguments settings, Log? log)
+    internal static Fil? FindOrNone(Dir cwd, CompileCommandsArguments settings, Log? log)
     {
-        return FindJustTheBuilds()
-            .FirstValidOrOverride(ListOverrides(settings, log), log, "compile command");
+        return FindJustTheBuilds(cwd)
+            .FirstValidOrOverride(ListOverrides(cwd, settings, log), log, "compile command");
     }
 }
 

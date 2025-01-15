@@ -293,16 +293,15 @@ internal static class ClangTidyFile
         root.GetFile(".clang-tidy").WriteAllLines(content);
     }
 
-    internal static void HandleMakeTidyCommand(bool nop)
+    internal static void HandleMakeTidyCommand(Dir cwd, bool nop)
     {
-        var root = Dir.CurrentDirectory;
         if (nop)
         {
-            PrintGeneratedClangTidy(root);
+            PrintGeneratedClangTidy(cwd);
         }
         else
         {
-            WriteTidyFileToDisk(root);
+            WriteTidyFileToDisk(cwd);
         }
     }
 }
@@ -347,22 +346,20 @@ internal static class ClangFiles
         => MapFilesOnFirstDir(root, fs, FileUtil.FilesInPitchfork(root, false)
             .Where(extension_filter));
 
-    internal static int HandleTidyListFilesCommand(Log print, bool sort_files, FileSection fs)
+    internal static int HandleTidyListFilesCommand(Dir cwd, Log print, bool sort_files, FileSection fs)
     {
-        var root = Dir.CurrentDirectory;
-
-        var files = FileUtil.IterateFiles(root, false, true)
+        var files = FileUtil.IterateFiles(cwd, false, true)
             .Where(FileUtil.IsSource);
 
         if (sort_files)
         {
-            var sorted = MapFilesOnFirstDir(root, fs, files);
+            var sorted = MapFilesOnFirstDir(cwd, fs, files);
             foreach (var (project, source_files) in sorted)
             {
                 Printer.Header(project);
                 foreach (var file in source_files)
                 {
-                    AnsiConsole.WriteLine(file.GetDisplay());
+                    AnsiConsole.WriteLine(file.GetDisplay(cwd));
                 }
                 AnsiConsole.WriteLine("");
             }
@@ -371,7 +368,7 @@ internal static class ClangFiles
         {
             foreach (var file in files)
             {
-                AnsiConsole.WriteLine(file.GetDisplay());
+                AnsiConsole.WriteLine(file.GetDisplay(cwd));
             }
         }
 
@@ -403,8 +400,8 @@ internal class SingleFileReport
 
 internal interface IOutput
 {
-    void WriteFinalReport(GlobalStatistics stats);
-    void SingleFileReport(Fil source_file, SingleFileReport report);
+    void WriteFinalReport(Dir cwd, GlobalStatistics stats);
+    void SingleFileReport(Dir cwd, Fil source_file, SingleFileReport report);
 }
 
 internal class ConsoleOutput(Args args) : IOutput
@@ -420,24 +417,24 @@ internal class ConsoleOutput(Args args) : IOutput
         }
     }
 
-    public void WriteFinalReport(GlobalStatistics stats)
+    public void WriteFinalReport(Dir cwd, GlobalStatistics stats)
     {
         if (!args.ShortArgs && args.Only.Length == 0)
         {
             foreach (var (project, warnings) in stats.ProjectCounters)
             {
-                PrintWarningCounter(warnings, project, f => f.GetDisplay());
+                PrintWarningCounter(warnings, project, f => f.GetDisplay(cwd));
                 AnsiConsole.WriteLine("");
                 AnsiConsole.WriteLine("");
             }
         }
         if (false == args.ShortArgs && args.Only.Length == 0)
         {
-            PrintReportToConsole(stats);
+            PrintReportToConsole(cwd, stats);
         }
     }
 
-    public void SingleFileReport(Fil source_file, SingleFileReport report)
+    public void SingleFileReport(Dir cwd, Fil source_file, SingleFileReport report)
     {
         var short_list = args.ShortArgs;
         var only_show_these_classes = args.Only;
@@ -473,7 +470,7 @@ internal class ConsoleOutput(Args args) : IOutput
                 else Console.WriteLine();
 
                 var cs = m.Category != null ? $"[{m.Category}]" : string.Empty;
-                Console.WriteLine($"{m.File.GetDisplay()} ({m.Line}/{m.Column}) {m.Type}: {m.Message}{cs}");
+                Console.WriteLine($"{m.File.GetDisplay(cwd)} ({m.Line}/{m.Column}) {m.Type}: {m.Message}{cs}");
                 foreach (var line in m.Code)
                 {
                     Console.WriteLine(line);
@@ -483,15 +480,15 @@ internal class ConsoleOutput(Args args) : IOutput
 
         if (false == short_list && only_show_these_classes.Length == 0)
         {
-            PrintWarningCounter(stats.Classes, source_file.GetDisplay(), c => c);
+            PrintWarningCounter(stats.Classes, source_file.GetDisplay(cwd), c => c);
             AnsiConsole.WriteLine("");
         }
     }
 
-    private static void PrintReportToConsole(GlobalStatistics stats)
+    private static void PrintReportToConsole(Dir cwd, GlobalStatistics stats)
     {
         Printer.Header("TIDY REPORT");
-        PrintWarningCounter(stats.TotalCounter, "total", f => f.GetDisplay());
+        PrintWarningCounter(stats.TotalCounter, "total", f => f.GetDisplay(cwd));
         AnsiConsole.WriteLine("");
         PrintWarningCounter(stats.TotalClasses, "classes", c => c);
         AnsiConsole.WriteLine("");
@@ -502,7 +499,7 @@ internal class ConsoleOutput(Args args) : IOutput
             AnsiConsole.WriteLine($"{k}:");
             foreach (var f in v)
             {
-                AnsiConsole.WriteLine($"  {f.GetDisplay()}");
+                AnsiConsole.WriteLine($"  {f.GetDisplay(cwd)}");
             }
             AnsiConsole.WriteLine("");
         }
@@ -514,17 +511,17 @@ internal class ConsoleOutput(Args args) : IOutput
         if(tt != null)
         {
             AnsiConsole.MarkupLineInterpolated($"average: {tt.AverageValue.ToHumanString()}");
-            AnsiConsole.MarkupLineInterpolated($"max: {tt.Max.Value.ToHumanString()} for {tt.Max.Key.GetDisplay()}");
-            AnsiConsole.MarkupLineInterpolated($"min: {tt.Min.Value.ToHumanString()} for {tt.Min.Key.GetDisplay()}");
+            AnsiConsole.MarkupLineInterpolated($"max: {tt.Max.Value.ToHumanString()} for {tt.Max.Key.GetDisplay(cwd)}");
+            AnsiConsole.MarkupLineInterpolated($"min: {tt.Min.Value.ToHumanString()} for {tt.Min.Key.GetDisplay(cwd)}");
             AnsiConsole.MarkupLineInterpolated($"{tt.TimesPerFileCount} files");
         }
     }
 }
 
-internal class HtmlOutput(Dir root_output) : IOutput
+internal class HtmlOutput(Dir root_output, Dir dcwd) : IOutput
 {
     private readonly string root_name = "Tidy report";
-    private readonly Dir root_relative = Dir.CurrentDirectory;
+    private readonly Dir root_relative = dcwd;
     private readonly List<HtmlLink> root_links = new();
     private readonly Dictionary<Fil, HtmlLink> source_file_to_link = new();
     private GlobalStatistics? global_stats = null;
@@ -547,13 +544,13 @@ internal class HtmlOutput(Dir root_output) : IOutput
         public int Totals { get; }
     }
 
-    private string LinkToFile(Fil source_file)
+    private string LinkToFile(Dir cwd, Fil source_file)
         => source_file_to_link.TryGetValue(source_file, out var link)
             ? $"<a href=\"{link.Link}\">{link.Title}</a>"
-            : source_file.GetDisplay()
+            : source_file.GetDisplay(cwd)
             ;
 
-    public void WriteIndexFile()
+    public void WriteIndexFile(Dir cwd)
     {
         List<string> output = new();
 
@@ -584,7 +581,7 @@ internal class HtmlOutput(Dir root_output) : IOutput
                     output.Add("<ul>");
                     foreach (var f in v)
                     {
-                        output.Add($"<li>{LinkToFile(f)}</li>");
+                        output.Add($"<li>{LinkToFile(cwd, f)}</li>");
                     }
                     output.Add("</ul>");
                 }
@@ -627,8 +624,8 @@ internal class HtmlOutput(Dir root_output) : IOutput
         {
             output.Add("<h3>Timings</h3>");
             output.Add($"<p><b>average</b>: {tt.AverageValue.ToHumanString()}</p>");
-            output.Add($"<p><b>max</b>: {tt.Max.Value.ToHumanString()} for {LinkToFile(tt.Max.Key)}</p>");
-            output.Add($"<p><b>min</b>: {tt.Min.Value.ToHumanString()} for {LinkToFile(tt.Min.Key)}</p>");
+            output.Add($"<p><b>max</b>: {tt.Max.Value.ToHumanString()} for {LinkToFile(cwd, tt.Max.Key)}</p>");
+            output.Add($"<p><b>min</b>: {tt.Min.Value.ToHumanString()} for {LinkToFile(cwd, tt.Min.Key)}</p>");
         }
 
         output.Add($"</body>");
@@ -654,13 +651,13 @@ internal class HtmlOutput(Dir root_output) : IOutput
     public Fil GetOutput(Fil f, string ext)
         => root_output.GetFile(GetRelative(f)).ChangeExtension(ext);
 
-    public void WriteFinalReport(GlobalStatistics stats)
+    public void WriteFinalReport(Dir cwd, GlobalStatistics stats)
     {
         global_stats = stats;
-        WriteIndexFile();
+        WriteIndexFile(cwd);
     }
 
-    public void SingleFileReport(Fil source_file, SingleFileReport report)
+    public void SingleFileReport(Dir cwd, Fil source_file, SingleFileReport report)
     {
         var name = GetRelative(source_file);
         var target = GetOutput(source_file, ".html");
@@ -702,7 +699,7 @@ internal class HtmlOutput(Dir root_output) : IOutput
                     output.Add($"<p>{m.Message}</p>");
                 }
 
-                output.Add($"<p><i>{LinkToFile(m.File)} {m.Line} : {m.Column}</i></p>");
+                output.Add($"<p><i>{LinkToFile(cwd, m.File)} {m.Line} : {m.Column}</i></p>");
 
                 output.Add($"<pre>");
                 foreach (var l in m.Code)
@@ -729,7 +726,7 @@ internal class HtmlOutput(Dir root_output) : IOutput
         Console.WriteLine($"Wrote html to {target}");
 
         AddFile(source_file, name, target, report.TimeTaken, report.GroupedMessages.Length, count.Count);
-        WriteIndexFile();
+        WriteIndexFile(cwd);
     }
 
     private void AddFile(Fil source_file, string name, Fil target, TimeSpan time_taken, int totals, int categories)
@@ -813,7 +810,7 @@ public class ClangTidy
     }
 
     // runs clang-tidy and returns all the text output
-    private static async Task<TidyOutput> GetExistingOutputOrCallClangTidy(Store store,
+    private static async Task<TidyOutput> GetExistingOutputOrCallClangTidy(Dir cwd, Store store,
         Log log, Dir root, bool force, Fil tidy_path, Dir project_build_folder,
         Fil source_file, bool fix)
     {
@@ -826,12 +823,12 @@ public class ClangTidy
             }
         }
 
-        var ret = await CallClangTidyAsync(log, tidy_path, project_build_folder, source_file, fix);
+        var ret = await CallClangTidyAsync(cwd, log, tidy_path, project_build_folder, source_file, fix);
         StoreOutput(store, root, project_build_folder, source_file, ret);
         return ret;
     }
 
-    private static async Task<TidyOutput> CallClangTidyAsync(Log log, Fil tidy_path,
+    private static async Task<TidyOutput> CallClangTidyAsync(Dir cwd, Log log, Fil tidy_path,
         Dir project_build_folder, Fil source_file, bool fix)
     {
         var command = new ProcessBuilder(tidy_path);
@@ -844,7 +841,7 @@ public class ClangTidy
         command.AddArgument(source_file.Path);
 
         var start = DateTime.Now;
-        var output = await command.RunAndGetOutputAsync();
+        var output = await command.RunAndGetOutputAsync(cwd);
 
         if (output.ExitCode != 0)
         {
@@ -923,16 +920,15 @@ public class ClangTidy
     }
 
     // callback function called when running clang.py tidy
-    public async Task<int> HandleRunClangTidyCommand(CompileCommandsArguments cc, Log log, bool also_include_headers, Args args)
+    public async Task<int> HandleRunClangTidyCommand(Dir cwd, CompileCommandsArguments cc, Log log, bool also_include_headers, Args args)
     {
-        var clang_tidy = Config.Paths.GetClangTidyExecutable(log);
+        var clang_tidy = Config.Paths.GetClangTidyExecutable(cwd, log);
         if (clang_tidy == null)
         {
             return -1;
         }
 
-        var root = Dir.CurrentDirectory;
-        var cc_file = CompileCommand.FindOrNone(cc, log);
+        var cc_file = CompileCommand.FindOrNone(cwd, cc, log);
         if (cc_file == null)
         {
             return -1;
@@ -952,15 +948,15 @@ public class ClangTidy
             return -1;
         }
 
-        ClangTidyFile.WriteTidyFileToDisk(root);
+        ClangTidyFile.WriteTidyFileToDisk(cwd);
         AnsiConsole.WriteLine($"using clang-tidy: {clang_tidy}");
 
-        IOutput output = args.HtmlRoot == null ? new ConsoleOutput(args) : new HtmlOutput(args.HtmlRoot);
+        IOutput output = args.HtmlRoot == null ? new ConsoleOutput(args) : new HtmlOutput(args.HtmlRoot, cwd);
 
-        var files = ClangFiles.MapAllFilesInRootOnFirstDir(root, also_include_headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource, FileSection.AllExceptThoseIgnoredByClangTidy);
-        var stats = await RunAllFiles(log, args, files, store, root, clang_tidy, project_build_folder, output);
+        var files = ClangFiles.MapAllFilesInRootOnFirstDir(cwd, also_include_headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource, FileSection.AllExceptThoseIgnoredByClangTidy);
+        var stats = await RunAllFiles(cwd, log, args, files, store, cwd, clang_tidy, project_build_folder, output);
 
-        output.WriteFinalReport(stats);
+        output.WriteFinalReport(cwd, stats);
 
         if (stats.TotalCounter.TotalCount() > 0)
         {
@@ -978,7 +974,7 @@ public class ClangTidy
         public string Category { get; } = category;
     }
 
-    private static async Task<GlobalStatistics> RunAllFiles(Log log, Args args, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
+    private static async Task<GlobalStatistics> RunAllFiles(Dir cwd, Log log, Args args, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
         Dir project_build_folder, IOutput html_root)
     {
         var files = data.SelectMany(pair => pair.Files.Select(x => new CollectedTidyFil(x, pair.Category)))
@@ -997,7 +993,7 @@ public class ClangTidy
                     AnsiConsole.WriteLine($"Running {source_file.File}");
                     var tidy_output = args.Nop
                         ? new([], new())
-                        : await GetExistingOutputOrCallClangTidy(store, log, root, args.Force, clang_tidy, project_build_folder, source_file.File, args.Fix);
+                        : await GetExistingOutputOrCallClangTidy(cwd, store, log, root, args.Force, clang_tidy, project_build_folder, source_file.File, args.Fix);
                     return (source_file.Category, source_file.File, tidy_output);
                 })
             .ReadAll(tuple =>
@@ -1010,7 +1006,7 @@ public class ClangTidy
 
                 var report = new SingleFileReport(tidy_output.Taken, RemoveStatusLines(tidy_output.Output), file_stats);
 
-                html_root.SingleFileReport(source_file, report);
+                html_root.SingleFileReport(cwd, source_file, report);
 
                 stats.GetProjectCounter(cat).Update(file_stats.Warnings);
                 stats.TotalCounter.Update(file_stats.Warnings);
@@ -1028,31 +1024,29 @@ public class ClangTidy
 internal static class ClangFormat
 {
     // callback function called when running clang.py format
-    internal static async Task<int> HandleClangFormatCommand(Log log, bool nop)
+    internal static async Task<int> HandleClangFormatCommand(Dir cwd, Log log, bool nop)
     {
-        var clang_format_path = Config.Paths.GetClangFormatExecutable(log);
+        var clang_format_path = Config.Paths.GetClangFormatExecutable(cwd, log);
         if (clang_format_path == null)
         {
             return -1;
         }
 
-        var root = Dir.CurrentDirectory;
-
-        var data = ClangFiles.MapAllFilesInRootOnFirstDir(root, FileUtil.IsHeaderOrSource, FileSection.AllFiles);
+        var data = ClangFiles.MapAllFilesInRootOnFirstDir(cwd, FileUtil.IsHeaderOrSource, FileSection.AllFiles);
 
         foreach (var (project, source_files) in data)
         {
             Printer.Header(project);
             foreach (var file in source_files)
             {
-                AnsiConsole.WriteLine(file.GetRelative(root));
+                AnsiConsole.WriteLine(file.GetRelative(cwd));
                 if (nop)
                 {
                     continue;
                 }
 
                 var res = await new ProcessBuilder(clang_format_path, "-i", file.Path)
-                    .RunAndGetOutputAsync();
+                    .RunAndGetOutputAsync(cwd);
                 if (res.ExitCode != 0)
                 {
                     res.PrintOutput(log);

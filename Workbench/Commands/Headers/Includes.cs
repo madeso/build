@@ -163,7 +163,7 @@ public class Includes
         return has_limits;
     }
 
-    private static void Work(Fil real_file, ImmutableArray<Dir> include_directories,
+    private static void Work(Dir cwd, Fil real_file, ImmutableArray<Dir> include_directories,
         ColCounter<string> counter, bool print_files, ImmutableArray<Dir> limit)
     {
         if (IsLimited(real_file, limit))
@@ -178,10 +178,10 @@ public class Includes
             {
                 if (print_files)
                 {
-                    AnsiConsole.WriteLine(resolved.GetDisplay());
+                    AnsiConsole.WriteLine(resolved.GetDisplay(cwd));
                 }
                 counter.AddOne(resolved.Path);
-                Work(resolved, include_directories, counter, print_files, limit);
+                Work(cwd, resolved, include_directories, counter, print_files, limit);
             }
             else
             {
@@ -199,13 +199,13 @@ public class Includes
         => cc[path].GetRelativeIncludes();
 
 
-    private static IEnumerable<Fil> GetAllTranslationUnits(IEnumerable<string> files)
-        => FileUtil.SourcesFromArgs(files, FileUtil.IsSource);
+    private static IEnumerable<Fil> GetAllTranslationUnits(Dir cwd, IEnumerable<string> files)
+        => FileUtil.SourcesFromArgs(cwd, files, FileUtil.IsSource);
 
-    private static ImmutableArray<Dir> CompleteLimitArg(Log log, IEnumerable<string> args_limit)
-        => Cli.ToDirectories(log, args_limit).ToImmutableArray();
+    private static ImmutableArray<Dir> CompleteLimitArg(Dir cwd, Log log, IEnumerable<string> args_limit)
+        => Cli.ToDirectories(cwd, log, args_limit).ToImmutableArray();
 
-    public static int HandleListIncludesCommand(Log print, Fil? compile_commands_arg,
+    public static int HandleListIncludesCommand(Dir cwd, Log print, Fil? compile_commands_arg,
         string[] args_files,
         bool args_print_files,
         bool args_print_stats,
@@ -227,18 +227,18 @@ public class Includes
         var total_counter = new ColCounter<string>();
         var max_counter = new ColCounter<string>();
 
-        var limit = CompleteLimitArg(print, args_limit);
+        var limit = CompleteLimitArg(cwd, print, args_limit);
 
         var number_of_translation_units = 0;
 
-        foreach (var translation_unit in GetAllTranslationUnits(args_files))
+        foreach (var translation_unit in GetAllTranslationUnits(cwd, args_files))
         {
             number_of_translation_units += 1;
             var file_counter = new ColCounter<string>();
             if (compile_commands.ContainsKey(translation_unit))
             {
                 var include_directories = GetIncludeDirectories(translation_unit, compile_commands).ToImmutableArray();
-                Work(translation_unit, include_directories, file_counter, args_print_files, limit);
+                Work(cwd, translation_unit, include_directories, file_counter, args_print_files, limit);
             }
 
             if (args_print_stats)
@@ -277,7 +277,7 @@ public class Includes
         return 0;
     }
 
-    public static int HandleIncludeGraphvizCommand(Log print, Fil? compile_commands_arg,
+    public static int HandleIncludeGraphvizCommand(Dir cwd, Log print, Fil? compile_commands_arg,
         string[] args_files,
         string[] args_limit,
         bool args_group,
@@ -291,16 +291,16 @@ public class Includes
         var compile_commands = CompileCommand.LoadCompileCommandsOrNull(print, compile_commands_arg);
         if (compile_commands == null) { return -1; }
 
-        var limit = CompleteLimitArg(print, args_limit);
+        var limit = CompleteLimitArg(cwd, print, args_limit);
 
         var gv = new Graphvizer();
 
-        foreach (var translation_unit in GetAllTranslationUnits(args_files))
+        foreach (var translation_unit in GetAllTranslationUnits(cwd, args_files))
         {
             if (compile_commands.ContainsKey(translation_unit))
             {
                 var include_directories = GetIncludeDirectories(translation_unit, compile_commands).ToImmutableArray();
-                gv_work(translation_unit, "TU", include_directories, gv, limit, Dir.CurrentDirectory);
+                gv_work(translation_unit, "TU", include_directories, gv, limit, cwd);
             }
         }
 

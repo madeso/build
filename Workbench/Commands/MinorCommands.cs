@@ -41,12 +41,13 @@ internal sealed class CatDirCommand : Command<CatDirCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
+        var cwd = Dir.CurrentDirectory;
         var dir = new Dir(arg.Dir);
         foreach (var file in FileUtil.IterateFiles(dir, false, true)
             .Where(file => arg.IncludeSources ? FileUtil.IsHeaderOrSource(file) : FileUtil.IsHeader(file))
         )
         {
-            AnsiConsole.WriteLine($"File: {file.GetDisplay()}");
+            AnsiConsole.WriteLine($"File: {file.GetDisplay(cwd)}");
             foreach (var line in file.ReadAllLines())
             {
                 if (string.IsNullOrWhiteSpace(line)) { continue; }
@@ -106,9 +107,10 @@ internal sealed class LsCommand : Command<LsCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
+        var cwd = Dir.CurrentDirectory;
         return CliUtil.PrintErrorsAtExit(log =>
         {
-            var dir = Cli.RequireDirectory(log, settings.Path, "path");
+            var dir = Cli.RequireDirectory(cwd, log, settings.Path, "path");
             if (dir == null)
             {
                 return -1;

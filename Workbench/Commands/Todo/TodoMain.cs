@@ -32,12 +32,12 @@ internal sealed class FindTodosCommand : AsyncCommand<FindTodosCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        var root = Dir.CurrentDirectory;
+        var cwd = Dir.CurrentDirectory;
 
         var cc = new ColCounter<Fil>();
         var log = new LogToConsole();
 
-        var source_files = TodoComments.ListFiles(root);
+        var source_files = TodoComments.ListFiles(cwd);
         await SpectreExtensions.Progress().RunArrayAsync(source_files, async file =>
         {
             var todos = await TodoComments.FindTodosInFileAsync(file);
@@ -48,7 +48,7 @@ internal sealed class FindTodosCommand : AsyncCommand<FindTodosCommand.Arg>
                 cc.AddOne(todo.File);
             }
 
-            return file.GetDisplay();
+            return file.GetDisplay(cwd);
         });
 
         {
@@ -78,24 +78,24 @@ internal sealed class GroupWithTimeCommand : AsyncCommand<GroupWithTimeCommand.A
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
+        var cwd = Dir.CurrentDirectory;
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
-            var git_path = Config.Paths.GetGitExecutable(log);
+            var cwd = Dir.CurrentDirectory;
+            var git_path = Config.Paths.GetGitExecutable(cwd, log);
             if (git_path == null)
             {
                 return -1;
             }
 
-            var root = Dir.CurrentDirectory;
-
             var todo_list = new List<TodoInFile>();
 
-            var source_files = TodoComments.ListFiles(root);
+            var source_files = TodoComments.ListFiles(cwd);
             await SpectreExtensions.Progress().RunArrayAsync(source_files, async file =>
             {
                 var todos = await TodoComments.FindTodosInFileAsync(file);
                 todo_list.AddRange(todos);
-                return file.GetDisplay();
+                return file.GetDisplay(cwd);
             });
 
             // group on file
@@ -107,8 +107,8 @@ internal sealed class GroupWithTimeCommand : AsyncCommand<GroupWithTimeCommand.A
             // group by file to only run blame once (per file)
             var todo_with_blame = await SpectreExtensions.Progress().MapArrayAsync(grouped, async entry =>
             {
-                var blames = await Shared.Git.BlameAsync(git_path, entry.File).ToListAsync();
-                return ($"Blaming {entry.File.GetDisplay()}", entry.Todos
+                var blames = await Shared.Git.BlameAsync(cwd, git_path, entry.File).ToListAsync();
+                return ($"Blaming {entry.File.GetDisplay(cwd)}", entry.Todos
                         // if there are no blames, this file is probably new and the date is current
                     .Select(x => new { Todo = x, Blame = blames.Count==0 ? DateTime.Now : blame_to_time(blames[x.Line - 1])})
                     .ToImmutableArray());

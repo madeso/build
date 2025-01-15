@@ -32,16 +32,15 @@ internal sealed class PrintCodeHistory : AsyncCommand<PrintCodeHistory.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg arg)
     {
+        var cwd = Dir.CurrentDirectory;
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
 
-            var git_path = Config.Paths.GetGitExecutable(log);
+            var git_path = Config.Paths.GetGitExecutable(cwd, log);
             if (git_path == null)
             {
                 return -1;
             }
-
-            var cwd = Dir.CurrentDirectory;
 
             // get files
             var files = FileUtil.IterateFiles(cwd, false, true);
@@ -54,7 +53,7 @@ internal sealed class PrintCodeHistory : AsyncCommand<PrintCodeHistory.Arg>
             var blamed_times = (await SpectreExtensions.Progress()
                     .MapArrayAsync(files.ToImmutableArray(), async file =>
                     {
-                        var blamed = await Shared.Git.BlameAsync(git_path, file)
+                        var blamed = await Shared.Git.BlameAsync(cwd, git_path, file)
                             .SelectAsync(line => new { File = file, line.Author.Time })
                             .ToListAsync();
                         return ($"Blaming {file.GetRelative(cwd)}", blamed);

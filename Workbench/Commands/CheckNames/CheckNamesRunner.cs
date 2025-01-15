@@ -133,9 +133,9 @@ internal class CheckNamesRunner
         }
     }
 
-    internal static int Run(Log log, Dir doxygen_xml, Dir root)
+    internal static int Run(Dir cwd, Log log, Dir doxygen_xml, Dir root)
     {
-        var file = CheckNamesFile.LoadFromDirectoryOrNull(log);
+        var file = CheckNamesFile.LoadFromDirectoryOrNull(cwd, log);
         if (file == null)
         {
             return -1;
@@ -411,12 +411,12 @@ internal class CheckNamesRunner
         }
     }
 
-    internal static int HandleInit(Log print, bool overwrite)
+    internal static int HandleInit(Dir cwd, Log print, bool overwrite)
     {
         var data = new CheckNamesFile();
         data.AcceptedFunctions.Add("some function or method name");
         data.AcceptedTypes.Add("some struct or class name");
 
-        return ConfigFile.WriteInit(print, overwrite, CheckNamesFile.GetBuildDataPath(), data);
+        return ConfigFile.WriteInit(print, overwrite, CheckNamesFile.GetBuildDataPath(cwd), data);
     }
 }

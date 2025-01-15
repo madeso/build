@@ -9,9 +9,10 @@ public static class CheckIncludesCommonExecute
 {
     public static int WithLoadedIncludeData(Func<Log, IncludeData, int> callback)
     {
+        var cwd = Dir.CurrentDirectory;
         return CliUtil.PrintErrorsAtExit(print =>
         {
-            var data = IncludeData.LoadOrNull(print);
+            var data = IncludeData.LoadOrNull(cwd, print);
             if (data == null)
             {
                 print.Error("Unable to load the data");
@@ -72,7 +73,8 @@ internal sealed class InitCommand : Command<InitCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CliUtil.PrintErrorsAtExit(print => IncludeTools.HandleInit(print, settings.Overwrite));
+        var cwd = Dir.CurrentDirectory;
+        return CliUtil.PrintErrorsAtExit(print => IncludeTools.HandleInit(cwd, print, settings.Overwrite));
     }
 }
 
@@ -85,9 +87,10 @@ internal sealed class MissingPatternsCommand : Command<MissingPatternsCommand.Ar
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
+        var cwd = Dir.CurrentDirectory;
         return CheckIncludesCommonExecute.WithLoadedIncludeData
             (
-                (print, data) => IncludeTools.CommonMain(settings.ToCommon(), print, data,
+                (print, data) => IncludeTools.CommonMain(cwd, settings.ToCommon(), print, data,
                     new CheckAction.MissingPatterns())
             );
     }
@@ -106,9 +109,10 @@ internal sealed class ListUnfixableCommand : Command<ListUnfixableCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
+        var cwd = Dir.CurrentDirectory;
         return CheckIncludesCommonExecute.WithLoadedIncludeData
             (
-                (print, data) => IncludeTools.CommonMain(settings.ToCommon(), print, data, new CheckAction.ListUnfixable(settings.PrintAllErrors == false))
+                (print, data) => IncludeTools.CommonMain(cwd, settings.ToCommon(), print, data, new CheckAction.ListUnfixable(settings.PrintAllErrors == false))
             );
     }
 }
@@ -122,9 +126,10 @@ internal sealed class CheckCommand : Command<CheckCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
+        var cwd = Dir.CurrentDirectory;
         return CheckIncludesCommonExecute.WithLoadedIncludeData
             (
-                (print, data) => IncludeTools.CommonMain(settings.ToCommon(), print, data, new CheckAction.Check())
+                (print, data) => IncludeTools.CommonMain(cwd, settings.ToCommon(), print, data, new CheckAction.Check())
             );
     }
 }
@@ -142,9 +147,10 @@ internal sealed class FixCommand : Command<FixCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
+        var cwd = Dir.CurrentDirectory;
         return CheckIncludesCommonExecute.WithLoadedIncludeData
             (
-                (print, data) => IncludeTools.CommonMain(settings.ToCommon(), print, data, new CheckAction.Fix(settings.WriteToFile == false))
+                (print, data) => IncludeTools.CommonMain(cwd, settings.ToCommon(), print, data, new CheckAction.Fix(settings.WriteToFile == false))
             );
     }
 }

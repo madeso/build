@@ -22,9 +22,10 @@ internal sealed class DebugCommand : Command<DebugCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
+        var cwd = Dir.CurrentDirectory;
         return CliUtil.PrintErrorsAtExit(print =>
         {
-            Status.HandleStatus(print, settings);
+            Status.HandleStatus(cwd, print, settings);
             return 0;
         });
     }

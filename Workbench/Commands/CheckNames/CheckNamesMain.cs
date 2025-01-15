@@ -17,15 +17,15 @@ internal sealed class CheckCommand : Command<CheckCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
+        var cwd = Dir.CurrentDirectory;
         return CliUtil.PrintErrorsAtExit(printer =>
         {
-            var dox = Cli.RequireDirectory(printer, arg.DoxygenXml, "doxygen xml folder");
+            var dox = Cli.RequireDirectory(cwd, printer, arg.DoxygenXml, "doxygen xml folder");
             if (dox == null)
             {
                 return -1;
             }
-            return CheckNamesRunner.Run(printer, dox,
-                Dir.CurrentDirectory);
+            return CheckNamesRunner.Run(cwd, printer, dox, cwd);
         });
     }
 }
@@ -42,7 +42,8 @@ internal sealed class InitCommand : Command<InitCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        return CliUtil.PrintErrorsAtExit(print => CheckNamesRunner.HandleInit(print, settings.Overwrite));
+        var cwd = Dir.CurrentDirectory;
+        return CliUtil.PrintErrorsAtExit(print => CheckNamesRunner.HandleInit(cwd, print, settings.Overwrite));
     }
 }
 

@@ -29,12 +29,12 @@ public readonly struct BuildData
         return BuildDirectory.GetFile(FileNames.BuildSettings);
     }
 
-    public static BuildData? LoadOrNull(Log print)
+    public static BuildData? LoadOrNull(Dir cwd, Log print)
     {
-        return ConfigFile.LoadOrNull<BuildFile, BuildData>(print, BuildFile.GetBuildDataPath(),
+        return ConfigFile.LoadOrNull<BuildFile, BuildData>(print, BuildFile.GetBuildDataPath(cwd),
             loaded =>
             {
-                var bd = new BuildData(loaded.Name, Dir.CurrentDirectory);
+                var bd = new BuildData(loaded.Name, cwd);
                 foreach (var dependency_name in loaded.Dependencies)
                 {
                     bd.Dependencies.Add(BuildDependencies.CreateDependency(dependency_name, bd));

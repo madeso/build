@@ -14,11 +14,12 @@ internal sealed class FilesCommand : Command<FilesCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
+        var cwd = Dir.CurrentDirectory;
         return CliUtil.PrintErrorsAtExit
             (
                 print =>
                 {
-                    var path = CompileCommand.FindOrNone(settings, print);
+                    var path = CompileCommand.FindOrNone(cwd, settings, print);
                     if (path == null) { return -1; }
 
                     var commands = CompileCommand.LoadCompileCommandsOrNull(print, path);
@@ -40,11 +41,12 @@ internal sealed class IncludesCommand : Command<IncludesCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
+        var cwd = Dir.CurrentDirectory;
         return CliUtil.PrintErrorsAtExit
             (
                 print =>
                 {
-                    var path = CompileCommand.FindOrNone(settings, print);
+                    var path = CompileCommand.FindOrNone(cwd, settings, print);
                     if (path == null) { return -1; }
 
                     var commands = CompileCommand.LoadCompileCommandsOrNull(print, path);
@@ -73,11 +75,12 @@ internal sealed class DefinesCommand : Command<DefinesCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
+        var cwd = Dir.CurrentDirectory;
         return CliUtil.PrintErrorsAtExit
             (
                 print =>
                 {
-                    var path = CompileCommand.FindOrNone(settings, print);
+                    var path = CompileCommand.FindOrNone(cwd, settings, print);
                     if (path == null) { return -1; }
 
                     var commands = CompileCommand.LoadCompileCommandsOrNull(print, path);

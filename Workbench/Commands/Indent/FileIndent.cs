@@ -166,13 +166,13 @@ internal static class IndentFunctions
             .Max();
     }
 
-    public static int HandleListIndents(string[] args_files, int each, bool args_show,
+    public static int HandleListIndents(Dir cwd, string[] args_files, int each, bool args_show,
         bool args_hist, bool discard_empty)
     {
         var stats = new Dictionary<int, List<Fil>>();
         var found_files = 0;
 
-        foreach (var file in FileUtil.SourcesFromArgs(args_files, FileUtil.IsHeaderOrSource))
+        foreach (var file in FileUtil.SourcesFromArgs(cwd, args_files, FileUtil.IsHeaderOrSource))
         {
             found_files += 1;
 

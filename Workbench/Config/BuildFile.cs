@@ -14,6 +14,6 @@ internal class BuildFile
 
 
     // todo(Gustav): rename
-    public static Fil GetBuildDataPath()
-        => Dir.CurrentDirectory.GetFile(FileNames.BuildData);
+    public static Fil GetBuildDataPath(Dir cwd)
+        => cwd.GetFile(FileNames.BuildData);
 }

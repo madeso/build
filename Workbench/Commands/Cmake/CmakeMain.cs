@@ -20,6 +20,7 @@ internal sealed class TraceCommand : AsyncCommand<TraceCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
+        var cwd = Dir.CurrentDirectory;
         return await CliUtil.PrintErrorsAtExitAsync(async printer => {
             var cmake = FindCMake.RequireInstallationOrNull(printer);
 
@@ -33,7 +34,7 @@ internal sealed class TraceCommand : AsyncCommand<TraceCommand.Arg>
 
             try
             {
-                var lines = await CMakeTrace.TraceDirectoryAsync(cmake, new Dir(settings.Directory));
+                var lines = await CMakeTrace.TraceDirectoryAsync(cwd, cmake, new Dir(settings.Directory));
                 foreach (var li in lines)
                 {
                     AnsiConsole.MarkupLineInterpolated($"Running [green]{li.Cmd}[/].");
@@ -89,6 +90,7 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
+        var cwd = Dir.CurrentDirectory;
         return await CliUtil.PrintErrorsAtExitAsync(async printer => {
             var cmake = FindCMake.RequireInstallationOrNull(printer);
 
@@ -98,7 +100,7 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
                 return -1;
             }
 
-            var dir = Cli.RequireDirectory(printer, settings.Directory, "cmake root");
+            var dir = Cli.RequireDirectory(cwd, printer, settings.Directory, "cmake root");
             if(dir == null)
             {
                 printer.Error("Failed to find cmake root");
@@ -111,7 +113,7 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
             {
                 var ignores = settings.NamesToIgnore.ToImmutableHashSet();
                 AnsiConsole.MarkupLineInterpolated($"Ignoring [red]{ignores.Count}[/] projects.");
-                var lines = await CMakeTrace.TraceDirectoryAsync(cmake, dir);
+                var lines = await CMakeTrace.TraceDirectoryAsync(cwd, cmake, dir);
                 var solution = Solution.Parse.CMake(lines);
 
                 if (settings.RemoveInterface)
@@ -133,7 +135,7 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
                     gv.Simplify();
                 }
 
-                await gv.SmartWriteFileAsync(Cli.ToSingleFile(settings.Output, "cmake.dot"), printer);
+                await gv.SmartWriteFileAsync(cwd, Cli.ToSingleFile(cwd, settings.Output, "cmake.dot"), printer);
             }
             catch (CMakeTrace.TraceError x)
             {

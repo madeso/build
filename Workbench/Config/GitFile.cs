@@ -11,6 +11,6 @@ internal class GitFile
     [JsonPropertyName("files")]
     public Dictionary<string, List<Fil>> File { get; set; } = new();
 
-    public static Fil GetPath()
-        => Dir.CurrentDirectory.GetFile(".git-files.cache");
+    public static Fil GetPath(Dir cwd)
+        => cwd.GetFile(".git-files.cache");
 }

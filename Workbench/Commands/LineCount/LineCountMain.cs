@@ -53,10 +53,11 @@ internal sealed class LineCountCommand : Command<LineCountCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
+        var cwd = Dir.CurrentDirectory;
         var stats = new Dictionary<int, List<Fil>>();
         var file_count = 0;
 
-        foreach (var file in FileUtil.SourcesFromArgs(arg.Files, arg.AllLanguages ? f => FileUtil.ClassifySource(f) != Language.Unknown : FileUtil.IsHeaderOrSource))
+        foreach (var file in FileUtil.SourcesFromArgs(cwd, arg.Files, arg.AllLanguages ? f => FileUtil.ClassifySource(f) != Language.Unknown : FileUtil.IsHeaderOrSource))
         {
             file_count += 1;
 

@@ -25,16 +25,16 @@ namespace Workbench.Shared.CMake
             public string[] Args { set; get; } = Array.Empty<string>();
         }
 
-        public static async Task<List<CMakeTrace>> TraceDirectoryAsync(Fil cmake_executable, Dir dir)
+        public static async Task<List<CMakeTrace>> TraceDirectoryAsync(Dir cwd, Fil cmake_executable, Dir dir)
         {
             List<CMakeTrace> lines = new();
             List<string> error = new();
 
             var stderr = new List<string>();
             var ret = (await new ProcessBuilder(cmake_executable, "--trace-expand", "--trace-format=json-v1", "-S",
-                            Dir.CurrentDirectory.Path, "-B", dir.Path)
+                            cwd.Path, "-B", dir.Path)
                     .InDirectory(dir)
-                    .RunWithCallbackAsync(null, on_line, err => { on_line(err); stderr.Add(err); },
+                    .RunWithCallbackAsync(cwd, null, on_line, err => { on_line(err); stderr.Add(err); },
                         (err, ex) => { error.Add(err); error.Add(ex.Message); })
                     )
                     .ExitCode

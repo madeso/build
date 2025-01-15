@@ -12,21 +12,21 @@ public static class Cpplint
             // ignore pch
             .Where(file => file.Name.StartsWith("pch.") == false);
 
-    public static int HandleList(Log print, Dir root)
+    public static int HandleList(Dir cwd, Log print, Dir root)
     {
         var files = ListAllFiles(root);
         foreach (var f in files)
         {
-            AnsiConsole.WriteLine(f.GetDisplay());
+            AnsiConsole.WriteLine(f.GetDisplay(cwd));
         }
 
         return 0;
     }
 
 
-    public static async Task<int> HandleRun(Log log, Dir root)
+    public static async Task<int> HandleRun(Dir cwd, Log log, Dir root)
     {
-        var cpplint = Config.Paths.GetCppLintExecutable(log);
+        var cpplint = Config.Paths.GetCppLintExecutable(cwd, log);
         if (cpplint == null)
         {
             return -1;
@@ -36,12 +36,12 @@ public static class Cpplint
         var has_errors = false;
         foreach (var f in files)
         {
-            var ret = await new ProcessBuilder(cpplint, f.Path).RunAndGetOutputAsync();
+            var ret = await new ProcessBuilder(cpplint, f.Path).RunAndGetOutputAsync(cwd);
             if (ret.ExitCode != 0)
             {
                 var stdout = string.Join("\n", ret.Output.Select(x => x.Line));
                 Printer.Line();
-                log.Error(f.GetDisplay());
+                log.Error(f.GetDisplay(cwd));
                 AnsiConsole.WriteLine(stdout);
                 Printer.Line();
                 AnsiConsole.WriteLine("");
@@ -49,7 +49,7 @@ public static class Cpplint
             }
             else
             {
-                AnsiConsole.WriteLine(f.GetDisplay());
+                AnsiConsole.WriteLine(f.GetDisplay(cwd));
             }
         }
 

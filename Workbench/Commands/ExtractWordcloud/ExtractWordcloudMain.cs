@@ -40,9 +40,10 @@ internal sealed partial class ExtractTypesCommand : Command<ExtractTypesCommand.
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
+        var cwd = Dir.CurrentDirectory;
         return CliUtil.PrintErrorsAtExit(log =>
         {
-            var dox = Cli.RequireDirectory(log, arg.DoxygenXml, "Doxygen xml folder");
+            var dox = Cli.RequireDirectory(cwd, log, arg.DoxygenXml, "Doxygen xml folder");
             if (dox == null)
             {
                 return -1;
@@ -82,7 +83,7 @@ internal sealed partial class ExtractTypesCommand : Command<ExtractTypesCommand.
             var items = cc.MostCommon()
                 // hacky hack to ignore void return values
                 .Where(x => x.Item1 != "void");
-            var output = Cli.ToSingleFile(arg.CsvOutput, "wordcloud-arguments.csv");
+            var output = Cli.ToSingleFile(cwd, arg.CsvOutput, "wordcloud-arguments.csv");
             output.WriteAllLines(get_csv_lines(items));
 
             return 0;

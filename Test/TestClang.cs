@@ -16,16 +16,16 @@ public class TestClang : TestBase
     public async Task if_clang_tidy_is_missing_then_fail()
     {
         var tidy = new ClangTidy();
+        var cwd = new Dir(@"C:\test\");
 
         var args = new ClangTidy.Args(null, 1, false, ["libs"], true, false, false, []);
-        var ret = await tidy.HandleRunClangTidyCommand(new CompileCommandsArguments(), log, false, args);
+        var ret = await tidy.HandleRunClangTidyCommand(cwd, new CompileCommandsArguments(), log, false, args);
         using (new AssertionScope())
         {
             ret.Should().Be(-1);
             log.Errors.Should().Equal(["Failed to find valid clang-tidy executable"]);
         }
         /*
-        var cwd = new DirectoryInfo(@"C:\test\");
         read.AddContent(cwd.GetFile(Constants.ROOT_FILENAME_WITH_EXTENSION), "{}");
 
         var contentFolder = cwd.GetDir("content");

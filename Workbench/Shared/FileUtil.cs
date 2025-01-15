@@ -118,15 +118,15 @@ internal static class FileUtil
         }
     }
 
-    public static IEnumerable<Fil> SourcesFromArgs(IEnumerable<string> args, Func<Fil, bool> these_files)
-        => ListFilesFromArgs(args)
+    public static IEnumerable<Fil> SourcesFromArgs(Dir cwd, IEnumerable<string> args, Func<Fil, bool> these_files)
+        => ListFilesFromArgs(cwd, args)
             .Where(these_files);
 
-    public static IEnumerable<Fil> ListFilesFromArgs(IEnumerable<string> args)
+    public static IEnumerable<Fil> ListFilesFromArgs(Dir cwd, IEnumerable<string> args)
     {
         foreach (var unrooted_file_or_dir in args)
         {
-            var file_or_dir = RootPath(Dir.CurrentDirectory, unrooted_file_or_dir);
+            var file_or_dir = RootPath(cwd, unrooted_file_or_dir);
             if (File.Exists(file_or_dir)) yield return new Fil(file_or_dir);
             else // assume directory
             {

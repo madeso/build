@@ -28,6 +28,7 @@ internal sealed class CheckForNoProjectFoldersCommand : AsyncCommand<CheckForNoP
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
+        var cwd = Dir.CurrentDirectory;
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
             var cmake = FindCMake.RequireInstallationOrNull(log);
@@ -36,18 +37,18 @@ internal sealed class CheckForNoProjectFoldersCommand : AsyncCommand<CheckForNoP
                 return -1;
             }
 
-            var build_root = FindCMake.ListAllBuilds(settings)
+            var build_root = FindCMake.ListAllBuilds(cwd, settings)
                 .RequireFirstValueOrNull(log, "build root");
             if (build_root == null)
             {
                 return -1;
             }
 
-            return await CheckForNoProjectFolders(Cli.ToDirectories(log, settings.Directories), build_root, cmake);
+            return await CheckForNoProjectFolders(cwd, Cli.ToDirectories(cwd, log, settings.Directories), build_root, cmake);
         });
     }
 
-    public static async Task<int> CheckForNoProjectFolders(IEnumerable<Dir> bases_iter, Dir build_root, Fil cmake)
+    public static async Task<int> CheckForNoProjectFolders(Dir cwd, IEnumerable<Dir> bases_iter, Dir build_root, Fil cmake)
     {
         var projects = new HashSet<string>();
         var projects_with_folders = new HashSet<string>();
@@ -56,7 +57,7 @@ internal sealed class CheckForNoProjectFoldersCommand : AsyncCommand<CheckForNoP
 
         var bases = bases_iter.ToImmutableArray();
 
-        foreach (var cmd in await CMakeTrace.TraceDirectoryAsync(cmake, build_root))
+        foreach (var cmd in await CMakeTrace.TraceDirectoryAsync(cwd, cmake, build_root))
         {
             if(cmd.File == null) continue;
             if (bases.Select(b => FileUtil.FileIsInFolder(cmd.File, b)).Any())
@@ -96,7 +97,7 @@ internal sealed class CheckForNoProjectFoldersCommand : AsyncCommand<CheckForNoP
         foreach (var g in grouped)
         {
             missing_files += 1;
-            AnsiConsole.WriteLine(g.cmake_file.GetDisplay());
+            AnsiConsole.WriteLine(g.cmake_file.GetDisplay(cwd));
             foreach (var f in g.sorted_files)
             {
                 AnsiConsole.WriteLine($"    {f}");

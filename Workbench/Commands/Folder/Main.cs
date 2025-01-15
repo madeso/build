@@ -32,9 +32,10 @@ internal sealed class ShowHiddenCommand : Command<ShowHiddenCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
+        var cwd = Dir.CurrentDirectory;
         return CliUtil.PrintErrorsAtExit(log =>
         {
-            var dir = Cli.RequireDirectory(log, arg.Directory, "directory");
+            var dir = Cli.RequireDirectory(cwd, log, arg.Directory, "directory");
             if (dir == null)
             {
                 return -1;
@@ -62,9 +63,10 @@ internal sealed class RemoveEmptyCommand : Command<RemoveEmptyCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
+        var cwd = Dir.CurrentDirectory;
         return CliUtil.PrintErrorsAtExit(log =>
         {
-            var dir = Cli.RequireDirectory(log, arg.Directory, "directory");
+            var dir = Cli.RequireDirectory(cwd, log, arg.Directory, "directory");
             if (dir == null)
             {
                 return -1;

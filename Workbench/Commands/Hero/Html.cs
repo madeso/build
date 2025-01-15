@@ -54,19 +54,19 @@ internal class Html
     }
 
 
-    internal static string GetSafeInspectFilename(Fil path, string ext_with_dot)
+    internal static string GetSafeInspectFilename(Dir cwd, Fil path, string ext_with_dot)
     {
-        return $"inspect_{path.GetDisplay().GetSafeString()}{ext_with_dot}";
+        return $"inspect_{path.GetDisplay(cwd).GetSafeString()}{ext_with_dot}";
     }
 
-    public static string GetSafeInspectFilenameHtml(Fil path)
+    public static string GetSafeInspectFilenameHtml(Dir cwd, Fil path)
     {
-        return GetSafeInspectFilename(path, ".html");
+        return GetSafeInspectFilename(cwd, path, ".html");
     }
 
-    public static string GetSafeInspectFilenameWithoutHtml(Fil path)
+    public static string GetSafeInspectFilenameWithoutHtml(Dir cwd, Fil path)
     {
-        return GetSafeInspectFilename(path, "");
+        return GetSafeInspectFilename(cwd, path, "");
     }
 
 
@@ -84,9 +84,9 @@ internal class Html
     }
 
 
-    public static string inspect_filename_link(Dir? common, Dir root, Fil path)
+    public static string inspect_filename_link(Dir cwd, Dir? common, Dir root, Fil path)
     {
-        var file = GetSafeInspectFilenameHtml(path);
+        var file = GetSafeInspectFilenameHtml(cwd, path);
         var name = GetFilename(common, root, path);
 
         return $"<a href=\"{file}\">{name}</a>";

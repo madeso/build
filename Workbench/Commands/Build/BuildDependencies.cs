@@ -40,7 +40,7 @@ public interface BuildDependency
     void AddCmakeArguments(CMakeProject cmake);
 
     // install the dependency
-    public Task InstallAsync(BuildEnvironment env, Log print, BuildData data);
+    public Task InstallAsync(Dir cwd, BuildEnvironment env, Log print, BuildData data);
 
     // get the status of the dependency
     public IEnumerable<string> GetStatus();
@@ -90,7 +90,7 @@ internal class DependencySdl2 : BuildDependency
         cmake.AddArgumentWithEscape("SDL2_HINT_BUILD", build_folder);
     }
 
-    public async Task InstallAsync(BuildEnvironment env, Log print, BuildData data)
+    public async Task InstallAsync(Dir cwd, BuildEnvironment env, Log print, BuildData data)
     {
         var generator = env.CreateCmakeGenerator();
 
@@ -129,8 +129,8 @@ internal class DependencySdl2 : BuildDependency
             project.AddArgument("LIBC", "ON");
             project.AddArgument("SDL_STATIC", "ON");
             project.AddArgument("SDL_SHARED", "OFF");
-            await project.ConfigureAsync(print);
-            await project.BuildAsync(print, Shared.CMake.Config.Release);
+            await project.ConfigureAsync(cwd, print);
+            await project.BuildAsync(cwd, print, Shared.CMake.Config.Release);
         }
         else
         {
@@ -170,7 +170,7 @@ internal class DependencyPython : BuildDependency
         cmake.AddArgument("PYTHON_EXECUTABLE:FILEPATH", python_exe);
     }
 
-    public async Task InstallAsync(BuildEnvironment env, Log print, BuildData data)
+    public async Task InstallAsync(Dir cwd, BuildEnvironment env, Log print, BuildData data)
     {
         await Task.Delay(0); // nop since nothing to install
     }
@@ -212,7 +212,7 @@ internal class DependencyAssimp : BuildDependency
         cmake.AddArgument("ASSIMP_ROOT_DIR", install_folder.Path);
     }
 
-    public async Task InstallAsync(BuildEnvironment env, Log print, BuildData data)
+    public async Task InstallAsync(Dir cwd, BuildEnvironment env, Log print, BuildData data)
     {
         const string URL = "https://github.com/assimp/assimp/archive/v5.0.1.zip";
 
@@ -241,11 +241,11 @@ internal class DependencyAssimp : BuildDependency
             project.SetInstallFolder(install_folder);
             Core.VerifyDirectoryExists(print, install_folder);
 
-            await project.ConfigureAsync(print);
-            await project.BuildAsync(print, Shared.CMake.Config.Release);
+            await project.ConfigureAsync(cwd, print);
+            await project.BuildAsync(cwd, print, Shared.CMake.Config.Release);
 
             AnsiConsole.WriteLine("Installing assimp");
-            await project.InstallAsync(print, Shared.CMake.Config.Release);
+            await project.InstallAsync(cwd, print, Shared.CMake.Config.Release);
         }
         else
         {
@@ -296,7 +296,7 @@ internal class DependencyWxWidgets : BuildDependency
     private Dir GetLibraryFolder()
         => build_folder.GetSubDirs("lib", "vc_x64_lib");
 
-    public async Task InstallAsync(BuildEnvironment env, Log print, BuildData data)
+    public async Task InstallAsync(Dir cwd, BuildEnvironment env, Log print, BuildData data)
     {
         var generator = env.CreateCmakeGenerator();
 
@@ -330,17 +330,17 @@ internal class DependencyWxWidgets : BuildDependency
 
         if (build_dbg || build_rel)
         {
-            var project = await ConfigProjectAsync(print, root_folder, build_folder, generator);
+            var project = await ConfigProjectAsync(cwd, print, root_folder, build_folder, generator);
             if (build_dbg)
             {
                 AnsiConsole.WriteLine("building debug wxWidgets");
-                await project.BuildAsync(print, Shared.CMake.Config.Debug);
+                await project.BuildAsync(cwd, print, Shared.CMake.Config.Debug);
             }
 
             if (build_rel)
             {
                 AnsiConsole.WriteLine("building release wxWidgets");
-                await project.BuildAsync(print, Shared.CMake.Config.Release);
+                await project.BuildAsync(cwd, print, Shared.CMake.Config.Release);
             }
         }
         else
@@ -349,12 +349,12 @@ internal class DependencyWxWidgets : BuildDependency
         }
     }
 
-    private static async Task<CMakeProject> ConfigProjectAsync(Log print, Dir root, Dir build, Generator generator)
+    private static async Task<CMakeProject> ConfigProjectAsync(Dir cwd, Log print, Dir root, Dir build, Generator generator)
     {
         var project = new CMakeProject(build, root, generator);
         project.AddArgument("LIBC", "ON");
         project.AddArgument("wxBUILD_SHARED", "OFF");
-        await project.ConfigureAsync(print);
+        await project.ConfigureAsync(cwd, print);
         return project;
     }
 

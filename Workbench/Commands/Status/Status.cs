@@ -7,13 +7,12 @@ namespace Workbench.Commands.Status;
 
 internal static class Status
 {
-    internal static void HandleStatus(Log log, CompileCommandsArguments cc)
+    internal static void HandleStatus(Dir cwd, Log log, CompileCommandsArguments cc)
     {
-        var root = Dir.CurrentDirectory;
-        AnsiConsole.WriteLine($"Root: {root}");
+        AnsiConsole.WriteLine($"Root: {cwd}");
 
         FindCMake.FindAllInstallations().PrintFoundList("cmake", FindCMake.FindInstallationOrNull());
-        FindCMake.ListAllBuilds(cc).PrintFoundList("cmake build", FindCMake.FindBuildOrNone(cc, null));
-        CompileCommand.ListAll(cc).PrintFoundList("compile command", CompileCommand.FindOrNone(cc, null));
+        FindCMake.ListAllBuilds(cwd, cc).PrintFoundList("cmake build", FindCMake.FindBuildOrNone(cwd, cc, null));
+        CompileCommand.ListAll(cwd, cc).PrintFoundList("compile command", CompileCommand.FindOrNone(cwd, cc, null));
     }
 }

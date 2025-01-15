@@ -26,10 +26,11 @@ internal sealed class CheckForMissingPragmaOnceCommand : Command<CheckForMissing
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
+        var cwd = Dir.CurrentDirectory;
         var count = 0;
         var total_files = 0;
 
-        foreach (var file in FileUtil.SourcesFromArgs(settings.Files, FileUtil.IsHeader))
+        foreach (var file in FileUtil.SourcesFromArgs(cwd, settings.Files, FileUtil.IsHeader))
         {
             total_files += 1;
             if (contains_pragma_once(file))
@@ -37,7 +38,7 @@ internal sealed class CheckForMissingPragmaOnceCommand : Command<CheckForMissing
                 continue;
             }
 
-            AnsiConsole.WriteLine(file.GetDisplay());
+            AnsiConsole.WriteLine(file.GetDisplay(cwd));
             count += 1;
         }
 

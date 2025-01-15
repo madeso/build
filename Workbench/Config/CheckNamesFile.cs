@@ -24,11 +24,11 @@ internal class CheckNamesFile
     public HashSet<string> IgnoredFiles { get; set; } = new();
 
     // todo(Gustav): rename
-    public static Fil GetBuildDataPath()
-        => Dir.CurrentDirectory.GetFile(FileNames.CheckNames);
+    public static Fil GetBuildDataPath(Dir cwd)
+        => cwd.GetFile(FileNames.CheckNames);
 
-    public static CheckNamesFile? LoadFromDirectoryOrNull(Log print)
+    public static CheckNamesFile? LoadFromDirectoryOrNull(Dir cwd, Log print)
     {
-        return ConfigFile.LoadOrNull<CheckNamesFile>(print, GetBuildDataPath());
+        return ConfigFile.LoadOrNull<CheckNamesFile>(print, GetBuildDataPath(cwd));
     }
 }

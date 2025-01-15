@@ -27,24 +27,24 @@ internal static class FileDeps
     }
 
     // todo(Gustav): is this working correctly???
-    public static async Task<Dictionary<Fil, ConnectionEntry>> ExtractGraphData(Fil git_path, Log log, Dir cwd)
+    public static async Task<Dictionary<Fil, ConnectionEntry>> ExtractGraphData(Dir cwd, Fil git_path, Log log)
     {
         // todo(Gustav): make a list and move to argument
         var external_folder = cwd.GetSubDirs("external");
 
         // collect commits
-        var commits = (await Shared.Git.LogAsync(git_path, cwd).ToListAsync()).ToImmutableArray();
+        var commits = (await Shared.Git.LogAsync(cwd, git_path, cwd).ToListAsync()).ToImmutableArray();
         var latest_commit = commits[0].Hash;
 
         // collect files (collect is slow, so cache!
-        var cache = JsonUtil.GetOrNull<GitFile>(GitFile.GetPath(), log);
+        var cache = JsonUtil.GetOrNull<GitFile>(GitFile.GetPath(cwd), log);
         var collected_before = cache?.File;
         if (collected_before == null || cache == null || cache.LatestCommit != latest_commit)
         {
             AnsiConsole.WriteLine("Collecting git history...");
             var collected_before_git = await SpectreExtensions.Progress().MapArrayAsync(commits, async commit =>
             {
-                var files = await Shared.Git.FilesInCommitAsync(git_path, cwd, commit.Hash);
+                var files = await Shared.Git.FilesInCommitAsync(cwd, git_path, cwd, commit.Hash);
                 var ret = new { Commit = commit, Files = files };
                 return ($"Listing files for {commit.Hash}...", ret);
             });
@@ -61,7 +61,7 @@ internal static class FileDeps
             };
 
             AnsiConsole.WriteLine("Saving git cache");
-            JsonUtil.Save(GitFile.GetPath(), cache);
+            JsonUtil.Save(GitFile.GetPath(cwd), cache);
         }
         else
         {
@@ -125,19 +125,19 @@ internal sealed class ListInfoCommand : AsyncCommand<ListInfoCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return await CliUtil.PrintErrorsAtExitAsync(async log => await Run(arg, log));
+        var cwd = Dir.CurrentDirectory;
+        return await CliUtil.PrintErrorsAtExitAsync(async log => await Run(cwd, arg, log));
     }
 
-    private static async Task<int> Run(Arg arg, Log log)
+    private static async Task<int> Run(Dir cwd, Arg arg, Log log)
     {
-        var git_path = Config.Paths.GetGitExecutable(log);
+        var git_path = Config.Paths.GetGitExecutable(cwd, log);
         if (git_path == null)
         {
             return -1;
         }
 
-        var cwd = Dir.CurrentDirectory;
-        var counters = await FileDeps.ExtractGraphData(git_path, log, cwd);
+        var counters = await FileDeps.ExtractGraphData(cwd, git_path, log);
 
         var commits = counters.Values
             .Where(c => c.Commits >= arg.MinCommits)
@@ -204,19 +204,19 @@ internal sealed class GitFilesCommand : AsyncCommand<GitFilesCommand.Arg>
 
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg arg)
     {
-        return await CliUtil.PrintErrorsAtExitAsync(async log => await Run(arg, log));
+        var cwd = Dir.CurrentDirectory;
+        return await CliUtil.PrintErrorsAtExitAsync(async log => await Run(cwd, arg, log));
     }
 
-    private static async Task<int> Run(Arg arg, Log log)
+    private static async Task<int> Run(Dir cwd, Arg arg, Log log)
     {
-        var git_path = Config.Paths.GetGitExecutable(log);
+        var git_path = Config.Paths.GetGitExecutable(cwd, log);
         if (git_path == null)
         {
             return -1;
         }
 
-        var cwd = Dir.CurrentDirectory;
-        var counters = await FileDeps.ExtractGraphData(git_path, log, cwd);
+        var counters = await FileDeps.ExtractGraphData(cwd, git_path, log);
 
         // draw graphviz with links with probability count, remove nodes with no links
         AnsiConsole.WriteLine("Collecting graphviz");
@@ -248,9 +248,9 @@ internal sealed class GitFilesCommand : AsyncCommand<GitFilesCommand.Arg>
             }
         }
 
-        var gvf = Cli.ToSingleFile(arg.OutputFile, "file-dependencies.html");
+        var gvf = Cli.ToSingleFile(cwd, arg.OutputFile, "file-dependencies.html");
         AnsiConsole.WriteLine($"Writing graphviz to {gvf} with {gv.NodeCount} nodes and {gv.EdgeCount} edges");
-        await gv.SmartWriteFileAsync(gvf, log);
+        await gv.SmartWriteFileAsync(cwd, gvf, log);
 
         AnsiConsole.WriteLine("Done!");
         return 0;

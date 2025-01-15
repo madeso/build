@@ -10,14 +10,14 @@ namespace Workbench.Commands.Hero;
 internal static class Ui
 {
 
-    public static void ScanAndGenerateHtml(OutputFolders root, Project project)
+    public static void ScanAndGenerateHtml(Dir cwd, OutputFolders root, Project project)
     {
         var scanner = new Scanner();
         var feedback = new ProgressFeedback();
         scanner.Rescan(project, feedback);
         var f = new UniqueFiles();
         AddFiles(f, project);
-        GenerateReport(f.GetCommon(), root, project, scanner);
+        GenerateReport(cwd, f.GetCommon(), root, project, scanner);
     }
 
     private static void AddFiles(UniqueFiles unique_files, Project project)
@@ -28,7 +28,7 @@ internal static class Ui
         }
     }
 
-    public static void ScanAndGenerateDot(Dir input_root, bool simplify_graphviz,
+    public static void ScanAndGenerateDot(Dir cwd, Dir input_root, bool simplify_graphviz,
         bool only_headers,
         FileOrDir[] exclude, bool cluster, Fil dot_target, Project project)
     {
@@ -37,7 +37,7 @@ internal static class Ui
         scanner.Rescan(project, feedback);
         var f = new UniqueFiles();
         AddFiles(f, project);
-        GenerateDot(f.GetCommon(), input_root, project, simplify_graphviz, only_headers, exclude, cluster, dot_target);
+        GenerateDot(cwd, f.GetCommon(), input_root, project, simplify_graphviz, only_headers, exclude, cluster, dot_target);
     }
 
 
@@ -73,7 +73,7 @@ internal static class Ui
     }
 
     // todo(Gustav): OutputFolders shouldn't be used here!
-    private static void GenerateDot(
+    private static void GenerateDot(Dir cwd,
         Dir? common, Dir input_root, Project project,
         bool simplify_graphviz, bool only_headers, FileOrDir[] exclude, bool cluster, Fil dot_target)
     {
@@ -90,7 +90,7 @@ internal static class Ui
 
             AnsiConsole.WriteLine($"{file} added as a node");
             var display_name = Html.GetFilename(common, input_root, file);
-            var node_id = Html.GetSafeInspectFilenameWithoutHtml(file);
+            var node_id = Html.GetSafeInspectFilenameWithoutHtml(cwd, file);
             var added_node = gv.AddNodeWithId(display_name, Shape.Box, node_id);
             if (!cluster) continue;
 
@@ -109,7 +109,7 @@ internal static class Ui
                 continue;
             }
 
-            var from_file = Html.GetSafeInspectFilenameWithoutHtml(file);
+            var from_file = Html.GetSafeInspectFilenameWithoutHtml(cwd, file);
             var from_id = gv.GetNodeFromId(from_file);
             if (from_id == null)
             {
@@ -124,7 +124,7 @@ internal static class Ui
                     continue;
                 }
 
-                var to_file = Html.GetSafeInspectFilenameWithoutHtml(s);
+                var to_file = Html.GetSafeInspectFilenameWithoutHtml(cwd, s);
                 var to_id = gv.GetNodeFromId(to_file);
                 if (to_id == null)
                 {
@@ -146,7 +146,7 @@ internal static class Ui
         gv.WriteFile(dot_target);
     }
 
-    private static void GenerateReport(Dir? common, OutputFolders root, Project project, Scanner scanner)
+    private static void GenerateReport(Dir cwd, Dir? common, OutputFolders root, Project project, Scanner scanner)
     {
         {
             var html = new Html();
@@ -177,7 +177,7 @@ internal static class Ui
 
                 foreach (var file in origins)
                 {
-                    html.PushString($"<li>{Html.inspect_filename_link(common, root.InputRoot, file)}</li>");
+                    html.PushString($"<li>{Html.inspect_filename_link(cwd, common, root.InputRoot, file)}</li>");
                 }
                 html.PushString("</ul></div>");
 
@@ -189,16 +189,17 @@ internal static class Ui
 
         var analytics = Analytics.Analyze(project);
         Html.WriteCssFile(root.OutputDirectory);
-        Report.GenerateIndexPage(common, root, project, analytics);
+        Report.GenerateIndexPage(cwd, common, root, project, analytics);
 
         foreach (var f in project.ScannedFiles.Keys)
         {
-            write_inspection_page(common, root, f, project, analytics);
+            write_inspection_page(cwd, common, root, f, project, analytics);
         }
     }
 
     private static void WriteInspectHeaderTable
     (
+        Dir cwd,
         Dir? common,
         Html html,
         OutputFolders root,
@@ -216,7 +217,7 @@ internal static class Ui
 
         foreach (var s in included.OrderByDescending(s => length_fun(analytics.FileToData[s])))
         {
-            var display_filename = Html.inspect_filename_link(common, root.InputRoot, s);
+            var display_filename = Html.inspect_filename_link(cwd, common, root.InputRoot, s);
             var display_count = Core.FormatNumber(length_fun(analytics.FileToData[s]));
             var display_lines = Core.FormatNumber(analytics.FileToData[s].TotalIncludedLines);
 
@@ -227,7 +228,7 @@ internal static class Ui
         html.PushString("</div>\n");
     }
 
-    private static void write_inspection_page(Dir? common, OutputFolders root, Fil file, Project project, Analytics analytics)
+    private static void write_inspection_page(Dir cwd, Dir? common, OutputFolders root, Fil file, Project project, Analytics analytics)
     {
         var html = new Html();
 
@@ -238,6 +239,7 @@ internal static class Ui
 
         WriteInspectHeaderTable
         (
+            cwd,
             common, html, root,
             analytics,
             project.ScannedFiles
@@ -273,7 +275,7 @@ internal static class Ui
         }
 
         WriteInspectHeaderTable
-        (
+        (cwd,
             common, html, root,
             analytics,
             project.ScannedFiles[file].AbsoluteIncludes,
@@ -283,7 +285,7 @@ internal static class Ui
 
         html.End();
 
-        html.WriteToFile(root.OutputDirectory.GetFile(Html.GetSafeInspectFilenameHtml(file)));
+        html.WriteToFile(root.OutputDirectory.GetFile(Html.GetSafeInspectFilenameHtml(cwd, file)));
     }
 
 }
@@ -308,14 +310,14 @@ internal static class UiFacade
         return 0;
     }
 
-    internal static int HandleRunHeroHtml(Fil project_file, Dir output_directory, Log print)
+    internal static int HandleRunHeroHtml(Dir cwd, Fil project_file, Dir output_directory, Log print)
     {
         var input = UserInput.LoadFromFile(print, project_file);
         if (input == null)
         {
             return -1;
         }
-        var input_root = project_file.Directory ?? Dir.CurrentDirectory;
+        var input_root = project_file.Directory ?? cwd;
         var project = input.ToProject(print, input_root, null);
         if (project == null)
         {
@@ -323,11 +325,11 @@ internal static class UiFacade
         }
         
         Directory.CreateDirectory(output_directory.Path);
-        Ui.ScanAndGenerateHtml(new(input_root, output_directory), project);
+        Ui.ScanAndGenerateHtml(cwd, new(input_root, output_directory), project);
         return 0;
     }
 
-    internal static int RunHeroGraphviz(
+    internal static int RunHeroGraphviz(Dir cwd,
         Fil project_file, Fil output_file, bool simplify_graphviz, bool only_headers, bool cluster,
         FileOrDir[] exclude, Log print)
     {
@@ -336,14 +338,14 @@ internal static class UiFacade
         {
             return -1;
         }
-        var input_root = project_file.Directory ?? Dir.CurrentDirectory;
+        var input_root = project_file.Directory ?? cwd;
         var project = input.ToProject(print, input_root, null);
         if (project == null)
         {
             return -1;
         }
 
-        Ui.ScanAndGenerateDot(input_root, simplify_graphviz, only_headers, exclude, cluster, output_file, project);
+        Ui.ScanAndGenerateDot(cwd, input_root, simplify_graphviz, only_headers, exclude, cluster, output_file, project);
         return 0;
     }
 }

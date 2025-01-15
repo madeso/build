@@ -63,13 +63,13 @@ public readonly struct IncludeData
             .ToList();
     }
 
-    private static IncludeData? LoadFromDirectoryOrNull(Log print)
+    private static IncludeData? LoadFromDirectoryOrNull(Dir cwd, Log print)
         => ConfigFile.LoadOrNull<CheckIncludesFile, IncludeData>(
-            print, CheckIncludesFile.GetBuildDataPath(), loaded =>
+            print, CheckIncludesFile.GetBuildDataPath(cwd), loaded =>
                 new IncludeData(loaded.IncludeDirectories, print));
 
-    public static IncludeData? LoadOrNull(Log print)
-        => LoadFromDirectoryOrNull(print);
+    public static IncludeData? LoadOrNull(Dir cwd, Log print)
+        => LoadFromDirectoryOrNull(cwd, print);
 }
 
 public interface OptionalRegex
@@ -541,7 +541,7 @@ public static class IncludeTools
 
     internal static int CommonMain
     (
-        CommonArgs args,
+        Dir cwd, CommonArgs args,
         Log print,
         IncludeData data,
         CheckAction command
@@ -553,7 +553,7 @@ public static class IncludeTools
 
         var missing_files = new HashSet<string>();
 
-        var files = FileUtil.FilesInPitchfork(Dir.CurrentDirectory, false)
+        var files = FileUtil.FilesInPitchfork(cwd, false)
             .Where(FileUtil.IsHeaderOrSource);
 
         foreach (var filename in files)
@@ -592,13 +592,13 @@ public static class IncludeTools
         return error_count;
     }
 
-    public static int HandleInit(Log print, bool overwrite)
+    public static int HandleInit(Dir cwd, Log print, bool overwrite)
     {
         var data = new CheckIncludesFile();
         data.IncludeDirectories.Add(new() { new("list of regexes"), new("that are used by check-includes" )});
         data.IncludeDirectories.Add(new() { new("they are grouped into arrays, there needs to be a space between each group" )});
 
-        return ConfigFile.WriteInit(print, overwrite, CheckIncludesFile.GetBuildDataPath(), data);
+        return ConfigFile.WriteInit(print, overwrite, CheckIncludesFile.GetBuildDataPath(cwd), data);
     }
 }
 

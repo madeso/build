@@ -46,11 +46,10 @@ namespace Workbench.Shared.CMake
             => FindAllInstallations().GetFirstValueOrNull();
 
 
-        private static IEnumerable<Found<Dir>> FindJustTheBuilds()
+        private static IEnumerable<Found<Dir>> FindJustTheBuilds(Dir cwd)
         {
             const string CMAKE_CACHE_FILE = "CMakeCache.txt";
 
-            var cwd = Dir.CurrentDirectory;
             yield return Functional
                 .Params(find_cmake_cache(cwd))
                 .Collect("build cache in current dir");
@@ -77,19 +76,19 @@ namespace Workbench.Shared.CMake
             return settings.GetDirectoryFromArgument();
         }
 
-        public static IEnumerable<Found<Dir>> ListAllBuilds(CompileCommandsArguments settings)
+        public static IEnumerable<Found<Dir>> ListAllBuilds(Dir cwd, CompileCommandsArguments settings)
         {
             return Functional.Params(
                     Functional.Params(GetBuildFromArgument(settings))
                         .IgnoreNull()
                         .Collect("commandline")
                     )
-                .Concat(FindJustTheBuilds());
+                .Concat(FindJustTheBuilds(cwd));
         }
 
-        public static Dir? RequireBuildOrNone(CompileCommandsArguments settings, Log log)
+        public static Dir? RequireBuildOrNone(Dir cwd, CompileCommandsArguments settings, Log log)
         {
-            var found = FindBuildOrNone(settings, log);
+            var found = FindBuildOrNone(cwd, settings, log);
             if (found == null)
             {
                 log.Error("No build cache folder specified or none/too many found");
@@ -98,7 +97,7 @@ namespace Workbench.Shared.CMake
             return found;
         }
 
-        public static Dir? FindBuildOrNone(CompileCommandsArguments settings, Log? log)
+        public static Dir? FindBuildOrNone(Dir cwd, CompileCommandsArguments settings, Log? log)
         {
             // commandline overrides all builds
             var arg = GetBuildFromArgument(settings);
@@ -113,7 +112,7 @@ namespace Workbench.Shared.CMake
                 }
             }
 
-            var valid = FindJustTheBuilds().AllValid().ToImmutableArray();
+            var valid = FindJustTheBuilds(cwd).AllValid().ToImmutableArray();
 
             // only one build folder is valid
             return valid.Length == 1
