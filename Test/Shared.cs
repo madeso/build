@@ -1,9 +1,27 @@
-﻿using Workbench.Shared;
+﻿using Workbench.Config;
+using Workbench.Shared;
 
 namespace Test;
 
-internal class FakePath : Workbench.Config.Paths
+internal class FakePath(SavedPaths saved_paths) : Workbench.Config.Paths
 {
+
+    public override Found<Fil> Find(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter)
+    {
+        var r = getter(saved_paths);
+        if (r == null) return Found<Fil>.Fail("missing in test", "file");
+        else return Found<Fil>.Success(r, "file");
+    }
+
+    public override IEnumerable<Found<Fil>> ListAllExecutables(Dir cwd, Func<SavedPaths, Fil?> getter, Executable exe, Log? log = null)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override Fil? GetSavedOrSearchForExecutable(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter, Executable exe)
+    {
+        return getter(saved_paths);
+    }
 }
 
 internal class VfsReadTest : VfsRead

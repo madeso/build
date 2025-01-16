@@ -139,7 +139,7 @@ public static class FoundExtensions
                     return r.Value;
                 case FoundEntry<T>.Error e:
                 {
-                    log?.Error(e.Reason);
+                    log?.Error($"{e.Reason} for {name}");
                     return default;
                 }
             }

@@ -6,10 +6,6 @@ namespace Workbench.Config;
 
 internal class RealPaths : Paths
 {
-}
-
-public abstract class Paths
-{
     public Fil GetConfigFileFromCurrentDirectory(Dir cwd)
         => cwd.GetFile(FileNames.Paths);
 
@@ -36,7 +32,7 @@ public abstract class Paths
         return new FoundEntry<Fil>.Result(val);
     }
 
-    public Found<Fil> Find(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter)
+    public override Found<Fil> Find(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter)
         => Functional.Params(FindEntry(cwd, log, getter))
             .IgnoreNull()
             .Collect($"{FileNames.Paths} file");
@@ -50,13 +46,20 @@ public abstract class Paths
     private IEnumerable<Found<Fil>> FindPrimaryExecutable(Executable exe)
         => Functional.Params(Which.FindPaths(exe.PrimaryExecutable));
 
-    internal IEnumerable<Found<Fil>> ListAllExecutables(Dir cwd, Func<SavedPaths, Fil?> getter, Executable exe, Log? log = null)
+    public override IEnumerable<Found<Fil>> ListAllExecutables(Dir cwd, Func<SavedPaths, Fil?> getter, Executable exe, Log? log = null)
         => FindFromPath(cwd, null, getter).Concat(FindPrimaryExecutable(exe)).Concat(
             exe.Additional());
 
-    internal Fil? GetSavedOrSearchForExecutable(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter, Executable exe)
+    public override Fil? GetSavedOrSearchForExecutable(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter, Executable exe)
         => ListAllExecutables(cwd, getter, exe, log)
             .RequireFirstValueOrNull(log, exe.FriendlyName);
+}
+
+public abstract class Paths
+{
+    public abstract Found<Fil> Find(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter);
+    public abstract IEnumerable<Found<Fil>> ListAllExecutables(Dir cwd, Func<SavedPaths, Fil?> getter, Executable exe, Log? log = null);
+    public abstract Fil? GetSavedOrSearchForExecutable(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter, Executable exe);
 
     internal Fil? GetGitExecutable(Dir cwd, Log log)
         => GetSavedOrSearchForExecutable(cwd, log, p => p.GitExecutable, DefaultExecutables.Git);

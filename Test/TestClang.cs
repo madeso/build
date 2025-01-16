@@ -3,6 +3,7 @@ using FluentAssertions;
 using FluentAssertions.Execution;
 using Xunit;
 using Workbench.Commands.Clang;
+using Workbench.Config;
 using Workbench.Shared;
 using static Workbench.Commands.CheckIncludeOrder.CheckAction;
 using Workbench.Shared.CMake;
@@ -18,33 +19,35 @@ public class TestClang : TestBase
     {
         var tidy = new ClangTidy();
         var cwd = new Dir(@"C:\test\");
-        var paths = new FakePath();
+        var paths = new FakePath(new());
 
         var args = new ClangTidy.Args(null, 1, false, ["libs"], true, false, false, []);
         var ret = await tidy.HandleRunClangTidyCommand(paths, cwd, new CompileCommandsArguments(), log, false, args);
         using (new AssertionScope())
         {
             ret.Should().Be(-1);
-            log.Errors.Should().Equal(["Failed to find valid clang-tidy executable"]);
+            log.Errors.Should().BeEmpty();
         }
-        /*
-        read.AddContent(cwd.GetFile(Constants.ROOT_FILENAME_WITH_EXTENSION), "{}");
+    }
 
-        var contentFolder = cwd.GetDir("content");
-        var postFile = contentFolder.GetFile("test.md");
-
-        var ret = await Facade.NewPost(run, read, write, postFile);
-
+    [Fact]
+    public async Task if_has_tidy_then_run_it()
+    {
+        var tidy = new ClangTidy();
+        var exe = new Dir(@"C:\executables\");
+        var cwd = new Dir(@"C:\test\");
+        var paths = new FakePath(new SavedPaths
+        {
+            ClangTidyExecutable = exe.GetFile("clang-tidy.exe"),
+            CompileCommands = cwd.GetFile("compile-commands.json")
+        });
+        
+        var args = new ClangTidy.Args(null, 1, false, ["libs"], true, false, false, []);
+        var ret = await tidy.HandleRunClangTidyCommand(paths, cwd, new CompileCommandsArguments(), log, false, args);
         using (new AssertionScope())
         {
             ret.Should().Be(0);
-            run.Errors.Should().BeEmpty();
+            log.Errors.Should().BeEmpty();
         }
-
-        var content = write.GetContent(postFile);
-        content.Should().EndWith("\n# Test");
-
-        write.RemainingFiles.Should().BeEmpty();
-        */
     }
 }
