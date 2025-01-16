@@ -235,15 +235,15 @@ class TidyGroup
 }
 
 
-internal static class ClangTidyFile
+public static class ClangTidyFile
 {
     internal static Fil GetPathToClangTidySource(Dir root)
         => root.GetFile("clang-tidy");
 
     // return a iterator over the "compiled" .clang-tidy lines
-    private static IEnumerable<string> GenerateClangTidyAsIterator(Dir root)
+    private static IEnumerable<string> GenerateClangTidyAsIterator(VfsRead vread, Dir root)
     {
-        var clang_tidy_file = GetPathToClangTidySource(root).ReadAllLines();
+        var clang_tidy_file = GetPathToClangTidySource(root).ReadAllLines(vread);
         var write = false;
         var checks = new List<string>();
         foreach (var line in clang_tidy_file)
@@ -278,30 +278,30 @@ internal static class ClangTidyFile
     }
 
     // print the clang-tidy "source"
-    private static void PrintGeneratedClangTidy(Dir root)
+    private static void PrintGeneratedClangTidy(VfsRead vread, Dir root)
     {
-        foreach (var line in GenerateClangTidyAsIterator(root))
+        foreach (var line in GenerateClangTidyAsIterator(vread, root))
         {
             AnsiConsole.WriteLine(line);
         }
     }
 
     // write the .clang-tidy from the clang-tidy "source"
-    internal static void WriteTidyFileToDisk(Dir root)
+    public static void WriteTidyFileToDisk(VfsRead vread, VfsWrite vwrite, Dir root)
     {
-        var content = GenerateClangTidyAsIterator(root);
-        root.GetFile(".clang-tidy").WriteAllLines(content);
+        var content = GenerateClangTidyAsIterator(vread, root);
+        root.GetFile(".clang-tidy").WriteAllLines(vwrite, content);
     }
 
-    internal static void HandleMakeTidyCommand(Dir cwd, bool nop)
+    internal static void HandleMakeTidyCommand(VfsRead vread, VfsWrite vwrite, Dir cwd, bool nop)
     {
         if (nop)
         {
-            PrintGeneratedClangTidy(cwd);
+            PrintGeneratedClangTidy(vread, cwd);
         }
         else
         {
-            WriteTidyFileToDisk(cwd);
+            WriteTidyFileToDisk(vread, vwrite, cwd);
         }
     }
 }
@@ -313,15 +313,15 @@ public enum FileSection
 
 internal static class ClangFiles
 {
-    private static bool IsFileIgnoredByClangTidy(Fil path)
+    private static bool IsFileIgnoredByClangTidy(VfsRead vread, Fil path)
     {
-        var first_line = path.ReadAllLines().FirstOrDefault();
+        var first_line = path.ReadAllLines(vread).FirstOrDefault();
         if (first_line == null) { return false; }
 
         return first_line.StartsWith("// clang-tidy: ignore");
     }
 
-    private static CategoryAndFiles[] MapFilesOnFirstDir(Dir root, FileSection fs, IEnumerable<Fil> files_iterator)
+    private static CategoryAndFiles[] MapFilesOnFirstDir(VfsRead vread, Dir root, FileSection fs, IEnumerable<Fil> files_iterator)
         => files_iterator
             .Select(f => new { Path = f, Cat = FileUtil.GetFirstFolder(root, f) })
             // ignore external and build folders
@@ -335,25 +335,25 @@ internal static class ClangFiles
                     files
                         // sort files
                         .Select(x => x.Path)
-                        .Where(f => fs == FileSection.AllFiles || !IsFileIgnoredByClangTidy(f))
+                        .Where(f => fs == FileSection.AllFiles || !IsFileIgnoredByClangTidy(vread, f))
                         .OrderBy(p => p.Name)
                         .ThenByDescending(p => p.Extension)
                         .ToArray()
                 )
             ).ToArray();
 
-    internal static CategoryAndFiles[] MapAllFilesInRootOnFirstDir(Dir root, Func<Fil, bool> extension_filter, FileSection fs)
-        => MapFilesOnFirstDir(root, fs, FileUtil.FilesInPitchfork(root, false)
+    internal static CategoryAndFiles[] MapAllFilesInRootOnFirstDir(VfsRead vread, Dir root, Func<Fil, bool> extension_filter, FileSection fs)
+        => MapFilesOnFirstDir(vread, root, fs, FileUtil.FilesInPitchfork(root, false)
             .Where(extension_filter));
 
-    internal static int HandleTidyListFilesCommand(Dir cwd, Log print, bool sort_files, FileSection fs)
+    internal static int HandleTidyListFilesCommand(VfsRead vread, Dir cwd, Log print, bool sort_files, FileSection fs)
     {
         var files = FileUtil.IterateFiles(cwd, false, true)
             .Where(FileUtil.IsSource);
 
         if (sort_files)
         {
-            var sorted = MapFilesOnFirstDir(cwd, fs, files);
+            var sorted = MapFilesOnFirstDir(vread, cwd, fs, files);
             foreach (var (project, source_files) in sorted)
             {
                 Printer.Header(project);
@@ -400,8 +400,8 @@ internal class SingleFileReport
 
 internal interface IOutput
 {
-    void WriteFinalReport(Dir cwd, GlobalStatistics stats);
-    void SingleFileReport(Dir cwd, Fil source_file, SingleFileReport report);
+    void WriteFinalReport(VfsWrite vwrite, Dir cwd, GlobalStatistics stats);
+    void SingleFileReport(VfsWrite vwrite, Dir cwd, Fil source_file, SingleFileReport report);
 }
 
 internal class ConsoleOutput(Args args) : IOutput
@@ -417,7 +417,7 @@ internal class ConsoleOutput(Args args) : IOutput
         }
     }
 
-    public void WriteFinalReport(Dir cwd, GlobalStatistics stats)
+    public void WriteFinalReport(VfsWrite _, Dir cwd, GlobalStatistics stats)
     {
         if (!args.ShortArgs && args.Only.Length == 0)
         {
@@ -434,7 +434,7 @@ internal class ConsoleOutput(Args args) : IOutput
         }
     }
 
-    public void SingleFileReport(Dir cwd, Fil source_file, SingleFileReport report)
+    public void SingleFileReport(VfsWrite _, Dir cwd, Fil source_file, SingleFileReport report)
     {
         var short_list = args.ShortArgs;
         var only_show_these_classes = args.Only;
@@ -550,7 +550,7 @@ internal class HtmlOutput(Dir root_output, Dir dcwd) : IOutput
             : source_file.GetDisplay(cwd)
             ;
 
-    public void WriteIndexFile(Dir cwd)
+    public void WriteIndexFile(VfsWrite vwrite, Dir cwd)
     {
         List<string> output = new();
 
@@ -634,7 +634,7 @@ internal class HtmlOutput(Dir root_output, Dir dcwd) : IOutput
         var target = root_output.GetFile("index.html");
 
         target.Directory?.CreateDir();
-        target.WriteAllLines(output);
+        target.WriteAllLines(vwrite, output);
         Console.WriteLine($"Wrote html to {target}");
         return;
 
@@ -651,13 +651,13 @@ internal class HtmlOutput(Dir root_output, Dir dcwd) : IOutput
     public Fil GetOutput(Fil f, string ext)
         => root_output.GetFile(GetRelative(f)).ChangeExtension(ext);
 
-    public void WriteFinalReport(Dir cwd, GlobalStatistics stats)
+    public void WriteFinalReport(VfsWrite vwrite, Dir cwd, GlobalStatistics stats)
     {
         global_stats = stats;
-        WriteIndexFile(cwd);
+        WriteIndexFile(vwrite, cwd);
     }
 
-    public void SingleFileReport(Dir cwd, Fil source_file, SingleFileReport report)
+    public void SingleFileReport(VfsWrite vwrite, Dir cwd, Fil source_file, SingleFileReport report)
     {
         var name = GetRelative(source_file);
         var target = GetOutput(source_file, ".html");
@@ -722,11 +722,11 @@ internal class HtmlOutput(Dir root_output, Dir dcwd) : IOutput
         output.Add($"</html>");
 
         target.Directory?.CreateDir();
-        target.WriteAllLines(output);
+        target.WriteAllLines(vwrite, output);
         Console.WriteLine($"Wrote html to {target}");
 
         AddFile(source_file, name, target, report.TimeTaken, report.GroupedMessages.Length, count.Count);
-        WriteIndexFile(cwd);
+        WriteIndexFile(vwrite, cwd);
     }
 
     private void AddFile(Fil source_file, string name, Fil target, TimeSpan time_taken, int totals, int categories)
@@ -742,7 +742,7 @@ public class ClangTidy
     private static Fil GetPathToStore(Dir build_folder)
         => build_folder.GetFile(FileNames.ClangTidyStore);
 
-    private static Store? LoadStore(Log print, Dir build_folder)
+    private static Store? LoadStore(VfsRead vread, Log print, Dir build_folder)
     {
         var file_name = GetPathToStore(build_folder);
         AnsiConsole.MarkupLineInterpolated($"Loading store from {file_name}");
@@ -752,7 +752,7 @@ public class ClangTidy
             return new Store();
         }
 
-        var content = file_name.ReadAllText();
+        var content = file_name.ReadAllText(vread);
         if (string.IsNullOrWhiteSpace(content))
         {
             return new Store();
@@ -762,10 +762,10 @@ public class ClangTidy
         return loaded != null ? new(loaded) : null;
     }
 
-    private static void SaveStore(Dir build_folder, Store data)
+    private static void SaveStore(VfsWrite vwrite, Dir build_folder, Store data)
     {
         var file_name = GetPathToStore(build_folder);
-        file_name.WriteAllText(JsonUtil.Write(new JsonStore(data)));
+        file_name.WriteAllText(vwrite, JsonUtil.Write(new JsonStore(data)));
     }
 
     private static bool FileMatchesAllFilters(Fil file, string[]? filters)
@@ -797,7 +797,7 @@ public class ClangTidy
         return null;
     }
 
-    private static void StoreOutput(Store store, Dir root, Dir project_build_folder,
+    private static void StoreOutput(VfsWrite vwrite, Store store, Dir root, Dir project_build_folder,
         Fil source_file, TidyOutput output)
     {
         var clang_tidy_source = ClangTidyFile.GetPathToClangTidySource(root);
@@ -805,12 +805,12 @@ public class ClangTidy
         var data = new StoredTidyUpdate(output.Output, output.Taken,
             GetLastModificationForFiles(new[] { clang_tidy_source, source_file }));
         store.Cache[source_file] = data;
-        SaveStore(project_build_folder, store);
+        SaveStore(vwrite, project_build_folder, store);
         Console.WriteLine($"Stored in cache {store.Cache.Count}");
     }
 
     // runs clang-tidy and returns all the text output
-    private static async Task<TidyOutput> GetExistingOutputOrCallClangTidy(Dir cwd, Store store,
+    private static async Task<TidyOutput> GetExistingOutputOrCallClangTidy(VfsWrite vwrite, Dir cwd, Store store,
         Log log, Dir root, bool force, Fil tidy_path, Dir project_build_folder,
         Fil source_file, bool fix)
     {
@@ -824,7 +824,7 @@ public class ClangTidy
         }
 
         var ret = await CallClangTidyAsync(cwd, log, tidy_path, project_build_folder, source_file, fix);
-        StoreOutput(store, root, project_build_folder, source_file, ret);
+        StoreOutput(vwrite, store, root, project_build_folder, source_file, ret);
         return ret;
     }
 
@@ -920,15 +920,15 @@ public class ClangTidy
     }
 
     // callback function called when running clang.py tidy
-    public async Task<int> HandleRunClangTidyCommand(Config.Paths paths, Dir cwd, CompileCommandsArguments cc, Log log, bool also_include_headers, Args args)
+    public async Task<int> HandleRunClangTidyCommand(VfsRead vread, VfsWrite vwrite, Config.Paths paths, Dir cwd, CompileCommandsArguments cc, Log log, bool also_include_headers, Args args)
     {
-        var clang_tidy = paths.GetClangTidyExecutable(cwd, log);
+        var clang_tidy = paths.GetClangTidyExecutable(vread, cwd, log);
         if (clang_tidy == null)
         {
             return -1;
         }
 
-        var cc_file = CompileCommand.FindOrNone(cwd, cc, log, paths);
+        var cc_file = CompileCommand.FindOrNone(vread, cwd, cc, log, paths);
         if (cc_file == null)
         {
             return -1;
@@ -941,22 +941,22 @@ public class ClangTidy
             return -1;
         }
 
-        var store = LoadStore(log, project_build_folder);
+        var store = LoadStore(vread, log, project_build_folder);
         if (store == null)
         {
             log.Error("unable to find load store");
             return -1;
         }
 
-        ClangTidyFile.WriteTidyFileToDisk(cwd);
+        ClangTidyFile.WriteTidyFileToDisk(vread, vwrite, cwd);
         AnsiConsole.WriteLine($"using clang-tidy: {clang_tidy}");
 
         IOutput output = args.HtmlRoot == null ? new ConsoleOutput(args) : new HtmlOutput(args.HtmlRoot, cwd);
 
-        var files = ClangFiles.MapAllFilesInRootOnFirstDir(cwd, also_include_headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource, FileSection.AllExceptThoseIgnoredByClangTidy);
-        var stats = await RunAllFiles(cwd, log, args, files, store, cwd, clang_tidy, project_build_folder, output);
+        var files = ClangFiles.MapAllFilesInRootOnFirstDir(vread, cwd, also_include_headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource, FileSection.AllExceptThoseIgnoredByClangTidy);
+        var stats = await RunAllFiles(vwrite, cwd, log, args, files, store, cwd, clang_tidy, project_build_folder, output);
 
-        output.WriteFinalReport(cwd, stats);
+        output.WriteFinalReport(vwrite, cwd, stats);
 
         if (stats.TotalCounter.TotalCount() > 0)
         {
@@ -974,7 +974,7 @@ public class ClangTidy
         public string Category { get; } = category;
     }
 
-    private static async Task<GlobalStatistics> RunAllFiles(Dir cwd, Log log, Args args, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
+    private static async Task<GlobalStatistics> RunAllFiles(VfsWrite vwrite, Dir cwd, Log log, Args args, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
         Dir project_build_folder, IOutput html_root)
     {
         var files = data.SelectMany(pair => pair.Files.Select(x => new CollectedTidyFil(x, pair.Category)))
@@ -993,7 +993,7 @@ public class ClangTidy
                     AnsiConsole.WriteLine($"Running {source_file.File}");
                     var tidy_output = args.Nop
                         ? new([], new())
-                        : await GetExistingOutputOrCallClangTidy(cwd, store, log, root, args.Force, clang_tidy, project_build_folder, source_file.File, args.Fix);
+                        : await GetExistingOutputOrCallClangTidy(vwrite, cwd, store, log, root, args.Force, clang_tidy, project_build_folder, source_file.File, args.Fix);
                     return (source_file.Category, source_file.File, tidy_output);
                 })
             .ReadAll(tuple =>
@@ -1006,7 +1006,7 @@ public class ClangTidy
 
                 var report = new SingleFileReport(tidy_output.Taken, RemoveStatusLines(tidy_output.Output), file_stats);
 
-                html_root.SingleFileReport(cwd, source_file, report);
+                html_root.SingleFileReport(vwrite, cwd, source_file, report);
 
                 stats.GetProjectCounter(cat).Update(file_stats.Warnings);
                 stats.TotalCounter.Update(file_stats.Warnings);
@@ -1024,15 +1024,15 @@ public class ClangTidy
 internal static class ClangFormat
 {
     // callback function called when running clang.py format
-    internal static async Task<int> HandleClangFormatCommand(Config.Paths paths, Dir cwd, Log log, bool nop)
+    internal static async Task<int> HandleClangFormatCommand(VfsRead vread, Config.Paths paths, Dir cwd, Log log, bool nop)
     {
-        var clang_format_path = paths.GetClangFormatExecutable(cwd, log);
+        var clang_format_path = paths.GetClangFormatExecutable(vread, cwd, log);
         if (clang_format_path == null)
         {
             return -1;
         }
 
-        var data = ClangFiles.MapAllFilesInRootOnFirstDir(cwd, FileUtil.IsHeaderOrSource, FileSection.AllFiles);
+        var data = ClangFiles.MapAllFilesInRootOnFirstDir(vread, cwd, FileUtil.IsHeaderOrSource, FileSection.AllFiles);
 
         foreach (var (project, source_files) in data)
         {

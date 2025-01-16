@@ -6,7 +6,7 @@ namespace Workbench.Config;
 
 internal static class ConfigFile
 {
-    public static TFile? LoadOrNull<TFile>(Log? print, Fil file)
+    public static TFile? LoadOrNull<TFile>(VfsRead vread, Log? print, Fil file)
         where TFile : class
     {
         if (file.Exists == false)
@@ -14,7 +14,7 @@ internal static class ConfigFile
             print?.Error($"Unable to read file: {file}");
             return null;
         }
-        var content = file.ReadAllText();
+        var content = file.ReadAllText(vread);
         var loaded = JsonUtil.Parse<TFile>(print, file, content);
         if (loaded == null)
         {
@@ -25,11 +25,11 @@ internal static class ConfigFile
         return loaded;
     }
 
-    public static TData? LoadOrNull<TFile, TData>(Log print, Fil file, Func<TFile, TData> enrich)
+    public static TData? LoadOrNull<TFile, TData>(VfsRead vread, Log print, Fil file, Func<TFile, TData> enrich)
         where TData : struct
         where TFile: class
     {
-        var loaded = LoadOrNull<TFile>(print, file);
+        var loaded = LoadOrNull<TFile>(vread, print, file);
         if (loaded == null)
         {
             return null;
@@ -38,7 +38,7 @@ internal static class ConfigFile
         return enrich(loaded);
     }
 
-    internal static int WriteInit<T>(Log print, bool overwrite, Fil path, T data)
+    internal static int WriteInit<T>(VfsWrite vwrite, Log print, bool overwrite, Fil path, T data)
     {
         var content = JsonUtil.Write(data);
 
@@ -48,16 +48,16 @@ internal static class ConfigFile
             return -1;
         }
 
-        path.WriteAllText(content);
+        path.WriteAllText(vwrite, content);
         AnsiConsole.WriteLine($"Wrote {path}");
         return 0;
     }
 
-    internal static int Write<T>(Fil path, T data)
+    internal static int Write<T>(VfsWrite vwrite, Fil path, T data)
     {
         var content = JsonUtil.Write(data);
 
-        path.WriteAllText(content);
+        path.WriteAllText(vwrite, content);
         AnsiConsole.WriteLine($"Wrote {path}");
         return 0;
     }

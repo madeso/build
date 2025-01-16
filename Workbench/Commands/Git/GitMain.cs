@@ -21,9 +21,11 @@ internal sealed class BlameCommand : AsyncCommand<BlameCommand.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
+        var vread = new ReadFromDisk();
+
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
-            var git_path = paths.GetGitExecutable(cwd, log);
+            var git_path = paths.GetGitExecutable(vread, cwd, log);
             if (git_path == null)
             {
                 return -1;
@@ -58,9 +60,11 @@ internal sealed class StatusCommand : AsyncCommand<StatusCommand.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
+        var vread = new ReadFromDisk();
+
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
-            var git_path = paths.GetGitExecutable(cwd, log);
+            var git_path = paths.GetGitExecutable(vread, cwd, log);
             if (git_path == null)
             {
                 return -1;
@@ -202,9 +206,11 @@ internal sealed class RemoveUnknownCommand : AsyncCommand<RemoveUnknownCommand.A
     {
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
+        var vread = new ReadFromDisk();
+
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
-            var git_path = paths.GetGitExecutable(cwd, log);
+            var git_path = paths.GetGitExecutable(vread, cwd, log);
             if (git_path == null)
             {
                 return -1;
@@ -263,8 +269,9 @@ internal sealed class AuthorsCommand : AsyncCommand<AuthorsCommand.Arg>
         {
             var cwd = Dir.CurrentDirectory;
             var paths = new Config.RealPaths();
+            var vread = new ReadFromDisk();
 
-            var git_path = paths.GetGitExecutable(cwd, log);
+            var git_path = paths.GetGitExecutable(vread, cwd, log);
             if (git_path == null)
             {
                 return -1;

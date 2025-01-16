@@ -1,7 +1,9 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using Spectre.Console.Cli;
 using Workbench.Shared;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Workbench.Commands.Build;
 
@@ -36,7 +38,9 @@ internal sealed class InitCommand : Command<InitCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
-        return CliUtil.PrintErrorsAtExit(print => BuildFacade.HandleInit(cwd, print, settings.Overwrite));
+        var vwrite = new WriteToDisk();
+
+        return CliUtil.PrintErrorsAtExit(print => BuildFacade.HandleInit(vwrite, cwd, print, settings.Overwrite));
     }
 }
 
@@ -49,10 +53,12 @@ internal sealed class StatusCommand : AsyncCommand<StatusCommand.Arg>
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
-        return await BuildFacade.WithLoadedBuildDataAsync(cwd, async (log, data) =>
+        var vread = new ReadFromDisk();
+
+        return await BuildFacade.WithLoadedBuildDataAsync(vread, cwd, async (log, data) =>
         {
             await Task.Delay(0); // hack since all build data are async
-            return BuildFacade.HandleBuildStatus(log, data);
+            return BuildFacade.HandleBuildStatus(vread, log, data);
         });
     }
 }
@@ -66,7 +72,11 @@ internal sealed class InstallCommand : AsyncCommand<InstallCommand.Arg>
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
-        return await BuildFacade.HandleGenericBuildAsync(cwd, settings, BuildFacade.HandleInstallAsync);
+        var vread = new ReadFromDisk();
+        var vwrite = new WriteToDisk();
+
+        return await BuildFacade.HandleGenericBuildAsync(vread, cwd, settings,
+            (_, printer, env, data) => BuildFacade.HandleInstallAsync(vwrite, cwd, printer, env, data));
     }
 }
 
@@ -84,8 +94,11 @@ internal sealed class CmakeCommand : AsyncCommand<CmakeCommand.Arg>
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
-        return await BuildFacade.HandleGenericBuildAsync(cwd, settings,
-            (_, printer, env, data) => BuildFacade.HandleCmakeAsync(cwd, settings.Nop, printer, env, data));
+        var vread = new ReadFromDisk();
+        var vwrite = new WriteToDisk();
+
+        return await BuildFacade.HandleGenericBuildAsync(vread, cwd, settings,
+            (_, printer, env, data) => BuildFacade.HandleCmakeAsync(vwrite, cwd, settings.Nop, printer, env, data));
     }
 }
 
@@ -99,7 +112,11 @@ internal sealed class DevCommand : AsyncCommand<DevCommand.Arg>
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
-        return await BuildFacade.HandleGenericBuildAsync(cwd, settings, BuildFacade.HandleDevAsync);
+        var vread = new ReadFromDisk();
+        var vwrite = new WriteToDisk();
+
+        return await BuildFacade.HandleGenericBuildAsync(vread, cwd, settings,
+            (_, printer, env, data) => BuildFacade.HandleDevAsync(vwrite, cwd, printer, env, data));
     }
 }
 
@@ -113,6 +130,10 @@ internal sealed class BuildCommand : AsyncCommand<BuildCommand.Arg>
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
-        return await BuildFacade.HandleGenericBuildAsync(cwd, settings, BuildFacade.HandleBuildAsync);
+        var vread = new ReadFromDisk();
+        var vwrite = new WriteToDisk();
+
+        return await BuildFacade.HandleGenericBuildAsync(vread, cwd, settings,
+            (_, printer, env, data) => BuildFacade.HandleBuildAsync(vwrite, cwd, printer, env, data));
     }
 }

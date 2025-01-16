@@ -14,23 +14,25 @@ public class Main
         root.AddBranch(name, config =>
         {
             config.SetDescription("Get or set custom paths");
+
+            var vread = new ReadFromDisk();
             
             SetupPathCommand.Configure<CompileCommandsArguments>(config, "compile-command", "file",
                 (paths, value) => paths.CompileCommands = value,
-                (cc, cwd, paths) => CompileCommand.ListAll(cwd, cc, paths)
-                    .PrintFoundList("compile command", CompileCommand.FindOrNone(cwd, cc, null, paths))
-                , (cc, cwd, paths) => ToSelectables(CompileCommand.ListAll(cwd, cc, paths)));
+                (cc, cwd, paths) => CompileCommand.ListAll(vread, cwd, cc, paths)
+                    .PrintFoundList("compile command", CompileCommand.FindOrNone(vread, cwd, cc, null, paths))
+                , (cc, cwd, paths) => ToSelectables(CompileCommand.ListAll(vread, cwd, cc, paths)));
 
             var no_extra = Array.Empty<Found<Fil>>();
-            AddExecutable(config, p => p.GitExecutable, (p,v) => p.GitExecutable = v, DefaultExecutables.Git);
-            AddExecutable(config, p => p.ClangTidyExecutable, (p,v) => p.ClangTidyExecutable = v, DefaultExecutables.ClangTidy);
-            AddExecutable(config, p => p.ClangFormatExecutable, (p,v) => p.ClangFormatExecutable = v, DefaultExecutables.ClangFormat);
-            AddExecutable(config, p => p.GraphvizExecutable, (p,v) => p.GraphvizExecutable = v, DefaultExecutables.Graphviz);
-            AddExecutable(config, p => p.CpplintExecutable, (p,v) => p.CpplintExecutable = v, DefaultExecutables.CppLint);
+            AddExecutable(vread, config, p => p.GitExecutable, (p,v) => p.GitExecutable = v, DefaultExecutables.Git);
+            AddExecutable(vread, config, p => p.ClangTidyExecutable, (p,v) => p.ClangTidyExecutable = v, DefaultExecutables.ClangTidy);
+            AddExecutable(vread, config, p => p.ClangFormatExecutable, (p,v) => p.ClangFormatExecutable = v, DefaultExecutables.ClangFormat);
+            AddExecutable(vread, config, p => p.GraphvizExecutable, (p,v) => p.GraphvizExecutable = v, DefaultExecutables.Graphviz);
+            AddExecutable(vread, config, p => p.CpplintExecutable, (p,v) => p.CpplintExecutable = v, DefaultExecutables.CppLint);
         });
     }
 
-    private static void AddExecutable(IConfigurator<CommandSettings> config,
+    private static void AddExecutable(VfsRead vread, IConfigurator<CommandSettings> config,
         Func<Config.SavedPaths, Fil?> getter,
         Action<Config.SavedPaths, Fil?> setter,
         Executable exe)
@@ -43,9 +45,9 @@ public class Main
         return;
 
         IEnumerable<Found<Fil>> list_all_executables(Config.Paths paths, Dir cwd)
-            => paths.ListAllExecutables(cwd, getter, exe);
+            => paths.ListAllExecutables(vread, cwd, getter, exe);
         Fil? get_executable_or_saved(Config.Paths paths, Dir cwd)
-            => paths.GetSavedOrSearchForExecutable(cwd, null, getter, exe);
+            => paths.GetSavedOrSearchForExecutable(vread, cwd, null, getter, exe);
     }
 
     private static IEnumerable<Fil> ToSelectables(IEnumerable<Found<Fil>> founds)
@@ -71,10 +73,13 @@ internal class SetupPathCommand
             {
                 var cwd = Dir.CurrentDirectory;
                 var paths = new Config.RealPaths();
+                var vwrite = new WriteToDisk();
 
                 return CliUtil.PrintErrorsAtExit(print =>
                 {
                     var file = new Fil(arg.Value);
+                    var vread = new ReadFromDisk();
+
                     if (file.Exists == false)
                     {
                         print.Error($"{file} doesn't exist");
@@ -83,11 +88,11 @@ internal class SetupPathCommand
 
                     // todo(Gustav): add additional validations to make sure file is executable
 
-                    var saved_paths = paths.LoadConfigFromCurrentDirectoryOrNull(cwd, print);
+                    var saved_paths = paths.LoadConfigFromCurrentDirectoryOrNull(vread, cwd, print);
                     if (saved_paths == null) { return -1; }
 
                     setter(saved_paths, file);
-                    paths.Save(cwd, saved_paths);
+                    paths.Save(vwrite, cwd, saved_paths);
                     return 0;
                 });
             }).WithDescription($"Set the value of {name}");
@@ -96,12 +101,15 @@ internal class SetupPathCommand
             {
                 var cwd = Dir.CurrentDirectory;
                 var paths = new Config.RealPaths();
+                var vread = new ReadFromDisk();
+                var vwrite = new WriteToDisk();
+
                 return CliUtil.PrintErrorsAtExit(print =>
                 {
-                    var saved_paths = paths.LoadConfigFromCurrentDirectoryOrNull(cwd, print);
+                    var saved_paths = paths.LoadConfigFromCurrentDirectoryOrNull(vread, cwd, print);
                     if (saved_paths == null) { return -1; }
                     setter(saved_paths, null);
-                    paths.Save(cwd, saved_paths);
+                    paths.Save(vwrite, cwd, saved_paths);
                     return 0;
                 });
             }).WithDescription($"Clear the value of {name}");
@@ -119,6 +127,8 @@ internal class SetupPathCommand
             {
                 var cwd = Dir.CurrentDirectory;
                 var paths = new Config.RealPaths();
+                var vread = new ReadFromDisk();
+                var vwrite = new WriteToDisk();
 
                 return CliUtil.PrintErrorsAtExit(print =>
                 {
@@ -129,7 +139,7 @@ internal class SetupPathCommand
                         return -1;
                     }
 
-                    var saved_paths = paths.LoadConfigFromCurrentDirectoryOrNull(cwd, print);
+                    var saved_paths = paths.LoadConfigFromCurrentDirectoryOrNull(vread, cwd, print);
                     if (saved_paths == null) { return -1; }
 
                     var new_value = AnsiConsole.Prompt(
@@ -140,7 +150,7 @@ internal class SetupPathCommand
                             .AddChoices(values));
 
                     setter(saved_paths, new_value);
-                    paths.Save(cwd, saved_paths);
+                    paths.Save(vwrite, cwd, saved_paths);
                     AnsiConsole.WriteLine($"{name} changed to {new_value}");
                     return 0;
                 });

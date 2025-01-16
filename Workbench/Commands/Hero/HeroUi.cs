@@ -10,14 +10,14 @@ namespace Workbench.Commands.Hero;
 internal static class Ui
 {
 
-    public static void ScanAndGenerateHtml(Dir cwd, OutputFolders root, Project project)
+    public static void ScanAndGenerateHtml(VfsRead vread, VfsWrite vwrite, Dir cwd, OutputFolders root, Project project)
     {
         var scanner = new Scanner();
         var feedback = new ProgressFeedback();
-        scanner.Rescan(project, feedback);
+        scanner.Rescan(vread, project, feedback);
         var f = new UniqueFiles();
         AddFiles(f, project);
-        GenerateReport(cwd, f.GetCommon(), root, project, scanner);
+        GenerateReport(vwrite, cwd, f.GetCommon(), root, project, scanner);
     }
 
     private static void AddFiles(UniqueFiles unique_files, Project project)
@@ -28,16 +28,16 @@ internal static class Ui
         }
     }
 
-    public static void ScanAndGenerateDot(Dir cwd, Dir input_root, bool simplify_graphviz,
+    public static void ScanAndGenerateDot(VfsRead vread, VfsWrite vwrite, Dir cwd, Dir input_root, bool simplify_graphviz,
         bool only_headers,
         FileOrDir[] exclude, bool cluster, Fil dot_target, Project project)
     {
         var scanner = new Scanner();
         var feedback = new ProgressFeedback();
-        scanner.Rescan(project, feedback);
+        scanner.Rescan(vread, project, feedback);
         var f = new UniqueFiles();
         AddFiles(f, project);
-        GenerateDot(cwd, f.GetCommon(), input_root, project, simplify_graphviz, only_headers, exclude, cluster, dot_target);
+        GenerateDot(vwrite, cwd, f.GetCommon(), input_root, project, simplify_graphviz, only_headers, exclude, cluster, dot_target);
     }
 
 
@@ -73,7 +73,7 @@ internal static class Ui
     }
 
     // todo(Gustav): OutputFolders shouldn't be used here!
-    private static void GenerateDot(Dir cwd,
+    private static void GenerateDot(VfsWrite vwrite, Dir cwd,
         Dir? common, Dir input_root, Project project,
         bool simplify_graphviz, bool only_headers, FileOrDir[] exclude, bool cluster, Fil dot_target)
     {
@@ -143,10 +143,10 @@ internal static class Ui
             gv.Simplify();
         }
 
-        gv.WriteFile(dot_target);
+        gv.WriteFile(vwrite, dot_target);
     }
 
-    private static void GenerateReport(Dir cwd, Dir? common, OutputFolders root, Project project, Scanner scanner)
+    private static void GenerateReport(VfsWrite vwrite, Dir cwd, Dir? common, OutputFolders root, Project project, Scanner scanner)
     {
         {
             var html = new Html();
@@ -162,7 +162,7 @@ internal static class Ui
             }
             html.End();
 
-            html.WriteToFile(root.OutputDirectory.GetFile("errors.html"));
+            html.WriteToFile(vwrite, root.OutputDirectory.GetFile("errors.html"));
         }
 
         {
@@ -184,16 +184,16 @@ internal static class Ui
             }
             html.End();
 
-            html.WriteToFile(root.OutputDirectory.GetFile("missing.html"));
+            html.WriteToFile(vwrite, root.OutputDirectory.GetFile("missing.html"));
         }
 
         var analytics = Analytics.Analyze(project);
-        Html.WriteCssFile(root.OutputDirectory);
-        Report.GenerateIndexPage(cwd, common, root, project, analytics);
+        Html.WriteCssFile(vwrite, root.OutputDirectory);
+        Report.GenerateIndexPage(vwrite, cwd, common, root, project, analytics);
 
         foreach (var f in project.ScannedFiles.Keys)
         {
-            write_inspection_page(cwd, common, root, f, project, analytics);
+            write_inspection_page(vwrite, cwd, common, root, f, project, analytics);
         }
     }
 
@@ -228,7 +228,7 @@ internal static class Ui
         html.PushString("</div>\n");
     }
 
-    private static void write_inspection_page(Dir cwd, Dir? common, OutputFolders root, Fil file, Project project, Analytics analytics)
+    private static void write_inspection_page(VfsWrite vwrite, Dir cwd, Dir? common, OutputFolders root, Fil file, Project project, Analytics analytics)
     {
         var html = new Html();
 
@@ -285,7 +285,7 @@ internal static class Ui
 
         html.End();
 
-        html.WriteToFile(root.OutputDirectory.GetFile(Html.GetSafeInspectFilenameHtml(cwd, file)));
+        html.WriteToFile(vwrite, root.OutputDirectory.GetFile(Html.GetSafeInspectFilenameHtml(cwd, file)));
     }
 
 }
@@ -310,9 +310,9 @@ internal static class UiFacade
         return 0;
     }
 
-    internal static int HandleRunHeroHtml(Dir cwd, Fil project_file, Dir output_directory, Log print)
+    internal static int HandleRunHeroHtml(VfsRead vread, VfsWrite vwrite, Dir cwd, Fil project_file, Dir output_directory, Log print)
     {
-        var input = UserInput.LoadFromFile(print, project_file);
+        var input = UserInput.LoadFromFile(vread, print, project_file);
         if (input == null)
         {
             return -1;
@@ -325,15 +325,15 @@ internal static class UiFacade
         }
         
         Directory.CreateDirectory(output_directory.Path);
-        Ui.ScanAndGenerateHtml(cwd, new(input_root, output_directory), project);
+        Ui.ScanAndGenerateHtml(vread, vwrite, cwd, new(input_root, output_directory), project);
         return 0;
     }
 
-    internal static int RunHeroGraphviz(Dir cwd,
+    internal static int RunHeroGraphviz(VfsRead vread, VfsWrite vwrite, Dir cwd,
         Fil project_file, Fil output_file, bool simplify_graphviz, bool only_headers, bool cluster,
         FileOrDir[] exclude, Log print)
     {
-        var input = UserInput.LoadFromFile(print, project_file);
+        var input = UserInput.LoadFromFile(vread, print, project_file);
         if (input == null)
         {
             return -1;
@@ -345,7 +345,7 @@ internal static class UiFacade
             return -1;
         }
 
-        Ui.ScanAndGenerateDot(cwd, input_root, simplify_graphviz, only_headers, exclude, cluster, output_file, project);
+        Ui.ScanAndGenerateDot(vread, vwrite, cwd, input_root, simplify_graphviz, only_headers, exclude, cluster, output_file, project);
         return 0;
     }
 }

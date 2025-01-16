@@ -18,6 +18,8 @@ internal sealed class CheckCommand : Command<CheckCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var cwd = Dir.CurrentDirectory;
+        var vread = new ReadFromDisk();
+
         return CliUtil.PrintErrorsAtExit(printer =>
         {
             var dox = Cli.RequireDirectory(cwd, printer, arg.DoxygenXml, "doxygen xml folder");
@@ -25,7 +27,7 @@ internal sealed class CheckCommand : Command<CheckCommand.Arg>
             {
                 return -1;
             }
-            return CheckNamesRunner.Run(cwd, printer, dox, cwd);
+            return CheckNamesRunner.Run(vread, cwd, printer, dox, cwd);
         });
     }
 }
@@ -43,7 +45,9 @@ internal sealed class InitCommand : Command<InitCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
-        return CliUtil.PrintErrorsAtExit(print => CheckNamesRunner.HandleInit(cwd, print, settings.Overwrite));
+        var vwrite = new WriteToDisk();
+
+        return CliUtil.PrintErrorsAtExit(print => CheckNamesRunner.HandleInit(vwrite, cwd, print, settings.Overwrite));
     }
 }
 

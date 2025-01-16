@@ -109,7 +109,7 @@ public class Includes
             ;
     }
 
-    private static void gv_work(Fil real_file, string? name, ImmutableArray<Dir> include_directories,
+    private static void gv_work(VfsRead vread, Fil real_file, string? name, ImmutableArray<Dir> include_directories,
         Graphvizer gv, ImmutableArray<Dir> limit, Dir root)
     {
         if (IsLimited(real_file, limit))
@@ -117,14 +117,14 @@ public class Includes
             return;
         }
 
-        foreach (var include in FindIncludeFiles(real_file))
+        foreach (var include in FindIncludeFiles(vread, real_file))
         {
             var resolved = ResolveIncludeViaIncludeDirectoriesOrNone(include, include_directories);
             if (resolved != null)
             {
                 gv.Link(real_file, name, resolved.Path, root);
                 // todo(Gustav): fix name to be based on root
-                gv_work(resolved, null, include_directories, gv, limit, root);
+                gv_work(vread, resolved, null, include_directories, gv, limit, root);
             }
             else
             {
@@ -133,9 +133,9 @@ public class Includes
         }
     }
 
-    private static IEnumerable<string> FindIncludeFiles(Fil path)
+    private static IEnumerable<string> FindIncludeFiles(VfsRead vread, Fil path)
     {
-        var lines = path.ReadAllLines();
+        var lines = path.ReadAllLines(vread);
         foreach (var line in lines)
         {
             var l = line.Trim();
@@ -163,7 +163,7 @@ public class Includes
         return has_limits;
     }
 
-    private static void Work(Dir cwd, Fil real_file, ImmutableArray<Dir> include_directories,
+    private static void Work(VfsRead vread, Dir cwd, Fil real_file, ImmutableArray<Dir> include_directories,
         ColCounter<string> counter, bool print_files, ImmutableArray<Dir> limit)
     {
         if (IsLimited(real_file, limit))
@@ -171,7 +171,7 @@ public class Includes
             return;
         }
 
-        foreach (var include in FindIncludeFiles(real_file))
+        foreach (var include in FindIncludeFiles(vread, real_file))
         {
             var resolved = ResolveIncludeViaIncludeDirectoriesOrNone(include, include_directories);
             if (resolved != null)
@@ -181,7 +181,7 @@ public class Includes
                     AnsiConsole.WriteLine(resolved.GetDisplay(cwd));
                 }
                 counter.AddOne(resolved.Path);
-                Work(cwd, resolved, include_directories, counter, print_files, limit);
+                Work(vread, cwd, resolved, include_directories, counter, print_files, limit);
             }
             else
             {
@@ -205,7 +205,7 @@ public class Includes
     private static ImmutableArray<Dir> CompleteLimitArg(Dir cwd, Log log, IEnumerable<string> args_limit)
         => Cli.ToDirectories(cwd, log, args_limit).ToImmutableArray();
 
-    public static int HandleListIncludesCommand(Dir cwd, Log print, Fil? compile_commands_arg,
+    public static int HandleListIncludesCommand(VfsRead vread, Dir cwd, Log print, Fil? compile_commands_arg,
         string[] args_files,
         bool args_print_files,
         bool args_print_stats,
@@ -218,7 +218,7 @@ public class Includes
         {
             return -1;
         }
-        var compile_commands = CompileCommand.LoadCompileCommandsOrNull(print, compile_commands_arg);
+        var compile_commands = CompileCommand.LoadCompileCommandsOrNull(vread, print, compile_commands_arg);
         if (compile_commands == null)
         {
             return -1;
@@ -238,7 +238,7 @@ public class Includes
             if (compile_commands.ContainsKey(translation_unit))
             {
                 var include_directories = GetIncludeDirectories(translation_unit, compile_commands).ToImmutableArray();
-                Work(cwd, translation_unit, include_directories, file_counter, args_print_files, limit);
+                Work(vread, cwd, translation_unit, include_directories, file_counter, args_print_files, limit);
             }
 
             if (args_print_stats)
@@ -277,7 +277,7 @@ public class Includes
         return 0;
     }
 
-    public static int HandleIncludeGraphvizCommand(Dir cwd, Log print, Fil? compile_commands_arg,
+    public static int HandleIncludeGraphvizCommand(VfsRead vread, Dir cwd, Log print, Fil? compile_commands_arg,
         string[] args_files,
         string[] args_limit,
         bool args_group,
@@ -288,7 +288,7 @@ public class Includes
             return -1;
         }
 
-        var compile_commands = CompileCommand.LoadCompileCommandsOrNull(print, compile_commands_arg);
+        var compile_commands = CompileCommand.LoadCompileCommandsOrNull(vread, print, compile_commands_arg);
         if (compile_commands == null) { return -1; }
 
         var limit = CompleteLimitArg(cwd, print, args_limit);
@@ -300,7 +300,7 @@ public class Includes
             if (compile_commands.ContainsKey(translation_unit))
             {
                 var include_directories = GetIncludeDirectories(translation_unit, compile_commands).ToImmutableArray();
-                gv_work(translation_unit, "TU", include_directories, gv, limit, cwd);
+                gv_work(vread, translation_unit, "TU", include_directories, gv, limit, cwd);
             }
         }
 

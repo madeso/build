@@ -33,6 +33,7 @@ internal sealed class FindTodosCommand : AsyncCommand<FindTodosCommand.Arg>
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
+        var vread = new ReadFromDisk();
 
         var cc = new ColCounter<Fil>();
         var log = new LogToConsole();
@@ -40,7 +41,7 @@ internal sealed class FindTodosCommand : AsyncCommand<FindTodosCommand.Arg>
         var source_files = TodoComments.ListFiles(cwd);
         await SpectreExtensions.Progress().RunArrayAsync(source_files, async file =>
         {
-            var todos = await TodoComments.FindTodosInFileAsync(file);
+            var todos = await TodoComments.FindTodosInFileAsync(vread, file);
 
             foreach (var todo in todos)
             {
@@ -80,9 +81,11 @@ internal sealed class GroupWithTimeCommand : AsyncCommand<GroupWithTimeCommand.A
     {
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
+        var vread = new ReadFromDisk();
+
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
-            var git_path = paths.GetGitExecutable(cwd, log);
+            var git_path = paths.GetGitExecutable(vread, cwd, log);
             if (git_path == null)
             {
                 return -1;
@@ -93,7 +96,7 @@ internal sealed class GroupWithTimeCommand : AsyncCommand<GroupWithTimeCommand.A
             var source_files = TodoComments.ListFiles(cwd);
             await SpectreExtensions.Progress().RunArrayAsync(source_files, async file =>
             {
-                var todos = await TodoComments.FindTodosInFileAsync(file);
+                var todos = await TodoComments.FindTodosInFileAsync(vread, file);
                 todo_list.AddRange(todos);
                 return file.GetDisplay(cwd);
             });

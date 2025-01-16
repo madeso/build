@@ -41,6 +41,8 @@ internal sealed partial class ExtractTypesCommand : Command<ExtractTypesCommand.
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var cwd = Dir.CurrentDirectory;
+        var vwrite = new WriteToDisk();
+
         return CliUtil.PrintErrorsAtExit(log =>
         {
             var dox = Cli.RequireDirectory(cwd, log, arg.DoxygenXml, "Doxygen xml folder");
@@ -84,7 +86,7 @@ internal sealed partial class ExtractTypesCommand : Command<ExtractTypesCommand.
                 // hacky hack to ignore void return values
                 .Where(x => x.Item1 != "void");
             var output = Cli.ToSingleFile(cwd, arg.CsvOutput, "wordcloud-arguments.csv");
-            output.WriteAllLines(get_csv_lines(items));
+            output.WriteAllLines(vwrite, get_csv_lines(items));
 
             return 0;
 

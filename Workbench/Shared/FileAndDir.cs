@@ -175,11 +175,11 @@ public class Fil : IComparable<Fil>
 
     public bool IsInFolder(Dir folder) => FileUtil.FileIsInFolder(this, folder);
 
-    public string ReadAllText() => File.ReadAllText(Path, System.Text.Encoding.UTF8);
-    public IEnumerable<string> ReadAllLines() => File.ReadLines(Path, System.Text.Encoding.UTF8);
+    public string ReadAllText(VfsRead vfs) => vfs.ReadAllText(this);
+    public IEnumerable<string> ReadAllLines(VfsRead vfs) => vfs.ReadAllLines(this);
 
-    public void WriteAllText(string content) => File.WriteAllText(Path, content, System.Text.Encoding.UTF8);
-    public void WriteAllLines(IEnumerable<string> content) => File.WriteAllLines(Path, content, System.Text.Encoding.UTF8);
+    public void WriteAllText(VfsWrite vfs, string content) => vfs.WriteAllText(this, content);
+    public void WriteAllLines(VfsWrite vfs, IEnumerable<string> content) => vfs.WriteAllLines(this, content);
 
     public static Fil? ToExistingDirOrNull(string arg)
     {
@@ -207,30 +207,52 @@ public class Fil : IComparable<Fil>
         return new Fil(SysPath.Join(dir.Path, $"{name}{new_extension}"));
     }
 
-    public Task WriteAllLinesAsync(IEnumerable<string> contents)
-        => File.WriteAllLinesAsync(Path, contents, System.Text.Encoding.UTF8);
+    public Task WriteAllLinesAsync(VfsWrite vfs, IEnumerable<string> contents)
+        => vfs.WriteAllLinesAsync(this, contents);
 
-    public Task<string[]> ReadAllLinesAsync()
-        => File.ReadAllLinesAsync(Path, System.Text.Encoding.UTF8);
+    public Task<string[]> ReadAllLinesAsync(VfsRead vfs)
+        => vfs.ReadAllLinesAsync(this);
 }
 
 
 
 public interface VfsRead
 {
-    public bool Exists(Fil path);
-    public Task<string> ReadAllTextAsync(Fil path);
-
-    public IEnumerable<Fil> GetFiles(Dir dir);
-    public IEnumerable<Dir> GetDirectories(Dir root);
-    public IEnumerable<Fil> GetFilesRec(Dir dir);
+    string ReadAllText(Fil fil);
+    IEnumerable<string> ReadAllLines(Fil fil);
+    Task<string[]> ReadAllLinesAsync(Fil fil);
 }
 
 public interface VfsWrite
 {
-    public Task WriteAllTextAsync(Fil path, string contents);
+    void WriteAllText(Fil fil, string content);
+    void WriteAllLines(Fil fil, IEnumerable<string> content);
+    Task WriteAllLinesAsync(Fil fil, IEnumerable<string> contents);
 }
 
+public class ReadFromDisk : VfsRead
+{
+    public string ReadAllText(Fil fil)
+        => File.ReadAllText(fil.Path, System.Text.Encoding.UTF8);
+
+    public IEnumerable<string> ReadAllLines(Fil fil)
+        => File.ReadLines(fil.Path, System.Text.Encoding.UTF8);
+
+    public Task<string[]> ReadAllLinesAsync(Fil fil)
+        => File.ReadAllLinesAsync(fil.Path, System.Text.Encoding.UTF8);
+}
+
+public class WriteToDisk : VfsWrite
+{
+    public void WriteAllText(Fil fil, string content)
+        => File.WriteAllText(fil.Path, content, System.Text.Encoding.UTF8);
+
+    public void WriteAllLines(Fil fil, IEnumerable<string> content)
+        => File.WriteAllLines(fil.Path, content, System.Text.Encoding.UTF8);
+
+    public Task WriteAllLinesAsync(Fil fil, IEnumerable<string> contents)
+        => File.WriteAllLinesAsync(fil.Path, contents, System.Text.Encoding.UTF8);
+}
 
 
 // json serialization

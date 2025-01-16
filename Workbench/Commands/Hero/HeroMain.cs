@@ -57,6 +57,9 @@ internal sealed class RunHeroHtmlCommand : Command<RunHeroHtmlCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
+        var vread = new ReadFromDisk();
+        var vwrite = new WriteToDisk();
+
         return CliUtil.PrintErrorsAtExit(print =>
         {
             var project_file = Cli.RequireFile(cwd, print, settings.ProjectFile, "project file");
@@ -64,7 +67,7 @@ internal sealed class RunHeroHtmlCommand : Command<RunHeroHtmlCommand.Arg>
             {
                 return -1;
             }
-            return UiFacade.HandleRunHeroHtml(cwd, project_file, Cli.ToOutputDirectory(cwd, settings.OutputDirectory),
+            return UiFacade.HandleRunHeroHtml(vread, vwrite, cwd, project_file, Cli.ToOutputDirectory(cwd, settings.OutputDirectory),
                 print);
         });
     }
@@ -107,6 +110,9 @@ internal sealed class RunHeroDotCommand : Command<RunHeroDotCommand.Arg>
         => CliUtil.PrintErrorsAtExit(print =>
         {
             var cwd = Dir.CurrentDirectory;
+            var vread = new ReadFromDisk();
+            var vwrite = new WriteToDisk();
+
             var project_file = Cli.RequireFile(cwd, print, args.ProjectFile, "project file");
             if (project_file == null)
             {
@@ -119,7 +125,7 @@ internal sealed class RunHeroDotCommand : Command<RunHeroDotCommand.Arg>
                 return -1;
             }
 
-            return UiFacade.RunHeroGraphviz(
+            return UiFacade.RunHeroGraphviz(vread, vwrite,
                 cwd, project_file,
                 Cli.ToSingleFile(cwd, args.OutputFile, ""),
                 args.SimplifyGraphviz,

@@ -10,9 +10,9 @@ internal record TodoInFile(Fil File, int Line, string Todo);
 
 internal partial class TodoComments
 {
-    internal static async Task<ImmutableArray<TodoInFile>> FindTodosInFileAsync(Fil file)
+    internal static async Task<ImmutableArray<TodoInFile>> FindTodosInFileAsync(VfsRead vread, Fil file)
     {
-        var lines = await file.ReadAllLinesAsync();
+        var lines = await file.ReadAllLinesAsync(vread);
         return lines
                     .Select((value, i) => (comment: ExtractTodoComment(value), lineNumber: i+1))
                     .Where(x => x.comment != null)

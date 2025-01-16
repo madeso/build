@@ -54,6 +54,8 @@ internal sealed class LineCountCommand : Command<LineCountCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var cwd = Dir.CurrentDirectory;
+        var vread = new ReadFromDisk();
+
         var stats = new Dictionary<int, List<Fil>>();
         var file_count = 0;
 
@@ -61,7 +63,7 @@ internal sealed class LineCountCommand : Command<LineCountCommand.Arg>
         {
             file_count += 1;
 
-            var count = file_read_lines(file, arg.DiscardEmpty)
+            var count = file_read_lines(vread, file, arg.DiscardEmpty)
                 .Count();
 
             var index = arg.Each <= 1 ? count : count - count % arg.Each;
@@ -119,9 +121,9 @@ internal sealed class LineCountCommand : Command<LineCountCommand.Arg>
 
         return 0;
 
-        static IEnumerable<string> file_read_lines(Fil path, bool discard_empty)
+        static IEnumerable<string> file_read_lines(VfsRead vread, Fil path, bool discard_empty)
         {
-            var lines = path.ReadAllLines();
+            var lines = path.ReadAllLines(vread);
 
             if (!discard_empty)
             {

@@ -69,6 +69,8 @@ internal sealed class GenerateCommand : AsyncCommand<GenerateCommand.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
+        var vread = new ReadFromDisk();
+        var vwrite = new WriteToDisk();
 
         return await CliUtil.PrintErrorsAtExitAsync(async printer =>
         {
@@ -77,7 +79,7 @@ internal sealed class GenerateCommand : AsyncCommand<GenerateCommand.Arg>
             {
                 return -1;
             }
-            return await SlnDepsFunctions.HandleGenerateAsync(paths, cwd, printer, args.Target, args.Format,
+            return await SlnDepsFunctions.HandleGenerateAsync(vread, vwrite, paths, cwd, printer, args.Target, args.Format,
                 args.MakeExclusionList(), args.Simplify, args.Reverse, sln, args.Style);
         });
     }
@@ -93,6 +95,9 @@ internal sealed class WriteCommand : Command<WriteCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
         var cwd = Dir.CurrentDirectory;
+        var vread = new ReadFromDisk();
+        var vwrite = new WriteToDisk();
+
         return CliUtil.PrintErrorsAtExit(printer =>
         {
             var sln = Cli.RequireFile(cwd, printer, args.Solution, "solution file");
@@ -100,7 +105,7 @@ internal sealed class WriteCommand : Command<WriteCommand.Arg>
             {
                 return -1;
             }
-            return SlnDepsFunctions.WriteCommand(printer, args.MakeExclusionList(), args.Target,
+            return SlnDepsFunctions.WriteCommand(vread, vwrite, printer, args.MakeExclusionList(), args.Target,
                 args.Simplify, args.Reverse, sln);
         });
     }
@@ -116,6 +121,8 @@ internal sealed class SourceCommand : Command<SourceCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
         var cwd = Dir.CurrentDirectory;
+        var vread = new ReadFromDisk();
+
         return CliUtil.PrintErrorsAtExit(printer =>
         {
             var sln = Cli.RequireFile(cwd, printer, args.Solution, "solution file");
@@ -124,7 +131,7 @@ internal sealed class SourceCommand : Command<SourceCommand.Arg>
                 return -1;
             }
 
-            return SlnDepsFunctions.SourceCommand(printer, args.MakeExclusionList(), args.Simplify,
+            return SlnDepsFunctions.SourceCommand(vread, printer, args.MakeExclusionList(), args.Simplify,
                 args.Reverse, sln);
         });
     }
@@ -140,6 +147,8 @@ internal sealed class ListCommand : Command<ListCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg args)
     {
         var cwd = Dir.CurrentDirectory;
+        var vread = new ReadFromDisk();
+
         return CliUtil.PrintErrorsAtExit(printer =>
         {
             var sln = Cli.RequireFile(cwd, printer, args.Solution, "solution file");
@@ -148,7 +157,7 @@ internal sealed class ListCommand : Command<ListCommand.Arg>
                 return -1;
             }
 
-            return SlnDepsFunctions.ListCommand(printer, sln);
+            return SlnDepsFunctions.ListCommand(vread, printer, sln);
         });
     }
 }

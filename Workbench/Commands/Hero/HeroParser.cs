@@ -114,7 +114,7 @@ public class Result
     }
 
     /// Simple parser... only looks foreach #include lines. Does not take #defines or comments into account.
-    public static Result ParseFile(Fil fi, List<string> errors)
+    public static Result ParseFile(VfsRead vread, Fil fi, List<string> errors)
     {
         var res = new Result();
 
@@ -124,7 +124,7 @@ public class Result
             return res;
         }
 
-        var lines = fi.ReadAllLines().ToImmutableArray();
+        var lines = fi.ReadAllLines(vread).ToImmutableArray();
         res.NumberOfLines = lines.Length;
         foreach (var line in lines)
         {
@@ -313,7 +313,7 @@ public static class Report
         => root.GetFile("index.html");
 
 
-    public static void GenerateIndexPage(Dir cwd, Dir? common, OutputFolders root, Project project, Analytics analytics)
+    public static void GenerateIndexPage(VfsWrite vwrite, Dir cwd, Dir? common, OutputFolders root, Project project, Analytics analytics)
     {
         var sb = new Html();
 
@@ -375,7 +375,7 @@ public static class Report
 
         sb.End();
 
-        sb.WriteToFile(GetPathToIndexFile(root.OutputDirectory));
+        sb.WriteToFile(vwrite, GetPathToIndexFile(root.OutputDirectory));
     }
 
 }
@@ -418,7 +418,7 @@ public class Scanner
     public readonly ColCounter<string> MissingExt = new();
 
 
-    public void Rescan(Project project, ProgressFeedback feedback)
+    public void Rescan(VfsRead vread, Project project, ProgressFeedback feedback)
     {
         feedback.UpdateTitle("Scanning precompiled header...");
         foreach (var sf in project.ScannedFiles.Values)
@@ -433,14 +433,14 @@ public class Scanner
         {
             if (inc.Exists)
             {
-                ScanFile(project, inc);
+                ScanFile(vread, project, inc);
                 while (scan_queue.Count > 0)
                 {
                     var to_scan = scan_queue.ToImmutableArray();
                     scan_queue.Clear();
                     foreach (var fi in to_scan)
                     {
-                        ScanFile(project, fi);
+                        ScanFile(vread, project, fi);
                     }
                 }
                 file_queue.Clear();
@@ -469,7 +469,7 @@ public class Scanner
                 feedback.UpdateCount(dequeued + scan_queue.Count);
                 feedback.NextItem();
                 feedback.UpdateMessage($"{fi}");
-                ScanFile(project, fi);
+                ScanFile(vread, project, fi);
             }
         }
         file_queue.Clear();
@@ -528,7 +528,7 @@ public class Scanner
         scan_queue.Add(inc);
     }
 
-    private void ScanFile(Project project, Fil p)
+    private void ScanFile(VfsRead vread, Project project, Fil p)
     {
         var path = ParserFacade.canonicalize_or_default(p);
         // todo(Gustav): add last scan feature!!!
@@ -539,7 +539,7 @@ public class Scanner
         }
         else
         {
-            var parsed = Result.ParseFile(path, Errors);
+            var parsed = Result.ParseFile(vread, path, Errors);
             var source_file = new SourceFile
             (
                 number_of_lines: parsed.NumberOfLines,

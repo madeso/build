@@ -41,6 +41,8 @@ internal sealed class LinesCommand : Command<LinesCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var cwd = Dir.CurrentDirectory;
+        var vread = new ReadFromDisk();
+
         return CliUtil.PrintErrorsAtExit
         (
             print =>
@@ -50,7 +52,7 @@ internal sealed class LinesCommand : Command<LinesCommand.Arg>
                 {
                     return -1;
                 }
-                ListHeaderFunctions.HandleLines(print, input, arg.Action);
+                ListHeaderFunctions.HandleLines(vread, print, input, arg.Action);
                 return 0;
             }
         );
@@ -75,6 +77,7 @@ internal sealed class FilesCommand : Command<FilesCommand.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
+        var vread = new ReadFromDisk();
 
         return CliUtil.PrintErrorsAtExit(print =>
         {
@@ -84,8 +87,8 @@ internal sealed class FilesCommand : Command<FilesCommand.Arg>
                 return -1;
             }
 
-            return ListHeaderFunctions.HandleFiles(cwd, print,
-                CompileCommand.FindOrNone(cwd, arg, print, paths), sources,
+            return ListHeaderFunctions.HandleFiles(vread, cwd, print,
+                CompileCommand.FindOrNone(vread, cwd, arg, print, paths), sources,
                 arg.MostCommonCount);
         });
     }
@@ -132,9 +135,10 @@ internal sealed class IncludeListCommand : Command<IncludeListCommand.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
+        var vread = new ReadFromDisk();
 
-        return CliUtil.PrintErrorsAtExit(print => Includes.HandleListIncludesCommand(cwd, print,
-            CompileCommand.FindOrNone(cwd, settings, print, paths),
+        return CliUtil.PrintErrorsAtExit(print => Includes.HandleListIncludesCommand(vread, cwd, print,
+            CompileCommand.FindOrNone(vread, cwd, settings, print, paths),
             settings.Files, settings.PrintFiles, settings.PrintStats, settings.PrintMax,
             settings.PrintList, settings.Count, settings.Limit));
     }
@@ -171,9 +175,11 @@ internal sealed class IncludeGraphvizCommand : Command<IncludeGraphvizCommand.Ar
     {
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
+        var vread = new ReadFromDisk();
 
         return CliUtil.PrintErrorsAtExit(print =>
-            Includes.HandleIncludeGraphvizCommand(cwd, print, CompileCommand.FindOrNone(cwd, settings, print, paths),
+            Includes.HandleIncludeGraphvizCommand(vread, cwd, print,
+                CompileCommand.FindOrNone(vread, cwd, settings, print, paths),
                 settings.Files, settings.Limit, settings.Group, settings.Cluster));
     }
 }

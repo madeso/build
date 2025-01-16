@@ -34,10 +34,12 @@ internal sealed class PrintCodeHistory : AsyncCommand<PrintCodeHistory.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
+        var vread = new ReadFromDisk();
+
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
 
-            var git_path = paths.GetGitExecutable(cwd, log);
+            var git_path = paths.GetGitExecutable(vread, cwd, log);
             if (git_path == null)
             {
                 return -1;

@@ -9,14 +9,14 @@ internal class RealPaths : Paths
     public Fil GetConfigFileFromCurrentDirectory(Dir cwd)
         => cwd.GetFile(FileNames.Paths);
 
-    public SavedPaths? LoadConfigFromCurrentDirectoryOrNull(Dir cwd, Log? print)
+    public SavedPaths? LoadConfigFromCurrentDirectoryOrNull(VfsRead vread, Dir cwd, Log? print)
         => GetConfigFileFromCurrentDirectory(cwd).Exists == false
             ? new SavedPaths()
-            : ConfigFile.LoadOrNull<SavedPaths>(print, GetConfigFileFromCurrentDirectory(cwd));
+            : ConfigFile.LoadOrNull<SavedPaths>(vread, print, GetConfigFileFromCurrentDirectory(cwd));
 
-    public FoundEntry<Fil>? FindEntry(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter)
+    public FoundEntry<Fil>? FindEntry(VfsRead vread, Dir cwd, Log? log, Func<SavedPaths, Fil?> getter)
     {
-        var saved_paths = LoadConfigFromCurrentDirectoryOrNull(cwd, log);
+        var saved_paths = LoadConfigFromCurrentDirectoryOrNull(vread, cwd, log);
         if (saved_paths == null)
         {
             // todo(Gustav): handle errors better
@@ -32,49 +32,49 @@ internal class RealPaths : Paths
         return new FoundEntry<Fil>.Result(val);
     }
 
-    public override Found<Fil> Find(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter)
-        => Functional.Params(FindEntry(cwd, log, getter))
+    public override Found<Fil> Find(VfsRead vread, Dir cwd, Log? log, Func<SavedPaths, Fil?> getter)
+        => Functional.Params(FindEntry(vread, cwd, log, getter))
             .IgnoreNull()
             .Collect($"{FileNames.Paths} file");
 
-    public void Save(Dir cwd, SavedPaths p)
-        => ConfigFile.Write(GetConfigFileFromCurrentDirectory(cwd), p);
+    public void Save(VfsWrite vwrite, Dir cwd, SavedPaths p)
+        => ConfigFile.Write(vwrite, GetConfigFileFromCurrentDirectory(cwd), p);
 
-    private IEnumerable<Found<Fil>> FindFromPath(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter)
-        => Functional.Params(Find(cwd, log, getter));
+    private IEnumerable<Found<Fil>> FindFromPath(VfsRead vread, Dir cwd, Log? log, Func<SavedPaths, Fil?> getter)
+        => Functional.Params(Find(vread, cwd, log, getter));
 
     private IEnumerable<Found<Fil>> FindPrimaryExecutable(Executable exe)
         => Functional.Params(Which.FindPaths(exe.PrimaryExecutable));
 
-    public override IEnumerable<Found<Fil>> ListAllExecutables(Dir cwd, Func<SavedPaths, Fil?> getter, Executable exe, Log? log = null)
-        => FindFromPath(cwd, null, getter).Concat(FindPrimaryExecutable(exe)).Concat(
+    public override IEnumerable<Found<Fil>> ListAllExecutables(VfsRead vread, Dir cwd, Func<SavedPaths, Fil?> getter, Executable exe, Log? log = null)
+        => FindFromPath(vread, cwd, null, getter).Concat(FindPrimaryExecutable(exe)).Concat(
             exe.Additional());
 
-    public override Fil? GetSavedOrSearchForExecutable(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter, Executable exe)
-        => ListAllExecutables(cwd, getter, exe, log)
+    public override Fil? GetSavedOrSearchForExecutable(VfsRead vread, Dir cwd, Log? log, Func<SavedPaths, Fil?> getter, Executable exe)
+        => ListAllExecutables(vread, cwd, getter, exe, log)
             .RequireFirstValueOrNull(log, exe.FriendlyName);
 }
 
 public abstract class Paths
 {
-    public abstract Found<Fil> Find(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter);
-    public abstract IEnumerable<Found<Fil>> ListAllExecutables(Dir cwd, Func<SavedPaths, Fil?> getter, Executable exe, Log? log = null);
-    public abstract Fil? GetSavedOrSearchForExecutable(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter, Executable exe);
+    public abstract Found<Fil> Find(VfsRead vread, Dir cwd, Log? log, Func<SavedPaths, Fil?> getter);
+    public abstract IEnumerable<Found<Fil>> ListAllExecutables(VfsRead vread, Dir cwd, Func<SavedPaths, Fil?> getter, Executable exe, Log? log = null);
+    public abstract Fil? GetSavedOrSearchForExecutable(VfsRead vread, Dir cwd, Log? log, Func<SavedPaths, Fil?> getter, Executable exe);
 
-    internal Fil? GetGitExecutable(Dir cwd, Log log)
-        => GetSavedOrSearchForExecutable(cwd, log, p => p.GitExecutable, DefaultExecutables.Git);
+    internal Fil? GetGitExecutable(VfsRead vread, Dir cwd, Log log)
+        => GetSavedOrSearchForExecutable(vread, cwd, log, p => p.GitExecutable, DefaultExecutables.Git);
 
-    internal Fil? GetClangTidyExecutable(Dir cwd, Log log)
-        => GetSavedOrSearchForExecutable(cwd, log, p => p.ClangTidyExecutable, DefaultExecutables.ClangTidy);
+    internal Fil? GetClangTidyExecutable(VfsRead vread, Dir cwd, Log log)
+        => GetSavedOrSearchForExecutable(vread, cwd, log, p => p.ClangTidyExecutable, DefaultExecutables.ClangTidy);
 
-    internal Fil? GetClangFormatExecutable(Dir cwd, Log log)
-        => GetSavedOrSearchForExecutable(cwd, log, p => p.ClangFormatExecutable, DefaultExecutables.ClangFormat);
+    internal Fil? GetClangFormatExecutable(VfsRead vread, Dir cwd, Log log)
+        => GetSavedOrSearchForExecutable(vread, cwd, log, p => p.ClangFormatExecutable, DefaultExecutables.ClangFormat);
 
-    internal Fil? GetCppLintExecutable(Dir cwd, Log log)
-        => GetSavedOrSearchForExecutable(cwd, log, p => p.CpplintExecutable, DefaultExecutables.CppLint);
+    internal Fil? GetCppLintExecutable(VfsRead vread, Dir cwd, Log log)
+        => GetSavedOrSearchForExecutable(vread, cwd, log, p => p.CpplintExecutable, DefaultExecutables.CppLint);
 
-    internal Fil? GetGraphvizExecutable(Dir cwd, Log log)
-        => GetSavedOrSearchForExecutable(cwd, log, p => p.GraphvizExecutable, DefaultExecutables.Graphviz);
+    internal Fil? GetGraphvizExecutable(VfsRead vread, Dir cwd, Log log)
+        => GetSavedOrSearchForExecutable(vread, cwd, log, p => p.GraphvizExecutable, DefaultExecutables.Graphviz);
 }
 
 public class SavedPaths

@@ -24,9 +24,9 @@ public static class Cpplint
     }
 
 
-    public static async Task<int> HandleRun(Config.Paths paths, Dir cwd, Log log, Dir root)
+    public static async Task<int> HandleRun(VfsRead vread, Config.Paths paths, Dir cwd, Log log, Dir root)
     {
-        var cpplint = paths.GetCppLintExecutable(cwd, log);
+        var cpplint = paths.GetCppLintExecutable(vread, cwd, log);
         if (cpplint == null)
         {
             return -1;

@@ -20,7 +20,10 @@ internal sealed class MakeClangTidyCommand : Command<MakeClangTidyCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
-        ClangTidyFile.HandleMakeTidyCommand(cwd, settings.Nop);
+        var vread = new ReadFromDisk();
+        var vwrite = new WriteToDisk();
+
+        ClangTidyFile.HandleMakeTidyCommand(vread, vwrite, cwd, settings.Nop);
         return 0;
     }
 }
@@ -43,8 +46,11 @@ internal sealed class ListClangTidyCommand : Command<ListClangTidyCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
+        var vread = new ReadFromDisk();
+
         var fs = settings.Tidy ? FileSection.AllExceptThoseIgnoredByClangTidy : FileSection.AllFiles;
-        return CliUtil.PrintErrorsAtExit(print => ClangFiles.HandleTidyListFilesCommand(cwd, print, settings.Sort, fs));
+        return CliUtil.PrintErrorsAtExit(print
+            => ClangFiles.HandleTidyListFilesCommand(vread, cwd, print, settings.Sort, fs));
     }
 }
 
@@ -106,6 +112,8 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
+        var vread = new ReadFromDisk();
+        var vwrite = new WriteToDisk();
 
         Dir? html_dir = null;
 
@@ -114,13 +122,13 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
             html_dir = Cli.ToDirPath(cwd, settings.HtmlDir);
             if(html_dir == null)
             {
-                Console.WriteLine($"Failed to parse html ouput directory {settings.HtmlDir}");
+                Console.WriteLine($"Failed to parse html output directory {settings.HtmlDir}");
                 return -1;
             }
         }
 
         var tidy = new ClangTidy();
-        return await CliUtil.PrintErrorsAtExitAsync(print => tidy.HandleRunClangTidyCommand(paths, cwd,
+        return await CliUtil.PrintErrorsAtExitAsync(print => tidy.HandleRunClangTidyCommand(vread, vwrite, paths, cwd,
             settings, print,
             settings.Headers,
             new ClangTidy.Args(html_dir, settings.NumberOfTasks, settings.Fix, settings.Filter, settings.Nop, settings.Short, settings.Force,
@@ -143,9 +151,10 @@ internal sealed class RunClangFormatCommand : AsyncCommand<RunClangFormatCommand
     {
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
+        var vread = new ReadFromDisk();
 
         return await CliUtil.PrintErrorsAtExitAsync(async print =>
-            await ClangFormat.HandleClangFormatCommand(paths, cwd, print, settings.Nop));
+            await ClangFormat.HandleClangFormatCommand(vread, paths, cwd, print, settings.Nop));
     }
 }
 

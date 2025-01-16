@@ -1,4 +1,5 @@
-﻿using Workbench.Config;
+﻿using System.IO;
+using Workbench.Config;
 using Workbench.Shared;
 
 namespace Test;
@@ -6,19 +7,19 @@ namespace Test;
 internal class FakePath(SavedPaths saved_paths) : Workbench.Config.Paths
 {
 
-    public override Found<Fil> Find(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter)
+    public override Found<Fil> Find(VfsRead _, Dir cwd, Log? log, Func<SavedPaths, Fil?> getter)
     {
         var r = getter(saved_paths);
         if (r == null) return Found<Fil>.Fail("missing in test", "file");
         else return Found<Fil>.Success(r, "file");
     }
 
-    public override IEnumerable<Found<Fil>> ListAllExecutables(Dir cwd, Func<SavedPaths, Fil?> getter, Executable exe, Log? log = null)
+    public override IEnumerable<Found<Fil>> ListAllExecutables(VfsRead _, Dir cwd, Func<SavedPaths, Fil?> getter, Executable exe, Log? log = null)
     {
         throw new NotImplementedException();
     }
 
-    public override Fil? GetSavedOrSearchForExecutable(Dir cwd, Log? log, Func<SavedPaths, Fil?> getter, Executable exe)
+    public override Fil? GetSavedOrSearchForExecutable(VfsRead _, Dir cwd, Log? log, Func<SavedPaths, Fil?> getter, Executable exe)
     {
         return getter(saved_paths);
     }
@@ -102,6 +103,21 @@ internal class VfsReadTest : VfsRead
             }
         }
     }
+
+    public string ReadAllText(Fil fil)
+    {
+        return files[fil.Path];
+    }
+
+    public IEnumerable<string> ReadAllLines(Fil fil)
+    {
+        return files[fil.Path].Split('\n');
+    }
+
+    public Task<string[]> ReadAllLinesAsync(Fil fil)
+    {
+        return Task<string[]>.Factory.StartNew(() => files[fil.Path].Split('\n'));
+    }
 }
 
 internal class VfsWriteTest : VfsWrite
@@ -138,6 +154,21 @@ internal class VfsWriteTest : VfsWrite
     {
         var fs = string.Join(" ", files.Keys);
         return $"files: [{fs}]";
+    }
+
+    public void WriteAllText(Fil fil, string content)
+    {
+        files.Add(fil.Path, content);
+    }
+
+    public void WriteAllLines(Fil fil, IEnumerable<string> content)
+    {
+        files.Add(fil.Path, string.Join("\n", content));
+    }
+
+    public Task WriteAllLinesAsync(Fil fil, IEnumerable<string> contents)
+    {
+        return Task.Factory.StartNew(() => files.Add(fil.Path, string.Join("\n", contents)));
     }
 }
 
