@@ -203,19 +203,19 @@ public class Graphviz
         edges.Add(new Edge(from, to));
     }
 
-    public void WriteFile(VfsWrite vwrite, Fil path)
+    public void WriteFile(Vfs vfs, Fil path)
     {
-        path.WriteAllLines(vwrite, Lines);
+        path.WriteAllLines(vfs, Lines);
     }
 
-    public async Task WriteFileAsync(VfsWrite vwrite, Fil path)
+    public async Task WriteFileAsync(Vfs vfs, Fil path)
     {
-        await path.WriteAllLinesAsync(vwrite, Lines);
+        await path.WriteAllLinesAsync(vfs, Lines);
     }
 
-    public async Task<string[]> WriteSvgAsync(VfsRead vread, Config.Paths paths, Dir cwd, Log log)
+    public async Task<string[]> WriteSvgAsync(Vfs vfs, Config.Paths paths, Dir cwd, Log log)
     {
-        var dot = paths.GetGraphvizExecutable(vread, cwd, log);
+        var dot = paths.GetGraphvizExecutable(vfs, cwd, log);
 
         if (dot == null)
         {
@@ -246,9 +246,9 @@ public class Graphviz
         return ret;
     }
 
-    public async IAsyncEnumerable<string> WriteHtmlAsync(VfsRead vread, Dir cwd, Log log, Fil file, Paths paths, bool use_max_width = false)
+    public async IAsyncEnumerable<string> WriteHtmlAsync(Vfs vfs, Dir cwd, Log log, Fil file, Paths paths, bool use_max_width = false)
     {
-        var svg = await WriteSvgAsync(vread, paths, cwd, log);
+        var svg = await WriteSvgAsync(vfs, paths, cwd, log);
 
         yield return "<!DOCTYPE html>";
         yield return "<html>";
@@ -303,22 +303,22 @@ public class Graphviz
         yield return "</html>";
     }
 
-    public async Task SmartWriteFileAsync(VfsRead vread, VfsWrite vwrite, Paths paths, Dir cwd, Fil target_file, Log log)
+    public async Task SmartWriteFileAsync(Vfs vfs, Paths paths, Dir cwd, Fil target_file, Log log)
     {
         var am = new ActionMapper();
         am.Add(async () =>
         {
-            await WriteFileAsync(vwrite, target_file);
+            await WriteFileAsync(vfs, target_file);
         }, "", ".gv", ".graphviz", ".dot");
         am.Add(async () =>
         {
             // todo(Gustav): don't write svg if we failed
-            await target_file.WriteAllLinesAsync(vwrite, await WriteSvgAsync(vread, paths, cwd, log));
+            await target_file.WriteAllLinesAsync(vfs, await WriteSvgAsync(vfs, paths, cwd, log));
         }, ".svg");
         am.Add(async () =>
         {
             // todo(Gustav): don't write html if we failed
-            await target_file.WriteAllLinesAsync(vwrite, await WriteHtmlAsync(vread, cwd, log, target_file, paths).ToListAsync());
+            await target_file.WriteAllLinesAsync(vfs, await WriteHtmlAsync(vfs, cwd, log, target_file, paths).ToListAsync());
         }, ".htm", ".html");
 
         var ext = target_file.Extension;

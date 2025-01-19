@@ -236,7 +236,7 @@ public class Solution
 
 
 
-        public static Solution VisualStudio(VfsRead vread, Log log, Fil solution_path)
+        public static Solution VisualStudio(Vfs vfs, Log log, Fil solution_path)
         {
             var solution = new Solution();
 
@@ -248,7 +248,7 @@ public class Solution
             // load solution
 
             {
-                var lines = solution_path.ReadAllLines(vread).ToArray();
+                var lines = solution_path.ReadAllLines(vfs).ToArray();
                 Project? current_project = null;
                 var project_line = string.Empty;
                 var solution_dir = solution_path.Directory!;

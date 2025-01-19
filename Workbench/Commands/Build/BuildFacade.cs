@@ -9,7 +9,7 @@ namespace Workbench.Commands.Build;
 
 internal static class BuildFacade
 {
-    public static int HandleInit(VfsWrite vwrite, Dir cwd, Log print, bool overwrite)
+    public static int HandleInit(Vfs vfs, Dir cwd, Log print, bool overwrite)
     {
         var data = new BuildFile
         {
@@ -17,34 +17,34 @@ internal static class BuildFacade
         };
         data.Dependencies.AddRange(Enum.GetValues<DependencyName>());
 
-        return ConfigFile.WriteInit(vwrite, print, overwrite, BuildFile.GetBuildDataPath(cwd), data);
+        return ConfigFile.WriteInit(vfs, print, overwrite, BuildFile.GetBuildDataPath(cwd), data);
     }
 
-    public static async Task<int> HandleInstallAsync(VfsWrite vwrite, Dir cwd, Log log, BuildEnvironment build, BuildData data)
+    public static async Task<int> HandleInstallAsync(Vfs vfs, Dir cwd, Log log, BuildEnvironment build, BuildData data)
     {
-        SaveBuildData(vwrite, log, build, data);
+        SaveBuildData(vfs, log, build, data);
         await RunInstallAsync(cwd, build, data, log);
         return 0;
     }
 
-    internal static async Task<int> HandleBuildAsync(VfsWrite vwrite, Dir cwd, Log log, BuildEnvironment build, BuildData data)
+    internal static async Task<int> HandleBuildAsync(Vfs vfs, Dir cwd, Log log, BuildEnvironment build, BuildData data)
     {
-        SaveBuildData(vwrite, log, build, data);
+        SaveBuildData(vfs, log, build, data);
         await GenerateCmakeProjectAsync(build, data).BuildAsync(cwd, log, Shared.CMake.Config.Release);
         return 0;
     }
 
-    internal static async Task<int> HandleDevAsync(VfsWrite vwrite, Dir cwd, Log log, BuildEnvironment build, BuildData data)
+    internal static async Task<int> HandleDevAsync(Vfs vfs, Dir cwd, Log log, BuildEnvironment build, BuildData data)
     {
-        SaveBuildData(vwrite, log, build, data);
+        SaveBuildData(vfs, log, build, data);
         await RunInstallAsync(cwd, build, data, log);
         await RunCmakeAsync(cwd, build, data, log, false);
         return 0;
     }
 
-    public static async Task<int> HandleCmakeAsync(VfsWrite vwrite, Dir cwd, bool nop, Log log, BuildEnvironment build, BuildData data)
+    public static async Task<int> HandleCmakeAsync(Vfs vfs, Dir cwd, bool nop, Log log, BuildEnvironment build, BuildData data)
     {
-        SaveBuildData(vwrite, log, build, data);
+        SaveBuildData(vfs, log, build, data);
         await RunCmakeAsync(cwd, build, data, log, nop);
         return 0;
     }
@@ -80,15 +80,15 @@ internal static class BuildFacade
     }
 
     // save the build environment to the settings file
-    internal static void SaveBuildData(VfsWrite vwrite, Log print, BuildEnvironment build, BuildData data)
+    internal static void SaveBuildData(Vfs vfs, Log print, BuildEnvironment build, BuildData data)
     {
         Core.VerifyDirectoryExists(print, data.BuildDirectory);
-        BuildFunctions.SaveToFile(vwrite, build, data.GetPathToSettingsFile());
+        BuildFunctions.SaveToFile(vfs, build, data.GetPathToSettingsFile());
     }
 
-    internal static int HandleBuildStatus(VfsRead vread, Log log, BuildData data)
+    internal static int HandleBuildStatus(Vfs vfs, Log log, BuildData data)
     {
-        var env = BuildFunctions.LoadFromFileOrCreateEmpty(vread, data.GetPathToSettingsFile(), log);
+        var env = BuildFunctions.LoadFromFileOrCreateEmpty(vfs, data.GetPathToSettingsFile(), log);
 
         Printer.Header(data.Name);
         AnsiConsole.WriteLine($"Project: {data.Name}");
@@ -120,11 +120,11 @@ internal static class BuildFacade
         return 0;
     }
 
-    public static async Task<int> WithLoadedBuildDataAsync(VfsRead vread, Dir cwd, Func<Log, BuildData, Task<int>> callback)
+    public static async Task<int> WithLoadedBuildDataAsync(Vfs vfs, Dir cwd, Func<Log, BuildData, Task<int>> callback)
     {
         return await CliUtil.PrintErrorsAtExitAsync(async print =>
         {
-            var data = BuildData.LoadOrNull(vread, cwd, print);
+            var data = BuildData.LoadOrNull(vfs, cwd, print);
             if (data == null)
             {
                 print.Error("Unable to load the data");
@@ -137,11 +137,11 @@ internal static class BuildFacade
         });
     }
 
-    internal static async Task<int> HandleGenericBuildAsync(VfsRead vread, Dir cwd, EnvironmentArgument args, Func<Dir, Log, BuildEnvironment, BuildData, Task<int>> callback)
+    internal static async Task<int> HandleGenericBuildAsync(Vfs vfs, Dir cwd, EnvironmentArgument args, Func<Dir, Log, BuildEnvironment, BuildData, Task<int>> callback)
     {
-        return await WithLoadedBuildDataAsync(vread, cwd, async (printer, data) =>
+        return await WithLoadedBuildDataAsync(vfs, cwd, async (printer, data) =>
         {
-            var env = BuildFunctions.LoadFromFileOrCreateEmpty(vread, data.GetPathToSettingsFile(), printer);
+            var env = BuildFunctions.LoadFromFileOrCreateEmpty(vfs, data.GetPathToSettingsFile(), printer);
             env.UpdateFromArguments(printer, args);
             if (env.Validate(printer) == false)
             {

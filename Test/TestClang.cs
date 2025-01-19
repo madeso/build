@@ -18,10 +18,10 @@ public class TestClang : TestBase
     public void empty_generated_clang_tidy_file_should_be_empty()
     {
         var cwd = new Dir(@"C:\test\");
-        read.AddContent(cwd.GetFile("clang-tidy"), "");
-        ClangTidyFile.WriteTidyFileToDisk(read, write, cwd);
+        vfs.AddContent(cwd.GetFile("clang-tidy"), "");
+        ClangTidyFile.WriteTidyFileToDisk(vfs, cwd);
 
-        var generated = write.GetContent(cwd.GetFile(".clang-tidy"));
+        var generated = vfs.GetContent(cwd.GetFile(".clang-tidy"));
         generated.Should().Be("");
     }
 
@@ -33,7 +33,7 @@ public class TestClang : TestBase
         var paths = new FakePath(new());
 
         var args = new ClangTidy.Args(null, 1, false, ["libs"], true, false, false, []);
-        var ret = await tidy.HandleRunClangTidyCommand(read, write, paths, cwd, new CompileCommandsArguments(), log, false, args);
+        var ret = await tidy.HandleRunClangTidyCommand(vfs, paths, cwd, new CompileCommandsArguments(), log, false, args);
         using (new AssertionScope())
         {
             ret.Should().Be(-1);

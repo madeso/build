@@ -55,7 +55,7 @@ internal sealed class ClocCommand : Command<ClocCommand.Arg>
         var cwd = Dir.CurrentDirectory;
         var stats = new Dictionary<Language, Stat>();
         var parsed = new Dictionary<Language, List<Fil>>();
-        var vread = new ReadFromDisk();
+        var vfs = new VfsDisk();
 
         foreach (var file in FileUtil.ListFilesFromArgs(cwd, arg.Files))
         {
@@ -82,7 +82,7 @@ internal sealed class ClocCommand : Command<ClocCommand.Arg>
                 stats.Add(lang, data_values);
             }
 
-            var lines = file.ReadAllLines(vread).ToImmutableArray();
+            var lines = file.ReadAllLines(vfs).ToImmutableArray();
             data_values.Files += 1;
             data_values.TotalLines += lines.Length;
             data_values.EmptyLines += lines.Count(string.IsNullOrEmpty);

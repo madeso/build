@@ -52,8 +52,7 @@ internal sealed class ListGraphvizCommand : AsyncCommand<ListGraphvizCommand.Arg
     {
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
-        var vread = new ReadFromDisk();
-        var vwrite = new WriteToDisk();
+        var vfs = new VfsDisk();
 
         return await CliUtil.PrintErrorsAtExitAsync(async printer =>
             {
@@ -63,7 +62,7 @@ internal sealed class ListGraphvizCommand : AsyncCommand<ListGraphvizCommand.Arg
                     return -1;
                 }
 
-                await Dependencies.WriteToGraphvizAsync(vread, vwrite, paths, cwd, printer, dox,
+                await Dependencies.WriteToGraphvizAsync(vfs, paths, cwd, printer, dox,
                     arg.NamespaceFilter, new Fil(arg.OutputFile),
                     arg.IgnoredClasses.ToImmutableHashSet(),
                     !(arg.NoIncludeFunctions ?? false),
@@ -99,8 +98,7 @@ internal sealed class ListCallGraph : AsyncCommand<ListCallGraph.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
-        var vread = new ReadFromDisk();
-        var vwrite = new WriteToDisk();
+        var vfs = new VfsDisk();
 
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
@@ -110,7 +108,7 @@ internal sealed class ListCallGraph : AsyncCommand<ListCallGraph.Arg>
                 return -1;
             }
 
-            await Dependencies.WriteCallGraphToGraphvizAsync(vread, vwrite, paths, cwd,
+            await Dependencies.WriteCallGraphToGraphvizAsync(vfs, paths, cwd,
                 log, dox, new Fil(arg.OutputFile),
                 arg.ClusterOn ?? Dependencies.ClusterCallGraphOn.None);
             

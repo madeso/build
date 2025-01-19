@@ -39,11 +39,11 @@ public static class Core
         }
     }
 
-    internal static string[]? ReadFileToLines(VfsRead vread, Fil filename)
+    internal static string[]? ReadFileToLines(Vfs vfs, Fil filename)
     {
         if (filename.Exists)
         {
-            return filename.ReadAllLines(vread).ToArray();
+            return filename.ReadAllLines(vfs).ToArray();
         }
         else return null;
     }

@@ -92,8 +92,7 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
-        var vread = new ReadFromDisk();
-        var vwrite = new WriteToDisk();
+        var vfs = new VfsDisk();
 
         return await CliUtil.PrintErrorsAtExitAsync(async printer => {
             var cmake = FindCMake.RequireInstallationOrNull(printer);
@@ -139,7 +138,7 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
                     gv.Simplify();
                 }
 
-                await gv.SmartWriteFileAsync(vread, vwrite, paths, cwd, Cli.ToSingleFile(cwd, settings.Output, "cmake.dot"), printer);
+                await gv.SmartWriteFileAsync(vfs, paths, cwd, Cli.ToSingleFile(cwd, settings.Output, "cmake.dot"), printer);
             }
             catch (CMakeTrace.TraceError x)
             {

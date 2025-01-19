@@ -39,7 +39,7 @@ public static class JsonUtil
         }
     }
 
-    public static T? GetOrNull<T>(VfsRead vread, Fil path, Log log)
+    public static T? GetOrNull<T>(Vfs vfs, Fil path, Log log)
         where T: class
     {
         if (!path.Exists)
@@ -47,7 +47,7 @@ public static class JsonUtil
             return null;
         }
 
-        var content = path.ReadAllText(vread);
+        var content = path.ReadAllText(vfs);
         return Parse<T>(log, path, content);
     }
 
@@ -56,8 +56,8 @@ public static class JsonUtil
         return JsonSerializer.Serialize(self, json_options);
     }
 
-    internal static void Save<T>(VfsWrite vwrite, Fil path, T data)
+    internal static void Save<T>(Vfs vfs, Fil path, T data)
     {
-        path.WriteAllText(vwrite, Write(data));
+        path.WriteAllText(vfs, Write(data));
     }
 }

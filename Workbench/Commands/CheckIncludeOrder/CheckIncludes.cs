@@ -63,13 +63,13 @@ public readonly struct IncludeData
             .ToList();
     }
 
-    private static IncludeData? LoadFromDirectoryOrNull(VfsRead vread, Dir cwd, Log print)
-        => ConfigFile.LoadOrNull<CheckIncludesFile, IncludeData>(vread,
+    private static IncludeData? LoadFromDirectoryOrNull(Vfs vfs, Dir cwd, Log print)
+        => ConfigFile.LoadOrNull<CheckIncludesFile, IncludeData>(vfs,
             print, CheckIncludesFile.GetBuildDataPath(cwd), loaded =>
                 new IncludeData(loaded.IncludeDirectories, print));
 
-    public static IncludeData? LoadOrNull(VfsRead vread, Dir cwd, Log print)
-        => LoadFromDirectoryOrNull(vread, cwd, print);
+    public static IncludeData? LoadOrNull(Vfs vfs, Dir cwd, Log print)
+        => LoadFromDirectoryOrNull(vfs, cwd, print);
 }
 
 public interface OptionalRegex
@@ -440,8 +440,7 @@ public static class IncludeTools
 
     private static bool RunFile
     (
-        VfsRead vread,
-        VfsWrite vwrite,
+        Vfs vfs,
         HashSet<string> missing_files,
         Log print,
         IncludeData data,
@@ -461,7 +460,7 @@ public static class IncludeTools
             AnsiConsole.WriteLine($"Opening file {filename}");
         }
 
-        var lines = Core.ReadFileToLines(vread, filename);
+        var lines = Core.ReadFileToLines(vfs, filename);
         if (lines == null)
         {
             print.Error($"Failed to load {filename}");
@@ -529,7 +528,7 @@ public static class IncludeTools
                 }
                 else
                 {
-                    filename.WriteAllLines(vwrite, file_data);
+                    filename.WriteAllLines(vfs, file_data);
                 }
                 break;
             default:
@@ -543,7 +542,7 @@ public static class IncludeTools
 
     internal static int CommonMain
     (
-        VfsRead vread, VfsWrite vwrite, Dir cwd, CommonArgs args,
+        Vfs vfs, Dir cwd, CommonArgs args,
         Log print,
         IncludeData data,
         CheckAction command
@@ -565,7 +564,7 @@ public static class IncludeTools
 
             var ok = RunFile
             (
-                vread, vwrite,
+                vfs,
                 missing_files,
                 print,
                 data,
@@ -595,13 +594,13 @@ public static class IncludeTools
         return error_count;
     }
 
-    public static int HandleInit(VfsWrite vwrite, Dir cwd, Log print, bool overwrite)
+    public static int HandleInit(Vfs vfs, Dir cwd, Log print, bool overwrite)
     {
         var data = new CheckIncludesFile();
         data.IncludeDirectories.Add(new() { new("list of regexes"), new("that are used by check-includes" )});
         data.IncludeDirectories.Add(new() { new("they are grouped into arrays, there needs to be a space between each group" )});
 
-        return ConfigFile.WriteInit(vwrite, print, overwrite, CheckIncludesFile.GetBuildDataPath(cwd), data);
+        return ConfigFile.WriteInit(vfs, print, overwrite, CheckIncludesFile.GetBuildDataPath(cwd), data);
     }
 }
 

@@ -133,9 +133,9 @@ internal class CheckNamesRunner
         }
     }
 
-    internal static int Run(VfsRead vread, Dir cwd, Log log, Dir doxygen_xml, Dir root)
+    internal static int Run(Vfs vfs, Dir cwd, Log log, Dir doxygen_xml, Dir root)
     {
-        var file = CheckNamesFile.LoadFromDirectoryOrNull(vread, cwd, log);
+        var file = CheckNamesFile.LoadFromDirectoryOrNull(vfs, cwd, log);
         if (file == null)
         {
             return -1;
@@ -411,12 +411,12 @@ internal class CheckNamesRunner
         }
     }
 
-    internal static int HandleInit(VfsWrite vwrite, Dir cwd, Log print, bool overwrite)
+    internal static int HandleInit(Vfs vfs, Dir cwd, Log print, bool overwrite)
     {
         var data = new CheckNamesFile();
         data.AcceptedFunctions.Add("some function or method name");
         data.AcceptedTypes.Add("some struct or class name");
 
-        return ConfigFile.WriteInit(vwrite, print, overwrite, CheckNamesFile.GetBuildDataPath(cwd), data);
+        return ConfigFile.WriteInit(vfs, print, overwrite, CheckNamesFile.GetBuildDataPath(cwd), data);
     }
 }

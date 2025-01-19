@@ -242,7 +242,7 @@ internal class FileWalker
 
     internal bool Walk
     (
-        VfsRead vread,
+        Vfs vfs,
         Log print, Fil path,
         Dictionary<Fil, List<Statement>> file_cache
     )
@@ -261,13 +261,13 @@ internal class FileWalker
         var included_file_cache = new HashSet<Fil>();
         var defines = cc.GetDefines();
 
-        return walk_rec(vread, print, directories.ToArray(), included_file_cache, path,
+        return walk_rec(vfs, print, directories.ToArray(), included_file_cache, path,
             defines, file_cache, 0);
     }
 
-    private static List<Statement> ParseFileToBlocks(VfsRead vread, Fil path, Log print)
+    private static List<Statement> ParseFileToBlocks(Vfs vfs, Fil path, Log print)
     {
-        var source_lines = path.ReadAllLines(vread);
+        var source_lines = path.ReadAllLines(vfs);
         var joined_lines = ListHeaderFunctions.JoinCppLines(source_lines);
         var trim_lines = joined_lines.Select(str => str.TrimStart()).ToList();
         var lines = ListHeaderFunctions.RemoveCppComments(trim_lines);
@@ -278,7 +278,7 @@ internal class FileWalker
 
     private bool walk_rec
     (
-        VfsRead vread,
+        Vfs vfs,
         Log print,
         Dir[] directories,
         HashSet<Fil> included_file_cache,
@@ -292,23 +292,23 @@ internal class FileWalker
 
         if (FileUtil.IsSource(path))
         {
-            var parsed_blocks = ParseFileToBlocks(vread, path, print);
-            return BlockRecursive(vread, print, directories, included_file_cache, path, defines, parsed_blocks, file_cache, depth);
+            var parsed_blocks = ParseFileToBlocks(vfs, path, print);
+            return BlockRecursive(vfs, print, directories, included_file_cache, path, defines, parsed_blocks, file_cache, depth);
         }
 
 
         if (file_cache.TryGetValue(path, out var blocks) == false)
         {
-            blocks = ParseFileToBlocks(vread, path, print);
+            blocks = ParseFileToBlocks(vfs, path, print);
             file_cache.Add(path, blocks);
         }
 
-        return BlockRecursive(vread, print, directories, included_file_cache, path, defines, blocks, file_cache, depth);
+        return BlockRecursive(vfs, print, directories, included_file_cache, path, defines, blocks, file_cache, depth);
     }
 
     private bool BlockRecursive
     (
-        VfsRead vread,
+        Vfs vfs,
         Log print,
         Dir[] directories,
         HashSet<Fil> included_file_cache,
@@ -341,7 +341,7 @@ internal class FileWalker
                             {
                                 if (false == BlockRecursive
                                 (
-                                    vread, print, directories, included_file_cache, path, defines,
+                                    vfs, print, directories, included_file_cache, path, defines,
                                     ifdef(defines.ContainsKey(key), blk.Name == "ifdef")
                                         ? blk.TrueBlock
                                         : blk.FalseBlock
@@ -392,7 +392,7 @@ internal class FileWalker
                             if (sub_file != null)
                             {
                                 AddInclude(sub_file);
-                                if (false == walk_rec(vread, print, directories, included_file_cache, sub_file, defines, file_cache, depth + 1))
+                                if (false == walk_rec(vfs, print, directories, included_file_cache, sub_file, defines, file_cache, depth + 1))
                                 {
                                     return false;
                                 }
@@ -625,9 +625,9 @@ internal static class ListHeaderFunctions
     }
 
 
-    internal static void HandleLines(VfsRead vread, Log print, Fil file_name, ListAction action)
+    internal static void HandleLines(Vfs vfs, Log print, Fil file_name, ListAction action)
     {
-        var source_lines = file_name.ReadAllLines(vread);
+        var source_lines = file_name.ReadAllLines(vfs);
         var joined_lines = JoinCppLines(source_lines);
         var trim_lines = joined_lines.Select(str => str.TrimStart()).ToList();
         var lines = RemoveCppComments(trim_lines);
@@ -683,11 +683,11 @@ internal static class ListHeaderFunctions
 
 
     internal static int HandleFiles(
-        VfsRead vread, Dir cwd, Log print, Fil? ccpath, IEnumerable<FileOrDir> sources, int most_common_count)
+        Vfs vfs, Dir cwd, Log print, Fil? ccpath, IEnumerable<FileOrDir> sources, int most_common_count)
     {
         if (ccpath == null) { return -1; }
 
-        var commands = CompileCommand.LoadCompileCommandsOrNull(vread, print, ccpath);
+        var commands = CompileCommand.LoadCompileCommandsOrNull(vfs, print, ccpath);
         if (commands == null) { return -1; }
 
         var walker = new FileWalker(commands);
@@ -699,7 +699,7 @@ internal static class ListHeaderFunctions
             var ff = new Fil(file.Path);
             if (ff.Exists)
             {
-                if (false == walker.Walk(vread, print, ff, file_cache))
+                if (false == walker.Walk(vfs, print, ff, file_cache))
                 {
                     return -1;
                 }
@@ -708,7 +708,7 @@ internal static class ListHeaderFunctions
             {
                 foreach(var fi in new Dir(file.Path).EnumerateFiles())
                 {
-                    if (false == walker.Walk(vread, print, fi, file_cache))
+                    if (false == walker.Walk(vfs, print, fi, file_cache))
                     {
                         return -1;
                     }

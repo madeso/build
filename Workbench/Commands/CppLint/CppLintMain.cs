@@ -49,7 +49,7 @@ internal sealed class RunCommand : AsyncCommand<RunCommand.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
-        var vread = new ReadFromDisk();
+        var vfs = new VfsDisk();
 
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
@@ -58,7 +58,7 @@ internal sealed class RunCommand : AsyncCommand<RunCommand.Arg>
             {
                 return -1;
             }
-            return await CliUtil.PrintErrorsAtExitAsync(async print => await Cpplint.HandleRun(vread, paths, cwd, print, root));
+            return await CliUtil.PrintErrorsAtExitAsync(async print => await Cpplint.HandleRun(vfs, paths, cwd, print, root));
         });
     }
 }

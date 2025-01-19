@@ -96,14 +96,14 @@ internal class Html
     private static Fil GetPathToCssFile(Dir root) => root.GetFile("header_hero_report.css");
 
 
-    public static void WriteCssFile(VfsWrite vwrite, Dir root)
+    public static void WriteCssFile(Vfs vfs, Dir root)
     {
-        GetPathToCssFile(root).WriteAllText(vwrite, CSS_SOURCE);
+        GetPathToCssFile(root).WriteAllText(vfs, CSS_SOURCE);
     }
 
-    internal void WriteToFile(VfsWrite vwrite, Fil path)
+    internal void WriteToFile(Vfs vfs, Fil path)
     {
-        path.WriteAllText(vwrite, Buffer);
+        path.WriteAllText(vfs, Buffer);
     }
 
     private const string CSS_SOURCE = @"

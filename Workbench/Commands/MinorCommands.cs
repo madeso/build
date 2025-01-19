@@ -43,14 +43,14 @@ internal sealed class CatDirCommand : Command<CatDirCommand.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var dir = new Dir(arg.Dir);
-        var vread = new ReadFromDisk();
+        var vfs = new VfsDisk();
 
         foreach (var file in FileUtil.IterateFiles(dir, false, true)
             .Where(file => arg.IncludeSources ? FileUtil.IsHeaderOrSource(file) : FileUtil.IsHeader(file))
         )
         {
             AnsiConsole.WriteLine($"File: {file.GetDisplay(cwd)}");
-            foreach (var line in file.ReadAllLines(vread))
+            foreach (var line in file.ReadAllLines(vfs))
             {
                 if (string.IsNullOrWhiteSpace(line)) { continue; }
                 AnsiConsole.WriteLine($"    {line}");

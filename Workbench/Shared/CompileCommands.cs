@@ -64,9 +64,9 @@ public class CompileCommand
         public string Command = "";
     }
 
-    internal static Dictionary<Fil, CompileCommand>? LoadCompileCommandsOrNull(VfsRead vread, Log log, Fil path)
+    internal static Dictionary<Fil, CompileCommand>? LoadCompileCommandsOrNull(Vfs vfs, Log log, Fil path)
     {
-        var content = path.ReadAllText(vread);
+        var content = path.ReadAllText(vfs);
         var store = JsonUtil.Parse<List<CompileCommandJson>>(log, path, content);
 
         if (store == null)
@@ -97,23 +97,23 @@ public class CompileCommand
         return settings.GetFileFromArgument(COMPILE_COMMANDS_FILE_NAME);
     }
 
-    internal static IEnumerable<Found<Fil>> ListOverrides(VfsRead vread, Paths paths, Dir cwd, CompileCommandsArguments settings, Log? log)
+    internal static IEnumerable<Found<Fil>> ListOverrides(Vfs vfs, Paths paths, Dir cwd, CompileCommandsArguments settings, Log? log)
     {
         yield return Functional.Params(
                     GetBuildFromArgument(settings))
                 .IgnoreNull()
                 .Collect("commandline")
             ;
-        yield return paths.Find(vread, cwd, log, p => p.CompileCommands);
+        yield return paths.Find(vfs, cwd, log, p => p.CompileCommands);
     }
 
-    internal static IEnumerable<Found<Fil>> ListAll(VfsRead vread, Dir cwd, CompileCommandsArguments settings, Paths paths)
-        => ListOverrides(vread, paths, cwd, settings, null)
+    internal static IEnumerable<Found<Fil>> ListAll(Vfs vfs, Dir cwd, CompileCommandsArguments settings, Paths paths)
+        => ListOverrides(vfs, paths, cwd, settings, null)
             .Concat(FindJustTheBuilds(cwd));
 
-    internal static Fil? FindOrNone(VfsRead vread, Dir cwd, CompileCommandsArguments settings, Log? log, Paths paths)
+    internal static Fil? FindOrNone(Vfs vfs, Dir cwd, CompileCommandsArguments settings, Log? log, Paths paths)
         => FindJustTheBuilds(cwd)
-            .FirstValidOrOverride(ListOverrides(vread, paths, cwd, settings, log), log, "compile command");
+            .FirstValidOrOverride(ListOverrides(vfs, paths, cwd, settings, log), log, "compile command");
 }
 
 public class CompileCommandsArguments : CommandSettings

@@ -66,9 +66,9 @@ static class SlnDepsFunctions
     // logic
     // ======================================================================================================================
 
-    private static async Task<bool> RunGraphvizAsync(VfsRead vread, Config.Paths paths, Dir cwd, Log log, Fil target_file, string image_format, string graphviz_layout)
+    private static async Task<bool> RunGraphvizAsync(Vfs vfs, Config.Paths paths, Dir cwd, Log log, Fil target_file, string image_format, string graphviz_layout)
     {
-        var dot = paths.GetGraphvizExecutable(vread, cwd, log);
+        var dot = paths.GetGraphvizExecutable(vfs, cwd, log);
         if (dot == null)
         {
             return false;
@@ -90,7 +90,7 @@ static class SlnDepsFunctions
     // Handlers
     // ======================================================================================================================
 
-    public static async Task<int> HandleGenerateAsync(VfsRead vread, VfsWrite vwrite, Config.Paths paths, Dir cwd, Log log, string target,
+    public static async Task<int> HandleGenerateAsync(Vfs vfs, Config.Paths paths, Dir cwd, Log log, string target,
             string format,
             ExclusionList exclude,
             bool simplify,
@@ -98,7 +98,7 @@ static class SlnDepsFunctions
             Fil path_to_solution_file,
             string layout_name)
     {
-        var solution = Solution.Parse.VisualStudio(vread, log, path_to_solution_file);
+        var solution = Solution.Parse.VisualStudio(vfs, log, path_to_solution_file);
 
         solution.RemoveProjects(p => exclude.ShouldExclude(p.Name));
 
@@ -113,9 +113,9 @@ static class SlnDepsFunctions
         var graphviz_layout = Cli.GetValueOrDefault(layout_name, "dot");
         var target_file = Cli.GetValueOrDefault(target, path_to_solution_file.ChangeExtension(GRAPHVIZ_EXTENSION_LEADING_DOT));
 
-        await gv.WriteFileAsync(vwrite, target_file);
+        await gv.WriteFileAsync(vfs, target_file);
 
-        var res = await RunGraphvizAsync(vread, paths, cwd, log, target_file, image_format, graphviz_layout);
+        var res = await RunGraphvizAsync(vfs, paths, cwd, log, target_file, image_format, graphviz_layout);
         if (res == false)
         {
             return -1;
@@ -124,12 +124,12 @@ static class SlnDepsFunctions
         return 0;
     }
 
-    public static int SourceCommand(VfsRead vread, Log log, ExclusionList exclude,
+    public static int SourceCommand(Vfs vfs, Log log, ExclusionList exclude,
             bool simplify,
             bool reverse_arrows,
             Fil path_to_solution_file)
     {
-        var solution = Solution.Parse.VisualStudio(vread, log, path_to_solution_file);
+        var solution = Solution.Parse.VisualStudio(vfs, log, path_to_solution_file);
 
         solution.RemoveProjects(p => exclude.ShouldExclude(p.Name));
 
@@ -149,10 +149,10 @@ static class SlnDepsFunctions
     }
 
     public static int WriteCommand(
-        VfsRead vread, VfsWrite vwrite, Log log, ExclusionList exclude, string target_file_or_empty, bool simplify,
+        Vfs vfs, Log log, ExclusionList exclude, string target_file_or_empty, bool simplify,
             bool reverse_arrows, Fil path_to_solution_file)
     {
-        var solution = Solution.Parse.VisualStudio(vread, log, path_to_solution_file);
+        var solution = Solution.Parse.VisualStudio(vfs, log, path_to_solution_file);
 
         solution.RemoveProjects(p => exclude.ShouldExclude(p.Name));
 
@@ -165,16 +165,16 @@ static class SlnDepsFunctions
 
         var target_file = Cli.GetValueOrDefault(target_file_or_empty, path_to_solution_file.ChangeExtension(GRAPHVIZ_EXTENSION_LEADING_DOT));
 
-        gv.WriteFile(vwrite, target_file);
+        gv.WriteFile(vfs, target_file);
 
         AnsiConsole.WriteLine($"Wrote {target_file}");
 
         return 0;
     }
 
-    public static int ListCommand(VfsRead vread, Log log, Fil solution_path)
+    public static int ListCommand(Vfs vfs, Log log, Fil solution_path)
     {
-        var solution = Solution.Parse.VisualStudio(vread, log, solution_path);
+        var solution = Solution.Parse.VisualStudio(vfs, log, solution_path);
         foreach (var project in solution.Projects)
         {
             AnsiConsole.WriteLine(project.Name);

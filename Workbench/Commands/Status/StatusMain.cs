@@ -24,11 +24,11 @@ internal sealed class DebugCommand : Command<DebugCommand.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
-        var vread = new ReadFromDisk();
+        var vfs = new VfsDisk();
 
         return CliUtil.PrintErrorsAtExit(print =>
         {
-            Status.HandleStatus(vread, cwd, print, settings, paths);
+            Status.HandleStatus(vfs, cwd, print, settings, paths);
             return 0;
         });
     }

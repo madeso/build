@@ -11,7 +11,7 @@ public static class Dependencies
 {
     const string NO_NAMESPACE = "|";
 
-    internal static async Task WriteToGraphvizAsync(VfsRead vread, VfsWrite vwrite, Config.Paths paths, Dir cwd, Log log, Dir doxygen_xml, string namespace_name,
+    internal static async Task WriteToGraphvizAsync(Vfs vfs, Config.Paths paths, Dir cwd, Log log, Dir doxygen_xml, string namespace_name,
         Fil output_file, ImmutableHashSet<string> ignored_classes, bool include_functions, bool add_arguments,
         bool add_members, bool cluster_namespace)
     {
@@ -137,7 +137,7 @@ public static class Dependencies
             }
         }
 
-        await g.SmartWriteFileAsync(vread, vwrite, paths, cwd, output_file, log);
+        await g.SmartWriteFileAsync(vfs, paths, cwd, output_file, log);
     }
 
     internal static void PrintLists(Log log, Dir doxygen_xml, string namespace_name)
@@ -218,7 +218,7 @@ public static class Dependencies
 
     private record Method(CompoundDef? Klass, MemberDefinitionType Function);
 
-    internal static async Task WriteCallGraphToGraphvizAsync(VfsRead vread, VfsWrite vwrite, Config.Paths paths, Dir cwd, Log log, Dir doxygen_xml,
+    internal static async Task WriteCallGraphToGraphvizAsync(Vfs vfs, Config.Paths paths, Dir cwd, Log log, Dir doxygen_xml,
         Fil output_file, ClusterCallGraphOn cluster_on)
     {
         // todo(Gustav): option to remove namespace prefixes
@@ -316,7 +316,7 @@ public static class Dependencies
         }
 
         AnsiConsole.WriteLine("Writing graph...");
-        await g.SmartWriteFileAsync(vread, vwrite, paths, cwd, output_file, log);
+        await g.SmartWriteFileAsync(vfs, paths, cwd, output_file, log);
 
         static Shape func_to_shape(Method func) => func.Function.Protection switch
         {

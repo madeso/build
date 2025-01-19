@@ -24,9 +24,9 @@ public class UserInput
     [JsonPropertyName("pre_compiled_headers")]
     public List<string> PrecompiledHeaders { get; set; } = new();
 
-    public static UserInput? LoadFromFile(VfsRead vread, Log print, Fil file)
+    public static UserInput? LoadFromFile(Vfs vfs, Log print, Fil file)
     {
-        var content = file.ReadAllText(vread);
+        var content = file.ReadAllText(vfs);
         var data = JsonUtil.Parse<UserInput>(print, file, content);
         return data;
     }

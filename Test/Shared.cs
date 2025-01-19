@@ -7,25 +7,25 @@ namespace Test;
 internal class FakePath(SavedPaths saved_paths) : Workbench.Config.Paths
 {
 
-    public override Found<Fil> Find(VfsRead _, Dir cwd, Log? log, Func<SavedPaths, Fil?> getter)
+    public override Found<Fil> Find(Vfs _, Dir cwd, Log? log, Func<SavedPaths, Fil?> getter)
     {
         var r = getter(saved_paths);
         if (r == null) return Found<Fil>.Fail("missing in test", "file");
         else return Found<Fil>.Success(r, "file");
     }
 
-    public override IEnumerable<Found<Fil>> ListAllExecutables(VfsRead _, Dir cwd, Func<SavedPaths, Fil?> getter, Executable exe, Log? log = null)
+    public override IEnumerable<Found<Fil>> ListAllExecutables(Vfs _, Dir cwd, Func<SavedPaths, Fil?> getter, Executable exe, Log? log = null)
     {
         throw new NotImplementedException();
     }
 
-    public override Fil? GetSavedOrSearchForExecutable(VfsRead _, Dir cwd, Log? log, Func<SavedPaths, Fil?> getter, Executable exe)
+    public override Fil? GetSavedOrSearchForExecutable(Vfs _, Dir cwd, Log? log, Func<SavedPaths, Fil?> getter, Executable exe)
     {
         return getter(saved_paths);
     }
 }
 
-internal class VfsReadTest : VfsRead
+internal class VfsTest : Vfs
 {
     private class Entry
     {
@@ -118,20 +118,17 @@ internal class VfsReadTest : VfsRead
     {
         return Task<string[]>.Factory.StartNew(() => files[fil.Path].Split('\n'));
     }
-}
 
-internal class VfsWriteTest : VfsWrite
-{
-    private readonly Dictionary<string, string> files = new();
+    private readonly Dictionary<string, string> files_to_write = new();
 
     public Task WriteAllTextAsync(Fil path, string contents)
     {
-        return Task.Factory.StartNew(() => { files.Add(path.Path, contents); });
+        return Task.Factory.StartNew(() => { files_to_write.Add(path.Path, contents); });
     }
 
     public string GetContent(Fil file)
     {
-        if (files.Remove(file.Path, out var content))
+        if (files_to_write.Remove(file.Path, out var content))
         {
             return content;
         }
@@ -143,32 +140,32 @@ internal class VfsWriteTest : VfsWrite
 
     public IEnumerable<string> GetLines(Fil file) => GetContent(file).Split('\n', StringSplitOptions.TrimEntries).Where(s => string.IsNullOrWhiteSpace(s) == false);
 
-    public IEnumerable<string> RemainingFiles => files.Keys;
+    public IEnumerable<string> RemainingFiles => files_to_write.Keys;
 
     internal bool IsEmpty()
     {
-        return files.Count == 0;
+        return files_to_write.Count == 0;
     }
 
     internal string GetRemainingFilesAsText()
     {
-        var fs = string.Join(" ", files.Keys);
+        var fs = string.Join(" ", files_to_write.Keys);
         return $"files: [{fs}]";
     }
 
     public void WriteAllText(Fil fil, string content)
     {
-        files.Add(fil.Path, content);
+        files_to_write.Add(fil.Path, content);
     }
 
     public void WriteAllLines(Fil fil, IEnumerable<string> content)
     {
-        files.Add(fil.Path, string.Join("\n", content));
+        files_to_write.Add(fil.Path, string.Join("\n", content));
     }
 
     public Task WriteAllLinesAsync(Fil fil, IEnumerable<string> contents)
     {
-        return Task.Factory.StartNew(() => files.Add(fil.Path, string.Join("\n", contents)));
+        return Task.Factory.StartNew(() => files_to_write.Add(fil.Path, string.Join("\n", contents)));
     }
 }
 
@@ -220,6 +217,5 @@ internal class LoggableTest : Log
 public class TestBase
 {
     internal LoggableTest log = new();
-    internal VfsReadTest read = new();
-    internal VfsWriteTest write = new();
+    internal VfsTest vfs = new();
 }

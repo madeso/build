@@ -27,8 +27,8 @@ internal class CheckNamesFile
     public static Fil GetBuildDataPath(Dir cwd)
         => cwd.GetFile(FileNames.CheckNames);
 
-    public static CheckNamesFile? LoadFromDirectoryOrNull(VfsRead vread, Dir cwd, Log print)
+    public static CheckNamesFile? LoadFromDirectoryOrNull(Vfs vfs, Dir cwd, Log print)
     {
-        return ConfigFile.LoadOrNull<CheckNamesFile>(vread, print, GetBuildDataPath(cwd));
+        return ConfigFile.LoadOrNull<CheckNamesFile>(vfs, print, GetBuildDataPath(cwd));
     }
 }

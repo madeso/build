@@ -22,7 +22,7 @@ internal sealed class WriteCodeCity : Command<WriteCodeCity.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var cwd = Dir.CurrentDirectory;
-        var vwrite = new WriteToDisk();
+        var vfs = new VfsDisk();
 
         return CliUtil.PrintErrorsAtExit(printer =>
             {
@@ -32,7 +32,7 @@ internal sealed class WriteCodeCity : Command<WriteCodeCity.Arg>
                     return -1;
                 }
                 var cubes = Facade.Collect(printer, dox);
-                Cli.ToSingleFile(cwd, arg.OutputFile, "code-city.html").WriteAllLines(vwrite, Facade.HtmlLines("CodeCity", cubes));
+                Cli.ToSingleFile(cwd, arg.OutputFile, "code-city.html").WriteAllLines(vfs, Facade.HtmlLines("CodeCity", cubes));
                 return 0;
             }
         );

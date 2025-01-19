@@ -29,12 +29,12 @@ internal sealed class CheckForMissingPragmaOnceCommand : Command<CheckForMissing
         var cwd = Dir.CurrentDirectory;
         var count = 0;
         var total_files = 0;
-        var vread = new ReadFromDisk();
+        var vfs = new VfsDisk();
 
         foreach (var file in FileUtil.SourcesFromArgs(cwd, settings.Files, FileUtil.IsHeader))
         {
             total_files += 1;
-            if (contains_pragma_once(vread, file))
+            if (contains_pragma_once(vfs, file))
             {
                 continue;
             }
@@ -46,9 +46,9 @@ internal sealed class CheckForMissingPragmaOnceCommand : Command<CheckForMissing
         AnsiConsole.WriteLine($"Found {count} in {total_files} files.");
         return 0;
 
-        static bool contains_pragma_once(VfsRead vread, Fil path)
+        static bool contains_pragma_once(Vfs vfs, Fil path)
         {
-            return path.ReadAllLines(vread)
+            return path.ReadAllLines(vfs)
                     .Any(line => line.Contains("#pragma once"))
                 ;
         }

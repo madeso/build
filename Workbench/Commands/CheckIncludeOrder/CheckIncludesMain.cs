@@ -10,11 +10,11 @@ public static class CheckIncludesCommonExecute
     public static int WithLoadedIncludeData(Func<Log, IncludeData, int> callback)
     {
         var cwd = Dir.CurrentDirectory;
-        var vread = new ReadFromDisk();
+        var vfs = new VfsDisk();
 
         return CliUtil.PrintErrorsAtExit(print =>
         {
-            var data = IncludeData.LoadOrNull(vread, cwd, print);
+            var data = IncludeData.LoadOrNull(vfs, cwd, print);
             if (data == null)
             {
                 print.Error("Unable to load the data");
@@ -76,9 +76,9 @@ internal sealed class InitCommand : Command<InitCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
-        var vwrite = new WriteToDisk();
+        var vfs = new VfsDisk();
 
-        return CliUtil.PrintErrorsAtExit(print => IncludeTools.HandleInit(vwrite, cwd, print, settings.Overwrite));
+        return CliUtil.PrintErrorsAtExit(print => IncludeTools.HandleInit(vfs, cwd, print, settings.Overwrite));
     }
 }
 
@@ -92,12 +92,11 @@ internal sealed class MissingPatternsCommand : Command<MissingPatternsCommand.Ar
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
-        var vread = new ReadFromDisk();
-        var vwrite = new WriteToDisk();
+        var vfs = new VfsDisk();
 
         return CheckIncludesCommonExecute.WithLoadedIncludeData
             (
-                (print, data) => IncludeTools.CommonMain(vread, vwrite, cwd, settings.ToCommon(), print, data,
+                (print, data) => IncludeTools.CommonMain(vfs, cwd, settings.ToCommon(), print, data,
                     new CheckAction.MissingPatterns())
             );
     }
@@ -117,12 +116,11 @@ internal sealed class ListUnfixableCommand : Command<ListUnfixableCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
-        var vread = new ReadFromDisk();
-        var vwrite = new WriteToDisk();
+        var vfs = new VfsDisk();
 
         return CheckIncludesCommonExecute.WithLoadedIncludeData
             (
-                (print, data) => IncludeTools.CommonMain(vread, vwrite, cwd, settings.ToCommon(), print, data, new CheckAction.ListUnfixable(settings.PrintAllErrors == false))
+                (print, data) => IncludeTools.CommonMain(vfs, cwd, settings.ToCommon(), print, data, new CheckAction.ListUnfixable(settings.PrintAllErrors == false))
             );
     }
 }
@@ -137,12 +135,11 @@ internal sealed class CheckCommand : Command<CheckCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
-        var vread = new ReadFromDisk();
-        var vwrite = new WriteToDisk();
+        var vfs = new VfsDisk();
 
         return CheckIncludesCommonExecute.WithLoadedIncludeData
             (
-                (print, data) => IncludeTools.CommonMain(vread, vwrite, cwd, settings.ToCommon(), print, data, new CheckAction.Check())
+                (print, data) => IncludeTools.CommonMain(vfs, cwd, settings.ToCommon(), print, data, new CheckAction.Check())
             );
     }
 }
@@ -161,12 +158,11 @@ internal sealed class FixCommand : Command<FixCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
-        var vread = new ReadFromDisk();
-        var vwrite = new WriteToDisk();
+        var vfs = new VfsDisk();
 
         return CheckIncludesCommonExecute.WithLoadedIncludeData
             (
-                (print, data) => IncludeTools.CommonMain(vread, vwrite, cwd, settings.ToCommon(), print, data, new CheckAction.Fix(settings.WriteToFile == false))
+                (print, data) => IncludeTools.CommonMain(vfs, cwd, settings.ToCommon(), print, data, new CheckAction.Fix(settings.WriteToFile == false))
             );
     }
 }

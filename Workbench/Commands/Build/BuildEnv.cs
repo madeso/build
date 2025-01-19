@@ -195,13 +195,13 @@ public static class BuildFunctions
             _ => throw new Exception("Invalid compiler"),
         };
 
-    public static void SaveToFile(VfsWrite vfs, BuildEnvironment self, Fil path)
+    public static void SaveToFile(Vfs vfs, BuildEnvironment self, Fil path)
     {
         path.WriteAllText(vfs, JsonUtil.Write(self));
     }
 
     // load build environment from json file
-    public static BuildEnvironment LoadFromFileOrCreateEmpty(VfsRead vfs, Fil path, Log log)
+    public static BuildEnvironment LoadFromFileOrCreateEmpty(Vfs vfs, Fil path, Log log)
     {
         if (path.Exists == false)
         {

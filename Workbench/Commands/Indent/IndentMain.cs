@@ -40,7 +40,7 @@ internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
     {
         var cwd = Dir.CurrentDirectory;
         var folder = settings.SearchPath ?? Directory.GetCurrentDirectory();
-        var vread = new ReadFromDisk();
+        var vfs = new VfsDisk();
 
         var dir = new Dir(folder);
         if (dir.Exists == false)
@@ -51,7 +51,7 @@ internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
         var files = FileUtil.IterateFiles(dir, settings.IncludeHidden, settings.Recursive)
             .ToImmutableArray();
 
-        var grouped = IndentFunctions.GroupExtensionsWithMaxIndent(vread, settings.TabWidth, settings.EnableJavadocHack, files);
+        var grouped = IndentFunctions.GroupExtensionsWithMaxIndent(vfs, settings.TabWidth, settings.EnableJavadocHack, files);
         foreach (var f in grouped)
         {
             AnsiConsole.MarkupLineInterpolated($"Max ident [red]{f.MaxIdent.Info.Max}[/] ([red]{f.MaxIdent.Info.MaxLevel}[/]) for [blue]{f.Type}[/] in [blue]{f.MaxIdent.File}[/] ({f.MaxIdent.Info.MaxLine})");
@@ -101,9 +101,9 @@ internal sealed class ListIndentsCommand : Command<ListIndentsCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
-        var vread = new ReadFromDisk();
+        var vfs = new VfsDisk();
 
-        return IndentFunctions.HandleListIndents(vread, cwd, settings.Files, settings.Each, settings.Show, settings.DisplayHistogram, settings.DiscardEmpty);
+        return IndentFunctions.HandleListIndents(vfs, cwd, settings.Files, settings.Each, settings.Show, settings.DisplayHistogram, settings.DiscardEmpty);
     }
 }
 

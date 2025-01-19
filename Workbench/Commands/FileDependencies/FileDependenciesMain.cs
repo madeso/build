@@ -27,7 +27,7 @@ internal static class FileDeps
     }
 
     // todo(Gustav): is this working correctly???
-    public static async Task<Dictionary<Fil, ConnectionEntry>> ExtractGraphData(VfsRead vread, VfsWrite vwrite, Dir cwd, Fil git_path, Log log)
+    public static async Task<Dictionary<Fil, ConnectionEntry>> ExtractGraphData(Vfs vfs, Dir cwd, Fil git_path, Log log)
     {
         // todo(Gustav): make a list and move to argument
         var external_folder = cwd.GetSubDirs("external");
@@ -37,7 +37,7 @@ internal static class FileDeps
         var latest_commit = commits[0].Hash;
 
         // collect files (collect is slow, so cache!
-        var cache = JsonUtil.GetOrNull<GitFile>(vread, GitFile.GetPath(cwd), log);
+        var cache = JsonUtil.GetOrNull<GitFile>(vfs, GitFile.GetPath(cwd), log);
         var collected_before = cache?.File;
         if (collected_before == null || cache == null || cache.LatestCommit != latest_commit)
         {
@@ -61,7 +61,7 @@ internal static class FileDeps
             };
 
             AnsiConsole.WriteLine("Saving git cache");
-            JsonUtil.Save(vwrite, GitFile.GetPath(cwd), cache);
+            JsonUtil.Save(vfs, GitFile.GetPath(cwd), cache);
         }
         else
         {
@@ -126,22 +126,21 @@ internal sealed class ListInfoCommand : AsyncCommand<ListInfoCommand.Arg>
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var cwd = Dir.CurrentDirectory;
-        var vread = new ReadFromDisk();
-        var vwrite = new WriteToDisk();
+        var vfs = new VfsDisk();
         var paths = new Config.RealPaths();
 
-        return await CliUtil.PrintErrorsAtExitAsync(async log => await Run(vread, vwrite, paths, cwd, arg, log));
+        return await CliUtil.PrintErrorsAtExitAsync(async log => await Run(vfs, paths, cwd, arg, log));
     }
 
-    private static async Task<int> Run(VfsRead vread, VfsWrite vwrite, Config.Paths paths, Dir cwd, Arg arg, Log log)
+    private static async Task<int> Run(Vfs vfs, Config.Paths paths, Dir cwd, Arg arg, Log log)
     {
-        var git_path = paths.GetGitExecutable(vread, cwd, log);
+        var git_path = paths.GetGitExecutable(vfs, cwd, log);
         if (git_path == null)
         {
             return -1;
         }
 
-        var counters = await FileDeps.ExtractGraphData(vread, vwrite, cwd, git_path, log);
+        var counters = await FileDeps.ExtractGraphData(vfs, cwd, git_path, log);
 
         var commits = counters.Values
             .Where(c => c.Commits >= arg.MinCommits)
@@ -210,21 +209,20 @@ internal sealed class GitFilesCommand : AsyncCommand<GitFilesCommand.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
-        var vread = new ReadFromDisk();
-        var vwrite = new WriteToDisk();
+        var vfs = new VfsDisk();
 
-        return await CliUtil.PrintErrorsAtExitAsync(async log => await Run(vread, vwrite, paths, cwd, arg, log));
+        return await CliUtil.PrintErrorsAtExitAsync(async log => await Run(vfs, paths, cwd, arg, log));
     }
 
-    private static async Task<int> Run(VfsRead vread, VfsWrite vwrite, Config.Paths paths, Dir cwd, Arg arg, Log log)
+    private static async Task<int> Run(Vfs vfs, Config.Paths paths, Dir cwd, Arg arg, Log log)
     {
-        var git_path = paths.GetGitExecutable(vread, cwd, log);
+        var git_path = paths.GetGitExecutable(vfs, cwd, log);
         if (git_path == null)
         {
             return -1;
         }
 
-        var counters = await FileDeps.ExtractGraphData(vread, vwrite, cwd, git_path, log);
+        var counters = await FileDeps.ExtractGraphData(vfs, cwd, git_path, log);
 
         // draw graphviz with links with probability count, remove nodes with no links
         AnsiConsole.WriteLine("Collecting graphviz");
@@ -258,7 +256,7 @@ internal sealed class GitFilesCommand : AsyncCommand<GitFilesCommand.Arg>
 
         var gvf = Cli.ToSingleFile(cwd, arg.OutputFile, "file-dependencies.html");
         AnsiConsole.WriteLine($"Writing graphviz to {gvf} with {gv.NodeCount} nodes and {gv.EdgeCount} edges");
-        await gv.SmartWriteFileAsync(vread, vwrite, paths, cwd, gvf, log);
+        await gv.SmartWriteFileAsync(vfs, paths, cwd, gvf, log);
 
         AnsiConsole.WriteLine("Done!");
         return 0;

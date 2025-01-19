@@ -29,9 +29,9 @@ public readonly struct BuildData
         return BuildDirectory.GetFile(FileNames.BuildSettings);
     }
 
-    public static BuildData? LoadOrNull(VfsRead vread, Dir cwd, Log print)
+    public static BuildData? LoadOrNull(Vfs vfs, Dir cwd, Log print)
     {
-        return ConfigFile.LoadOrNull<BuildFile, BuildData>(vread, print, BuildFile.GetBuildDataPath(cwd),
+        return ConfigFile.LoadOrNull<BuildFile, BuildData>(vfs, print, BuildFile.GetBuildDataPath(cwd),
             loaded =>
             {
                 var bd = new BuildData(loaded.Name, cwd);

@@ -18,7 +18,7 @@ internal sealed class CheckCommand : Command<CheckCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var cwd = Dir.CurrentDirectory;
-        var vread = new ReadFromDisk();
+        var vfs = new VfsDisk();
 
         return CliUtil.PrintErrorsAtExit(printer =>
         {
@@ -27,7 +27,7 @@ internal sealed class CheckCommand : Command<CheckCommand.Arg>
             {
                 return -1;
             }
-            return CheckNamesRunner.Run(vread, cwd, printer, dox, cwd);
+            return CheckNamesRunner.Run(vfs, cwd, printer, dox, cwd);
         });
     }
 }
@@ -45,9 +45,9 @@ internal sealed class InitCommand : Command<InitCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
-        var vwrite = new WriteToDisk();
+        var vfs = new VfsDisk();
 
-        return CliUtil.PrintErrorsAtExit(print => CheckNamesRunner.HandleInit(vwrite, cwd, print, settings.Overwrite));
+        return CliUtil.PrintErrorsAtExit(print => CheckNamesRunner.HandleInit(vfs, cwd, print, settings.Overwrite));
     }
 }
 

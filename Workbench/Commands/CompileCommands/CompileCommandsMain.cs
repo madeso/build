@@ -16,16 +16,16 @@ internal sealed class FilesCommand : Command<FilesCommand.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
-        var vread = new ReadFromDisk();
+        var vfs = new VfsDisk();
 
         return CliUtil.PrintErrorsAtExit
             (
                 print =>
                 {
-                    var path = CompileCommand.FindOrNone(vread, cwd, settings, print, paths);
+                    var path = CompileCommand.FindOrNone(vfs, cwd, settings, print, paths);
                     if (path == null) { return -1; }
 
-                    var commands = CompileCommand.LoadCompileCommandsOrNull(vread, print, path);
+                    var commands = CompileCommand.LoadCompileCommandsOrNull(vfs, print, path);
                     if (commands == null) { return -1; }
 
                     AnsiConsole.WriteLine($"{commands}");
@@ -46,16 +46,16 @@ internal sealed class IncludesCommand : Command<IncludesCommand.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
-        var vread = new ReadFromDisk();
+        var vfs = new VfsDisk();
 
         return CliUtil.PrintErrorsAtExit
             (
                 print =>
                 {
-                    var path = CompileCommand.FindOrNone(vread, cwd, settings, print, paths);
+                    var path = CompileCommand.FindOrNone(vfs, cwd, settings, print, paths);
                     if (path == null) { return -1; }
 
-                    var commands = CompileCommand.LoadCompileCommandsOrNull(vread, print, path);
+                    var commands = CompileCommand.LoadCompileCommandsOrNull(vfs, print, path);
                     if (commands == null) { return -1; }
 
                     foreach (var (file, command) in commands)
@@ -83,16 +83,16 @@ internal sealed class DefinesCommand : Command<DefinesCommand.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
-        var vread = new ReadFromDisk();
+        var vfs = new VfsDisk();
 
         return CliUtil.PrintErrorsAtExit
             (
                 print =>
                 {
-                    var path = CompileCommand.FindOrNone(vread, cwd, settings, print, paths);
+                    var path = CompileCommand.FindOrNone(vfs, cwd, settings, print, paths);
                     if (path == null) { return -1; }
 
-                    var commands = CompileCommand.LoadCompileCommandsOrNull(vread, print, path);
+                    var commands = CompileCommand.LoadCompileCommandsOrNull(vfs, print, path);
                     if (commands == null) { return -1; }
 
                     foreach (var (file, command) in commands)
