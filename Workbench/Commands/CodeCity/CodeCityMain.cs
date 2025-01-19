@@ -26,7 +26,7 @@ internal sealed class WriteCodeCity : Command<WriteCodeCity.Arg>
 
         return CliUtil.PrintErrorsAtExit(printer =>
             {
-                var dox = Cli.RequireDirectory(cwd, printer, arg.DoxygenXml, "Doxygen xml folder");
+                var dox = Cli.RequireDirectory(vfs, cwd, printer, arg.DoxygenXml, "Doxygen xml folder");
                 if (dox == null)
                 {
                     return -1;

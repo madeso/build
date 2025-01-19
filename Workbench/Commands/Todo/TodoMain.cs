@@ -38,7 +38,7 @@ internal sealed class FindTodosCommand : AsyncCommand<FindTodosCommand.Arg>
         var cc = new ColCounter<Fil>();
         var log = new LogToConsole();
 
-        var source_files = TodoComments.ListFiles(cwd);
+        var source_files = TodoComments.ListFiles(vfs, cwd);
         await SpectreExtensions.Progress().RunArrayAsync(source_files, async file =>
         {
             var todos = await TodoComments.FindTodosInFileAsync(vfs, file);
@@ -93,7 +93,7 @@ internal sealed class GroupWithTimeCommand : AsyncCommand<GroupWithTimeCommand.A
 
             var todo_list = new List<TodoInFile>();
 
-            var source_files = TodoComments.ListFiles(cwd);
+            var source_files = TodoComments.ListFiles(vfs, cwd);
             await SpectreExtensions.Progress().RunArrayAsync(source_files, async file =>
             {
                 var todos = await TodoComments.FindTodosInFileAsync(vfs, file);

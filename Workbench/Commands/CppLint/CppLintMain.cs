@@ -21,15 +21,17 @@ internal sealed class LsCommand : Command<LsCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var cwd = Dir.CurrentDirectory;
+        var vfs = new VfsDisk();
+
         return CliUtil.PrintErrorsAtExit(log =>
         {
-            var root = Cli.RequireDirectory(cwd, log, arg.Root, "ls directory");
+            var root = Cli.RequireDirectory(vfs, cwd, log, arg.Root, "ls directory");
             if (root == null)
             {
                 return -1;
             }
 
-            return CliUtil.PrintErrorsAtExit(print => Cpplint.HandleList(cwd, print, root));
+            return CliUtil.PrintErrorsAtExit(print => Cpplint.HandleList(vfs, cwd, print, root));
         });
     }
 }
@@ -53,7 +55,7 @@ internal sealed class RunCommand : AsyncCommand<RunCommand.Arg>
 
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
-            var root = Cli.RequireDirectory(cwd, log, arg.Root, "root");
+            var root = Cli.RequireDirectory(vfs, cwd, log, arg.Root, "root");
             if (root == null)
             {
                 return -1;

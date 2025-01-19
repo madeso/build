@@ -45,7 +45,7 @@ internal sealed class CatDirCommand : Command<CatDirCommand.Arg>
         var dir = new Dir(arg.Dir);
         var vfs = new VfsDisk();
 
-        foreach (var file in FileUtil.IterateFiles(dir, false, true)
+        foreach (var file in FileUtil.IterateFiles(vfs, dir, false, true)
             .Where(file => arg.IncludeSources ? FileUtil.IsHeaderOrSource(file) : FileUtil.IsHeader(file))
         )
         {
@@ -110,40 +110,42 @@ internal sealed class LsCommand : Command<LsCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
+        var vfs = new VfsDisk();
+
         return CliUtil.PrintErrorsAtExit(log =>
         {
-            var dir = Cli.RequireDirectory(cwd, log, settings.Path, "path");
+            var dir = Cli.RequireDirectory(vfs, cwd, log, settings.Path, "path");
             if (dir == null)
             {
                 return -1;
             }
 
             var tree = new Tree(dir.Name);
-            print_recursive(tree, dir, settings.Recursive, 0, settings.MaxDepth);
+            print_recursive(vfs, tree, dir, settings.Recursive, 0, settings.MaxDepth);
             AnsiConsole.Write(tree);
             return 0;
 
-            static void print_recursive(IHasTreeNodes tree, Dir root, bool recursive, int current_depth, int max_depth)
+            static void print_recursive(Vfs vfs, IHasTreeNodes tree, Dir root, bool recursive, int current_depth, int max_depth)
             {
                 if (max_depth >= 0 && current_depth >= max_depth)
                 {
-                    if (root.EnumerateDirectories().Any() || root.EnumerateFiles().Any())
+                    if (root.EnumerateDirectories(vfs).Any() || root.EnumerateFiles(vfs).Any())
                     {
                         tree.AddNode("...");
                     }
                     return;
                 }
-                foreach (var file_path in root.EnumerateDirectories())
+                foreach (var file_path in root.EnumerateDirectories(vfs))
                 {
                     var n = tree.AddNode(Cli.ToMarkup($"[blue]{file_path.Name}[/]/"));
                     if(recursive)
                     {
-                        print_recursive(n, file_path, recursive, current_depth+1, max_depth);
+                        print_recursive(vfs, n, file_path, recursive, current_depth+1, max_depth);
                     }
                 }
                 
 
-                foreach (var file_path in root.EnumerateFiles())
+                foreach (var file_path in root.EnumerateFiles(vfs))
                 {
                     tree.AddNode(Cli.ToMarkup($"[red]{file_path.Name}[/]"));
                 }

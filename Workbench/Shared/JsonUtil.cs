@@ -42,7 +42,7 @@ public static class JsonUtil
     public static T? GetOrNull<T>(Vfs vfs, Fil path, Log log)
         where T: class
     {
-        if (!path.Exists)
+        if (!path.Exists(vfs))
         {
             return null;
         }

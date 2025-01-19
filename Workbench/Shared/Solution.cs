@@ -287,12 +287,12 @@ public class Solution
 
             foreach (var (project, project_relative_path) in loads)
             {
-                var path_to_project_file = determine_real_filename(project_relative_path);
+                var path_to_project_file = determine_real_filename(vfs, project_relative_path);
                 if (path_to_project_file == null)
                 {
                     continue;
                 }
-                if (path_to_project_file.Exists)
+                if (path_to_project_file.Exists(vfs))
                 {
                     AnsiConsole.WriteLine($"Unable to open project file: {path_to_project_file}");
                     continue;
@@ -399,10 +399,10 @@ public class Solution
 
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
             // load additional project data from file
-            static Fil? determine_real_filename(Fil pa)
+            static Fil? determine_real_filename(Vfs vfs, Fil pa)
                 => Functional.Params("", ".vcxproj", ".csproj")
                     .Select(x => new Fil(pa.Path + x))
-                    .FirstOrDefault(p => p.Exists);
+                    .FirstOrDefault(p => p.Exists(vfs));
         }
 
     }

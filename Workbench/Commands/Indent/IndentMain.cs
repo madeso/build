@@ -43,12 +43,12 @@ internal sealed class IndentationCommand : Command<IndentationCommand.Settings>
         var vfs = new VfsDisk();
 
         var dir = new Dir(folder);
-        if (dir.Exists == false)
+        if (dir.Exists(vfs) == false)
         {
             AnsiConsole.MarkupLineInterpolated($"[blue]ERROR[/]: Unable to open [red]{dir.GetDisplay(cwd)}[/]");
             return -1;
         }
-        var files = FileUtil.IterateFiles(dir, settings.IncludeHidden, settings.Recursive)
+        var files = FileUtil.IterateFiles(vfs, dir, settings.IncludeHidden, settings.Recursive)
             .ToImmutableArray();
 
         var grouped = IndentFunctions.GroupExtensionsWithMaxIndent(vfs, settings.TabWidth, settings.EnableJavadocHack, files);

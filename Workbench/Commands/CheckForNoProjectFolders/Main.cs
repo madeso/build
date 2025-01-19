@@ -29,22 +29,24 @@ internal sealed class CheckForNoProjectFoldersCommand : AsyncCommand<CheckForNoP
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
+        var vfs = new VfsDisk();
+
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
-            var cmake = FindCMake.RequireInstallationOrNull(log);
+            var cmake = FindCMake.RequireInstallationOrNull(vfs, log);
             if (cmake == null)
             {
                 return -1;
             }
 
-            var build_root = FindCMake.ListAllBuilds(cwd, settings)
+            var build_root = FindCMake.ListAllBuilds(vfs, cwd, settings)
                 .RequireFirstValueOrNull(log, "build root");
             if (build_root == null)
             {
                 return -1;
             }
 
-            return await CheckForNoProjectFolders(cwd, Cli.ToDirectories(cwd, log, settings.Directories), build_root, cmake);
+            return await CheckForNoProjectFolders(cwd, Cli.ToDirectories(vfs, cwd, log, settings.Directories), build_root, cmake);
         });
     }
 

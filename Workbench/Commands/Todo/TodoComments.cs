@@ -21,11 +21,11 @@ internal partial class TodoComments
         ;
     }
 
-    public static ImmutableArray<Fil> ListFiles(Dir root)
+    public static ImmutableArray<Fil> ListFiles(Vfs vfs, Dir root)
     {
         var build_folder = root.GetDir("build");
         
-        var files = FileUtil.IterateFiles(root, false, true)
+        var files = FileUtil.IterateFiles(vfs, root, false, true)
                 .Where(f => FileUtil.ClassifySource(f) != Language.Unknown)
                 .Select(f => f)
                 .Where(x => build_folder.HasFile(x) == false)

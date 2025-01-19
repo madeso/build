@@ -73,7 +73,7 @@ internal sealed class GenerateCommand : AsyncCommand<GenerateCommand.Arg>
 
         return await CliUtil.PrintErrorsAtExitAsync(async printer =>
         {
-            var sln = Cli.RequireFile(cwd, printer, args.Solution, "solution file");
+            var sln = Cli.RequireFile(vfs, cwd, printer, args.Solution, "solution file");
             if (sln == null)
             {
                 return -1;
@@ -98,7 +98,7 @@ internal sealed class WriteCommand : Command<WriteCommand.Arg>
 
         return CliUtil.PrintErrorsAtExit(printer =>
         {
-            var sln = Cli.RequireFile(cwd, printer, args.Solution, "solution file");
+            var sln = Cli.RequireFile(vfs, cwd, printer, args.Solution, "solution file");
             if (sln == null)
             {
                 return -1;
@@ -123,7 +123,7 @@ internal sealed class SourceCommand : Command<SourceCommand.Arg>
 
         return CliUtil.PrintErrorsAtExit(printer =>
         {
-            var sln = Cli.RequireFile(cwd, printer, args.Solution, "solution file");
+            var sln = Cli.RequireFile(vfs, cwd, printer, args.Solution, "solution file");
             if (sln == null)
             {
                 return -1;
@@ -149,7 +149,7 @@ internal sealed class ListCommand : Command<ListCommand.Arg>
 
         return CliUtil.PrintErrorsAtExit(printer =>
         {
-            var sln = Cli.RequireFile(cwd, printer, args.Solution, "solution file");
+            var sln = Cli.RequireFile(vfs, cwd, printer, args.Solution, "solution file");
             if (sln == null)
             {
                 return -1;

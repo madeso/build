@@ -27,17 +27,17 @@ public static class Cli
         }
     }
 
-    public static Dir? RequireDirectory(Dir cwd, Log log, string? arg, string name)
+    public static Dir? RequireDirectory(Vfs vfs, Dir cwd, Log log, string? arg, string name)
     {
         if (string.IsNullOrEmpty(arg)) return cwd;
 
         var rooted = FileUtil.RootPath(cwd, arg);
 
         var dd = new Dir(rooted);
-        if (dd.Exists) return dd;
+        if (dd.Exists(vfs)) return dd;
 
         var file = new Fil(rooted);
-        if (!file.Exists)
+        if (!file.Exists(vfs))
         {
             log.Error($"Directory {dd} for {name} doesn't exist");
             return null;
@@ -53,9 +53,9 @@ public static class Cli
         return null;
     }
 
-    public static IEnumerable<Dir> ToDirectories(Dir cwd, Log log, IEnumerable<string> args)
+    public static IEnumerable<Dir> ToDirectories(Vfs vfs, Dir cwd, Log log, IEnumerable<string> args)
     {
-        return args.Select(a => new { Arg = a, Folder = ToExistingDirOrNull(cwd, a) })
+        return args.Select(a => new { Arg = a, Folder = ToExistingDirOrNull(vfs, cwd, a) })
             .SelectNonNull(f => f.Folder, f =>
             {
                 log.Warning($"{f.Arg} is not a directory");
@@ -70,17 +70,17 @@ public static class Cli
         return new Dir(p);
     }
 
-    private static Dir? ToExistingDirOrNull(Dir cwd, string a)
+    private static Dir? ToExistingDirOrNull(Vfs vfs, Dir cwd, string a)
     {
         var p = ToDirPath(cwd, a);
         if(p == null) return null;
-        if(p.Exists == false) return null;
+        if(p.Exists(vfs) == false) return null;
         return p;
     }
 
-    public static IEnumerable<Fil> ToFiles(Log log, IEnumerable<string> args)
+    public static IEnumerable<Fil> ToFiles(Vfs vfs, Log log, IEnumerable<string> args)
     {
-        return args.Select(a => new {Arg = a, File = Fil.ToExistingDirOrNull(a)})
+        return args.Select(a => new {Arg = a, File = Fil.ToExistingDirOrNull(vfs, a) })
             .SelectNonNull(f => f.File, f =>
             {
                 log.Warning($"{f.Arg} is not a file");
@@ -103,10 +103,10 @@ public static class Cli
         return new Fil(rooted);
     }
 
-    public static Fil? RequireFile(Dir cwd, Log log, string arg, string name)
+    public static Fil? RequireFile(Vfs vfs, Dir cwd, Log log, string arg, string name)
     {
         var file = new Fil(FileUtil.RootPath(cwd, arg));
-        if (file.Exists == false)
+        if (file.Exists(vfs) == false)
         {
             log.Error($"File '{arg}', passed for {name}, doesn't exist ({file})");
             return null;

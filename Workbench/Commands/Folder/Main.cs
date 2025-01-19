@@ -33,15 +33,17 @@ internal sealed class ShowHiddenCommand : Command<ShowHiddenCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var cwd = Dir.CurrentDirectory;
+        var vfs = new VfsDisk();
+
         return CliUtil.PrintErrorsAtExit(log =>
         {
-            var dir = Cli.RequireDirectory(cwd, log, arg.Directory, "directory");
+            var dir = Cli.RequireDirectory(vfs, cwd, log, arg.Directory, "directory");
             if (dir == null)
             {
                 return -1;
             }
 
-            FolderTool.ShowHiddenFiles(dir);
+            FolderTool.ShowHiddenFiles(vfs, dir);
             return 0;
         });
     }
@@ -64,16 +66,18 @@ internal sealed class RemoveEmptyCommand : Command<RemoveEmptyCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var cwd = Dir.CurrentDirectory;
+        var vfs = new VfsDisk();
+
         return CliUtil.PrintErrorsAtExit(log =>
         {
-            var dir = Cli.RequireDirectory(cwd, log, arg.Directory, "directory");
+            var dir = Cli.RequireDirectory(vfs, cwd, log, arg.Directory, "directory");
             if (dir == null)
             {
                 return -1;
             }
 
 
-            FolderTool.RemoveDirectoriesRec(dir, arg.MinFileCount ?? 0);
+            FolderTool.RemoveDirectoriesRec(vfs, dir, arg.MinFileCount ?? 0);
             return 0;
         });
     }
@@ -81,15 +85,15 @@ internal sealed class RemoveEmptyCommand : Command<RemoveEmptyCommand.Arg>
 
 public class FolderTool
 {
-    public static void ShowHiddenFiles(Dir dir)
+    public static void ShowHiddenFiles(Vfs vfs, Dir dir)
     {
         AnsiConsole.WriteLine($"Started on {dir}");
-        foreach (var d in dir.EnumerateDirectories())
+        foreach (var d in dir.EnumerateDirectories(vfs))
         {
-            ShowHiddenFiles(d);
+            ShowHiddenFiles(vfs, d);
         }
 
-        foreach (var f in dir.EnumerateFiles())
+        foreach (var f in dir.EnumerateFiles(vfs))
         {
             var fi = new FileInfo(f.Path);
             if ((fi.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden)
@@ -100,23 +104,23 @@ public class FolderTool
         }
     }
 
-    public static void RemoveDirectoriesRec(Dir dir, int min_file_count)
+    public static void RemoveDirectoriesRec(Vfs vfs, Dir dir, int min_file_count)
     {
         AnsiConsole.WriteLine($"Started on {dir}");
 
-        if (false == dir.Exists)
+        if (false == dir.Exists(vfs))
         {
             AnsiConsole.WriteLine($"{dir} doesn't exist");
             return;
         }
 
-        var dirs = dir.EnumerateDirectories().ToImmutableArray();
+        var dirs = dir.EnumerateDirectories(vfs).ToImmutableArray();
         foreach (var sub in dirs)
         {
-            RemoveDirectoriesRec(sub, min_file_count);
+            RemoveDirectoriesRec(vfs, sub, min_file_count);
         }
 
-        var files = dir.EnumerateFiles().ToImmutableArray();
+        var files = dir.EnumerateFiles(vfs).ToImmutableArray();
         if (files.Any())
         {
             var valid_files = new List<Fil>();
@@ -153,10 +157,10 @@ public class FolderTool
         }
 
         // contains non-empty subdirectories...
-        if (dir.EnumerateDirectories().Any()) return;
+        if (dir.EnumerateDirectories(vfs).Any()) return;
 
         // contains files
-        if (dir.EnumerateFiles().Any()) return;
+        if (dir.EnumerateFiles(vfs).Any()) return;
 
         try
         {

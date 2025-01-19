@@ -54,14 +54,15 @@ public class TestClang : TestBase
             ClangTidyExecutable = exe.GetFile("clang-tidy.exe"),
             CompileCommands = cwd.GetFile("compile-commands.json")
         });
-        
+        vfs.AddContent(cwd.GetFile("clang-tidy"), "");
+
         var args = new ClangTidy.Args(null, 1, false, ["libs"], true, false, false, []);
-        var ret = await tidy.HandleRunClangTidyCommand(paths, cwd, new CompileCommandsArguments(), log, false, args);
+        var ret = await tidy.HandleRunClangTidyCommand(vfs, paths, cwd, new CompileCommandsArguments(), log, false, args);
         using (new AssertionScope())
         {
             ret.Should().Be(0);
             log.Errors.Should().BeEmpty();
         }
     }
-    */
+    //*/
 }

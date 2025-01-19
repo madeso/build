@@ -10,9 +10,9 @@ public record Executable
     public string PrimaryExecutable { get; init; }
     public string FriendlyName {get; init; }
     public string ListName {get; init; }
-    public Func<IEnumerable<Found<Fil>>> Additional;
+    public Func<Vfs, IEnumerable<Found<Fil>>> Additional { get; }
 
-    public Executable(string primary_executable, string? name = null, Func<IEnumerable<Found<Fil>>>? additional = null)
+    public Executable(string primary_executable, string? name = null, Func<Vfs, IEnumerable<Found<Fil>>>? additional = null)
     {
         var the_name = name ?? primary_executable;
         Name = the_name;
@@ -21,7 +21,7 @@ public record Executable
         ListName = $"{the_name} executables";
         Additional = additional ?? empty;
 
-        static IEnumerable<Found<Fil>> empty()
+        static IEnumerable<Found<Fil>> empty(Vfs _)
         {
             return Array.Empty<Found<Fil>>();
         }
@@ -33,15 +33,15 @@ public static class DefaultExecutables
     public static readonly Executable Git = new ("git");
     public static readonly Executable CppLint = new("cpplint");
 
-    public static readonly Executable ClangFormat = new ("clang-format", additional: () =>
-        Functional.Params(Which.FindPaths(name => name.StartsWith("clang-format-"))));
+    public static readonly Executable ClangFormat = new ("clang-format", additional: vfs =>
+        Functional.Params(Which.FindPaths(vfs, name => name.StartsWith("clang-format-"))));
 
-    public static readonly Executable ClangTidy = new ("clang-tidy", additional: () =>
-        Functional.Params(Which.FindPaths(name => name.StartsWith("clang-tidy-"))));
+    public static readonly Executable ClangTidy = new ("clang-tidy", additional: vfs =>
+        Functional.Params(Which.FindPaths(vfs, name => name.StartsWith("clang-tidy-"))));
 
     // todo(Gustav): expand name and different executables
-    public static readonly Executable Graphviz = new("dot", "graphviz", additional: ()=>
-        Functional.Params(Which.FindPaths(name => name switch
+    public static readonly Executable Graphviz = new("dot", "graphviz", additional: vfs =>
+        Functional.Params(Which.FindPaths(vfs, name => name switch
         {
             "twopi" or "neato" or "sfdp" or "fdp" or "circo"
                 => true,

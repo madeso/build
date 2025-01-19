@@ -21,8 +21,10 @@ internal sealed class TraceCommand : AsyncCommand<TraceCommand.Arg>
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
+        var vfs = new VfsDisk();
+
         return await CliUtil.PrintErrorsAtExitAsync(async printer => {
-            var cmake = FindCMake.RequireInstallationOrNull(printer);
+            var cmake = FindCMake.RequireInstallationOrNull(vfs, printer);
 
             if (cmake == null)
             {
@@ -95,7 +97,7 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
         var vfs = new VfsDisk();
 
         return await CliUtil.PrintErrorsAtExitAsync(async printer => {
-            var cmake = FindCMake.RequireInstallationOrNull(printer);
+            var cmake = FindCMake.RequireInstallationOrNull(vfs, printer);
 
             if(cmake == null)
             {
@@ -103,7 +105,7 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
                 return -1;
             }
 
-            var dir = Cli.RequireDirectory(cwd, printer, settings.Directory, "cmake root");
+            var dir = Cli.RequireDirectory(vfs, cwd, printer, settings.Directory, "cmake root");
             if(dir == null)
             {
                 printer.Error("Failed to find cmake root");

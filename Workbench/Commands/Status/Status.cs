@@ -11,8 +11,8 @@ internal static class Status
     {
         AnsiConsole.WriteLine($"Root: {cwd}");
 
-        FindCMake.FindAllInstallations().PrintFoundList("cmake", FindCMake.FindInstallationOrNull());
-        FindCMake.ListAllBuilds(cwd, cc).PrintFoundList("cmake build", FindCMake.FindBuildOrNone(cwd, cc, null));
+        FindCMake.FindAllInstallations(vfs).PrintFoundList("cmake", FindCMake.FindInstallationOrNull(vfs));
+        FindCMake.ListAllBuilds(vfs, cwd, cc).PrintFoundList("cmake build", FindCMake.FindBuildOrNone(vfs, cwd, cc, null));
         CompileCommand.ListAll(vfs, cwd, cc, paths)
             .PrintFoundList("compile command", CompileCommand.FindOrNone(vfs, cwd, cc, null, paths));
     }

@@ -102,27 +102,27 @@ internal static class FileUtil
 
     public static readonly string[] PitchforkFolders = { "apps", "libs", "src", "include" };
 
-    public static IEnumerable<Dir> PitchforkBuildFolders(Dir root)
+    public static IEnumerable<Dir> PitchforkBuildFolders(Vfs vfs, Dir root)
     {
         var build = root.GetDir("build");
-        if (!build.Exists)
+        if (!build.Exists(vfs))
         {
             yield break;
         }
 
         yield return build;
 
-        foreach (var d in build.EnumerateDirectories())
+        foreach (var d in build.EnumerateDirectories(vfs))
         {
             yield return d;
         }
     }
 
-    public static IEnumerable<Fil> SourcesFromArgs(Dir cwd, IEnumerable<string> args, Func<Fil, bool> these_files)
-        => ListFilesFromArgs(cwd, args)
+    public static IEnumerable<Fil> SourcesFromArgs(Vfs vfs, Dir cwd, IEnumerable<string> args, Func<Fil, bool> these_files)
+        => ListFilesFromArgs(vfs, cwd, args)
             .Where(these_files);
 
-    public static IEnumerable<Fil> ListFilesFromArgs(Dir cwd, IEnumerable<string> args)
+    public static IEnumerable<Fil> ListFilesFromArgs(Vfs vfs, Dir cwd, IEnumerable<string> args)
     {
         foreach (var unrooted_file_or_dir in args)
         {
@@ -130,7 +130,7 @@ internal static class FileUtil
             if (File.Exists(file_or_dir)) yield return new Fil(file_or_dir);
             else // assume directory
             {
-                foreach (var f in IterateFiles(new Dir(file_or_dir), include_hidden: false, recursive: true))
+                foreach (var f in IterateFiles(vfs, new Dir(file_or_dir), include_hidden: false, recursive: true))
                 {
                     yield return f;
                 }
@@ -142,33 +142,33 @@ internal static class FileUtil
         => PitchforkFolders
             .Select(root.GetDir);
 
-    public static IEnumerable<Fil> FilesInPitchfork(Dir root, bool include_hidden)
+    public static IEnumerable<Fil> FilesInPitchfork(Vfs vfs, Dir root, bool include_hidden)
         => FoldersInPitchfork(root)
-            .Where(d => d.Exists)
-            .SelectMany(d => IterateFiles(d, include_hidden, true));
+            .Where(d => d.Exists(vfs))
+            .SelectMany(d => IterateFiles(vfs, d, include_hidden, true));
 
     public static string GetFirstFolder(Dir root, Fil file)
      => root.RelativeFromTo(file).Split(Path.DirectorySeparatorChar, 2)[0];
 
 
     // iterate all files, ignores special folders
-    public static IEnumerable<Fil> IterateFiles(Dir root, bool include_hidden, bool recursive)
+    public static IEnumerable<Fil> IterateFiles(Vfs vfs, Dir root, bool include_hidden, bool recursive)
     {
         // todo(Gustav): mvoe to Dir and remove recursive argument, Dir already has EnumerateFiles
         Debug.Assert(include_hidden == false); // todo(Gustav): remove argument
-        return sub_iterate_files(root, recursive);
+        return sub_iterate_files(vfs, root, recursive);
 
         static IEnumerable<Fil> sub_iterate_files(
-            Dir root, bool include_directories)
+            Vfs vfs, Dir root, bool include_directories)
         {
-            foreach (var f in root.EnumerateFiles())
+            foreach (var f in root.EnumerateFiles(vfs))
             {
                 yield return f;
             }
 
             if (include_directories)
             {
-                var files = root.EnumerateDirectories()
+                var files = root.EnumerateDirectories(vfs)
                         .Where(d => d.Name switch
                         {
                             // todo(Gustav): parse and use gitignore instead of hacky names
@@ -177,7 +177,7 @@ internal static class FileUtil
                                 => false,
                             _ => true,
                         })
-                        .SelectMany(d => sub_iterate_files(d, true))
+                        .SelectMany(d => sub_iterate_files(vfs, d, true))
                     ;
                 foreach (var f in files)
                 {

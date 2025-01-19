@@ -47,7 +47,7 @@ internal sealed class LinesCommand : Command<LinesCommand.Arg>
         (
             print =>
             {
-                var input = Cli.RequireFile(cwd, print, arg.FileName, "filename");
+                var input = Cli.RequireFile(vfs, cwd, print, arg.FileName, "filename");
                 if (input == null)
                 {
                     return -1;

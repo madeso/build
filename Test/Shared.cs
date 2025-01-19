@@ -53,14 +53,19 @@ internal class VfsTest : Vfs
         return entry;
     }
 
-    public bool Exists(Fil file_info)
+    public bool FileExists(Fil file_info)
     {
         return files.ContainsKey(file_info.Path);
     }
 
-    public Task<string> ReadAllTextAsync(Fil full_name)
+    public DateTime LastWriteTimeUtc(Fil fil)
     {
-        return Task<string>.Factory.StartNew(() => files[full_name.Path]);
+        throw new NotImplementedException();
+    }
+
+    public UnixFileMode UnixFileMode(Fil fil)
+    {
+        throw new NotImplementedException();
     }
 
     public void AddContent(Fil file, string content)
@@ -74,34 +79,19 @@ internal class VfsTest : Vfs
         files.Add(file.Path, content);
     }
 
-    public IEnumerable<Fil> GetFiles(Dir dir)
+    public void CreateDirectory(Dir dir)
+    {
+        throw new NotImplementedException();
+    }
+
+    public IEnumerable<Fil> EnumerateFiles(Dir dir)
     {
         return GetEntry(dir).files;
     }
 
-    public IEnumerable<Dir> GetDirectories(Dir root)
+    public IEnumerable<Dir> EnumerateDirs(Dir root)
     {
         return GetEntry(root).directories.Keys.Select(root.GetDir);
-    }
-
-    public IEnumerable<Fil> GetFilesRec(Dir dir)
-    {
-        return RecurseFiles(GetEntry(dir));
-
-        static IEnumerable<Fil> RecurseFiles(Entry entry)
-        {
-            foreach (var d in entry.directories.Values)
-            {
-                foreach (var f in RecurseFiles(d))
-                {
-                    yield return f;
-                }
-            }
-            foreach (var f in entry.files)
-            {
-                yield return f;
-            }
-        }
     }
 
     public string ReadAllText(Fil fil)
@@ -138,8 +128,6 @@ internal class VfsTest : Vfs
         }
     }
 
-    public IEnumerable<string> GetLines(Fil file) => GetContent(file).Split('\n', StringSplitOptions.TrimEntries).Where(s => string.IsNullOrWhiteSpace(s) == false);
-
     public IEnumerable<string> RemainingFiles => files_to_write.Keys;
 
     internal bool IsEmpty()
@@ -166,6 +154,11 @@ internal class VfsTest : Vfs
     public Task WriteAllLinesAsync(Fil fil, IEnumerable<string> contents)
     {
         return Task.Factory.StartNew(() => files_to_write.Add(fil.Path, string.Join("\n", contents)));
+    }
+
+    public bool DirectoryExists(Dir dir)
+    {
+        throw new NotImplementedException();
     }
 }
 

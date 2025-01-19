@@ -21,16 +21,18 @@ internal sealed class CheckFileNamesCommand : Command<CheckFileNamesCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         var cwd = Dir.CurrentDirectory;
-        return CliUtil.PrintErrorsAtExit(print => CheckFileNames(cwd, print, settings.Files));
+        var vfs = new VfsDisk();
+
+        return CliUtil.PrintErrorsAtExit(print => CheckFileNames(vfs, cwd, print, settings.Files));
     }
 
-    public static int CheckFileNames(Dir cwd, Log print, string[] args_files)
+    public static int CheckFileNames(Vfs vfs, Dir cwd, Log print, string[] args_files)
     {
         //todo(Gustav): merge with main Execute
         var files = 0;
         var errors = 0;
 
-        foreach (var file in FileUtil.SourcesFromArgs(cwd, args_files, FileUtil.IsHeaderOrSource))
+        foreach (var file in FileUtil.SourcesFromArgs(vfs, cwd, args_files, FileUtil.IsHeaderOrSource))
         {
             files += 1;
             if (file.Name.Contains('-'))

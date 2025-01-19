@@ -122,14 +122,14 @@ internal class CheckNamesRunner
         fails.Add(new(loc, error));
     }
 
-    private void PrintErrors(Dir root)
+    private void PrintErrors(Vfs vfs, Dir root)
     {
         foreach (var f in fails
             .OrderBy(x => x.Location.File)
             .ThenByDescending(x => x.Location!.Line)
             )
         {
-            log.Error(DoxygenUtils.LocationToString(f.Location, root), f.ErrorMessage);
+            log.Error(DoxygenUtils.LocationToString(vfs, f.Location, root), f.ErrorMessage);
         }
     }
 
@@ -159,7 +159,7 @@ internal class CheckNamesRunner
             runner.CheckNamespace(k);
         }
 
-        runner.PrintErrors(root);
+        runner.PrintErrors(vfs, root);
         runner.WriteFunctionMatchLog();
 
         AnsiConsole.MarkupLineInterpolated($"Found [red]{runner.errors_detected}[/] issues in [blue]{runner.names_checked}[/] names");

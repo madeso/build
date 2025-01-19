@@ -56,7 +56,7 @@ internal sealed class ListGraphvizCommand : AsyncCommand<ListGraphvizCommand.Arg
 
         return await CliUtil.PrintErrorsAtExitAsync(async printer =>
             {
-                var dox = Cli.RequireDirectory(cwd, printer, arg.DoxygenXml, "doxygen xml folder");
+                var dox = Cli.RequireDirectory(vfs, cwd, printer, arg.DoxygenXml, "doxygen xml folder");
                 if (dox == null)
                 {
                     return -1;
@@ -102,7 +102,7 @@ internal sealed class ListCallGraph : AsyncCommand<ListCallGraph.Arg>
 
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
-            var dox = Cli.RequireDirectory(cwd, log, arg.DoxygenXml, "Doxygen xml folder");
+            var dox = Cli.RequireDirectory(vfs, cwd, log, arg.DoxygenXml, "Doxygen xml folder");
             if (dox == null)
             {
                 return -1;
@@ -134,9 +134,11 @@ internal sealed class PrintCommand : Command<PrintCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var cwd = Dir.CurrentDirectory;
+        var vfs = new VfsDisk();
+
         return CliUtil.PrintErrorsAtExit(printer =>
             {
-                var dox = Cli.RequireDirectory(cwd, printer, arg.DoxygenXml, "Doxygen xml folder");
+                var dox = Cli.RequireDirectory(vfs, cwd, printer, arg.DoxygenXml, "Doxygen xml folder");
                 if (dox == null)
                 {
                     return -1;

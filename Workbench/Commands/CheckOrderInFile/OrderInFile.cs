@@ -36,7 +36,7 @@ internal static class OrderInFile
         return 0;
     }
 
-    public static int Run(Log log, Dir file, Dir root)
+    public static int Run(Vfs vfs, Log log, Dir file, Dir root)
     {
         var parsed = Doxygen.ParseIndex(file);
 
@@ -58,7 +58,7 @@ internal static class OrderInFile
             .ThenByDescending(x => x.Class.Location!.Line)
             )
         {
-            PrintError(log, f.Class, f.PrimaryFile, f.SecondaryFile, f.ErrorMessage, root);
+            PrintError(vfs, log, f.Class, f.PrimaryFile, f.SecondaryFile, f.ErrorMessage, root);
         }
 
         var number_of_files = fails.DistinctBy(x => x.Class.Location!.File).Count();
@@ -104,12 +104,12 @@ internal static class OrderInFile
     }
 
     private static void PrintError(
-        Log log, CompoundDef k, LocationType? primary_file, LocationType? secondary_file,
+        Vfs vfs, Log log, CompoundDef k, LocationType? primary_file, LocationType? secondary_file,
         string error_message, Dir root)
     {
         var members = DoxygenUtils.AllMembersForAClass(k).ToArray();
-        log.Error(DoxygenUtils.LocationToString(primary_file, root), error_message);
-        AnsiConsole.WriteLine($"{DoxygenUtils.LocationToString(secondary_file, root)}: From here");
+        log.Error(DoxygenUtils.LocationToString(vfs, primary_file, root), error_message);
+        AnsiConsole.WriteLine($"{DoxygenUtils.LocationToString(vfs, secondary_file, root)}: From here");
 
         AnsiConsole.WriteLine("Something better could be:");
         AnsiConsole.WriteLine("");

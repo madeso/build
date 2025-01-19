@@ -57,7 +57,7 @@ internal sealed class ClocCommand : Command<ClocCommand.Arg>
         var parsed = new Dictionary<Language, List<Fil>>();
         var vfs = new VfsDisk();
 
-        foreach (var file in FileUtil.ListFilesFromArgs(cwd, arg.Files))
+        foreach (var file in FileUtil.ListFilesFromArgs(vfs, cwd, arg.Files))
         {
             var lang = FileUtil.ClassifySource(file);
 

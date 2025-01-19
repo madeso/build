@@ -9,7 +9,7 @@ internal static class ConfigFile
     public static TFile? LoadOrNull<TFile>(Vfs vfs, Log? print, Fil file)
         where TFile : class
     {
-        if (file.Exists == false)
+        if (file.Exists(vfs) == false)
         {
             print?.Error($"Unable to read file: {file}");
             return null;
@@ -42,7 +42,7 @@ internal static class ConfigFile
     {
         var content = JsonUtil.Write(data);
 
-        if (overwrite == false && path.Exists)
+        if (overwrite == false && path.Exists(vfs))
         {
             print.Error($"{path} already exist and overwrite was not requested");
             return -1;

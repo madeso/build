@@ -10,7 +10,7 @@ internal class RealPaths : Paths
         => cwd.GetFile(FileNames.Paths);
 
     public SavedPaths? LoadConfigFromCurrentDirectoryOrNull(Vfs vfs, Dir cwd, Log? print)
-        => GetConfigFileFromCurrentDirectory(cwd).Exists == false
+        => GetConfigFileFromCurrentDirectory(cwd).Exists(vfs) == false
             ? new SavedPaths()
             : ConfigFile.LoadOrNull<SavedPaths>(vfs, print, GetConfigFileFromCurrentDirectory(cwd));
 
@@ -43,12 +43,12 @@ internal class RealPaths : Paths
     private IEnumerable<Found<Fil>> FindFromPath(Vfs vfs, Dir cwd, Log? log, Func<SavedPaths, Fil?> getter)
         => Functional.Params(Find(vfs, cwd, log, getter));
 
-    private IEnumerable<Found<Fil>> FindPrimaryExecutable(Executable exe)
-        => Functional.Params(Which.FindPaths(exe.PrimaryExecutable));
+    private IEnumerable<Found<Fil>> FindPrimaryExecutable(Vfs vfs, Executable exe)
+        => Functional.Params(Which.FindPaths(vfs, exe.PrimaryExecutable));
 
     public override IEnumerable<Found<Fil>> ListAllExecutables(Vfs vfs, Dir cwd, Func<SavedPaths, Fil?> getter, Executable exe, Log? log = null)
-        => FindFromPath(vfs, cwd, null, getter).Concat(FindPrimaryExecutable(exe)).Concat(
-            exe.Additional());
+        => FindFromPath(vfs, cwd, null, getter).Concat(FindPrimaryExecutable(vfs, exe)).Concat(
+            exe.Additional(vfs));
 
     public override Fil? GetSavedOrSearchForExecutable(Vfs vfs, Dir cwd, Log? log, Func<SavedPaths, Fil?> getter, Executable exe)
         => ListAllExecutables(vfs, cwd, getter, exe, log)

@@ -61,7 +61,7 @@ internal sealed class RunHeroHtmlCommand : Command<RunHeroHtmlCommand.Arg>
 
         return CliUtil.PrintErrorsAtExit(print =>
         {
-            var project_file = Cli.RequireFile(cwd, print, settings.ProjectFile, "project file");
+            var project_file = Cli.RequireFile(vfs, cwd, print, settings.ProjectFile, "project file");
             if (project_file == null)
             {
                 return -1;
@@ -111,7 +111,7 @@ internal sealed class RunHeroDotCommand : Command<RunHeroDotCommand.Arg>
             var cwd = Dir.CurrentDirectory;
             var vfs = new VfsDisk();
 
-            var project_file = Cli.RequireFile(cwd, print, args.ProjectFile, "project file");
+            var project_file = Cli.RequireFile(vfs, cwd, print, args.ProjectFile, "project file");
             if (project_file == null)
             {
                 return -1;

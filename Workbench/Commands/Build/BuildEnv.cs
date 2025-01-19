@@ -203,7 +203,7 @@ public static class BuildFunctions
     // load build environment from json file
     public static BuildEnvironment LoadFromFileOrCreateEmpty(Vfs vfs, Fil path, Log log)
     {
-        if (path.Exists == false)
+        if (path.Exists(vfs) == false)
         {
             return BuildEnvironment.CreateEmpty();
         }

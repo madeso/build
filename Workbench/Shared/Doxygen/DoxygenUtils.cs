@@ -14,20 +14,20 @@ internal static class DoxygenUtils
             .Select(x => x.DoxygenFile.FirstCompound);
     }
 
-    internal static Fil DoxygenFileToPath(LocationType loc, Dir root)
+    internal static Fil DoxygenFileToPath(Vfs vfs, LocationType loc, Dir root)
     {
         var abs = root.GetFile(loc.File);
-        var print = abs.Exists ? abs : new Fil(loc.File);
+        var print = abs.Exists(vfs) ? abs : new Fil(loc.File);
         return print;
     }
 
-    public static FileLine? LocationToString(LocationType? loc, Dir root)
+    public static FileLine? LocationToString(Vfs vfs, LocationType? loc, Dir root)
     {
         if (loc == null)
         {
             return null;
         }
-        var file_name = DoxygenFileToPath(loc, root);
+        var file_name = DoxygenFileToPath(vfs, loc, root);
         return new FileLine(file_name, loc.Line);
     }
 

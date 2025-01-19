@@ -106,9 +106,9 @@ public class CMakeProject
     }
 
     // run cmake configure step
-    public async Task ConfigureAsync(Dir cwd, Log log, bool nop = false)
+    public async Task ConfigureAsync(Vfs vfs, Dir cwd, Log log, bool nop = false)
     {
-        var cmake = FindCMake.RequireInstallationOrNull(log);
+        var cmake = FindCMake.RequireInstallationOrNull(vfs, log);
         if (cmake == null)
         {
             return;
@@ -130,7 +130,7 @@ public class CMakeProject
             command.AddArgument(generator.Arch);
         }
 
-        Core.VerifyDirectoryExists(log, build_folder);
+        Core.VerifyDirectoryExists(vfs, log, build_folder);
         command.WorkingDirectory = build_folder;
 
         if (Core.IsWindows())
@@ -151,9 +151,9 @@ public class CMakeProject
     }
 
     // run cmake build step
-    private async Task RunBuildCommandAsync(Dir cwd, Log log, Install install, Config config)
+    private async Task RunBuildCommandAsync(Vfs vfs, Dir cwd, Log log, Install install, Config config)
     {
-        var cmake = FindCMake.RequireInstallationOrNull(log);
+        var cmake = FindCMake.RequireInstallationOrNull(vfs, log);
         if (cmake == null)
         {
             log.Error("CMake executable not found");
@@ -177,7 +177,7 @@ public class CMakeProject
             _ => throw new NotImplementedException(),
         });
 
-        Core.VerifyDirectoryExists(log, build_folder);
+        Core.VerifyDirectoryExists(vfs, log, build_folder);
         command.WorkingDirectory = build_folder;
 
         if (Core.IsWindows())
@@ -191,14 +191,14 @@ public class CMakeProject
     }
 
     // build cmake project
-    public async Task BuildAsync(Dir cwd, Log log, Config config)
+    public async Task BuildAsync(Vfs vfs, Dir cwd, Log log, Config config)
     {
-        await RunBuildCommandAsync(cwd, log, CMake.Install.No, config);
+        await RunBuildCommandAsync(vfs, cwd, log, CMake.Install.No, config);
     }
 
     // install cmake project
-    public async Task InstallAsync(Dir cwd, Log log, Config config)
+    public async Task InstallAsync(Vfs vfs, Dir cwd, Log log, Config config)
     {
-        await RunBuildCommandAsync(cwd, log, CMake.Install.Yes, config);
+        await RunBuildCommandAsync(vfs, cwd, log, CMake.Install.Yes, config);
     }
 }

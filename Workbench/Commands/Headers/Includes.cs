@@ -101,11 +101,11 @@ public class Includes
         }
     }
 
-    private static Fil? ResolveIncludeViaIncludeDirectoriesOrNone(string include, IEnumerable<Dir> include_directories)
+    private static Fil? ResolveIncludeViaIncludeDirectoriesOrNone(Vfs vfs, string include, IEnumerable<Dir> include_directories)
     {
         return include_directories
                 .Select(directory => directory.GetFile(include))
-                .FirstOrDefault(f => f.Exists)
+                .FirstOrDefault(f => f.Exists(vfs))
             ;
     }
 
@@ -119,7 +119,7 @@ public class Includes
 
         foreach (var include in FindIncludeFiles(vfs, real_file))
         {
-            var resolved = ResolveIncludeViaIncludeDirectoriesOrNone(include, include_directories);
+            var resolved = ResolveIncludeViaIncludeDirectoriesOrNone(vfs, include, include_directories);
             if (resolved != null)
             {
                 gv.Link(real_file, name, resolved.Path, root);
@@ -173,7 +173,7 @@ public class Includes
 
         foreach (var include in FindIncludeFiles(vfs, real_file))
         {
-            var resolved = ResolveIncludeViaIncludeDirectoriesOrNone(include, include_directories);
+            var resolved = ResolveIncludeViaIncludeDirectoriesOrNone(vfs, include, include_directories);
             if (resolved != null)
             {
                 if (print_files)
@@ -199,11 +199,11 @@ public class Includes
         => cc[path].GetRelativeIncludes();
 
 
-    private static IEnumerable<Fil> GetAllTranslationUnits(Dir cwd, IEnumerable<string> files)
-        => FileUtil.SourcesFromArgs(cwd, files, FileUtil.IsSource);
+    private static IEnumerable<Fil> GetAllTranslationUnits(Vfs vfs, Dir cwd, IEnumerable<string> files)
+        => FileUtil.SourcesFromArgs(vfs, cwd, files, FileUtil.IsSource);
 
-    private static ImmutableArray<Dir> CompleteLimitArg(Dir cwd, Log log, IEnumerable<string> args_limit)
-        => Cli.ToDirectories(cwd, log, args_limit).ToImmutableArray();
+    private static ImmutableArray<Dir> CompleteLimitArg(Vfs vfs, Dir cwd, Log log, IEnumerable<string> args_limit)
+        => Cli.ToDirectories(vfs, cwd, log, args_limit).ToImmutableArray();
 
     public static int HandleListIncludesCommand(Vfs vfs, Dir cwd, Log print, Fil? compile_commands_arg,
         string[] args_files,
@@ -227,11 +227,11 @@ public class Includes
         var total_counter = new ColCounter<string>();
         var max_counter = new ColCounter<string>();
 
-        var limit = CompleteLimitArg(cwd, print, args_limit);
+        var limit = CompleteLimitArg(vfs, cwd, print, args_limit);
 
         var number_of_translation_units = 0;
 
-        foreach (var translation_unit in GetAllTranslationUnits(cwd, args_files))
+        foreach (var translation_unit in GetAllTranslationUnits(vfs, cwd, args_files))
         {
             number_of_translation_units += 1;
             var file_counter = new ColCounter<string>();
@@ -291,11 +291,11 @@ public class Includes
         var compile_commands = CompileCommand.LoadCompileCommandsOrNull(vfs, print, compile_commands_arg);
         if (compile_commands == null) { return -1; }
 
-        var limit = CompleteLimitArg(cwd, print, args_limit);
+        var limit = CompleteLimitArg(vfs, cwd, print, args_limit);
 
         var gv = new Graphvizer();
 
-        foreach (var translation_unit in GetAllTranslationUnits(cwd, args_files))
+        foreach (var translation_unit in GetAllTranslationUnits(vfs, cwd, args_files))
         {
             if (compile_commands.ContainsKey(translation_unit))
             {

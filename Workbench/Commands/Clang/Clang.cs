@@ -343,12 +343,12 @@ internal static class ClangFiles
             ).ToArray();
 
     internal static CategoryAndFiles[] MapAllFilesInRootOnFirstDir(Vfs vfs, Dir root, Func<Fil, bool> extension_filter, FileSection fs)
-        => MapFilesOnFirstDir(vfs, root, fs, FileUtil.FilesInPitchfork(root, false)
+        => MapFilesOnFirstDir(vfs, root, fs, FileUtil.FilesInPitchfork(vfs, root, false)
             .Where(extension_filter));
 
     internal static int HandleTidyListFilesCommand(Vfs vfs, Dir cwd, Log print, bool sort_files, FileSection fs)
     {
-        var files = FileUtil.IterateFiles(cwd, false, true)
+        var files = FileUtil.IterateFiles(vfs, cwd, false, true)
             .Where(FileUtil.IsSource);
 
         if (sort_files)
@@ -633,7 +633,7 @@ internal class HtmlOutput(Dir root_output, Dir dcwd) : IOutput
 
         var target = root_output.GetFile("index.html");
 
-        target.Directory?.CreateDir();
+        target.Directory?.CreateDir(vfs);
         target.WriteAllLines(vfs, output);
         Console.WriteLine($"Wrote html to {target}");
         return;
@@ -721,7 +721,7 @@ internal class HtmlOutput(Dir root_output, Dir dcwd) : IOutput
         output.Add($"</body>");
         output.Add($"</html>");
 
-        target.Directory?.CreateDir();
+        target.Directory?.CreateDir(vfs);
         target.WriteAllLines(vfs, output);
         Console.WriteLine($"Wrote html to {target}");
 
@@ -746,7 +746,7 @@ public class ClangTidy
     {
         var file_name = GetPathToStore(build_folder);
         AnsiConsole.MarkupLineInterpolated($"Loading store from {file_name}");
-        if (!file_name.Exists)
+        if (!file_name.Exists(vfs))
         {
             Console.WriteLine("Failed to load");
             return new Store();
@@ -771,16 +771,16 @@ public class ClangTidy
     private static bool FileMatchesAllFilters(Fil file, string[]? filters)
         => filters != null && filters.All(f => file.Path.Contains(f) == false);
 
-    private static DateTime GetLastModification(Fil file)
-        => file.LastWriteTimeUtc;
+    private static DateTime GetLastModification(Vfs vfs, Fil file)
+        => file.LastWriteTimeUtc(vfs);
 
-    private static DateTime GetLastModificationForFiles(IEnumerable<Fil> input_files)
-     => input_files.Select(GetLastModification).Max();
+    private static DateTime GetLastModificationForFiles(Vfs vfs, IEnumerable<Fil> input_files)
+     => input_files.Select(f => GetLastModification(vfs, f)).Max();
 
-    private static bool IsModificationTheLatest(IEnumerable<Fil> input_files, DateTime output)
-        => GetLastModificationForFiles(input_files) <= output;
+    private static bool IsModificationTheLatest(Vfs vfs, IEnumerable<Fil> input_files, DateTime output)
+        => GetLastModificationForFiles(vfs, input_files) <= output;
 
-    private static TidyOutput? GetExistingOutputOrNull(Store store, Dir root, Fil source_file)
+    private static TidyOutput? GetExistingOutputOrNull(Vfs vfs, Store store, Dir root, Fil source_file)
     {
         var root_file = ClangTidyFile.GetPathToClangTidySource(root);
 
@@ -789,7 +789,7 @@ public class ClangTidy
             return null;
         }
 
-        if (IsModificationTheLatest(new[] { root_file, source_file }, stored.Modified))
+        if (IsModificationTheLatest(vfs, new[] { root_file, source_file }, stored.Modified))
         {
             return new TidyOutput(stored.Output, stored.Taken);
         }
@@ -803,7 +803,7 @@ public class ClangTidy
         var clang_tidy_source = ClangTidyFile.GetPathToClangTidySource(root);
 
         var data = new StoredTidyUpdate(output.Output, output.Taken,
-            GetLastModificationForFiles(new[] { clang_tidy_source, source_file }));
+            GetLastModificationForFiles(vfs, new[] { clang_tidy_source, source_file }));
         store.Cache[source_file] = data;
         SaveStore(vfs, project_build_folder, store);
         Console.WriteLine($"Stored in cache {store.Cache.Count}");
@@ -816,7 +816,7 @@ public class ClangTidy
     {
         if (false == force)
         {
-            var existing_output = GetExistingOutputOrNull(store, root, source_file);
+            var existing_output = GetExistingOutputOrNull(vfs, store, root, source_file);
             if (existing_output != null)
             {
                 return existing_output;

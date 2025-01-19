@@ -79,7 +79,7 @@ internal class SetupPathCommand
                 {
                     var file = new Fil(arg.Value);
 
-                    if (file.Exists == false)
+                    if (file.Exists(vfs) == false)
                     {
                         print.Error($"{file} doesn't exist");
                         return -1;

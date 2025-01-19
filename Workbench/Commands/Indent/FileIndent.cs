@@ -172,7 +172,7 @@ internal static class IndentFunctions
         var stats = new Dictionary<int, List<Fil>>();
         var found_files = 0;
 
-        foreach (var file in FileUtil.SourcesFromArgs(cwd, args_files, FileUtil.IsHeaderOrSource))
+        foreach (var file in FileUtil.SourcesFromArgs(vfs, cwd, args_files, FileUtil.IsHeaderOrSource))
         {
             found_files += 1;
 

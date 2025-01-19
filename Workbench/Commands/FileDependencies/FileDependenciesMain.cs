@@ -78,7 +78,7 @@ internal static class FileDeps
                     Commit = pair.Key,
                     File = y
                 }))
-                .Where(x => x.File.Exists)
+                .Where(x => x.File.Exists(vfs))
                 .Where(f => f.File.IsInFolder(external_folder) == false)
                 .GroupBy(x => x.Commit, (_, x) => x.ToImmutableArray())
                 .Select(x => new { x[0].Commit, Files = x.Select(y => y.File).ToImmutableArray() })

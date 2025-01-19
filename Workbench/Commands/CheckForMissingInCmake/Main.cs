@@ -32,18 +32,19 @@ internal sealed class CheckForMissingInCmakeCommand : AsyncCommand<CheckForMissi
         return await CliUtil.PrintErrorsAtExitAsync(async print =>
         {
             var cwd = Dir.CurrentDirectory;
+            var vfs = new VfsDisk();
 
-            var cmake = FindCMake.RequireInstallationOrNull(print);
+            var cmake = FindCMake.RequireInstallationOrNull(vfs, print);
             if (cmake == null)
             {
                 print.Error("Failed to find cmake");
                 return -1;
             }
 
-            var build_root = FindCMake.RequireBuildOrNone(cwd, args, print);
+            var build_root = FindCMake.RequireBuildOrNone(vfs, cwd, args, print);
             if (build_root == null) { return -1; }
 
-            var bases = Cli.ToDirectories(cwd, print, args.Folders)
+            var bases = Cli.ToDirectories(vfs, cwd, print, args.Folders)
                 .ToImmutableArray();
 
             var paths = new HashSet<Fil>();
@@ -73,7 +74,7 @@ internal sealed class CheckForMissingInCmakeCommand : AsyncCommand<CheckForMissi
             }
 
             var count = 0;
-            foreach (var file in FileUtil.SourcesFromArgs(cwd, args.Folders, FileUtil.IsHeaderOrSource))
+            foreach (var file in FileUtil.SourcesFromArgs(vfs, cwd, args.Folders, FileUtil.IsHeaderOrSource))
             {
                 var resolved = file;
                 if (paths.Contains(resolved) == false)

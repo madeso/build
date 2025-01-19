@@ -22,7 +22,7 @@ internal sealed class CheckCommand : Command<CheckCommand.Arg>
 
         return CliUtil.PrintErrorsAtExit(printer =>
         {
-            var dox = Cli.RequireDirectory(cwd, printer, arg.DoxygenXml, "doxygen xml folder");
+            var dox = Cli.RequireDirectory(vfs, cwd, printer, arg.DoxygenXml, "doxygen xml folder");
             if (dox == null)
             {
                 return -1;

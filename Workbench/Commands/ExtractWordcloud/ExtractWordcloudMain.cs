@@ -45,7 +45,7 @@ internal sealed partial class ExtractTypesCommand : Command<ExtractTypesCommand.
 
         return CliUtil.PrintErrorsAtExit(log =>
         {
-            var dox = Cli.RequireDirectory(cwd, log, arg.DoxygenXml, "Doxygen xml folder");
+            var dox = Cli.RequireDirectory(vfs, cwd, log, arg.DoxygenXml, "Doxygen xml folder");
             if (dox == null)
             {
                 return -1;

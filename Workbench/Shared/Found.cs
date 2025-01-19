@@ -59,9 +59,9 @@ public static class FoundExtensions
         return new Found<T>(values.ToImmutableArray(), name);
     }
 
-    public static FoundEntry<Fil> ToFoundExist(this Fil file)
+    public static FoundEntry<Fil> ToFoundExist(this Fil file, Vfs vfs)
     {
-        if (file.Exists == false)
+        if (file.Exists(vfs) == false)
         {
             return new FoundEntry<Fil>.Error($"{file} doesn't exist");
         }

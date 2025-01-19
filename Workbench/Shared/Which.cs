@@ -7,7 +7,7 @@ public static class Which
 {
     // todo(Gustav): test this
 
-    public static Found<Fil> FindPaths(string name)
+    public static Found<Fil> FindPaths(Vfs vfs, string name)
     {
         var executable = Core.IsWindows() && Path.GetExtension(name) != ".exe"
             ? Path.ChangeExtension(name.Trim(), "exe")
@@ -17,7 +17,7 @@ public static class Which
             .Select<Dir, FoundEntry<Fil>>(dir =>
             {
                 var file = dir.GetFile(executable);
-                if (file.Exists == false)
+                if (file.Exists(vfs) == false)
                 {
                     return new FoundEntry<Fil>.Error($"{file.Name} not found in {dir}");
                 }
@@ -25,7 +25,7 @@ public static class Which
                 if (Core.IsWindows() == false)
                 {
                     const UnixFileMode EXECUTE_FLAGS = UnixFileMode.GroupExecute | UnixFileMode.UserExecute | UnixFileMode.OtherExecute;
-                    if ( (file.UnixFileMode & EXECUTE_FLAGS) == 0)
+                    if ( (file.UnixFileMode(vfs) & EXECUTE_FLAGS) == 0)
                     {
                         return new FoundEntry<Fil>.Error($"{file} not marked as executable");
                     }
@@ -37,18 +37,18 @@ public static class Which
             ;
     }
 
-    public static Found<Fil> FindPaths(Func<string, bool> validate_name)
+    public static Found<Fil> FindPaths(Vfs vfs, Func<string, bool> validate_name)
     {
         return GetPaths()
                 .SelectMany(dir =>
                 {
-                    return dir.EnumerateFiles()
+                    return dir.EnumerateFiles(vfs)
                         .Where(file => validate_name(file.NameWithoutExtension))
                         .Select<Fil, FoundEntry<Fil>>(file => {
                         if (Core.IsWindows() == false)
                         {
                             const UnixFileMode EXECUTE_FLAGS = UnixFileMode.GroupExecute | UnixFileMode.UserExecute | UnixFileMode.OtherExecute;
-                            if ((file.UnixFileMode & EXECUTE_FLAGS) == 0)
+                            if ((file.UnixFileMode(vfs) & EXECUTE_FLAGS) == 0)
                             {
                                 return new FoundEntry<Fil>.Error($"{file} not marked as executable");
                             }

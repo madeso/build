@@ -6,15 +6,15 @@ namespace Workbench.Commands.CppLint;
 
 public static class Cpplint
 {
-    private static IEnumerable<Fil> ListAllFiles(Dir root)
-        => FileUtil.FilesInPitchfork(root, include_hidden: false)
+    private static IEnumerable<Fil> ListAllFiles(Vfs vfs, Dir root)
+        => FileUtil.FilesInPitchfork(vfs, root, include_hidden: false)
             .Where(FileUtil.IsHeaderOrSource)
             // ignore pch
             .Where(file => file.Name.StartsWith("pch.") == false);
 
-    public static int HandleList(Dir cwd, Log print, Dir root)
+    public static int HandleList(Vfs vfs, Dir cwd, Log print, Dir root)
     {
-        var files = ListAllFiles(root);
+        var files = ListAllFiles(vfs, root);
         foreach (var f in files)
         {
             AnsiConsole.WriteLine(f.GetDisplay(cwd));
@@ -32,7 +32,7 @@ public static class Cpplint
             return -1;
         }
 
-        var files = ListAllFiles(root);
+        var files = ListAllFiles(vfs, root);
         var has_errors = false;
         foreach (var f in files)
         {

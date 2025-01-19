@@ -62,16 +62,19 @@ public class Dir
     public Dir(string path)
     {
         Debug.Assert(SysPath.IsPathFullyQualified(path), "dir path must be rooted");
-        Path = SysPath.GetFullPath(new DirectoryInfo(path).FullName);
+        var p = SysPath.GetFullPath(new DirectoryInfo(path).FullName);
+        Debug.Assert(p == path, "complex code actually does something that might be needed yo move to the vfs");
+        Path = path;
     }
 
-    public bool Exists => Directory.Exists(Path);
+    public bool Exists(Vfs v) => v.DirectoryExists(this);
+
     public string Name => new DirectoryInfo(Path).Name;
 
-    public static Dir? ToExistingDirOrNull(string arg)
+    public static Dir? ToExistingDirOrNull(Vfs v, string arg)
     {
         var d = new Dir(arg);
-        return d.Exists == false ? null : d;
+        return d.Exists(v) == false ? null : d;
     }
 
     public static Dir CurrentDirectory => new(Environment.CurrentDirectory);
@@ -100,26 +103,21 @@ public class Dir
     public Dir GetSubDirs(params string[] sub)
         => sub.Aggregate(this, (current, name) => current.GetDir(name));
 
-    public void CreateDir()
+    public void CreateDir(Vfs v)
     {
-        if (Exists)
+        if (Exists(v))
         {
             return;
         }
 
-        Directory.CreateDirectory(Path);
+        v.CreateDirectory(this);
     }
 
-    public IEnumerable<Fil> EnumerateFiles()
-        => Exists
-            ? new DirectoryInfo(Path).EnumerateFiles()
-            .Select(f => new Fil(f.FullName))
-            : Array.Empty<Fil>()
-            ;
+    public IEnumerable<Fil> EnumerateFiles(Vfs v)
+        => v.EnumerateFiles(this);
 
-    public IEnumerable<Dir> EnumerateDirectories()
-        => new DirectoryInfo(Path).EnumerateDirectories()
-            .Select(d => new Dir(d.FullName));
+    public IEnumerable<Dir> EnumerateDirectories(Vfs v)
+        => v.EnumerateDirs(this);
 
     public override string ToString() => Path;
     public override int GetHashCode() => Path.GetHashCode();
@@ -146,7 +144,9 @@ public class Fil : IComparable<Fil>
     public Fil(string path)
     {
         Debug.Assert(SysPath.IsPathFullyQualified(path), "file path must be rooted");
-        Path = SysPath.GetFullPath(new FileInfo(path).FullName);
+        var p = SysPath.GetFullPath(new FileInfo(path).FullName);
+        Debug.Assert(p == path, "complex code actually does something that might be needed yo move to the vfs");
+        Path = path;
     }
 
     public string GetRelativeOrFullPath(Dir cwd, Dir? a_root_relative = null)
@@ -161,14 +161,15 @@ public class Fil : IComparable<Fil>
         return suggested;
     }
 
-    public bool Exists => File.Exists(Path);
+    public bool Exists(Vfs v) => v.FileExists(this);
 
     public Dir? Directory => Dir.Create(new FileInfo(Path).Directory?.FullName);
     public string Name => new FileInfo(Path).Name;
     public string NameWithoutExtension => SysPath.GetFileNameWithoutExtension(Path);
     public string Extension => SysPath.GetExtension(Path);
-    public DateTime LastWriteTimeUtc => new FileInfo(Path).LastWriteTimeUtc;
-    public UnixFileMode UnixFileMode => new FileInfo(Path).UnixFileMode;
+
+    public DateTime LastWriteTimeUtc(Vfs v) => v.LastWriteTimeUtc(this);
+    public UnixFileMode UnixFileMode(Vfs v) => v.UnixFileMode(this);
 
     public string GetDisplay(Dir cwd) => cwd.GetRelativeTo(this);
     public string GetRelative(Dir root) => root.GetRelativeTo(this);
@@ -181,10 +182,10 @@ public class Fil : IComparable<Fil>
     public void WriteAllText(Vfs vfs, string content) => vfs.WriteAllText(this, content);
     public void WriteAllLines(Vfs vfs, IEnumerable<string> content) => vfs.WriteAllLines(this, content);
 
-    public static Fil? ToExistingDirOrNull(string arg)
+    public static Fil? ToExistingDirOrNull(Vfs vfs, string arg)
     {
         var d = new Fil(arg);
-        return d.Exists == false ? null : d;
+        return d.Exists(vfs) == false ? null : d;
     }
 
     public override string ToString() => Path;
@@ -225,6 +226,13 @@ public interface Vfs
     void WriteAllText(Fil fil, string content);
     void WriteAllLines(Fil fil, IEnumerable<string> content);
     Task WriteAllLinesAsync(Fil fil, IEnumerable<string> contents);
+    bool DirectoryExists(Dir dir);
+    void CreateDirectory(Dir dir);
+    IEnumerable<Fil> EnumerateFiles(Dir dir);
+    IEnumerable<Dir> EnumerateDirs(Dir dir);
+    bool FileExists(Fil fil);
+    DateTime LastWriteTimeUtc(Fil fil);
+    UnixFileMode UnixFileMode(Fil fil);
 }
 
 public class VfsDisk : Vfs
@@ -246,6 +254,31 @@ public class VfsDisk : Vfs
 
     public Task WriteAllLinesAsync(Fil fil, IEnumerable<string> contents)
         => File.WriteAllLinesAsync(fil.Path, contents, System.Text.Encoding.UTF8);
+
+    public bool DirectoryExists(Dir dir)
+        => Directory.Exists(dir.Path);
+
+    public void CreateDirectory(Dir dir)
+    {
+        Directory.CreateDirectory(dir.Path);
+    }
+
+    public IEnumerable<Fil> EnumerateFiles(Dir dir)
+        => DirectoryExists(dir)
+            ? new DirectoryInfo(dir.Path).EnumerateFiles()
+                .Select(f => new Fil(f.FullName))
+            : Array.Empty<Fil>()
+    ;
+
+    public IEnumerable<Dir> EnumerateDirs(Dir dir)
+        => new DirectoryInfo(dir.Path).EnumerateDirectories()
+         .Select(d => new Dir(d.FullName));
+
+    public bool FileExists(Fil fil)
+        => File.Exists(fil.Path);
+
+    public DateTime LastWriteTimeUtc(Fil fil) => new FileInfo(fil.Path).LastWriteTimeUtc;
+    public UnixFileMode UnixFileMode(Fil fil) => new FileInfo(fil.Path).UnixFileMode;
 }
 
 

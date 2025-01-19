@@ -19,9 +19,9 @@ public static class Core
     }
 
     /// make sure directory exists 
-    public static void VerifyDirectoryExists(Log print, Dir dir)
+    public static void VerifyDirectoryExists(Vfs vfs, Log print, Dir dir)
     {
-        if (dir.Exists)
+        if (dir.Exists(vfs))
         {
             AnsiConsole.WriteLine($"Dir exist, not creating {dir}");
         }
@@ -30,7 +30,7 @@ public static class Core
             AnsiConsole.WriteLine($"Not a directory, creating {dir}");
             try
             {
-                dir.CreateDir();
+                dir.CreateDir(vfs);
             }
             catch (Exception x)
             {
@@ -41,7 +41,7 @@ public static class Core
 
     internal static string[]? ReadFileToLines(Vfs vfs, Fil filename)
     {
-        if (filename.Exists)
+        if (filename.Exists(vfs))
         {
             return filename.ReadAllLines(vfs).ToArray();
         }
@@ -50,9 +50,9 @@ public static class Core
 
 
     /// download file if not already downloaded 
-    public static void DownloadFileIfMissing(Log print, string url, Fil dest)
+    public static void DownloadFileIfMissing(Vfs vfs, Log print, string url, Fil dest)
     {
-        if (dest.Exists)
+        if (dest.Exists(vfs))
         {
             AnsiConsole.WriteLine($"Already downloaded {dest}");
         }
@@ -72,34 +72,34 @@ public static class Core
     }
 
     /// moves all file from one directory to another
-    public static void MoveFiles(Log print, Dir from, Dir to)
+    public static void MoveFiles(Vfs vfs, Log print, Dir from, Dir to)
     {
-        if (from.Exists == false)
+        if (from.Exists(vfs) == false)
         {
             print.Error($"Missing src {from} when moving to {to}");
             return;
         }
 
-        VerifyDirectoryExists(print, to);
-        move_files_recursively(from, to);
+        VerifyDirectoryExists(vfs, print, to);
+        move_files_recursively(vfs, from, to);
 
-        static void move_files_recursively(Dir from, Dir to)
+        static void move_files_recursively(Vfs vfs, Dir from, Dir to)
         {
             var paths = from;
 
-            foreach (var file in paths.EnumerateFiles())
+            foreach (var file in paths.EnumerateFiles(vfs))
             {
                 var src = from.GetFile(file.Name);
                 var dst = to.GetFile(file.Name);
                 File.Move(src.Path, dst.Path);
             }
 
-            foreach (var dir in paths.EnumerateDirectories())
+            foreach (var dir in paths.EnumerateDirectories(vfs))
             {
                 var src = from.GetDir(dir.Name);
                 var dst = to.GetDir(dir.Name);
                 Directory.CreateDirectory(dst.Path);
-                move_files_recursively(src, dst);
+                move_files_recursively(vfs, src, dst);
                 Directory.Delete(src.Path, false);
             }
         }

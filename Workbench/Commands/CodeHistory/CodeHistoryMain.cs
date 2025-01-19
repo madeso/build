@@ -46,7 +46,7 @@ internal sealed class PrintCodeHistory : AsyncCommand<PrintCodeHistory.Arg>
             }
 
             // get files
-            var files = FileUtil.IterateFiles(cwd, false, true);
+            var files = FileUtil.IterateFiles(vfs, cwd, false, true);
             if (arg.AllFiles == false)
             {
                 files = files.Where(file => FileUtil.ClassifySource(file) != Language.Unknown);

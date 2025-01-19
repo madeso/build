@@ -31,7 +31,7 @@ internal sealed class CheckForMissingPragmaOnceCommand : Command<CheckForMissing
         var total_files = 0;
         var vfs = new VfsDisk();
 
-        foreach (var file in FileUtil.SourcesFromArgs(cwd, settings.Files, FileUtil.IsHeader))
+        foreach (var file in FileUtil.SourcesFromArgs(vfs, cwd, settings.Files, FileUtil.IsHeader))
         {
             total_files += 1;
             if (contains_pragma_once(vfs, file))

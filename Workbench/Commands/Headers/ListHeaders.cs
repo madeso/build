@@ -388,7 +388,7 @@ internal class FileWalker
                             break;
                         case "include":
                             var include_name = cmd.Value.Trim('"', '<', '>', ' ');
-                            var sub_file = ListHeaderFunctions.ResolvePath(directories, include_name, path, cmd.Value.Trim().StartsWith('\"'));
+                            var sub_file = ListHeaderFunctions.ResolvePath(vfs, directories, include_name, path, cmd.Value.Trim().StartsWith('\"'));
                             if (sub_file != null)
                             {
                                 AddInclude(sub_file);
@@ -663,13 +663,13 @@ internal static class ListHeaderFunctions
 
 
 
-    internal static Fil? ResolvePath(Dir[] directories, string stem, Fil caller_file,
+    internal static Fil? ResolvePath(Vfs vfs, Dir[] directories, string stem, Fil caller_file,
         bool use_relative_path)
     {
         if (use_relative_path)
         {
             var caller = caller_file.Directory?.GetFile(stem);
-            if (caller is { Exists: true })
+            if (caller != null && caller.Exists(vfs))
             {
                 return caller;
             }
@@ -677,7 +677,7 @@ internal static class ListHeaderFunctions
 
         return directories
             .Select(dd => dd.GetFile(stem))
-            .FirstOrDefault(r => r.Exists);
+            .FirstOrDefault(r => r.Exists(vfs));
     }
 
 
@@ -697,7 +697,7 @@ internal static class ListHeaderFunctions
         foreach (var file in sources)
         {
             var ff = new Fil(file.Path);
-            if (ff.Exists)
+            if (ff.Exists(vfs))
             {
                 if (false == walker.Walk(vfs, print, ff, file_cache))
                 {
@@ -706,7 +706,7 @@ internal static class ListHeaderFunctions
             }
             else
             {
-                foreach(var fi in new Dir(file.Path).EnumerateFiles())
+                foreach(var fi in new Dir(file.Path).EnumerateFiles(vfs))
                 {
                     if (false == walker.Walk(vfs, print, fi, file_cache))
                     {

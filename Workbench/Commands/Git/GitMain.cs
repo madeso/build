@@ -70,7 +70,7 @@ internal sealed class StatusCommand : AsyncCommand<StatusCommand.Arg>
                 return -1;
             }
 
-            var root = Cli.RequireDirectory(cwd, log, settings.Root, "git root");
+            var root = Cli.RequireDirectory(vfs, cwd, log, settings.Root, "git root");
             if (root == null)
             {
                 return -1;
@@ -216,7 +216,7 @@ internal sealed class RemoveUnknownCommand : AsyncCommand<RemoveUnknownCommand.A
                 return -1;
             }
 
-            var root = Cli.RequireDirectory(cwd, log, settings.Root, "root");
+            var root = Cli.RequireDirectory(vfs, cwd, log, settings.Root, "root");
             if (root == null)
             {
                 return -1;

@@ -118,7 +118,7 @@ public class Result
     {
         var res = new Result();
 
-        if (fi.Exists == false)
+        if (fi.Exists(vfs) == false)
         {
             errors.Add($"Unable to open file {fi}");
             return res;
@@ -431,7 +431,7 @@ public class Scanner
         is_scanning_pch = true;
         foreach (var inc in project.PrecompiledHeaders)
         {
-            if (inc.Exists)
+            if (inc.Exists(vfs))
             {
                 ScanFile(vfs, project, inc);
                 while (scan_queue.Count > 0)
@@ -452,7 +452,7 @@ public class Scanner
         foreach (var dir in project.ScanDirectories)
         {
             feedback.UpdateMessage($"{dir}");
-            ScanDirectory(dir, feedback);
+            ScanDirectory(vfs, dir, feedback);
         }
 
         feedback.UpdateTitle("Scanning files...");
@@ -479,7 +479,7 @@ public class Scanner
     }
 
     // todo(Gustav): rename functions
-    private void ScanDirectory(FileOrDir dir, ProgressFeedback feedback)
+    private void ScanDirectory(Vfs vfs, FileOrDir dir, ProgressFeedback feedback)
     {
         feedback.UpdateMessage($"{dir}");
 
@@ -489,19 +489,19 @@ public class Scanner
             return;
         }
 
-        PleaseScanDirectory(new Dir(dir.Path), feedback);
+        PleaseScanDirectory(vfs, new Dir(dir.Path), feedback);
     }
 
-    private void PleaseScanDirectory(Dir dir_info, ProgressFeedback feedback)
+    private void PleaseScanDirectory(Vfs vfs, Dir dir_info, ProgressFeedback feedback)
     {
-        foreach (var file in dir_info.EnumerateFiles())
+        foreach (var file in dir_info.EnumerateFiles(vfs))
         {
             scan_single_file(file);
         }
 
-        foreach (var sub_dir in dir_info.EnumerateDirectories())
+        foreach (var sub_dir in dir_info.EnumerateDirectories(vfs))
         {
-            PleaseScanDirectory(sub_dir, feedback);
+            PleaseScanDirectory(vfs, sub_dir, feedback);
         }
     }
 
@@ -534,7 +534,7 @@ public class Scanner
         // todo(Gustav): add last scan feature!!!
         if (project.ScannedFiles.TryGetValue(path, out var scanned_file)) // && project.LastScan > path.LastWriteTime && !this.is_scanning_pch
         {
-            PleaseScanFile(project, path, scanned_file);
+            PleaseScanFile(vfs, project, path, scanned_file);
             project.ScannedFiles.Add(path, scanned_file);
         }
         else
@@ -547,12 +547,12 @@ public class Scanner
                 system_includes: parsed.SystemIncludes,
                 is_precompiled: is_scanning_pch
             );
-            PleaseScanFile(project, path, source_file);
+            PleaseScanFile(vfs, project, path, source_file);
             project.ScannedFiles.Add(path, source_file);
         }
     }
 
-    private void PleaseScanFile(Project project, Fil path, SourceFile sf)
+    private void PleaseScanFile(Vfs vfs, Project project, Fil path, SourceFile sf)
     {
         sf.IsTouched = true;
         sf.AbsoluteIncludes.Clear();
@@ -572,7 +572,7 @@ public class Scanner
                 ParserFacade.touch_file(project, abs);
                 continue;
             }
-            if (!inc.Exists)
+            if (!inc.Exists(vfs))
             {
                 if (!sf.SystemIncludes.Contains(s))
                 {
@@ -600,7 +600,7 @@ public class Scanner
             {
                 var found_path = project.IncludeDirectories
                     .Select(dir => dir.GetFile(s))
-                    .FirstOrDefault(f => f.Exists);
+                    .FirstOrDefault(f => f.Exists(vfs));
 
                 if (found_path != null)
                 {

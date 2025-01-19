@@ -82,12 +82,12 @@ public class CompileCommand
 
     internal const string COMPILE_COMMANDS_FILE_NAME = "compile_commands.json";
 
-    private static IEnumerable<Found<Fil>> FindJustTheBuilds(Dir cwd)
+    private static IEnumerable<Found<Fil>> FindJustTheBuilds(Vfs vfs, Dir cwd)
     {
         yield return FileUtil
-            .PitchforkBuildFolders(cwd)
+            .PitchforkBuildFolders(vfs, cwd)
             .Select(build_root => build_root.GetFile(COMPILE_COMMANDS_FILE_NAME))
-            .Select(f => f.ToFoundExist())
+            .Select(f => f.ToFoundExist(vfs))
             .Collect("pitchfork folders")
             ;
     }
@@ -109,10 +109,10 @@ public class CompileCommand
 
     internal static IEnumerable<Found<Fil>> ListAll(Vfs vfs, Dir cwd, CompileCommandsArguments settings, Paths paths)
         => ListOverrides(vfs, paths, cwd, settings, null)
-            .Concat(FindJustTheBuilds(cwd));
+            .Concat(FindJustTheBuilds(vfs, cwd));
 
     internal static Fil? FindOrNone(Vfs vfs, Dir cwd, CompileCommandsArguments settings, Log? log, Paths paths)
-        => FindJustTheBuilds(cwd)
+        => FindJustTheBuilds(vfs, cwd)
             .FirstValidOrOverride(ListOverrides(vfs, paths, cwd, settings, log), log, "compile command");
 }
 
@@ -142,7 +142,7 @@ public class CompileCommandsArguments : CommandSettings
         return new FoundEntry<Fil>.Result(new Fil(found));
     }
 
-    public FoundEntry<Dir>? GetDirectoryFromArgument()
+    public FoundEntry<Dir>? GetDirectoryFromArgument(Vfs vfs)
     {
         //  todo(Gustav): merge with cli
 
@@ -155,7 +155,7 @@ public class CompileCommandsArguments : CommandSettings
         }
 
         var file = new Fil(arg);
-        if(file.Exists)
+        if(file.Exists(vfs))
         {
             var dir = file.Directory;
             if (dir == null)

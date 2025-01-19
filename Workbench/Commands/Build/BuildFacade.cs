@@ -23,29 +23,29 @@ internal static class BuildFacade
     public static async Task<int> HandleInstallAsync(Vfs vfs, Dir cwd, Log log, BuildEnvironment build, BuildData data)
     {
         SaveBuildData(vfs, log, build, data);
-        await RunInstallAsync(cwd, build, data, log);
+        await RunInstallAsync(vfs, cwd, build, data, log);
         return 0;
     }
 
     internal static async Task<int> HandleBuildAsync(Vfs vfs, Dir cwd, Log log, BuildEnvironment build, BuildData data)
     {
         SaveBuildData(vfs, log, build, data);
-        await GenerateCmakeProjectAsync(build, data).BuildAsync(cwd, log, Shared.CMake.Config.Release);
+        await GenerateCmakeProjectAsync(build, data).BuildAsync(vfs, cwd, log, Shared.CMake.Config.Release);
         return 0;
     }
 
     internal static async Task<int> HandleDevAsync(Vfs vfs, Dir cwd, Log log, BuildEnvironment build, BuildData data)
     {
         SaveBuildData(vfs, log, build, data);
-        await RunInstallAsync(cwd, build, data, log);
-        await RunCmakeAsync(cwd, build, data, log, false);
+        await RunInstallAsync(vfs, cwd, build, data, log);
+        await RunCmakeAsync(vfs, cwd, build, data, log, false);
         return 0;
     }
 
     public static async Task<int> HandleCmakeAsync(Vfs vfs, Dir cwd, bool nop, Log log, BuildEnvironment build, BuildData data)
     {
         SaveBuildData(vfs, log, build, data);
-        await RunCmakeAsync(cwd, build, data, log, nop);
+        await RunCmakeAsync(vfs, cwd, build, data, log, nop);
         return 0;
     }
 
@@ -64,25 +64,25 @@ internal static class BuildFacade
 
 
     // install dependencies
-    internal static async Task RunInstallAsync(Dir cwd, BuildEnvironment env, BuildData data, Log print)
+    internal static async Task RunInstallAsync(Vfs vfs, Dir cwd, BuildEnvironment env, BuildData data, Log print)
     {
         foreach (var dep in data.Dependencies)
         {
-            await dep.InstallAsync(cwd, env, print, data);
+            await dep.InstallAsync(vfs, cwd, env, print, data);
         }
     }
 
 
     // configure the euphoria cmake project
-    internal static async Task RunCmakeAsync(Dir cwd, BuildEnvironment build, BuildData data, Log log, bool nop)
+    internal static async Task RunCmakeAsync(Vfs vfs, Dir cwd, BuildEnvironment build, BuildData data, Log log, bool nop)
     {
-        await GenerateCmakeProjectAsync(build, data).ConfigureAsync(cwd, log, nop);
+        await GenerateCmakeProjectAsync(build, data).ConfigureAsync(vfs, cwd, log, nop);
     }
 
     // save the build environment to the settings file
     internal static void SaveBuildData(Vfs vfs, Log print, BuildEnvironment build, BuildData data)
     {
-        Core.VerifyDirectoryExists(print, data.BuildDirectory);
+        Core.VerifyDirectoryExists(vfs, print, data.BuildDirectory);
         BuildFunctions.SaveToFile(vfs, build, data.GetPathToSettingsFile());
     }
 

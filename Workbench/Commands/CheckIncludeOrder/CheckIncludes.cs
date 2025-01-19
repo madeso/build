@@ -554,7 +554,7 @@ public static class IncludeTools
 
         var missing_files = new HashSet<string>();
 
-        var files = FileUtil.FilesInPitchfork(cwd, false)
+        var files = FileUtil.FilesInPitchfork(vfs, cwd, false)
             .Where(FileUtil.IsHeaderOrSource);
 
         foreach (var filename in files)
