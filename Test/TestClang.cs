@@ -55,7 +55,9 @@ public class TestClang : TestBase
             CompileCommands = cwd.GetFile("compile-commands.json")
         });
         vfs.AddContent(cwd.GetFile("clang-tidy"), "");
+        vfs.AddContent(cwd.GetSubDirs("src", "libs", "foobar").GetFile("foobar.cc"), "");
 
+        // todo(Gustav): disable NOP
         var args = new ClangTidy.Args(null, 1, false, ["libs"], true, false, false, []);
         var ret = await tidy.HandleRunClangTidyCommand(vfs, paths, cwd, new CompileCommandsArguments(), log, false, args);
         using (new AssertionScope())

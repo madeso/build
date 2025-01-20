@@ -149,12 +149,14 @@ internal class VfsTest : Vfs
 
     public IEnumerable<Fil> EnumerateFiles(Dir dir)
     {
-        throw new NotImplementedException();
+        var d = RequireDir(Split(dir));
+        return d.Files.Keys.Select(dir.GetFile);
     }
 
     public IEnumerable<Dir> EnumerateDirs(Dir dir)
     {
-        throw new NotImplementedException();
+        var d = RequireDir(Split(dir));
+        return d.Dirs.Keys.Select(f => dir.GetSubDirs(f));
     }
 
     public bool FileExists(Fil fil)

@@ -974,6 +974,8 @@ public class ClangTidy
         public string Category { get; } = category;
     }
 
+    private record TransformRec(string Category, Fil File, TidyOutput tidy_output);
+
     private static async Task<GlobalStatistics> RunAllFiles(Vfs vfs, Dir cwd, Log log, Args args, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
         Dir project_build_folder, IOutput html_root)
     {
@@ -982,42 +984,58 @@ public class ClangTidy
 
         var stats = new GlobalStatistics();
 
-        await Channel
-            .CreateUnbounded<CollectedTidyFil>()
-            .Source(files)
-            .PipeAsync(
-                maxConcurrency: args.NumberOfTasks,
-                capacity: 100,
-                transform: async source_file =>
-                {
-                    AnsiConsole.WriteLine($"Running {source_file.File}");
-                    var tidy_output = args.Nop
-                        ? new([], new())
-                        : await GetExistingOutputOrCallClangTidy(vfs, cwd, store, log, root, args.Force, clang_tidy, project_build_folder, source_file.File, args.Fix);
-                    return (source_file.Category, source_file.File, tidy_output);
-                })
-            .ReadAll(tuple =>
+        // todo(Gustav): remove if statement and only have one way through the loop...
+        if (args.NumberOfTasks == 1)
+        {
+            foreach (var f in files)
             {
-                var (cat, source_file, tidy_output) = tuple;
-                AnsiConsole.WriteLine($"Collecting {source_file}");
-
-                stats.AddTimeTaken(source_file, tidy_output.Taken);
-                var file_stats = CreateStatistics(source_file, tidy_output);
-
-                var report = new SingleFileReport(tidy_output.Taken, RemoveStatusLines(tidy_output.Output), file_stats);
-
-                html_root.SingleFileReport(vfs, cwd, source_file, report);
-
-                stats.GetProjectCounter(cat).Update(file_stats.Warnings);
-                stats.TotalCounter.Update(file_stats.Warnings);
-                stats.TotalClasses.Update(file_stats.Classes);
-                foreach (var k in file_stats.Classes.Keys)
-                {
-                    stats.GetWarningsList(k).Add(source_file);
-                }
-            });
+                var tradat = await transform_function(f);
+                read_function(tradat);
+            }
+        }
+        else
+        {
+            await Channel
+                .CreateUnbounded<CollectedTidyFil>()
+                .Source(files)
+                .PipeAsync(
+                    maxConcurrency: args.NumberOfTasks,
+                    capacity: 100,
+                    transform: async source_file => await transform_function(source_file))
+                .ReadAll(read_function);
+        }
 
         return stats;
+
+        async Task<TransformRec> transform_function(CollectedTidyFil source_file)
+        {
+            AnsiConsole.WriteLine($"Running {source_file.File}");
+            var tidy_output = args.Nop
+                ? new([], new())
+                : await GetExistingOutputOrCallClangTidy(vfs, cwd, store, log, root, args.Force, clang_tidy, project_build_folder, source_file.File, args.Fix);
+            return new(source_file.Category, source_file.File, tidy_output);
+        }
+
+        void read_function(TransformRec tuple)
+        {
+            var (cat, source_file, tidy_output) = tuple;
+            AnsiConsole.WriteLine($"Collecting {source_file}");
+
+            stats.AddTimeTaken(source_file, tidy_output.Taken);
+            var file_stats = CreateStatistics(source_file, tidy_output);
+
+            var report = new SingleFileReport(tidy_output.Taken, RemoveStatusLines(tidy_output.Output), file_stats);
+
+            html_root.SingleFileReport(vfs, cwd, source_file, report);
+
+            stats.GetProjectCounter(cat).Update(file_stats.Warnings);
+            stats.TotalCounter.Update(file_stats.Warnings);
+            stats.TotalClasses.Update(file_stats.Classes);
+            foreach (var k in file_stats.Classes.Keys)
+            {
+                stats.GetWarningsList(k).Add(source_file);
+            }
+        }
     }
 }
 
