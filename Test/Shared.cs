@@ -27,35 +27,143 @@ internal class FakePath(SavedPaths saved_paths) : Workbench.Config.Paths
 
 internal class VfsTest : Vfs
 {
-    private class Entry
+    class Entry
     {
-        public readonly Dictionary<string, Entry> directories = new();
-        public readonly List<Fil> files = new();
+        public Dictionary<string, string> Files { get; } = new();
+        public Dictionary<string, Entry> Dirs { get; } = new();
+    }
+    private Entry root = new Entry();
+
+    private static string[] SplitPath(string s)
+        => s.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+
+    private static (string[], string) Split(Fil f)
+    {
+        var split = SplitPath(f.Path);
+        var file = split[^1];
+        var dirs = split.Take(split.Length - 1).ToArray();
+        return (dirs, file);
     }
 
-    private readonly Dictionary<string, Entry> directories = new();
-    private readonly Dictionary<string, string> files = new();
+    private static string[] Split(Dir f)
+        => SplitPath(f.Path);
 
-    private Entry GetEntry(Dir dir)
+    private Entry? GetDir(string[] entries)
     {
-        if (directories.TryGetValue(dir.Path, out var entry))
-        { return entry; }
-
-        entry = new Entry();
-        directories[dir.Path] = entry;
-
-        var parent = dir.Parent;
-        if (parent != null)
+        var r = root;
+        foreach (var entry in entries)
         {
-            GetEntry(parent).directories.Add(dir.Name, entry);
+            if (r.Dirs.TryGetValue(entry, out var next))
+            {
+                r = next;
+            }
+            else
+            {
+                return null;
+            }
         }
 
-        return entry;
+        return r;
     }
 
-    public bool FileExists(Fil file_info)
+    private Entry RequireDir(string[] entries)
     {
-        return files.ContainsKey(file_info.Path);
+        var r = root;
+        foreach (var entry in entries)
+        {
+            if (r.Dirs.TryGetValue(entry, out var next))
+            {
+                r = next;
+            }
+            else
+            {
+                throw new Exception("missing dir " + entry);
+            }
+        }
+
+        return r;
+    }
+
+
+    public string ReadAllText(Fil fil)
+    {
+        var (dirs, file) = Split(fil);
+        var di = RequireDir(dirs);
+        if (di.Files.TryGetValue(file, out var value)) return value;
+        throw new Exception("missing file" + file);
+    }
+
+    public IEnumerable<string> ReadAllLines(Fil fil)
+    {
+        var t = ReadAllText(fil);
+        return t.Split('\n');
+    }
+
+    public Task<string[]> ReadAllLinesAsync(Fil fil)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void WriteAllText(Fil fil, string content)
+    {
+        var (dirs, file) = Split(fil);
+        var di = RequireDir(dirs);
+        di.Files[file] = content;
+    }
+
+    public void WriteAllLines(Fil fil, IEnumerable<string> content)
+    {
+        WriteAllText(fil, string.Join('\n', content));
+    }
+
+    public Task WriteAllLinesAsync(Fil fil, IEnumerable<string> contents)
+    {
+        throw new NotImplementedException();
+    }
+
+    public bool DirectoryExists(Dir dir)
+    {
+        var dirs = Split(dir);
+        var di = GetDir(dirs);
+        return di != null;
+    }
+
+    public void CreateDirectory(Dir dir)
+    {
+        var entries = Split(dir);
+        var r = root;
+        foreach (var entry in entries)
+        {
+            if (r.Dirs.TryGetValue(entry, out var next))
+            {
+                r = next;
+            }
+            else
+            {
+                next = new Entry();
+                r.Dirs.Add(entry, next);
+                r = next;
+            }
+        }
+    }
+
+    public IEnumerable<Fil> EnumerateFiles(Dir dir)
+    {
+        throw new NotImplementedException();
+    }
+
+    public IEnumerable<Dir> EnumerateDirs(Dir dir)
+    {
+        throw new NotImplementedException();
+    }
+
+    public bool FileExists(Fil fil)
+    {
+        var (dirs, name) = Split(fil);
+        var di = GetDir(dirs);
+        if (di == null) return false;
+
+        return di.Files.ContainsKey(name);
     }
 
     public DateTime LastWriteTimeUtc(Fil fil)
@@ -68,98 +176,18 @@ internal class VfsTest : Vfs
         throw new NotImplementedException();
     }
 
-    public void AddContent(Fil file, string content)
+    public void AddContent(Fil fil, string content)
     {
-        var dir = file.Directory;
-        if (dir != null)
+        var d = fil.Directory;
+        if (d == null) throw new Exception("Expected a dir");
+        if (DirectoryExists(d) == false)
         {
-            GetEntry(dir).files.Add(file);
+            CreateDirectory(d);
         }
-
-        files.Add(file.Path, content);
+        WriteAllText(fil, content);
     }
 
-    public void CreateDirectory(Dir dir)
-    {
-        throw new NotImplementedException();
-    }
-
-    public IEnumerable<Fil> EnumerateFiles(Dir dir)
-    {
-        return GetEntry(dir).files;
-    }
-
-    public IEnumerable<Dir> EnumerateDirs(Dir root)
-    {
-        return GetEntry(root).directories.Keys.Select(root.GetDir);
-    }
-
-    public string ReadAllText(Fil fil)
-    {
-        return files[fil.Path];
-    }
-
-    public IEnumerable<string> ReadAllLines(Fil fil)
-    {
-        return files[fil.Path].Split('\n');
-    }
-
-    public Task<string[]> ReadAllLinesAsync(Fil fil)
-    {
-        return Task<string[]>.Factory.StartNew(() => files[fil.Path].Split('\n'));
-    }
-
-    private readonly Dictionary<string, string> files_to_write = new();
-
-    public Task WriteAllTextAsync(Fil path, string contents)
-    {
-        return Task.Factory.StartNew(() => { files_to_write.Add(path.Path, contents); });
-    }
-
-    public string GetContent(Fil file)
-    {
-        if (files_to_write.Remove(file.Path, out var content))
-        {
-            return content;
-        }
-        else
-        {
-            throw new FileNotFoundException($"{file.Path} was not added to container.\n{GetRemainingFilesAsText()}");
-        }
-    }
-
-    public IEnumerable<string> RemainingFiles => files_to_write.Keys;
-
-    internal bool IsEmpty()
-    {
-        return files_to_write.Count == 0;
-    }
-
-    internal string GetRemainingFilesAsText()
-    {
-        var fs = string.Join(" ", files_to_write.Keys);
-        return $"files: [{fs}]";
-    }
-
-    public void WriteAllText(Fil fil, string content)
-    {
-        files_to_write.Add(fil.Path, content);
-    }
-
-    public void WriteAllLines(Fil fil, IEnumerable<string> content)
-    {
-        files_to_write.Add(fil.Path, string.Join("\n", content));
-    }
-
-    public Task WriteAllLinesAsync(Fil fil, IEnumerable<string> contents)
-    {
-        return Task.Factory.StartNew(() => files_to_write.Add(fil.Path, string.Join("\n", contents)));
-    }
-
-    public bool DirectoryExists(Dir dir)
-    {
-        throw new NotImplementedException();
-    }
+    public object GetContent(Fil fil) => ReadAllText(fil);
 }
 
 internal class LoggableTest : Log

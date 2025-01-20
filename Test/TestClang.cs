@@ -42,7 +42,7 @@ public class TestClang : TestBase
     }
 
     // currently fails
-    /*
+    //*
     [Fact]
     public async Task if_has_tidy_then_run_it()
     {
