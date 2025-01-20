@@ -27,9 +27,14 @@ internal class FakePath(SavedPaths saved_paths) : Workbench.Config.Paths
 
 internal class VfsTest : Vfs
 {
+    class FileContent(string content)
+    {
+        public string Content { get; } = content;
+        public DateTime Time { get; } = DateTime.Now;
+    }
     class Entry
     {
-        public Dictionary<string, string> Files { get; } = new();
+        public Dictionary<string, FileContent> Files { get; } = new();
         public Dictionary<string, Entry> Dirs { get; } = new();
     }
     private Entry root = new Entry();
@@ -89,7 +94,7 @@ internal class VfsTest : Vfs
     {
         var (dirs, file) = Split(fil);
         var di = RequireDir(dirs);
-        if (di.Files.TryGetValue(file, out var value)) return value;
+        if (di.Files.TryGetValue(file, out var value)) return value.Content;
         throw new Exception("missing file" + file);
     }
 
@@ -108,7 +113,7 @@ internal class VfsTest : Vfs
     {
         var (dirs, file) = Split(fil);
         var di = RequireDir(dirs);
-        di.Files[file] = content;
+        di.Files[file] = new FileContent(content);
     }
 
     public void WriteAllLines(Fil fil, IEnumerable<string> content)
@@ -170,7 +175,13 @@ internal class VfsTest : Vfs
 
     public DateTime LastWriteTimeUtc(Fil fil)
     {
-        throw new NotImplementedException();
+        var (dirs, name) = Split(fil);
+        var di = GetDir(dirs);
+        if (di == null) return DateTime.Now;
+
+        if (di.Files.TryGetValue(name, out var entry)) return entry.Time;
+
+        return DateTime.Now;
     }
 
     public UnixFileMode UnixFileMode(Fil fil)
