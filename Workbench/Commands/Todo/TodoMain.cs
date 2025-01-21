@@ -82,6 +82,7 @@ internal sealed class GroupWithTimeCommand : AsyncCommand<GroupWithTimeCommand.A
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
         var vfs = new VfsDisk();
+        var exec = new SystemExecutor();
 
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
@@ -110,7 +111,7 @@ internal sealed class GroupWithTimeCommand : AsyncCommand<GroupWithTimeCommand.A
             // group by file to only run blame once (per file)
             var todo_with_blame = await SpectreExtensions.Progress().MapArrayAsync(grouped, async entry =>
             {
-                var blames = await Shared.Git.BlameAsync(cwd, git_path, entry.File).ToListAsync();
+                var blames = await Shared.Git.BlameAsync(exec, cwd, git_path, entry.File).ToListAsync();
                 return ($"Blaming {entry.File.GetDisplay(cwd)}", entry.Todos
                         // if there are no blames, this file is probably new and the date is current
                     .Select(x => new { Todo = x, Blame = blames.Count==0 ? DateTime.Now : blame_to_time(blames[x.Line - 1])})

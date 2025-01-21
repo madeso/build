@@ -22,6 +22,7 @@ internal sealed class BlameCommand : AsyncCommand<BlameCommand.Arg>
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
         var vfs = new VfsDisk();
+        var exec = new SystemExecutor();
 
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
@@ -31,7 +32,7 @@ internal sealed class BlameCommand : AsyncCommand<BlameCommand.Arg>
                 return -1;
             }
 
-            await foreach (var line in Shared.Git.BlameAsync(cwd, git_path, new Fil(settings.File)))
+            await foreach (var line in Shared.Git.BlameAsync(exec, cwd, git_path, new Fil(settings.File)))
             {
                 AnsiConsole.MarkupLineInterpolated(
                     $"{line.Author.Name} {line.Author.Time} {line.FinalLineNumber}: {line.Line}");
@@ -61,6 +62,7 @@ internal sealed class StatusCommand : AsyncCommand<StatusCommand.Arg>
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
         var vfs = new VfsDisk();
+        var exec = new SystemExecutor();
 
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
@@ -81,7 +83,7 @@ internal sealed class StatusCommand : AsyncCommand<StatusCommand.Arg>
             var added = new ColCounter<string>();
 
             AnsiConsole.MarkupLineInterpolated($"Status for [green]{settings.Root}[/].");
-            await foreach (var line in Shared.Git.StatusAsync(cwd, git_path, root))
+            await foreach (var line in Shared.Git.StatusAsync(exec, cwd, git_path, root))
             {
                 string io_type = string.Empty;
 
@@ -172,10 +174,10 @@ internal sealed class RemoveUnknownCommand : AsyncCommand<RemoveUnknownCommand.A
         public bool Recursive { get; set; }
     }
 
-    private static async Task WalkDirectoryAsync(Dir cwd, Fil git_path, Dir dir, bool recursive)
+    private static async Task WalkDirectoryAsync(Executor exec, Dir cwd, Fil git_path, Dir dir, bool recursive)
     {
         AnsiConsole.MarkupLineInterpolated($"Removing unknowns from [green]{dir}[/].");
-        await foreach (var line in Shared.Git.StatusAsync(cwd, git_path, dir))
+        await foreach (var line in Shared.Git.StatusAsync(exec, cwd, git_path, dir))
         {
             switch (line.Status)
             {
@@ -195,7 +197,7 @@ internal sealed class RemoveUnknownCommand : AsyncCommand<RemoveUnknownCommand.A
                     if (recursive && line.Path is { IsDirectory: true, Exists: true })
                     {
                         AnsiConsole.MarkupLineInterpolated($"Modified directory [blue]{line.Path}[/] assumed to be submodule.");
-                        await WalkDirectoryAsync(cwd, git_path, line.Path.AsDir!, recursive);
+                        await WalkDirectoryAsync(exec, cwd, git_path, line.Path.AsDir!, recursive);
                     }
                     break;
             }
@@ -207,6 +209,7 @@ internal sealed class RemoveUnknownCommand : AsyncCommand<RemoveUnknownCommand.A
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
         var vfs = new VfsDisk();
+        var exec = new SystemExecutor();
 
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
@@ -222,7 +225,7 @@ internal sealed class RemoveUnknownCommand : AsyncCommand<RemoveUnknownCommand.A
                 return -1;
             }
 
-            await WalkDirectoryAsync(cwd, git_path, root, settings.Recursive);
+            await WalkDirectoryAsync(exec, cwd, git_path, root, settings.Recursive);
             return 0;
         });
     }
@@ -270,6 +273,7 @@ internal sealed class AuthorsCommand : AsyncCommand<AuthorsCommand.Arg>
             var cwd = Dir.CurrentDirectory;
             var paths = new Config.RealPaths();
             var vfs = new VfsDisk();
+            var exec = new SystemExecutor();
 
             var git_path = paths.GetGitExecutable(vfs, cwd, log);
             if (git_path == null)
@@ -278,7 +282,7 @@ internal sealed class AuthorsCommand : AsyncCommand<AuthorsCommand.Arg>
             }
 
             var authors = new Dictionary<string, State>();
-            await foreach (var e in Shared.Git.LogAsync(cwd, git_path, cwd))
+            await foreach (var e in Shared.Git.LogAsync(exec, cwd, git_path, cwd))
             {
                 var email = e.AuthorEmail;
                 var date = e.AuthorDate;

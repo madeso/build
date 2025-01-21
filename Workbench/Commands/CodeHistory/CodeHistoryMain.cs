@@ -35,6 +35,7 @@ internal sealed class PrintCodeHistory : AsyncCommand<PrintCodeHistory.Arg>
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
         var vfs = new VfsDisk();
+        var exec = new SystemExecutor();
 
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
@@ -56,7 +57,7 @@ internal sealed class PrintCodeHistory : AsyncCommand<PrintCodeHistory.Arg>
             var blamed_times = (await SpectreExtensions.Progress()
                     .MapArrayAsync(files.ToImmutableArray(), async file =>
                     {
-                        var blamed = await Shared.Git.BlameAsync(cwd, git_path, file)
+                        var blamed = await Shared.Git.BlameAsync(exec, cwd, git_path, file)
                             .SelectAsync(line => new { File = file, line.Author.Time })
                             .ToListAsync();
                         return ($"Blaming {file.GetRelative(cwd)}", blamed);

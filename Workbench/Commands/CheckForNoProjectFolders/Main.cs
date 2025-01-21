@@ -30,6 +30,7 @@ internal sealed class CheckForNoProjectFoldersCommand : AsyncCommand<CheckForNoP
     {
         var cwd = Dir.CurrentDirectory;
         var vfs = new VfsDisk();
+        var exec = new SystemExecutor();
 
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
         {
@@ -46,11 +47,11 @@ internal sealed class CheckForNoProjectFoldersCommand : AsyncCommand<CheckForNoP
                 return -1;
             }
 
-            return await CheckForNoProjectFolders(cwd, Cli.ToDirectories(vfs, cwd, log, settings.Directories), build_root, cmake);
+            return await CheckForNoProjectFolders(exec, cwd, Cli.ToDirectories(vfs, cwd, log, settings.Directories), build_root, cmake);
         });
     }
 
-    public static async Task<int> CheckForNoProjectFolders(Dir cwd, IEnumerable<Dir> bases_iter, Dir build_root, Fil cmake)
+    public static async Task<int> CheckForNoProjectFolders(Executor exec, Dir cwd, IEnumerable<Dir> bases_iter, Dir build_root, Fil cmake)
     {
         var projects = new HashSet<string>();
         var projects_with_folders = new HashSet<string>();
@@ -59,7 +60,7 @@ internal sealed class CheckForNoProjectFoldersCommand : AsyncCommand<CheckForNoP
 
         var bases = bases_iter.ToImmutableArray();
 
-        foreach (var cmd in await CMakeTrace.TraceDirectoryAsync(cwd, cmake, build_root))
+        foreach (var cmd in await CMakeTrace.TraceDirectoryAsync(exec, cwd, cmake, build_root))
         {
             if(cmd.File == null) continue;
             if (bases.Select(b => FileUtil.FileIsInFolder(cmd.File, b)).Any())

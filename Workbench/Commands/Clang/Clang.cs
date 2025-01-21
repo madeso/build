@@ -810,7 +810,7 @@ public class ClangTidy
     }
 
     // runs clang-tidy and returns all the text output
-    private static async Task<TidyOutput> GetExistingOutputOrCallClangTidy(Vfs vfs, Dir cwd, Store store,
+    private static async Task<TidyOutput> GetExistingOutputOrCallClangTidy(Executor exec, Vfs vfs, Dir cwd, Store store,
         Log log, Dir root, bool force, Fil tidy_path, Dir project_build_folder,
         Fil source_file, bool fix)
     {
@@ -823,12 +823,12 @@ public class ClangTidy
             }
         }
 
-        var ret = await CallClangTidyAsync(cwd, log, tidy_path, project_build_folder, source_file, fix);
+        var ret = await CallClangTidyAsync(exec, cwd, log, tidy_path, project_build_folder, source_file, fix);
         StoreOutput(vfs, store, root, project_build_folder, source_file, ret);
         return ret;
     }
 
-    private static async Task<TidyOutput> CallClangTidyAsync(Dir cwd, Log log, Fil tidy_path,
+    private static async Task<TidyOutput> CallClangTidyAsync(Executor exec, Dir cwd, Log log, Fil tidy_path,
         Dir project_build_folder, Fil source_file, bool fix)
     {
         var command = new ProcessBuilder(tidy_path);
@@ -841,7 +841,7 @@ public class ClangTidy
         command.AddArgument(source_file.Path);
 
         var start = DateTime.Now;
-        var output = await command.RunAndGetOutputAsync(cwd);
+        var output = await command.RunAndGetOutputAsync(exec, cwd);
 
         if (output.ExitCode != 0)
         {
@@ -920,7 +920,7 @@ public class ClangTidy
     }
 
     // callback function called when running clang.py tidy
-    public async Task<int> HandleRunClangTidyCommand(Vfs vfs, Config.Paths paths, Dir cwd, CompileCommandsArguments cc, Log print, bool also_include_headers, Args args)
+    public async Task<int> HandleRunClangTidyCommand(Executor exec, Vfs vfs, Config.Paths paths, Dir cwd, CompileCommandsArguments cc, Log print, bool also_include_headers, Args args)
     {
         var clang_tidy = paths.GetClangTidyExecutable(vfs, cwd, print);
         if (clang_tidy == null)
@@ -954,7 +954,7 @@ public class ClangTidy
         IOutput output = args.HtmlRoot == null ? new ConsoleOutput(args, print) : new HtmlOutput(args.HtmlRoot, cwd);
 
         var files = ClangFiles.MapAllFilesInRootOnFirstDir(vfs, cwd, also_include_headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource, FileSection.AllExceptThoseIgnoredByClangTidy);
-        var stats = await RunAllFiles(vfs, cwd, print, args, files, store, cwd, clang_tidy, project_build_folder, output);
+        var stats = await RunAllFiles(exec, vfs, cwd, print, args, files, store, cwd, clang_tidy, project_build_folder, output);
 
         output.WriteFinalReport(vfs, cwd, stats);
 
@@ -976,7 +976,7 @@ public class ClangTidy
 
     private record TransformRec(string Category, Fil File, TidyOutput tidy_output);
 
-    private static async Task<GlobalStatistics> RunAllFiles(Vfs vfs, Dir cwd, Log print, Args args, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
+    private static async Task<GlobalStatistics> RunAllFiles(Executor exec, Vfs vfs, Dir cwd, Log print, Args args, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
         Dir project_build_folder, IOutput html_root)
     {
         var files = data.SelectMany(pair => pair.Files.Select(x => new CollectedTidyFil(x, pair.Category)))
@@ -989,7 +989,7 @@ public class ClangTidy
         {
             foreach (var f in files)
             {
-                var tradat = await transform_function(f);
+                var tradat = await transform_function(exec, f);
                 read_function(tradat);
             }
         }
@@ -1001,18 +1001,18 @@ public class ClangTidy
                 .PipeAsync(
                     maxConcurrency: args.NumberOfTasks,
                     capacity: 100,
-                    transform: async source_file => await transform_function(source_file))
+                    transform: async source_file => await transform_function(exec, source_file))
                 .ReadAll(read_function);
         }
 
         return stats;
 
-        async Task<TransformRec> transform_function(CollectedTidyFil source_file)
+        async Task<TransformRec> transform_function(Executor exec, CollectedTidyFil source_file)
         {
             print.Info($"Running {source_file.File}");
             var tidy_output = args.Nop
                 ? new([], new())
-                : await GetExistingOutputOrCallClangTidy(vfs, cwd, store, print, root, args.Force, clang_tidy, project_build_folder, source_file.File, args.Fix);
+                : await GetExistingOutputOrCallClangTidy(exec, vfs, cwd, store, print, root, args.Force, clang_tidy, project_build_folder, source_file.File, args.Fix);
             return new(source_file.Category, source_file.File, tidy_output);
         }
 
@@ -1042,7 +1042,7 @@ public class ClangTidy
 internal static class ClangFormat
 {
     // callback function called when running clang.py format
-    internal static async Task<int> HandleClangFormatCommand(Vfs vfs, Config.Paths paths, Dir cwd, Log print, bool nop)
+    internal static async Task<int> HandleClangFormatCommand(Executor exec, Vfs vfs, Config.Paths paths, Dir cwd, Log print, bool nop)
     {
         var clang_format_path = paths.GetClangFormatExecutable(vfs, cwd, print);
         if (clang_format_path == null)
@@ -1064,7 +1064,7 @@ internal static class ClangFormat
                 }
 
                 var res = await new ProcessBuilder(clang_format_path, "-i", file.Path)
-                    .RunAndGetOutputAsync(cwd);
+                    .RunAndGetOutputAsync(exec, cwd);
                 if (res.ExitCode != 0)
                 {
                     res.PrintOutput(print);

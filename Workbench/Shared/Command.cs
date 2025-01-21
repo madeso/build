@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Spectre.Console;
 
 namespace Workbench.Shared;
@@ -6,7 +7,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 
-internal record ProcessExit(string CommandLine, int ExitCode);
+public record ProcessExit(string CommandLine, int ExitCode);
 internal record OutputLine(string Line, bool IsError);
 
 internal class ProcessExitWithOutput
@@ -51,25 +52,97 @@ internal class ProcessExitWithOutput
     }
 }
 
-public class ProcessBuilder
+public interface Executor
 {
-    internal async Task<ProcessExit> RunWithCallbackAsync(
-        Dir cwd, IEnumerable<string>? input, Action<string> on_stdout, Action<string> on_stderr, Action<string, Exception> on_fail)
+    Task<ProcessExit> RunWithCallbackAsync(ImmutableArray<string> arguments, Fil exe, Dir cwd, IEnumerable<string>? input, Action<string> on_stdout, Action<string> on_stderr, Action<string, Exception> on_fail);
+}
+
+public static class ExecHelper
+{
+    public static string CollapseArgStringToSingle(IEnumerable<string> args, PlatformID platform)
     {
+        // https://stackoverflow.com/a/10489920
+        var result = "";
+
+        if (platform is PlatformID.Unix
+            or
+            PlatformID.MacOSX)
+        {
+            foreach (var arg in args)
+            {
+                result += (result.Length > 0 ? " " : "")
+                          + arg
+                              .Replace(" ", @"\ ")
+                              .Replace("\t", "\\\t")
+                              .Replace(@"\", @"\\")
+                              .Replace(@"""", @"\""")
+                              .Replace("<", @"\<")
+                              .Replace(">", @"\>")
+                              .Replace("|", @"\|")
+                              .Replace("@", @"\@")
+                              .Replace("&", @"\&");
+            }
+        }
+        else //Windows family
+        {
+            foreach (var arg in args)
+            {
+                var enclosed_in_apo = arg.LastIndexOfAny(
+                    new[] { ' ', '\t', '|', '@', '^', '<', '>', '&' }) >= 0;
+                var was_apo = enclosed_in_apo;
+                var sub_result = "";
+                for (int i = arg.Length - 1; i >= 0; i--)
+                {
+                    switch (arg[i])
+                    {
+                        case '"':
+                            sub_result = @"\""" + sub_result;
+                            was_apo = true;
+                            break;
+                        case '\\':
+                            sub_result = (was_apo ? @"\\" : @"\") + sub_result;
+                            break;
+                        default:
+                            sub_result = arg[i] + sub_result;
+                            was_apo = false;
+                            break;
+                    }
+                }
+                result += (result.Length > 0 ? " " : "")
+                          + (enclosed_in_apo ? "\"" + sub_result + "\"" : sub_result);
+            }
+        }
+
+        return result;
+    }
+
+    public static string ToCommandlineDescription(PlatformID platform, Fil exec, IEnumerable<string> arguments)
+    {
+        var args = CollapseArgStringToSingle(arguments, platform);
+        return $"{exec} {args}";
+    }
+}
+
+public class SystemExecutor : Executor
+{
+    public async Task<ProcessExit> RunWithCallbackAsync(ImmutableArray<string> arguments, Fil exe, Dir cwd, IEnumerable<string>? input, Action<string> on_stdout, Action<string> on_stderr, Action<string, Exception> on_fail)
+    {
+        var commandline_display = ExecHelper.ToCommandlineDescription(Environment.OSVersion.Platform, exe, arguments);
+
         // Prepare the process to run
         ProcessStartInfo start = new()
         {
-            Arguments = CollectArguments(),
-            FileName = Executable.Path,
+            Arguments = ExecHelper.CollapseArgStringToSingle(arguments, Environment.OSVersion.Platform),
+            FileName = exe.Path,
             UseShellExecute = false,
 
-            WorkingDirectory = (WorkingDirectory?? cwd).Path,
+            WorkingDirectory = cwd.Path,
 
             RedirectStandardOutput = true,
             RedirectStandardError = true,
         };
 
-        if(input != null)
+        if (input != null)
         {
             start.RedirectStandardInput = true;
         }
@@ -85,31 +158,40 @@ public class ProcessBuilder
 
             if (input != null)
             {
-                foreach(var line in input)
+                foreach (var line in input)
                 {
                     await proc.StandardInput.WriteLineAsync(line);
                 }
                 proc.StandardInput.Close();
             }
-            
+
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
             await proc.WaitForExitAsync();
 
-            return new(ToString(), proc.ExitCode);
+            return new(commandline_display, proc.ExitCode);
         }
         catch (Win32Exception err)
         {
-            on_fail($"Failed to run {ToString()}", err);
-            return new(ToString(), -42);
+            on_fail($"Failed to run {commandline_display}", err);
+            return new(commandline_display, -42);
         }
     }
+}
 
-    internal async Task<ProcessExitWithOutput> RunAndGetOutputAsync(Dir cwd)
+public class ProcessBuilder
+{
+    internal async Task<ProcessExit> RunWithCallbackAsync(Executor exec,
+        Dir cwd, IEnumerable<string>? input, Action<string> on_stdout, Action<string> on_stderr, Action<string, Exception> on_fail)
+    {
+        return await exec.RunWithCallbackAsync([..arguments], Executable, (WorkingDirectory ?? cwd), input, on_stdout, on_stderr, on_fail);
+    }
+
+    internal async Task<ProcessExitWithOutput> RunAndGetOutputAsync(Executor exec, Dir cwd)
     {
         var output = new List<OutputLine>();
 
-        var ret = await RunWithCallbackAsync(cwd, null,
+        var ret = await RunWithCallbackAsync(exec, cwd, null,
             line => output.Add(new OutputLine(line, false)),
             line => output.Add(new OutputLine(line, true)),
             (line, ex) => {
@@ -120,11 +202,11 @@ public class ProcessBuilder
         return new(ret, output.ToArray());
     }
 
-    internal async Task<ProcessExitWithOutput> RunAndGetOutputAsync(Dir cwd, IEnumerable<string> lines)
+    internal async Task<ProcessExitWithOutput> RunAndGetOutputAsync(Executor exec, Dir cwd, IEnumerable<string> lines)
     {
         var output = new List<OutputLine>();
 
-        var ret = await RunWithCallbackAsync(cwd, lines,
+        var ret = await RunWithCallbackAsync(exec, cwd, lines,
             line => output.Add(new OutputLine(line, false)),
             line => output.Add(new OutputLine(line, true)),
             (line, ex) => {
@@ -159,73 +241,9 @@ public class ProcessBuilder
         arguments.Add(argument);
     }
 
-    private string CollectArguments()
+    internal async Task RunAndPrintOutputAsync(Executor exec, Dir cwd, Log log)
     {
-        var args = arguments.ToArray();
-        // https://stackoverflow.com/a/10489920
-        var result = "";
-
-        if (Environment.OSVersion.Platform is PlatformID.Unix
-            or
-            PlatformID.MacOSX)
-        {
-            foreach (var arg in args)
-            {
-                result += (result.Length > 0 ? " " : "")
-                    + arg
-                        .Replace(" ", @"\ ")
-                        .Replace("\t", "\\\t")
-                        .Replace(@"\", @"\\")
-                        .Replace(@"""", @"\""")
-                        .Replace("<", @"\<")
-                        .Replace(">", @"\>")
-                        .Replace("|", @"\|")
-                        .Replace("@", @"\@")
-                        .Replace("&", @"\&");
-            }
-        }
-        else //Windows family
-        {
-            foreach (string arg in args)
-            {
-                var enclosed_in_apo = arg.LastIndexOfAny(
-                    new[] { ' ', '\t', '|', '@', '^', '<', '>', '&' }) >= 0;
-                var was_apo = enclosed_in_apo;
-                var sub_result = "";
-                for (int i = arg.Length - 1; i >= 0; i--)
-                {
-                    switch (arg[i])
-                    {
-                        case '"':
-                            sub_result = @"\""" + sub_result;
-                            was_apo = true;
-                            break;
-                        case '\\':
-                            sub_result = (was_apo ? @"\\" : @"\") + sub_result;
-                            break;
-                        default:
-                            sub_result = arg[i] + sub_result;
-                            was_apo = false;
-                            break;
-                    }
-                }
-                result += (result.Length > 0 ? " " : "")
-                    + (enclosed_in_apo ? "\"" + sub_result + "\"" : sub_result);
-            }
-        }
-
-        return result;
-    }
-
-    public override string ToString()
-    {
-        var args = CollectArguments();
-        return $"{Executable} {args}";
-    }
-
-    internal async Task RunAndPrintOutputAsync(Dir cwd, Log log)
-    {
-        var pe = await RunWithCallbackAsync(cwd, null, AnsiConsole.WriteLine, log.Warning,
+        var pe = await RunWithCallbackAsync(exec, cwd, null, AnsiConsole.WriteLine, log.Warning,
             (mess, ex) => {
                 log.Error(mess);
                 log.Error(ex.Message);

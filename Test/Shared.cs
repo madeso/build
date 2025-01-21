@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿using System.Collections.Immutable;
+using System.IO;
+using Microsoft.CSharp.RuntimeBinder;
 using Workbench.Config;
 using Workbench.Shared;
 
@@ -250,8 +252,47 @@ internal class LoggableTest : Log
             .Select(m => m.Message);
 }
 
+public class NoRunExecutor : Executor
+{
+    public Task<ProcessExit> RunWithCallbackAsync(ImmutableArray<string> arguments, Fil exe, Dir cwd, IEnumerable<string>? input, Action<string> on_stdout, Action<string> on_stderr, Action<string, Exception> on_fail)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+public class DefinedExecutor : Executor
+{
+    internal record Entry(Fil Exe, Dir cwd, int Arg, string What, ProcessExit Run);
+    private List<Entry> entries = new();
+
+    internal void Add(Entry e)
+    {
+        entries.Add(e);
+    }
+
+    public Task<ProcessExit> RunWithCallbackAsync(ImmutableArray<string> arguments, Fil exe, Dir cwd, IEnumerable<string>? input, Action<string> on_stdout, Action<string> on_stderr, Action<string, Exception> on_fail)
+    {
+        return Task.Run(() =>
+        {
+            foreach (var e in entries)
+            {
+                if (!Equals(e.cwd, cwd)) continue;
+                if(!Equals(e.Exe, exe)) continue;
+                if (e.Arg >= arguments.Length) throw new Exception($"Invalid arg: {arguments.Length} but requested {e.Arg}: {ExecHelper.CollapseArgStringToSingle(arguments, PlatformID.Win32Windows)}");
+                if(arguments[e.Arg] != e.What) continue;
+                return e.Run;
+            }
+
+            throw new Exception($"no registered output: {exe}: {ExecHelper.CollapseArgStringToSingle(arguments, PlatformID.Win32Windows)} in {cwd}");
+        });
+    }
+}
+
 public class TestBase
 {
     internal LoggableTest log = new();
     internal VfsTest vfs = new();
+
+    internal NoRunExecutor no_run_executor = new();
+    internal DefinedExecutor exec = new();
 }

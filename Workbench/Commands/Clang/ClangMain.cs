@@ -113,6 +113,7 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
         var vfs = new VfsDisk();
+        var exec = new SystemExecutor();
 
         Dir? html_dir = null;
 
@@ -127,7 +128,7 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
         }
 
         var tidy = new ClangTidy();
-        return await CliUtil.PrintErrorsAtExitAsync(print => tidy.HandleRunClangTidyCommand(vfs, paths, cwd,
+        return await CliUtil.PrintErrorsAtExitAsync(print => tidy.HandleRunClangTidyCommand(exec, vfs, paths, cwd,
             settings, print,
             settings.Headers,
             new ClangTidy.Args(html_dir, settings.NumberOfTasks, settings.Fix, settings.Filter, settings.Nop, settings.Short, settings.Force,
@@ -151,9 +152,10 @@ internal sealed class RunClangFormatCommand : AsyncCommand<RunClangFormatCommand
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
         var vfs = new VfsDisk();
+        var exec = new SystemExecutor();
 
         return await CliUtil.PrintErrorsAtExitAsync(async print =>
-            await ClangFormat.HandleClangFormatCommand(vfs, paths, cwd, print, settings.Nop));
+            await ClangFormat.HandleClangFormatCommand(exec, vfs, paths, cwd, print, settings.Nop));
     }
 }
 

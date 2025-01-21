@@ -213,7 +213,7 @@ public class Graphviz
         await path.WriteAllLinesAsync(vfs, Lines);
     }
 
-    public async Task<string[]> WriteSvgAsync(Vfs vfs, Config.Paths paths, Dir cwd, Log log)
+    public async Task<string[]> WriteSvgAsync(Executor exec, Vfs vfs, Config.Paths paths, Dir cwd, Log log)
     {
         var dot = paths.GetGraphvizExecutable(vfs, cwd, log);
 
@@ -226,7 +226,7 @@ public class Graphviz
             dot,
             "-Tsvg"
         );
-        var output = await cmdline.RunAndGetOutputAsync(cwd, Lines);
+        var output = await cmdline.RunAndGetOutputAsync(exec, cwd, Lines);
 
         if (output.ExitCode != 0)
         {
@@ -246,9 +246,9 @@ public class Graphviz
         return ret;
     }
 
-    public async IAsyncEnumerable<string> WriteHtmlAsync(Vfs vfs, Dir cwd, Log log, Fil file, Paths paths, bool use_max_width = false)
+    public async IAsyncEnumerable<string> WriteHtmlAsync(Executor exec, Vfs vfs, Dir cwd, Log log, Fil file, Paths paths, bool use_max_width = false)
     {
-        var svg = await WriteSvgAsync(vfs, paths, cwd, log);
+        var svg = await WriteSvgAsync(exec, vfs, paths, cwd, log);
 
         yield return "<!DOCTYPE html>";
         yield return "<html>";
@@ -303,7 +303,7 @@ public class Graphviz
         yield return "</html>";
     }
 
-    public async Task SmartWriteFileAsync(Vfs vfs, Paths paths, Dir cwd, Fil target_file, Log log)
+    public async Task SmartWriteFileAsync(Executor exec, Vfs vfs, Paths paths, Dir cwd, Fil target_file, Log log)
     {
         var am = new ActionMapper();
         am.Add(async () =>
@@ -313,12 +313,12 @@ public class Graphviz
         am.Add(async () =>
         {
             // todo(Gustav): don't write svg if we failed
-            await target_file.WriteAllLinesAsync(vfs, await WriteSvgAsync(vfs, paths, cwd, log));
+            await target_file.WriteAllLinesAsync(vfs, await WriteSvgAsync(exec, vfs, paths, cwd, log));
         }, ".svg");
         am.Add(async () =>
         {
             // todo(Gustav): don't write html if we failed
-            await target_file.WriteAllLinesAsync(vfs, await WriteHtmlAsync(vfs, cwd, log, target_file, paths).ToListAsync());
+            await target_file.WriteAllLinesAsync(vfs, await WriteHtmlAsync(exec, vfs, cwd, log, target_file, paths).ToListAsync());
         }, ".htm", ".html");
 
         var ext = target_file.Extension;

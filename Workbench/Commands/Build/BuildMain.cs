@@ -73,9 +73,10 @@ internal sealed class InstallCommand : AsyncCommand<InstallCommand.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var vfs = new VfsDisk();
+        var exec = new SystemExecutor();
 
         return await BuildFacade.HandleGenericBuildAsync(vfs, cwd, settings,
-            (_, printer, env, data) => BuildFacade.HandleInstallAsync(vfs, cwd, printer, env, data));
+            (_, printer, env, data) => BuildFacade.HandleInstallAsync(exec, vfs, cwd, printer, env, data));
     }
 }
 
@@ -94,9 +95,10 @@ internal sealed class CmakeCommand : AsyncCommand<CmakeCommand.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var vfs = new VfsDisk();
+        var exec = new SystemExecutor();
 
         return await BuildFacade.HandleGenericBuildAsync(vfs, cwd, settings,
-            (_, printer, env, data) => BuildFacade.HandleCmakeAsync(vfs, cwd, settings.Nop, printer, env, data));
+            (_, printer, env, data) => BuildFacade.HandleCmakeAsync(exec, vfs, cwd, settings.Nop, printer, env, data));
     }
 }
 
@@ -111,9 +113,10 @@ internal sealed class DevCommand : AsyncCommand<DevCommand.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var vfs = new VfsDisk();
+        var exec = new SystemExecutor();
 
         return await BuildFacade.HandleGenericBuildAsync(vfs, cwd, settings,
-            (_, printer, env, data) => BuildFacade.HandleDevAsync(vfs, cwd, printer, env, data));
+            (_, printer, env, data) => BuildFacade.HandleDevAsync(exec, vfs, cwd, printer, env, data));
     }
 }
 
@@ -128,8 +131,9 @@ internal sealed class BuildCommand : AsyncCommand<BuildCommand.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var vfs = new VfsDisk();
+        var exec = new SystemExecutor();
 
         return await BuildFacade.HandleGenericBuildAsync(vfs, cwd, settings,
-            (_, printer, env, data) => BuildFacade.HandleBuildAsync(vfs, cwd, printer, env, data));
+            (_, printer, env, data) => BuildFacade.HandleBuildAsync(exec, vfs, cwd, printer, env, data));
     }
 }

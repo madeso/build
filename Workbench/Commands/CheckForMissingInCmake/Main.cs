@@ -33,6 +33,7 @@ internal sealed class CheckForMissingInCmakeCommand : AsyncCommand<CheckForMissi
         {
             var cwd = Dir.CurrentDirectory;
             var vfs = new VfsDisk();
+            var exec = new SystemExecutor();
 
             var cmake = FindCMake.RequireInstallationOrNull(vfs, print);
             if (cmake == null)
@@ -48,7 +49,7 @@ internal sealed class CheckForMissingInCmakeCommand : AsyncCommand<CheckForMissi
                 .ToImmutableArray();
 
             var paths = new HashSet<Fil>();
-            foreach (var cmd in await CMakeTrace.TraceDirectoryAsync(cwd, cmake, build_root))
+            foreach (var cmd in await CMakeTrace.TraceDirectoryAsync(exec, cwd, cmake, build_root))
             {
                 if (!bases.Select(b => FileUtil.FileIsInFolder(cmd.File!, b)).Any())
                 {

@@ -66,7 +66,7 @@ static class SlnDepsFunctions
     // logic
     // ======================================================================================================================
 
-    private static async Task<bool> RunGraphvizAsync(Vfs vfs, Config.Paths paths, Dir cwd, Log log, Fil target_file, string image_format, string graphviz_layout)
+    private static async Task<bool> RunGraphvizAsync(Executor exec, Vfs vfs, Config.Paths paths, Dir cwd, Log log, Fil target_file, string image_format, string graphviz_layout)
     {
         var dot = paths.GetGraphvizExecutable(vfs, cwd, log);
         if (dot == null)
@@ -81,7 +81,7 @@ static class SlnDepsFunctions
             "-O" + target_file + "." + image_format
         );
         AnsiConsole.WriteLine($"Running graphviz {cmdline}");
-        await cmdline.RunAndPrintOutputAsync(cwd, log);
+        await cmdline.RunAndPrintOutputAsync(exec, cwd, log);
         return true;
     }
 
@@ -90,7 +90,7 @@ static class SlnDepsFunctions
     // Handlers
     // ======================================================================================================================
 
-    public static async Task<int> HandleGenerateAsync(Vfs vfs, Config.Paths paths, Dir cwd, Log log, string target,
+    public static async Task<int> HandleGenerateAsync(Executor exec, Vfs vfs, Config.Paths paths, Dir cwd, Log log, string target,
             string format,
             ExclusionList exclude,
             bool simplify,
@@ -115,7 +115,7 @@ static class SlnDepsFunctions
 
         await gv.WriteFileAsync(vfs, target_file);
 
-        var res = await RunGraphvizAsync(vfs, paths, cwd, log, target_file, image_format, graphviz_layout);
+        var res = await RunGraphvizAsync(exec, vfs, paths, cwd, log, target_file, image_format, graphviz_layout);
         if (res == false)
         {
             return -1;

@@ -70,6 +70,7 @@ internal sealed class GenerateCommand : AsyncCommand<GenerateCommand.Arg>
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
         var vfs = new VfsDisk();
+        var exec = new SystemExecutor();
 
         return await CliUtil.PrintErrorsAtExitAsync(async printer =>
         {
@@ -78,7 +79,7 @@ internal sealed class GenerateCommand : AsyncCommand<GenerateCommand.Arg>
             {
                 return -1;
             }
-            return await SlnDepsFunctions.HandleGenerateAsync(vfs, paths, cwd, printer, args.Target, args.Format,
+            return await SlnDepsFunctions.HandleGenerateAsync(exec, vfs, paths, cwd, printer, args.Target, args.Format,
                 args.MakeExclusionList(), args.Simplify, args.Reverse, sln, args.Style);
         });
     }

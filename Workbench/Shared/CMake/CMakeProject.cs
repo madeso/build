@@ -106,7 +106,7 @@ public class CMakeProject
     }
 
     // run cmake configure step
-    public async Task ConfigureAsync(Vfs vfs, Dir cwd, Log log, bool nop = false)
+    public async Task ConfigureAsync(Executor exec, Vfs vfs, Dir cwd, Log log, bool nop = false)
     {
         var cmake = FindCMake.RequireInstallationOrNull(vfs, log);
         if (cmake == null)
@@ -141,7 +141,7 @@ public class CMakeProject
             }
             else
             {
-                await command.RunAndPrintOutputAsync(cwd, log);
+                await command.RunAndPrintOutputAsync(exec, cwd, log);
             }
         }
         else
@@ -151,7 +151,7 @@ public class CMakeProject
     }
 
     // run cmake build step
-    private async Task RunBuildCommandAsync(Vfs vfs, Dir cwd, Log log, Install install, Config config)
+    private async Task RunBuildCommandAsync(Executor exec, Vfs vfs, Dir cwd, Log log, Install install, Config config)
     {
         var cmake = FindCMake.RequireInstallationOrNull(vfs, log);
         if (cmake == null)
@@ -182,7 +182,7 @@ public class CMakeProject
 
         if (Core.IsWindows())
         {
-            await command.RunAndPrintOutputAsync(cwd, log);
+            await command.RunAndPrintOutputAsync(exec, cwd, log);
         }
         else
         {
@@ -191,14 +191,14 @@ public class CMakeProject
     }
 
     // build cmake project
-    public async Task BuildAsync(Vfs vfs, Dir cwd, Log log, Config config)
+    public async Task BuildAsync(Executor exec, Vfs vfs, Dir cwd, Log log, Config config)
     {
-        await RunBuildCommandAsync(vfs, cwd, log, CMake.Install.No, config);
+        await RunBuildCommandAsync(exec, vfs, cwd, log, CMake.Install.No, config);
     }
 
     // install cmake project
-    public async Task InstallAsync(Vfs vfs, Dir cwd, Log log, Config config)
+    public async Task InstallAsync(Executor exec, Vfs vfs, Dir cwd, Log log, Config config)
     {
-        await RunBuildCommandAsync(vfs, cwd, log, CMake.Install.Yes, config);
+        await RunBuildCommandAsync(exec, vfs, cwd, log, CMake.Install.Yes, config);
     }
 }

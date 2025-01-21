@@ -22,6 +22,7 @@ internal sealed class TraceCommand : AsyncCommand<TraceCommand.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var vfs = new VfsDisk();
+        var exec = new SystemExecutor();
 
         return await CliUtil.PrintErrorsAtExitAsync(async printer => {
             var cmake = FindCMake.RequireInstallationOrNull(vfs, printer);
@@ -36,7 +37,7 @@ internal sealed class TraceCommand : AsyncCommand<TraceCommand.Arg>
 
             try
             {
-                var lines = await CMakeTrace.TraceDirectoryAsync(cwd, cmake, new Dir(settings.Directory));
+                var lines = await CMakeTrace.TraceDirectoryAsync(exec, cwd, cmake, new Dir(settings.Directory));
                 foreach (var li in lines)
                 {
                     AnsiConsole.MarkupLineInterpolated($"Running [green]{li.Cmd}[/].");
@@ -95,6 +96,7 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
         var cwd = Dir.CurrentDirectory;
         var paths = new Config.RealPaths();
         var vfs = new VfsDisk();
+        var exec = new SystemExecutor();
 
         return await CliUtil.PrintErrorsAtExitAsync(async printer => {
             var cmake = FindCMake.RequireInstallationOrNull(vfs, printer);
@@ -118,7 +120,7 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
             {
                 var ignores = settings.NamesToIgnore.ToImmutableHashSet();
                 AnsiConsole.MarkupLineInterpolated($"Ignoring [red]{ignores.Count}[/] projects.");
-                var lines = await CMakeTrace.TraceDirectoryAsync(cwd, cmake, dir);
+                var lines = await CMakeTrace.TraceDirectoryAsync(exec, cwd, cmake, dir);
                 var solution = Solution.Parse.CMake(lines);
 
                 if (settings.RemoveInterface)
@@ -140,7 +142,7 @@ internal sealed class DotCommand : AsyncCommand<DotCommand.Arg>
                     gv.Simplify();
                 }
 
-                await gv.SmartWriteFileAsync(vfs, paths, cwd, Cli.ToSingleFile(cwd, settings.Output, "cmake.dot"), printer);
+                await gv.SmartWriteFileAsync(exec, vfs, paths, cwd, Cli.ToSingleFile(cwd, settings.Output, "cmake.dot"), printer);
             }
             catch (CMakeTrace.TraceError x)
             {

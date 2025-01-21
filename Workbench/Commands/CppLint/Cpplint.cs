@@ -24,7 +24,7 @@ public static class Cpplint
     }
 
 
-    public static async Task<int> HandleRun(Vfs vfs, Config.Paths paths, Dir cwd, Log log, Dir root)
+    public static async Task<int> HandleRun(Executor exec, Vfs vfs, Config.Paths paths, Dir cwd, Log log, Dir root)
     {
         var cpplint = paths.GetCppLintExecutable(vfs, cwd, log);
         if (cpplint == null)
@@ -36,7 +36,7 @@ public static class Cpplint
         var has_errors = false;
         foreach (var f in files)
         {
-            var ret = await new ProcessBuilder(cpplint, f.Path).RunAndGetOutputAsync(cwd);
+            var ret = await new ProcessBuilder(cpplint, f.Path).RunAndGetOutputAsync(exec, cwd);
             if (ret.ExitCode != 0)
             {
                 var stdout = string.Join("\n", ret.Output.Select(x => x.Line));
