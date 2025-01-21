@@ -102,12 +102,12 @@ internal class DependencySdl2 : BuildDependency
         {
             Core.VerifyDirectoryExists(vfs, print, root_folder);
             Core.VerifyDirectoryExists(vfs, print, data.DependencyDirectory);
-            AnsiConsole.WriteLine("downloading sdl2");
+            print.Info("downloading sdl2");
             Core.DownloadFileIfMissing(vfs, print, url, zip_file);
         }
         else
         {
-            AnsiConsole.WriteLine("SDL2 zip file exist, not downloading again...");
+            print.Info("SDL2 zip file exist, not downloading again...");
         }
 
         if (false == root_folder.GetFile("INSTALL.txt").Exists(vfs))
@@ -117,7 +117,7 @@ internal class DependencySdl2 : BuildDependency
         }
         else
         {
-            AnsiConsole.WriteLine("SDL2 is unzipped, not unzipping again");
+            print.Info("SDL2 is unzipped, not unzipping again");
         }
 
         if (false == build_folder.GetFile("SDL2.sln").Exists(vfs))
@@ -134,7 +134,7 @@ internal class DependencySdl2 : BuildDependency
         }
         else
         {
-            AnsiConsole.WriteLine("SDL2 build exist, not building again...");
+            print.Info("SDL2 build exist, not building again...");
         }
     }
 
@@ -224,9 +224,9 @@ internal class DependencyAssimp : BuildDependency
         {
             Core.VerifyDirectoryExists(vfs, print, dependency_folder);
             Core.VerifyDirectoryExists(vfs, print, data.DependencyDirectory);
-            AnsiConsole.WriteLine("downloading assimp");
+            print.Info("downloading assimp");
             Core.DownloadFileIfMissing(vfs, print, URL, zip_file);
-            AnsiConsole.WriteLine("extracting assimp");
+            print.Info("extracting assimp");
             Core.ExtractZip(zip_file, dependency_folder);
             var build = dependency_folder.GetDir("cmake-build");
             Core.MoveFiles(vfs, print, dependency_folder.GetDir("assimp-5.0.1"), dependency_folder);
@@ -237,19 +237,19 @@ internal class DependencyAssimp : BuildDependency
             {
                 project.MakeStaticLibrary();
             }
-            AnsiConsole.WriteLine($"Installing cmake to {install_folder}");
+            print.Info($"Installing cmake to {install_folder}");
             project.SetInstallFolder(install_folder);
             Core.VerifyDirectoryExists(vfs, print, install_folder);
 
             await project.ConfigureAsync(vfs, cwd, print);
             await project.BuildAsync(vfs, cwd, print, Shared.CMake.Config.Release);
 
-            AnsiConsole.WriteLine("Installing assimp");
+            print.Info("Installing assimp");
             await project.InstallAsync(vfs, cwd, print, Shared.CMake.Config.Release);
         }
         else
         {
-            AnsiConsole.WriteLine("Assimp build exist, not building again...");
+            print.Info("Assimp build exist, not building again...");
         }
     }
 
@@ -308,12 +308,12 @@ internal class DependencyWxWidgets : BuildDependency
         {
             Core.VerifyDirectoryExists(vfs, print, root_folder);
             Core.VerifyDirectoryExists(vfs, print, data.DependencyDirectory);
-            AnsiConsole.WriteLine("downloading wxwidgets");
+            print.Info("downloading wxwidgets");
             Core.DownloadFileIfMissing(vfs, print, url, zip_file);
         }
         else
         {
-            AnsiConsole.WriteLine("wxWidgets zip file exist, not downloading again...");
+            print.Info("wxWidgets zip file exist, not downloading again...");
         }
 
         if (false == root_folder.GetFile("CMakeLists.txt").Exists(vfs))
@@ -322,7 +322,7 @@ internal class DependencyWxWidgets : BuildDependency
         }
         else
         {
-            AnsiConsole.WriteLine("wxWidgets is unzipped, not unzipping again");
+            print.Info("wxWidgets is unzipped, not unzipping again");
         }
 
         var build_dbg = false == GetLibraryFolder().GetFile("wxzlibd.lib").Exists(vfs);
@@ -333,19 +333,19 @@ internal class DependencyWxWidgets : BuildDependency
             var project = await ConfigProjectAsync(vfs, cwd, print, root_folder, build_folder, generator);
             if (build_dbg)
             {
-                AnsiConsole.WriteLine("building debug wxWidgets");
+                print.Info("building debug wxWidgets");
                 await project.BuildAsync(vfs, cwd, print, Shared.CMake.Config.Debug);
             }
 
             if (build_rel)
             {
-                AnsiConsole.WriteLine("building release wxWidgets");
+                print.Info("building release wxWidgets");
                 await project.BuildAsync(vfs, cwd, print, Shared.CMake.Config.Release);
             }
         }
         else
         {
-            AnsiConsole.WriteLine("wxWidgets build exist, not building again...");
+            print.Info("wxWidgets build exist, not building again...");
         }
     }
 

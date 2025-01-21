@@ -45,7 +45,7 @@ internal sealed class FindTodosCommand : AsyncCommand<FindTodosCommand.Arg>
 
             foreach (var todo in todos)
             {
-                log.WriteInformation(new FileLine(todo.File, todo.Line), todo.Todo);
+                log.Info(new FileLine(todo.File, todo.Line), todo.Todo);
                 cc.AddOne(todo.File);
             }
 
@@ -132,7 +132,7 @@ internal sealed class GroupWithTimeCommand : AsyncCommand<GroupWithTimeCommand.A
                 foreach (var x in group.Todos)
                 {
                     var todo = x.Todo;
-                    log.WriteInformation(new(todo.File, todo.Line),
+                    log.Info(new(todo.File, todo.Line),
                         $"{x.Blame}: {todo.Todo}");
                 }
             }

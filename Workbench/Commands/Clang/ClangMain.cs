@@ -21,8 +21,9 @@ internal sealed class MakeClangTidyCommand : Command<MakeClangTidyCommand.Arg>
     {
         var cwd = Dir.CurrentDirectory;
         var vfs = new VfsDisk();
+        var print = new LogToConsole();
 
-        ClangTidyFile.HandleMakeTidyCommand(vfs, cwd, settings.Nop);
+        ClangTidyFile.HandleMakeTidyCommand(print, vfs, cwd, settings.Nop);
         return 0;
     }
 }

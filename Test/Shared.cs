@@ -203,49 +203,51 @@ internal class VfsTest : Vfs
     public object GetContent(Fil fil) => ReadAllText(fil);
 }
 
+
 internal class LoggableTest : Log
 {
-    public List<string> Errors { get; } = new();
+    public record Entry(MessageType Type, string Message);
+    public List<Entry> AllMessages { get; } = new();
 
-    public bool HasError()
+    public void Error(FileLine? file, string message, string? code = null)
     {
-        return Errors.Count > 0;
-    }
-
-    public void Error(FileLine? file, string message)
-    {
-        throw new NotImplementedException();
+        AllMessages.Add(new(MessageType.Error, $"{Log.ToFileString(file)}: {Log.WithCode(MessageType.Error, code)}: {message}"));
     }
 
     public void Error(string message)
     {
-        Errors.Add(message);
+        AllMessages.Add(new(MessageType.Error, $"ERROR: {message}"));
+    }
+
+    public void Warning(FileLine? file, string message, string? code = null)
+    {
+        AllMessages.Add(new(MessageType.Warning, $"{Log.ToFileString(file)}: {Log.WithCode(MessageType.Warning, code)}: {message}"));
     }
 
     public void Warning(string message)
     {
-        throw new NotImplementedException();
+        AllMessages.Add(new(MessageType.Warning, $"WARNING: {message}"));
     }
 
-    public void Print(MessageType message_type, FileLine? file, string message, string code)
+    public void Info(FileLine? file, string message, string? code = null)
     {
-        throw new NotImplementedException();
+        AllMessages.Add(new(MessageType.Info, $"{Log.ToFileString(file)}: {Log.WithCode(MessageType.Info, code)}: {message}"));
     }
 
-    public void PrintError(FileLine? file, string message, string? code)
+    public void Info(string message)
     {
-        throw new NotImplementedException();
+        AllMessages.Add(new(MessageType.Info, message));
     }
 
-    public void WriteInformation(FileLine? file, string message)
+    public string Print()
     {
-        throw new NotImplementedException();
+        return string.Join("\n", AllMessages.Select(m => m.Message));
     }
 
-    internal string GetOutput()
-    {
-        return string.Join("\n", Errors);
-    }
+    public IEnumerable<string> ErrorsAndWarnings
+        => AllMessages
+            .Where(m => m.Type is MessageType.Error or MessageType.Warning)
+            .Select(m => m.Message);
 }
 
 public class TestBase

@@ -278,11 +278,11 @@ public static class ClangTidyFile
     }
 
     // print the clang-tidy "source"
-    private static void PrintGeneratedClangTidy(Vfs vfs, Dir root)
+    private static void PrintGeneratedClangTidy(Log print, Vfs vfs, Dir root)
     {
         foreach (var line in GenerateClangTidyAsIterator(vfs, root))
         {
-            AnsiConsole.WriteLine(line);
+            print.Info(line);
         }
     }
 
@@ -293,11 +293,11 @@ public static class ClangTidyFile
         root.GetFile(".clang-tidy").WriteAllLines(vfs, content);
     }
 
-    internal static void HandleMakeTidyCommand(Vfs vfs, Dir cwd, bool nop)
+    internal static void HandleMakeTidyCommand(Log print, Vfs vfs, Dir cwd, bool nop)
     {
         if (nop)
         {
-            PrintGeneratedClangTidy(vfs, cwd);
+            PrintGeneratedClangTidy(print, vfs, cwd);
         }
         else
         {
@@ -359,16 +359,16 @@ internal static class ClangFiles
                 Printer.Header(project);
                 foreach (var file in source_files)
                 {
-                    AnsiConsole.WriteLine(file.GetDisplay(cwd));
+                    print.Info(file.GetDisplay(cwd));
                 }
-                AnsiConsole.WriteLine("");
+                print.Info("");
             }
         }
         else
         {
             foreach (var file in files)
             {
-                AnsiConsole.WriteLine(file.GetDisplay(cwd));
+                print.Info(file.GetDisplay(cwd));
             }
         }
 
@@ -404,16 +404,16 @@ internal interface IOutput
     void SingleFileReport(Vfs vfs, Dir cwd, Fil source_file, SingleFileReport report);
 }
 
-internal class ConsoleOutput(Args args) : IOutput
+internal class ConsoleOutput(Args args, Log print) : IOutput
 {
     // print warning counter to the console
-    private static void PrintWarningCounter<T>(ColCounter<T> project_counter, string project, Func<T, string> display)
+    private static void PrintWarningCounter<T>(Log print, ColCounter<T> project_counter, string project, Func<T, string> display)
         where T : notnull
     {
-        AnsiConsole.WriteLine($"{project_counter.TotalCount()} warnings in {project}.");
+        print.Info($"{project_counter.TotalCount()} warnings in {project}.");
         foreach (var (file, count) in project_counter.MostCommon().Take(10))
         {
-            AnsiConsole.WriteLine($"{display(file)} at {count}");
+            print.Info($"{display(file)} at {count}");
         }
     }
 
@@ -423,14 +423,14 @@ internal class ConsoleOutput(Args args) : IOutput
         {
             foreach (var (project, warnings) in stats.ProjectCounters)
             {
-                PrintWarningCounter(warnings, project, f => f.GetDisplay(cwd));
-                AnsiConsole.WriteLine("");
-                AnsiConsole.WriteLine("");
+                PrintWarningCounter(print, warnings, project, f => f.GetDisplay(cwd));
+                print.Info("");
+                print.Info("");
             }
         }
         if (false == args.ShortArgs && args.Only.Length == 0)
         {
-            PrintReportToConsole(cwd, stats);
+            PrintReportToConsole(print, cwd, stats);
         }
     }
 
@@ -442,7 +442,7 @@ internal class ConsoleOutput(Args args) : IOutput
 
         if (false == short_list && only_show_these_classes.Length == 0)
         {
-            AnsiConsole.WriteLine($"took {report.TimeTaken}");
+            print.Info($"took {report.TimeTaken}");
         }
 
         bool first = true;
@@ -480,40 +480,40 @@ internal class ConsoleOutput(Args args) : IOutput
 
         if (false == short_list && only_show_these_classes.Length == 0)
         {
-            PrintWarningCounter(stats.Classes, source_file.GetDisplay(cwd), c => c);
-            AnsiConsole.WriteLine("");
+            PrintWarningCounter(print, stats.Classes, source_file.GetDisplay(cwd), c => c);
+            print.Info("");
         }
     }
 
-    private static void PrintReportToConsole(Dir cwd, GlobalStatistics stats)
+    private static void PrintReportToConsole(Log print, Dir cwd, GlobalStatistics stats)
     {
         Printer.Header("TIDY REPORT");
-        PrintWarningCounter(stats.TotalCounter, "total", f => f.GetDisplay(cwd));
-        AnsiConsole.WriteLine("");
-        PrintWarningCounter(stats.TotalClasses, "classes", c => c);
-        AnsiConsole.WriteLine("");
+        PrintWarningCounter(print, stats.TotalCounter, "total", f => f.GetDisplay(cwd));
+        print.Info("");
+        PrintWarningCounter(print, stats.TotalClasses, "classes", c => c);
+        print.Info("");
         Printer.Line();
-        AnsiConsole.WriteLine("");
+        print.Info("");
         foreach (var (k, v) in stats.WarningsPerFile)
         {
-            AnsiConsole.WriteLine($"{k}:");
+            print.Info($"{k}:");
             foreach (var f in v)
             {
-                AnsiConsole.WriteLine($"  {f.GetDisplay(cwd)}");
+                print.Info($"  {f.GetDisplay(cwd)}");
             }
-            AnsiConsole.WriteLine("");
+            print.Info("");
         }
 
         Printer.Line();
-        AnsiConsole.WriteLine("");
+        print.Info("");
 
         var tt = stats.GetTimeTaken();
         if(tt != null)
         {
-            AnsiConsole.MarkupLineInterpolated($"average: {tt.AverageValue.ToHumanString()}");
-            AnsiConsole.MarkupLineInterpolated($"max: {tt.Max.Value.ToHumanString()} for {tt.Max.Key.GetDisplay(cwd)}");
-            AnsiConsole.MarkupLineInterpolated($"min: {tt.Min.Value.ToHumanString()} for {tt.Min.Key.GetDisplay(cwd)}");
-            AnsiConsole.MarkupLineInterpolated($"{tt.TimesPerFileCount} files");
+            print.Info($"average: {tt.AverageValue.ToHumanString()}");
+            print.Info($"max: {tt.Max.Value.ToHumanString()} for {tt.Max.Key.GetDisplay(cwd)}");
+            print.Info($"min: {tt.Min.Value.ToHumanString()} for {tt.Min.Key.GetDisplay(cwd)}");
+            print.Info($"{tt.TimesPerFileCount} files");
         }
     }
 }
@@ -920,15 +920,15 @@ public class ClangTidy
     }
 
     // callback function called when running clang.py tidy
-    public async Task<int> HandleRunClangTidyCommand(Vfs vfs, Config.Paths paths, Dir cwd, CompileCommandsArguments cc, Log log, bool also_include_headers, Args args)
+    public async Task<int> HandleRunClangTidyCommand(Vfs vfs, Config.Paths paths, Dir cwd, CompileCommandsArguments cc, Log print, bool also_include_headers, Args args)
     {
-        var clang_tidy = paths.GetClangTidyExecutable(vfs, cwd, log);
+        var clang_tidy = paths.GetClangTidyExecutable(vfs, cwd, print);
         if (clang_tidy == null)
         {
             return -1;
         }
 
-        var cc_file = CompileCommand.FindOrNone(vfs, cwd, cc, log, paths);
+        var cc_file = CompileCommand.FindOrNone(vfs, cwd, cc, print, paths);
         if (cc_file == null)
         {
             return -1;
@@ -937,24 +937,24 @@ public class ClangTidy
         var project_build_folder = cc_file.Directory;
         if (project_build_folder is null)
         {
-            log.Error("unable to find build folder");
+            print.Error("unable to find build folder");
             return -1;
         }
 
-        var store = LoadStore(vfs, log, project_build_folder);
+        var store = LoadStore(vfs, print, project_build_folder);
         if (store == null)
         {
-            log.Error("unable to find load store");
+            print.Error("unable to find load store");
             return -1;
         }
 
         ClangTidyFile.WriteTidyFileToDisk(vfs, cwd);
-        AnsiConsole.WriteLine($"using clang-tidy: {clang_tidy}");
+        print.Info($"using clang-tidy: {clang_tidy}");
 
-        IOutput output = args.HtmlRoot == null ? new ConsoleOutput(args) : new HtmlOutput(args.HtmlRoot, cwd);
+        IOutput output = args.HtmlRoot == null ? new ConsoleOutput(args, print) : new HtmlOutput(args.HtmlRoot, cwd);
 
         var files = ClangFiles.MapAllFilesInRootOnFirstDir(vfs, cwd, also_include_headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource, FileSection.AllExceptThoseIgnoredByClangTidy);
-        var stats = await RunAllFiles(vfs, cwd, log, args, files, store, cwd, clang_tidy, project_build_folder, output);
+        var stats = await RunAllFiles(vfs, cwd, print, args, files, store, cwd, clang_tidy, project_build_folder, output);
 
         output.WriteFinalReport(vfs, cwd, stats);
 
@@ -976,7 +976,7 @@ public class ClangTidy
 
     private record TransformRec(string Category, Fil File, TidyOutput tidy_output);
 
-    private static async Task<GlobalStatistics> RunAllFiles(Vfs vfs, Dir cwd, Log log, Args args, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
+    private static async Task<GlobalStatistics> RunAllFiles(Vfs vfs, Dir cwd, Log print, Args args, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
         Dir project_build_folder, IOutput html_root)
     {
         var files = data.SelectMany(pair => pair.Files.Select(x => new CollectedTidyFil(x, pair.Category)))
@@ -1009,17 +1009,17 @@ public class ClangTidy
 
         async Task<TransformRec> transform_function(CollectedTidyFil source_file)
         {
-            AnsiConsole.WriteLine($"Running {source_file.File}");
+            print.Info($"Running {source_file.File}");
             var tidy_output = args.Nop
                 ? new([], new())
-                : await GetExistingOutputOrCallClangTidy(vfs, cwd, store, log, root, args.Force, clang_tidy, project_build_folder, source_file.File, args.Fix);
+                : await GetExistingOutputOrCallClangTidy(vfs, cwd, store, print, root, args.Force, clang_tidy, project_build_folder, source_file.File, args.Fix);
             return new(source_file.Category, source_file.File, tidy_output);
         }
 
         void read_function(TransformRec tuple)
         {
             var (cat, source_file, tidy_output) = tuple;
-            AnsiConsole.WriteLine($"Collecting {source_file}");
+            print.Info($"Collecting {source_file}");
 
             stats.AddTimeTaken(source_file, tidy_output.Taken);
             var file_stats = CreateStatistics(source_file, tidy_output);
@@ -1042,9 +1042,9 @@ public class ClangTidy
 internal static class ClangFormat
 {
     // callback function called when running clang.py format
-    internal static async Task<int> HandleClangFormatCommand(Vfs vfs, Config.Paths paths, Dir cwd, Log log, bool nop)
+    internal static async Task<int> HandleClangFormatCommand(Vfs vfs, Config.Paths paths, Dir cwd, Log print, bool nop)
     {
-        var clang_format_path = paths.GetClangFormatExecutable(vfs, cwd, log);
+        var clang_format_path = paths.GetClangFormatExecutable(vfs, cwd, print);
         if (clang_format_path == null)
         {
             return -1;
@@ -1057,7 +1057,7 @@ internal static class ClangFormat
             Printer.Header(project);
             foreach (var file in source_files)
             {
-                AnsiConsole.WriteLine(file.GetRelative(cwd));
+                print.Info(file.GetRelative(cwd));
                 if (nop)
                 {
                     continue;
@@ -1067,11 +1067,11 @@ internal static class ClangFormat
                     .RunAndGetOutputAsync(cwd);
                 if (res.ExitCode != 0)
                 {
-                    res.PrintOutput(log);
+                    res.PrintOutput(print);
                     return -1;
                 }
             }
-            AnsiConsole.WriteLine("");
+            print.Info("");
         }
 
         return 0;

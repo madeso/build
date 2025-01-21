@@ -37,7 +37,7 @@ public class TestClang : TestBase
         using (new AssertionScope())
         {
             ret.Should().Be(-1);
-            log.Errors.Should().BeEmpty();
+            log.AllMessages.Should().BeEmpty();
         }
     }
 
@@ -57,13 +57,13 @@ public class TestClang : TestBase
         vfs.AddContent(cwd.GetFile("clang-tidy"), "");
         vfs.AddContent(cwd.GetSubDirs("src", "libs", "foobar").GetFile("foobar.cc"), "");
 
-        // todo(Gustav): disable NOP
+        // todo(Gustav): remove nop
         var args = new ClangTidy.Args(null, 1, false, ["libs"], true, false, false, []);
         var ret = await tidy.HandleRunClangTidyCommand(vfs, paths, cwd, new CompileCommandsArguments(), log, false, args);
-        using (new AssertionScope())
+        using (new AssertionScope(log.Print()))
         {
             ret.Should().Be(0);
-            log.Errors.Should().BeEmpty();
+            log.ErrorsAndWarnings.Should().BeEmpty();
         }
     }
     //*/

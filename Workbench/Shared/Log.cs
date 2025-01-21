@@ -5,7 +5,7 @@ using System;
 
 public enum MessageType
 {
-    Error, Warning
+    Error, Warning, Info
 }
 
 public record FileLine(Fil File, int? Line);
@@ -13,40 +13,54 @@ public record FileLine(Fil File, int? Line);
 
 public interface Log
 {
-    void Error(FileLine? file, string message);
+    void Error(FileLine? file, string message, string? code = null);
     void Error(string message);
+
+    void Warning(FileLine? file, string message, string? code = null);
     void Warning(string message);
 
-    void Print(MessageType message_type, FileLine? file, string message, string code);
+    void Info(FileLine? file, string message, string? code = null);
+    void Info(string message);
 
-    void PrintError(FileLine? file, string message, string? code);
-    void WriteInformation(FileLine? file, string message);
+    public void Print(MessageType message_type, FileLine? file, string message, string code)
+    {
+        switch (message_type)
+        {
+            case MessageType.Error: Error(file, message, code); break;
+            case MessageType.Warning: Warning(file, message, code); break;
+            case MessageType.Info: Info(file, message, code); break;
+        }
+    }
+
+    public static string WithCode(MessageType type, string? code)
+        => string.IsNullOrEmpty(code) ? type.ToString().ToUpper() : $"{type.ToString().ToLower()} {code}";
+
+    public static string ToFileString(FileLine? file)
+        => file == null
+            ? "missing location"
+            : $"{file.File.Path}({file.Line ?? -1})";
 }
 
 public class LogToConsole : Log
 {
-
     // todo(Gustav): merge all functions into a few powerful versions together with output options on the log
 
     internal int error_count = 0;
 
-    public void PrintError(FileLine? file, string message, string? code)
+    public void Error(FileLine? file, string message, string? code = null)
     {
         // todo(Gustav): require code and make error format a option
-        AddError(code != null
-            ? $"{ToFileString(file)}: error {code}: {message}"
-            : $"{ToFileString(file)}: ERROR: {message}");
+        AddError($"{Log.ToFileString(file)}: {Log.WithCode(MessageType.Error, code)}: {message}");
     }
 
-    public void Error(FileLine? file, string message)
+    public void Error(string message)
     {
-        // todo(Gustav): inline this useless function
-        PrintError(file, message, null);
+        AddError($"ERROR: {message}");
     }
 
-    private void PrintWarning(FileLine? file, string message, string code)
+    public void Warning(FileLine? file, string message, string? code = null)
     {
-        Warning($"{ToFileString(file)}: warning {code}: {message}");
+        Warning($"{Log.ToFileString(file)}: {Log.WithCode(MessageType.Warning, code)}: {message}");
     }
 
     public void Warning(string message)
@@ -54,29 +68,22 @@ public class LogToConsole : Log
         AnsiConsole.MarkupLineInterpolated($"WARNING: {message}");
     }
 
-    public void WriteInformation(FileLine? file, string message)
+    public void Info(FileLine? file, string message, string? code = null)
     {
-        AnsiConsole.MarkupLineInterpolated($"[blue]{ToFileString(file)}[/]: {message}");
+        AnsiConsole.MarkupLineInterpolated($"[blue]{Log.ToFileString(file)}[/]: {Log.WithCode(MessageType.Info, code)}: {message}");
     }
 
-    public void Print(MessageType message_type, FileLine? file, string message, string code)
+    public void Info(string message)
     {
-        switch (message_type)
+        if (is_connected_to_console())
         {
-            case MessageType.Error: PrintError(file, message, code); break;
-            case MessageType.Warning: PrintWarning(file, message, code); break;
+            AnsiConsole.WriteLine(message);
+        }
+        else
+        {
+            Console.WriteLine(message);
         }
     }
-
-    public void Error(string text)
-    {
-        AddError($"ERROR: {text}");
-    }
-
-    private static string ToFileString(FileLine? file)
-        => file == null
-            ? "missing location"
-            : $"{file.File.Path}({file.Line ?? -1})";
 
     private void AddError(string message)
     {
@@ -89,19 +96,17 @@ public class LogToConsole : Log
         {
             Console.WriteLine(message);
         }
+    }
 
-        return;
-
-        static bool is_connected_to_console()
+    private static bool is_connected_to_console()
+    {
+        try
         {
-            try
-            {
-                return Console.WindowWidth > 0;
-            }
-            catch (IOException)
-            {
-                return false;
-            }
+            return Console.WindowWidth > 0;
+        }
+        catch (IOException)
+        {
+            return false;
         }
     }
 }

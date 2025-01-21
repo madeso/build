@@ -230,7 +230,7 @@ public static class IncludeTools
         {
             missing_files.Add(line);
             var message = $"Line '{line}' references a invalid header ({include_file})";
-            print.PrintError(new(filename, line_number), message, INCLUDE_CHECK_ERROR);
+            print.Error(new(filename, line_number), message, INCLUDE_CHECK_ERROR);
         }
 
         return null;
@@ -372,7 +372,7 @@ public static class IncludeTools
                     if (print_this_error)
                     {
                         var message = $"Invalid text after include: {end}";
-                        print.PrintError(new(filename, line_num), message, INCLUDE_CHECK_ERROR);
+                        print.Error(new(filename, line_num), message, INCLUDE_CHECK_ERROR);
                     }
                     ok = false;
                 }
@@ -382,7 +382,7 @@ public static class IncludeTools
                 if (print_this_error)
                 {
                     var message = $"Invalid line {line}";
-                    print.PrintError(new(filename, line_num), message, INCLUDE_CHECK_ERROR);
+                    print.Error(new(filename, line_num), message, INCLUDE_CHECK_ERROR);
                 }
                 ok = false;
             }
