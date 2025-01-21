@@ -151,9 +151,9 @@ class TidyMessage(Fil a_fil)
     public string? Category { get; set; } = null;
     public List<string> Code { get; set; } = new();
 
-    public static IEnumerable<TidyMessage> Parse(IEnumerable<string> lines)
+    public static IEnumerable<TidyMessage> Parse(Log print, IEnumerable<string> lines)
     {
-        var reg = new Regex(@"(?<file>[^:]+):(?<line>[0-9]+):(?<col>[0-9]+): (?<type>[^$]+):(?<mess>[^$]+)");
+        var reg = new Regex(@"(?<file>([a-zA-Z]:)?[^:]+):(?<line>[0-9]+):(?<col>[0-9]+): (?<type>[^$]+):(?<mess>[^$]+)");
         TidyMessage? current = null;
         foreach (var l in lines)
         {
@@ -164,7 +164,7 @@ class TidyMessage(Fil a_fil)
             {
                 if (current == null)
                 {
-                    Console.WriteLine($"WARNING: Unexpected code line: '{l}'");
+                    print.Warning($"Unexpected code line: '{l}'");
                     continue;
                 }
                 current.Code.Add(l);
@@ -184,7 +184,7 @@ class TidyMessage(Fil a_fil)
                 var parsed = reg.Match(l2);
                 if (parsed.Success == false)
                 {
-                    Console.WriteLine($"WARNING: Invalid line: '{l}'");
+                    print.Warning($"Invalid line: '{l}'");
                     current = null;
                     continue;
                 }
@@ -214,10 +214,10 @@ class TidyGroup
     // todo(Gustav): replace message type with something more appropriate
     public List<TidyMessage> Messages { get; set; } = new();
 
-    public static IEnumerable<TidyGroup> Parse(IEnumerable<string> lines)
+    public static IEnumerable<TidyGroup> Parse(Log print, IEnumerable<string> lines)
     {
         TidyGroup? current = null;
-        foreach (var mess in TidyMessage.Parse(lines))
+        foreach (var mess in TidyMessage.Parse(print, lines))
         {
             if (current == null || mess.Type != "note")
             {
@@ -384,10 +384,10 @@ internal static partial class ClangTidyParsing
 
 internal class SingleFileReport
 {
-    public SingleFileReport(TimeSpan taken, IEnumerable<string> lines, FileStats file_stats)
+    public SingleFileReport(Log print, TimeSpan taken, IEnumerable<string> lines, FileStats file_stats)
     {
         Messages = [.. lines];
-        GroupedMessages = [.. TidyGroup.Parse(Messages)];
+        GroupedMessages = [.. TidyGroup.Parse(print, Messages)];
         TimeTaken = taken;
         Stats = file_stats;
     }
@@ -453,7 +453,7 @@ internal class ConsoleOutput(Args args, Log print) : IOutput
             {
                 for(int i=0; i<4; i+=1)
                 {
-                    Console.WriteLine();
+                    print.Info("");
                 }
             }
             if (only_show_these_classes.Length > 0)
@@ -467,13 +467,13 @@ internal class ConsoleOutput(Args args, Log print) : IOutput
             foreach (var m in g.Messages)
             {
                 if(first_message) first_message = false;
-                else Console.WriteLine();
+                else print.Info("");
 
                 var cs = m.Category != null ? $"[{m.Category}]" : string.Empty;
-                Console.WriteLine($"{m.File.GetDisplay(cwd)} ({m.Line}/{m.Column}) {m.Type}: {m.Message}{cs}");
+                print.Raw($"{m.File.GetDisplay(cwd)} ({m.Line}/{m.Column}) {m.Type}: {m.Message}{cs}");
                 foreach (var line in m.Code)
                 {
-                    Console.WriteLine(line);
+                    print.Raw(line);
                 }
             }
         }
@@ -518,7 +518,7 @@ internal class ConsoleOutput(Args args, Log print) : IOutput
     }
 }
 
-internal class HtmlOutput(Dir root_output, Dir dcwd) : IOutput
+internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
 {
     private readonly string root_name = "Tidy report";
     private readonly Dir root_relative = dcwd;
@@ -635,7 +635,7 @@ internal class HtmlOutput(Dir root_output, Dir dcwd) : IOutput
 
         target.Directory?.CreateDir(vfs);
         target.WriteAllLines(vfs, output);
-        Console.WriteLine($"Wrote html to {target}");
+        print.Info($"Wrote html to {target}");
         return;
 
         static string Q(int i)
@@ -723,7 +723,7 @@ internal class HtmlOutput(Dir root_output, Dir dcwd) : IOutput
 
         target.Directory?.CreateDir(vfs);
         target.WriteAllLines(vfs, output);
-        Console.WriteLine($"Wrote html to {target}");
+        print.Info($"Wrote html to {target}");
 
         AddFile(source_file, name, target, report.TimeTaken, report.GroupedMessages.Length, count.Count);
         WriteIndexFile(vfs, cwd);
@@ -748,7 +748,7 @@ public class ClangTidy
         AnsiConsole.MarkupLineInterpolated($"Loading store from {file_name}");
         if (!file_name.Exists(vfs))
         {
-            Console.WriteLine("Failed to load");
+            print.Warning($"Failed to load store from {file_name}");
             return new Store();
         }
 
@@ -797,7 +797,7 @@ public class ClangTidy
         return null;
     }
 
-    private static void StoreOutput(Vfs vfs, Store store, Dir root, Dir project_build_folder,
+    private static void StoreOutput(Log print, Vfs vfs, Store store, Dir root, Dir project_build_folder,
         Fil source_file, TidyOutput output)
     {
         var clang_tidy_source = ClangTidyFile.GetPathToClangTidySource(root);
@@ -806,12 +806,12 @@ public class ClangTidy
             GetLastModificationForFiles(vfs, new[] { clang_tidy_source, source_file }));
         store.Cache[source_file] = data;
         SaveStore(vfs, project_build_folder, store);
-        Console.WriteLine($"Stored in cache {store.Cache.Count}");
+        print.Info($"Stored in cache {store.Cache.Count}");
     }
 
     // runs clang-tidy and returns all the text output
     private static async Task<TidyOutput> GetExistingOutputOrCallClangTidy(Executor exec, Vfs vfs, Dir cwd, Store store,
-        Log log, Dir root, bool force, Fil tidy_path, Dir project_build_folder,
+        Log print, Dir root, bool force, Fil tidy_path, Dir project_build_folder,
         Fil source_file, bool fix)
     {
         if (false == force)
@@ -823,8 +823,8 @@ public class ClangTidy
             }
         }
 
-        var ret = await CallClangTidyAsync(exec, cwd, log, tidy_path, project_build_folder, source_file, fix);
-        StoreOutput(vfs, store, root, project_build_folder, source_file, ret);
+        var ret = await CallClangTidyAsync(exec, cwd, print, tidy_path, project_build_folder, source_file, fix);
+        StoreOutput(print, vfs, store, root, project_build_folder, source_file, ret);
         return ret;
     }
 
@@ -845,7 +845,7 @@ public class ClangTidy
 
         if (output.ExitCode != 0)
         {
-            log.Error($"Error: {output.ExitCode}");
+            log.Error($"{tidy_path} exited with {output.ExitCode}");
             output.PrintOutput(log);
         }
 
@@ -951,7 +951,7 @@ public class ClangTidy
         ClangTidyFile.WriteTidyFileToDisk(vfs, cwd);
         print.Info($"using clang-tidy: {clang_tidy}");
 
-        IOutput output = args.HtmlRoot == null ? new ConsoleOutput(args, print) : new HtmlOutput(args.HtmlRoot, cwd);
+        IOutput output = args.HtmlRoot == null ? new ConsoleOutput(args, print) : new HtmlOutput(print, args.HtmlRoot, cwd);
 
         var files = ClangFiles.MapAllFilesInRootOnFirstDir(vfs, cwd, also_include_headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource, FileSection.AllExceptThoseIgnoredByClangTidy);
         var stats = await RunAllFiles(exec, vfs, cwd, print, args, files, store, cwd, clang_tidy, project_build_folder, output);
@@ -1024,7 +1024,7 @@ public class ClangTidy
             stats.AddTimeTaken(source_file, tidy_output.Taken);
             var file_stats = CreateStatistics(source_file, tidy_output);
 
-            var report = new SingleFileReport(tidy_output.Taken, RemoveStatusLines(tidy_output.Output), file_stats);
+            var report = new SingleFileReport(print, tidy_output.Taken, RemoveStatusLines(tidy_output.Output), file_stats);
 
             html_root.SingleFileReport(vfs, cwd, source_file, report);
 

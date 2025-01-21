@@ -143,9 +143,9 @@ public class Fil : IComparable<Fil>
 
     public Fil(string path)
     {
-        Debug.Assert(SysPath.IsPathFullyQualified(path), "file path must be rooted");
+        Debug.Assert(SysPath.IsPathFullyQualified(path), $"file path must be rooted, {path} wasn't");
         var p = SysPath.GetFullPath(new FileInfo(path).FullName);
-        Debug.Assert(p == path, "complex code actually does something that might be needed yo move to the vfs");
+        Debug.Assert(p == path, $"complex code actually does something: {p} != {path}");
         Path = path;
     }
 

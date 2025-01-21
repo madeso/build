@@ -208,37 +208,43 @@ internal class VfsTest : Vfs
 
 internal class LoggableTest : Log
 {
-    public record Entry(MessageType Type, string Message);
+    public enum Type {Error, Warning, Info, Raw}
+    public record Entry(Type Type, string Message);
     public List<Entry> AllMessages { get; } = new();
 
     public void Error(FileLine? file, string message, string? code = null)
     {
-        AllMessages.Add(new(MessageType.Error, $"{Log.ToFileString(file)}: {Log.WithCode(MessageType.Error, code)}: {message}"));
+        AllMessages.Add(new(Type.Error, $"{Log.ToFileString(file)}: {Log.WithCode(MessageType.Error, code)}: {message}"));
     }
 
     public void Error(string message)
     {
-        AllMessages.Add(new(MessageType.Error, $"ERROR: {message}"));
+        AllMessages.Add(new(Type.Error, $"ERROR: {message}"));
     }
 
     public void Warning(FileLine? file, string message, string? code = null)
     {
-        AllMessages.Add(new(MessageType.Warning, $"{Log.ToFileString(file)}: {Log.WithCode(MessageType.Warning, code)}: {message}"));
+        AllMessages.Add(new(Type.Warning, $"{Log.ToFileString(file)}: {Log.WithCode(MessageType.Warning, code)}: {message}"));
     }
 
     public void Warning(string message)
     {
-        AllMessages.Add(new(MessageType.Warning, $"WARNING: {message}"));
+        AllMessages.Add(new(Type.Warning, $"WARNING: {message}"));
     }
 
     public void Info(FileLine? file, string message, string? code = null)
     {
-        AllMessages.Add(new(MessageType.Info, $"{Log.ToFileString(file)}: {Log.WithCode(MessageType.Info, code)}: {message}"));
+        AllMessages.Add(new(Type.Info, $"{Log.ToFileString(file)}: {Log.WithCode(MessageType.Info, code)}: {message}"));
     }
 
     public void Info(string message)
     {
-        AllMessages.Add(new(MessageType.Info, message));
+        AllMessages.Add(new(Type.Info, message));
+    }
+
+    public void Raw(string message)
+    {
+        AllMessages.Add(new(Type.Raw, message));
     }
 
     public string Print()
@@ -248,7 +254,12 @@ internal class LoggableTest : Log
 
     public IEnumerable<string> ErrorsAndWarnings
         => AllMessages
-            .Where(m => m.Type is MessageType.Error or MessageType.Warning)
+            .Where(m => m.Type is Type.Error or Type.Warning)
+            .Select(m => m.Message);
+
+    public IEnumerable<string> RawMessages
+        => AllMessages
+            .Where(m => m.Type is Type.Raw)
             .Select(m => m.Message);
 }
 
@@ -262,7 +273,7 @@ public class NoRunExecutor : Executor
 
 public class DefinedExecutor : Executor
 {
-    internal record Entry(Fil Exe, Dir cwd, int Arg, string What, ProcessExit Run);
+    internal record Entry(Fil Exe, Dir cwd, int Arg, string What, int ExitCode, string[] Output);
     private List<Entry> entries = new();
 
     internal void Add(Entry e)
@@ -280,7 +291,11 @@ public class DefinedExecutor : Executor
                 if(!Equals(e.Exe, exe)) continue;
                 if (e.Arg >= arguments.Length) throw new Exception($"Invalid arg: {arguments.Length} but requested {e.Arg}: {ExecHelper.CollapseArgStringToSingle(arguments, PlatformID.Win32Windows)}");
                 if(arguments[e.Arg] != e.What) continue;
-                return e.Run;
+                foreach (var line in e.Output)
+                {
+                    on_stdout(line);
+                }
+                return new ProcessExit(exe.Path, e.ExitCode);
             }
 
             throw new Exception($"no registered output: {exe}: {ExecHelper.CollapseArgStringToSingle(arguments, PlatformID.Win32Windows)} in {cwd}");

@@ -44,7 +44,7 @@ internal class ProcessExitWithOutput
             }
             else
             {
-                AnsiConsole.WriteLine(line.Line);
+                print.Info(line.Line);
             }
         }
 

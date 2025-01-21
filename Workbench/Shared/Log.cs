@@ -39,6 +39,8 @@ public interface Log
         => file == null
             ? "missing location"
             : $"{file.File.Path}({file.Line ?? -1})";
+
+    void Raw(string message);
 }
 
 public class LogToConsole : Log
@@ -83,6 +85,11 @@ public class LogToConsole : Log
         {
             Console.WriteLine(message);
         }
+    }
+
+    public void Raw(string message)
+    {
+        Console.WriteLine(message);
     }
 
     private void AddError(string message)
