@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Text.Json.Serialization;
 using Workbench.Shared;
 using Workbench.Shared.Doxygen;
+using Workbench.Shared.Doxygen.Compound;
 
 namespace Workbench.Commands.Dependencies;
 
@@ -40,35 +41,35 @@ public static class Dependencies
         {
             foreach (var k in DoxygenUtils.IterateClassesInNamespace(dox, ns))
             {
-                if (ignored_classes.Contains(k.CompoundName))
+                if (ignored_classes.Contains(k.compoundname))
                 {
                     continue;
                 }
 
                 var name = cluster_namespace
-                    ? k.CompoundName.Split(":", StringSplitOptions.RemoveEmptyEntries).Last()
-                    : k.CompoundName;
+                    ? k.compoundname.Split(":", StringSplitOptions.RemoveEmptyEntries).Last()
+                    : k.compoundname;
 
                 var node = g.AddNodeWithId(name, Shape.Box3d, k.Id);
                 classes.Add(k.Id, node);
 
-                node.Cluster = g.FindOrCreateCluster(ns.CompoundName);
+                node.Cluster = g.FindOrCreateCluster(ns.compoundname);
             }
         }
 
         AnsiConsole.WriteLine("Adding typedefs...");
         foreach (var k in namespaces.SelectMany(ns => DoxygenUtils.AllMembersInNamespace(ns, DoxSectionKind.Typedef)))
         {
-            if (ignored_classes.Contains(k.Name))
+            if (ignored_classes.Contains(k.name))
             {
                 continue;
             }
 
-            var node = g.AddNode(k.Name, Shape.Box);
-            classes.Add(k.Id, node);
+            var node = g.AddNode(k.name, Shape.Box);
+            classes.Add(k.id, node);
 
             var existing_refs = new HashSet<string>();
-            AddTypeLink(g, classes, () => node, existing_refs, k.Type);
+            AddTypeLink(g, classes, () => node, existing_refs, k.type);
         }
 
         AnsiConsole.WriteLine("Adding members for class...");
@@ -172,7 +173,7 @@ public static class Dependencies
     }
 
     private static void AddTypeLink(Graphviz g, Dictionary<string, Graphviz.Node> valid_types,
-        Func<Graphviz.Node> parent_func, HashSet<string> existing_refs, LinkedTextType? type)
+        Func<Graphviz.Node> parent_func, HashSet<string> existing_refs, linkedTextType? type)
     {
         if (type == null) { return; }
 
@@ -216,7 +217,7 @@ public static class Dependencies
         Namespace
     }
 
-    private record Method(CompoundDef? Klass, MemberDefinitionType Function);
+    private record Method(compounddefType? Klass, memberdefType Function);
 
     internal static async Task WriteCallGraphToGraphvizAsync(Executor exec, Vfs vfs, Config.Paths paths, Dir cwd, Log log, Dir doxygen_xml,
         Fil output_file, ClusterCallGraphOn cluster_on)

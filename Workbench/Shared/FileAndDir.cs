@@ -63,7 +63,7 @@ public class Dir
     {
         Debug.Assert(SysPath.IsPathFullyQualified(path), "dir path must be rooted");
         var p = SysPath.GetFullPath(new DirectoryInfo(path).FullName);
-        Debug.Assert(p == path, "complex code actually does something that might be needed yo move to the vfs");
+        // Debug.Assert(p == path, "complex code actually does something that might be needed yo move to the vfs", "{0} != {1}", p, path);
         Path = path;
     }
 

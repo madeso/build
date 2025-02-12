@@ -1,15 +1,18 @@
 using System.Collections.Immutable;
+using Workbench.Shared.Doxygen.Compound;
+using Workbench.Shared.Doxygen.Index;
 
 namespace Workbench.Shared.Doxygen;
 
 internal static class DoxygenUtils
 {
+    /*    
     public static IEnumerable<CompoundDef> AllClasses(DoxygenType parsed)
     {
         return parsed.Compounds
-            .Where(x => x.Kind == CompoundKind.Struct
-            || x.Kind == CompoundKind.Class
-            || x.Kind == CompoundKind.Interface
+            .Where(x => x.Kind == Index.CompoundKind.@struct
+            || x.Kind == Index.CompoundKind.@class
+            || x.Kind == Index.CompoundKind.@interface
             )
             .Select(x => x.DoxygenFile.FirstCompound);
     }
@@ -59,12 +62,6 @@ internal static class DoxygenUtils
         return m.ArgsString?.EndsWith("override") ?? false;
     }
 
-    internal static IEnumerable<MemberDefinitionType> AllMembersForAClass(CompoundDef k)
-    {
-        return k.SectionDefs
-            .SelectMany(x => x.MemberDef);
-    }
-
     internal static string MemberToString(MemberDefinitionType it)
     {
         if (it.Kind == DoxMemberKind.Function)
@@ -74,42 +71,9 @@ internal static class DoxygenUtils
         return $"{it.Type} {it.Name}";
     }
 
-    internal static IEnumerable<MemberDefinitionType> AllMembersInNamespace(CompoundDef ns, params DoxSectionKind[] kind)
-    {
-        var kinds = kind.ToImmutableHashSet();
-        return ns.SectionDefs
-                        .Where(s => kinds.Contains(s.Kind))
-                        .SelectMany(s => s.MemberDef);
-    }
-
-    internal static IEnumerable<CompoundDef> IterateClassesInNamespace(DoxygenType dox, CompoundDef ns)
-        => ns.InnerClasses
-            .Select(kr => dox.refidLookup[kr.RefId].DoxygenFile.FirstCompound);
-
     internal static IEnumerable<CompoundDef> IterateNamespacesInNamespace(DoxygenType dox, CompoundDef ns)
         => ns.InnerNamespaces
             .Select(kr => dox.refidLookup[kr.RefId].DoxygenFile.FirstCompound);
-
-    internal static IEnumerable<CompoundDef> IterateAllNamespaces(DoxygenType dox, CompoundDef root_namespace)
-    {
-        var queue = new Queue<string>();
-        queue.Enqueue(root_namespace.Id);
-
-        while (queue.Count > 0)
-        {
-            var ns = dox.refidLookup[queue.Dequeue()];
-            foreach (var r in ns.DoxygenFile.FirstCompound.InnerNamespaces) queue.Enqueue(r.RefId);
-
-            yield return ns.DoxygenFile.FirstCompound;
-        }
-    }
-
-    internal static IEnumerable<CompoundDef> AllNamespaces(DoxygenType dox)
-    {
-        return dox.Compounds
-            .Where(c => c.Kind == CompoundKind.Namespace)
-            .Select(ns => ns.DoxygenFile.FirstCompound);
-    }
 
     internal static CompoundDef? FindNamespace(DoxygenType dox, string namespace_name)
     {
@@ -120,5 +84,55 @@ internal static class DoxygenUtils
                 ?.DoxygenFile
                 .FirstCompound
             ;
+    }
+    */
+    public static IEnumerable<memberdefType> AllMembersForAClass(compounddefType k)
+    {
+        return k.sectiondef
+            .SelectMany(x => x.memberdef);
+    }
+
+    public static IEnumerable<compounddefType> AllNamespaces(DoxygenType dox)
+    {
+        return dox.Compounds
+            .Where(c => c.Kind == CompoundKind.@namespace)
+            .Select(ns => ns.DoxygenFile.FirstCompound);
+    }
+
+    public static compounddefType? FindNamespace(DoxygenType dox, string namespace_name)
+    {
+        // todo(Gustav): merge with AllNamespaces above
+        return dox.Compounds
+                .Where(c => c.Kind == CompoundKind.@namespace)
+                .FirstOrDefault(c => c.Name == namespace_name)
+                ?.DoxygenFile
+                .FirstCompound
+            ;
+    }
+
+    internal static IEnumerable<compounddefType> IterateAllNamespaces(DoxygenType dox, compounddefType root_namespace)
+    {
+        var queue = new Queue<string>();
+        queue.Enqueue(root_namespace.id);
+
+        while (queue.Count > 0)
+        {
+            var ns = dox.refidLookup[queue.Dequeue()];
+            foreach (var r in ns.DoxygenFile.FirstCompound.innernamespace) queue.Enqueue(r.refid);
+
+            yield return ns.DoxygenFile.FirstCompound;
+        }
+    }
+
+    internal static IEnumerable<compounddefType> IterateClassesInNamespace(DoxygenType dox, compounddefType ns)
+        => ns.innerclass
+            .Select(kr => dox.refidLookup[kr.refid].DoxygenFile.FirstCompound);
+
+    internal static IEnumerable<memberdefType> AllMembersInNamespace(compounddefType ns, params DoxSectionKind[] kind)
+    {
+        var kinds = kind.ToImmutableHashSet();
+        return ns.sectiondef
+            .Where(s => kinds.Contains(s.kind))
+            .SelectMany(s => s.memberdef);
     }
 }

@@ -1,7 +1,7 @@
 using Spectre.Console;
 using Workbench.Shared;
 using Workbench.Shared.Doxygen;
-using static Workbench.Shared.Doxygen.LinkedTextType;
+using Workbench.Shared.Doxygen.Compound;
 
 namespace Workbench.Commands.CheckOrderInFile;
 
@@ -70,15 +70,15 @@ internal static class OrderInFile
         else { return -1; }
     }
 
-    private record CheckError(CompoundDef Class, LocationType? PrimaryFile, LocationType? SecondaryFile, string ErrorMessage);
+    private record CheckError(compounddefType Class, locationType? PrimaryFile, locationType? SecondaryFile, string ErrorMessage);
 
-    private static CheckError? CheckClass(CompoundDef k, Dir root)
+    private static CheckError? CheckClass(compounddefType k, Dir root)
     {
         // k.name
         var members = DoxygenUtils.AllMembersForAClass(k).ToArray();
 
         NamedOrder? last_class = null;
-        MemberDefinitionType? last_member = null;
+        memberDefType? last_member = null;
 
         foreach (var member in members.OrderBy(x => x.Location?.Line ?? -1))
         {
@@ -104,7 +104,7 @@ internal static class OrderInFile
     }
 
     private static void PrintError(
-        Vfs vfs, Log log, CompoundDef k, LocationType? primary_file, LocationType? secondary_file,
+        Vfs vfs, Log log, compounddefType k, locationType? primary_file, locationType? secondary_file,
         string error_message, Dir root)
     {
         var members = DoxygenUtils.AllMembersForAClass(k).ToArray();
@@ -120,7 +120,7 @@ internal static class OrderInFile
         AnsiConsole.WriteLine("");
     }
 
-    private static void PrintSuggestedOrder(CompoundDef k, IEnumerable<MemberDefinitionType> members)
+    private static void PrintSuggestedOrder(compounddefType k, IEnumerable<memberdefType> members)
     {
         var sorted = members
             .GroupBy(x => Classify(k, x), (group, items) => (group, items.ToArray()))
@@ -162,7 +162,7 @@ internal static class OrderInFile
     private static readonly NamedOrder virtuals = new("virtual", 40);
     private static readonly NamedOrder pure_virtuals = new("pure virtual", 45);
 
-    private static NamedOrder Classify(CompoundDef k, MemberDefinitionType m)
+    private static NamedOrder Classify(compounddefType k, memberdefType m)
     {
         var r = SubClassify(k, m);
         return m.Protection switch
@@ -175,14 +175,14 @@ internal static class OrderInFile
         };
     }
 
-    private static NamedOrder SubClassify(CompoundDef k, MemberDefinitionType m)
+    private static NamedOrder SubClassify(compounddefType k, memberdefType m)
     {
-        if (m.ArgsString?.EndsWith("=delete") ?? false)
+        if (m.argsstring.EndsWith("=delete"))
         {
             return deleted;
         }
 
-        if (m.ArgsString?.EndsWith("=default") ?? false)
+        if (m.argsstring.EndsWith("=default"))
         {
             if (DoxygenUtils.IsConstructorOrDestructor(m) && m.Param.Length == 0)
             {
@@ -195,37 +195,37 @@ internal static class OrderInFile
             }
         }
 
-        if (m.Name.StartsWith("operator"))
+        if (m.name.StartsWith("operator"))
         {
             return operators;
         }
 
-        if (m.Virtual != null && m.Virtual != DoxVirtualKind.NonVirtual)
+        if (m.virtSpecified && m.virt != DoxVirtualKind.nonvirtual)
         {
             if (DoxygenUtils.IsFunctionOverride(m))
             {
                 return overrides;
             }
 
-            if (m.Virtual == DoxVirtualKind.Virtual && DoxygenUtils.IsConstructorOrDestructor(m) == false)
+            if (m.virt == DoxVirtualKind.@virtual && DoxygenUtils.IsConstructorOrDestructor(m) == false)
             {
                 return virtuals;
             }
 
-            if (m.Virtual == DoxVirtualKind.PureVirtual)
+            if (m.virt == DoxVirtualKind.purevirtual)
             {
                 return pure_virtuals;
             }
         }
 
-        if (m.Kind == DoxMemberKind.Function)
+        if (m.kind == DoxMemberKind.function)
         {
             if (DoxygenUtils.IsFunctionOverride(m))
             {
                 return overrides;
             }
 
-            if (m.IsStatic == DoxBool.Yes)
+            if (m.@static == DoxBool.yes)
             {
                 // undecorated return AND that is a ref AND that references the current class
                 if (m.Type?.Nodes.Any(node => node is Ref ret && ret.Value.RefId == k.Id) ?? false)
@@ -242,7 +242,7 @@ internal static class OrderInFile
                 // constructor
                 return constructors;
             }
-            else if (m.IsConst == DoxBool.Yes || m.IsConstexpr == DoxBool.Yes)
+            else if (m.IsConst == DoxBool.yes || m.IsConstexpr == DoxBool.yes)
             {
                 if (m.Param.Length > 0)
                 {
