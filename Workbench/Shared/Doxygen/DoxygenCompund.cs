@@ -1643,6 +1643,10 @@ public static class docCmdGroupUtil
                 case "orderedlist":
                     return new UnhandledNode(el.Name);
 
+                case "xrefsect":
+                case "variablelist":
+                    return new UnhandledNode(el.Name);
+
                 case "bold":
                 case "s":
                 case "strike":
