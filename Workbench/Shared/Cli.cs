@@ -31,7 +31,7 @@ public static class Cli
     {
         if (string.IsNullOrEmpty(arg)) return cwd;
 
-        var rooted = FileUtil.RootPath(cwd, arg);
+        var rooted = FileUtil.RemoveCurrentDirDotFromDir(FileUtil.RootPath(cwd, arg));
 
         var dd = new Dir(rooted);
         if (dd.Exists(vfs)) return dd;
@@ -100,7 +100,7 @@ public static class Cli
             return new Dir(rooted).GetFile(name_if_missing);
         }
 
-        return new Fil(rooted);
+        return new Fil(FileUtil.RemoveCurrentDirDotFromFile(rooted));
     }
 
     public static Fil? RequireFile(Vfs vfs, Dir cwd, Log log, string arg, string name)

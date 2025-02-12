@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using Workbench.Shared.Extensions;
 
 namespace Workbench.Shared;
 
@@ -205,5 +204,11 @@ internal static class FileUtil
 
     public static string RootPath(Dir root, string s)
         => Path.IsPathFullyQualified(s) ? s : Path.Join(root.Path, s);
+
+    public static string RemoveCurrentDirDotFromDir(string s)
+        => Path.GetFullPath(new DirectoryInfo(s).FullName);
+
+    public static string RemoveCurrentDirDotFromFile(string s)
+        => Path.GetFullPath(new FileInfo(s).FullName);
 }
 
