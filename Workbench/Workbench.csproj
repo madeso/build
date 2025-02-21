@@ -1,31 +1,32 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <OutputType>Exe</OutputType>
-        <TargetFramework>net8.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
 
-		<AssemblyName>wb</AssemblyName>
+    <AssemblyName>wb</AssemblyName>
 
-		<RootNamespace>Workbench</RootNamespace>
-    </PropertyGroup>
+    <RootNamespace>Workbench</RootNamespace>
+  </PropertyGroup>
 
-    <ItemGroup>
-        <PackageReference Include="Spectre.Console" Version="0.47.0" />
-        <PackageReference Include="Spectre.Console.Cli" Version="0.47.0" />
-        <PackageReference Include="StbRectPackSharp" Version="1.0.4" />
-        <PackageReference Include="Open.ChannelExtensions" Version="8.0.2" />
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Spectre.Console" Version="0.47.0" />
+    <PackageReference Include="Spectre.Console.Cli" Version="0.47.0" />
+    <PackageReference Include="StbRectPackSharp" Version="1.0.4" />
+    <PackageReference Include="Open.ChannelExtensions" Version="8.0.2" />
+    <PackageReference Include="SkiaSharp" Version="2.88.9" />
+  </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Commands\LineCount\" />
-      <Folder Include="Commands\CheckForMissingPragmaOnce\" />
-      <Folder Include="Commands\CheckForMissingInCmake\" />
-      <Folder Include="Commands\CheckForNoProjectFolders\" />
-      <Folder Include="Commands\CheckFileNames\" />
-      <Folder Include="Commands\CodeHistory\" />
-      <Folder Include="Commands\Folder\" />
-    </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Commands\LineCount\" />
+    <Folder Include="Commands\CheckForMissingPragmaOnce\" />
+    <Folder Include="Commands\CheckForMissingInCmake\" />
+    <Folder Include="Commands\CheckForNoProjectFolders\" />
+    <Folder Include="Commands\CheckFileNames\" />
+    <Folder Include="Commands\CodeHistory\" />
+    <Folder Include="Commands\Folder\" />
+  </ItemGroup>
 </Project>
