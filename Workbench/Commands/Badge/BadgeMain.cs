@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Spectre.Console.Cli;
+using Workbench.Commands.Build;
 using Workbench.Shared;
 
 namespace Workbench.Commands.Badge;
@@ -29,6 +30,21 @@ internal sealed class TestCommand : Command<TestCommand.Arg>
         [Description("Value to use")]
         [CommandArgument(1, "<value>")]
         public string Value { get; set; } = "";
+
+        [Description("Use hard corners")]
+        [CommandOption("--hard-corners")]
+        [DefaultValue(false)]
+        public bool HardCorners { get; set; }
+
+        [Description("The color of the name tag")]
+        [CommandOption("--name")]
+        [DefaultValue(BadgeColor.Grey)]
+        public BadgeColor NameColor { get; set; }
+
+        [Description("The color of the value tag")]
+        [CommandOption("--value")]
+        [DefaultValue(BadgeColor.Green)]
+        public BadgeColor ValueColor { get; set; }
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
@@ -41,8 +57,15 @@ internal sealed class TestCommand : Command<TestCommand.Arg>
             var b = new Shared.Badge()
             {
                 Label = settings.Name,
-                Value = settings.Value
+                Value = settings.Value,
+                LabelColor = settings.NameColor,
+                ValueColor = settings.ValueColor,
             };
+
+            if (settings.HardCorners)
+            {
+                b.CornerRadius = null;
+            }
 
             var svg = b.GenerateSvg();
             var file = cwd.GetFile("test.svg");

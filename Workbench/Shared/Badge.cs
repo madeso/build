@@ -1,15 +1,31 @@
+using System.ComponentModel;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Xml;
+using Workbench.Commands.Build;
 
 namespace Workbench.Shared;
 
+[TypeConverter(typeof(EnumTypeConverter<BadgeColor>))]
+[JsonConverter(typeof(EnumJsonConverter<BadgeColor>))]
 public enum BadgeColor
 {
+    [EnumString("green")]
     Green,
+
+    [EnumString("light-green")]
     LightGreen,
+
+    [EnumString("yellow")]
     Yellow,
+
+    [EnumString("red")]
     Red,
+
+    [EnumString("light-grey")]
     LightGrey,
+
+    [EnumString("grey")]
     Grey
 }
 
@@ -19,7 +35,7 @@ public class Badge
 
     public string Label { get; set; } = "";
     public string Value { get; set; } = "";
-    public string Font { get; set; } = "Verdana";
+    public string FontFamily { get; set; } = "Verdana";
     public float FontSize { get; set; } = 11.0f;
     public BadgeColor LabelColor { get; set; } = BadgeColor.Grey;
     public BadgeColor ValueColor { get; set; } = BadgeColor.Green;
@@ -27,9 +43,12 @@ public class Badge
 
     public int VerticalPadding { get; set; } = 10;
     public int HorizontalPadding { get; set; } = 10;
-    public float CornerRadius { get; set; } = 6.0f;
 
-    private enum RoundSide { Left, Right }
+    // set tp null to make corners sharp
+    public float? CornerRadius { get; set; } = 6.0f;
+
+    private enum Side { Left, Right }
+    private sealed record RoundedSide(float Radius, Side Side);
 
     private static string ToHexColor(BadgeColor c)
         => c switch
@@ -40,7 +59,7 @@ public class Badge
             BadgeColor.Red => "#e05d44",
             BadgeColor.LightGrey => "#9f9f9f",
             BadgeColor.Grey => "#555",
-            _ => ""
+            _ => "#f00"
         };
 
     private static float EstimateTextWidth(string text, float font_size_in_pixels)
@@ -78,8 +97,9 @@ public class Badge
         svg.SetAttribute("width", S(label_width + value_width));
         svg.SetAttribute("height", S(height));
 
-        svg.AppendChild(CreateRect(doc, LabelColor, 0, 0, label_width, height, CornerRadius, RoundSide.Left));
-        svg.AppendChild(CreateRect(doc, ValueColor, label_width, 0, value_width, height, CornerRadius, RoundSide.Right));
+        svg.AppendChild(CreateBackgroundRect(doc, LabelColor, 0, 0, label_width, height, make(CornerRadius, Side.Left)));
+
+        svg.AppendChild(CreateBackgroundRect(doc, ValueColor, label_width, 0, value_width, height, make(CornerRadius, Side.Right)));
 
         svg.AppendChild(CreateText(doc, Label, HorizontalPadding / 2.0f, height - (VerticalPadding + descent) / 2.0f, label_width - HorizontalPadding));
         svg.AppendChild(CreateText(doc, Value, label_width + HorizontalPadding / 2.0f, height - (VerticalPadding + descent) / 2.0f, value_width - HorizontalPadding));
@@ -87,15 +107,25 @@ public class Badge
         doc.AppendChild(svg);
 
         return XmlToString(doc);
+
+        static RoundedSide? make(float? radius, Side side)
+            => radius == null ? null : new(radius.Value, side);
     }
 
-    private XmlElement CreateRect(XmlDocument doc, BadgeColor color, float x, float y, float width, float height, float radius, RoundSide round_round_side)
+    private XmlElement CreateBackgroundRect(XmlDocument doc, BadgeColor color, float x, float y, float width, float height, RoundedSide? rounded)
     {
-        var path = CreateRoundedRectPath(x, y, width, height, radius, round_round_side == RoundSide.Left, round_round_side == RoundSide.Right);
-
-        var elem = doc.CreateElement("path", SVG_NAMESPACE);
-        elem.SetAttribute("d", path);
+        var elem = rounded != null ? CreateRoundedRect(doc, x, y, width, height, rounded.Radius, rounded.Side == Side.Left, rounded.Side == Side.Right) : CreateStraightRect(doc, x, y, width, height);
         elem.SetAttribute("fill", ToHexColor(color));
+        return elem;
+    }
+
+    private XmlElement CreateStraightRect(XmlDocument doc, float x, float y, float width, float height)
+    {
+        var elem = doc.CreateElement("rect", SVG_NAMESPACE);
+        elem.SetAttribute("x", S(x));
+        elem.SetAttribute("y", S(y));
+        elem.SetAttribute("width", S(width));
+        elem.SetAttribute("height", S(height));
         return elem;
     }
 
@@ -111,7 +141,7 @@ public class Badge
         return builder.ToString();
     }
 
-    private string CreateRoundedRectPath(float x, float y, float width, float height, float radius, bool is_left_rounded, bool is_right_rounded)
+    private XmlElement CreateRoundedRect(XmlDocument doc, float x, float y, float width, float height, float radius, bool is_left_rounded, bool is_right_rounded)
     {
         var path = new StringBuilder();
         path.Append($"M{S(x + radius)},{S(y)} ");
@@ -142,7 +172,12 @@ public class Badge
             path.Append($"h{S(radius)} ");
         }
         path.Append("z");
-        return path.ToString();
+
+        var elem = doc.CreateElement("path", SVG_NAMESPACE);
+
+        elem.SetAttribute("d", path.ToString());
+
+        return elem;
     }
 
     private XmlElement CreateText(XmlDocument doc, string text, float x, float y, float width)
@@ -151,7 +186,7 @@ public class Badge
         elem.SetAttribute("x", S(x));
         elem.SetAttribute("y", S(y));
         elem.SetAttribute("fill", TextColor);
-        elem.SetAttribute("font-family", Font);
+        elem.SetAttribute("font-family", FontFamily);
         elem.SetAttribute("font-size", S(FontSize));
         elem.SetAttribute("textLength", S(width));
         elem.InnerText = text;
