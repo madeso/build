@@ -1,6 +1,5 @@
 using System.Text;
 using System.Xml;
-using SkiaSharp;
 
 namespace Workbench.Shared;
 
@@ -30,7 +29,7 @@ public class Badge
     public int HorizontalPadding { get; set; } = 10;
     public float CornerRadius { get; set; } = 6.0f;
 
-    private enum RoundSide { Left, Right}
+    private enum RoundSide { Left, Right }
 
     private static string ToHexColor(BadgeColor c)
         => c switch
@@ -44,11 +43,20 @@ public class Badge
             _ => ""
         };
 
-    private static SKRect MeasureString(string text, SKPaint paint)
+    private static float EstimateTextWidth(string text, float font_size_in_pixels)
     {
-        var bounds = new SKRect();
-        paint.MeasureText(text, ref bounds);
-        return bounds;
+        var average_char_width = font_size_in_pixels * 0.6f;
+        return text.Length * average_char_width;
+    }
+
+    private static float EstimateTextHeight(float font_size_in_pixels)
+    {
+        return font_size_in_pixels;
+    }
+
+    private static float EstimateTextDescent(float font_size_in_pixels)
+    {
+        return font_size_in_pixels * 0.25f;
     }
 
     private static string S(float f)
@@ -58,17 +66,12 @@ public class Badge
 
     public string GenerateSvg()
     {
-        using var paint = new SKPaint();
-        paint.TextSize = FontSize * (96.0f / 72.0f); // Convert points to pixels (assuming 96 DPI)
-        paint.Typeface = SKTypeface.FromFamilyName(Font);
-        var metrics = paint.FontMetrics;
+        var pixel_size = FontSize * (96.0f / 72.0f); // Convert points to pixels (assuming 96 DPI)
 
-        var label_rect = MeasureString(Label, paint);
-        var value_rect = MeasureString(Value, paint);
-
-        var label_width = label_rect.Width + HorizontalPadding;
-        var value_width = value_rect.Width + HorizontalPadding;
-        var height = Math.Max(label_rect.Height, value_rect.Height) + VerticalPadding;
+        var label_width = EstimateTextWidth(Label, pixel_size) + HorizontalPadding;
+        var value_width = EstimateTextWidth(Value, pixel_size) + HorizontalPadding;
+        var height = EstimateTextHeight(pixel_size) + VerticalPadding;
+        var descent = EstimateTextDescent(pixel_size);
 
         var doc = new XmlDocument();
         var svg = doc.CreateElement("svg", SVG_NAMESPACE);
@@ -78,8 +81,8 @@ public class Badge
         svg.AppendChild(CreateRect(doc, LabelColor, 0, 0, label_width, height, CornerRadius, RoundSide.Left));
         svg.AppendChild(CreateRect(doc, ValueColor, label_width, 0, value_width, height, CornerRadius, RoundSide.Right));
 
-        svg.AppendChild(CreateText(doc, Label, HorizontalPadding / 2.0f, height - (VerticalPadding+ metrics.Descent) / 2.0f, label_width - HorizontalPadding));
-        svg.AppendChild(CreateText(doc, Value, label_width + HorizontalPadding / 2.0f, height - (VerticalPadding + metrics.Descent) / 2.0f, value_width - HorizontalPadding));
+        svg.AppendChild(CreateText(doc, Label, HorizontalPadding / 2.0f, height - (VerticalPadding + descent) / 2.0f, label_width - HorizontalPadding));
+        svg.AppendChild(CreateText(doc, Value, label_width + HorizontalPadding / 2.0f, height - (VerticalPadding + descent) / 2.0f, value_width - HorizontalPadding));
 
         doc.AppendChild(svg);
 
