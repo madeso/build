@@ -15,6 +15,7 @@ internal class Main
         {
             cmake.SetDescription("Badge commands");
             cmake.AddCommand<TestCommand>("test").WithDescription("Test the badge");
+            cmake.AddCommand<GcovrCommand>("gcovr").WithDescription("Generate badges for gcovr");
         });
     }
 }
