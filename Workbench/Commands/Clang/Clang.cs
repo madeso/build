@@ -191,7 +191,8 @@ class TidyMessage(Fil a_fil)
                 string? cat = null;
                 if (tidy_class.Success) cat = tidy_class.Groups[1].Value.Trim();
                 if (string.IsNullOrEmpty(cat)) cat = null;
-                current = new TidyMessage(new Fil(parsed.Groups["file"].Value.Trim()))
+                var parsed_file = Fil.CleanupRelative(parsed.Groups["file"].Value.Trim());
+                current = new TidyMessage(new Fil(parsed_file))
                 {
                     Line = int.Parse(parsed.Groups["line"].Value),
                     Column = int.Parse(parsed.Groups["col"].Value),

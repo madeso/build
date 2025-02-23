@@ -144,9 +144,15 @@ public class Fil : IComparable<Fil>
     public Fil(string path)
     {
         Debug.Assert(SysPath.IsPathFullyQualified(path), $"file path must be rooted, {path} wasn't");
-        var p = SysPath.GetFullPath(new FileInfo(path).FullName);
+        var p = CleanupRelative(path);
         Debug.Assert(p == path, $"complex code actually does something: {p} != {path}");
         Path = path;
+    }
+
+    // resolve .. paths
+    public static string CleanupRelative(string path)
+    {
+        return SysPath.GetFullPath(new FileInfo(path).FullName);
     }
 
     public string GetRelativeOrFullPath(Dir cwd, Dir? a_root_relative = null)
