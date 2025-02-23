@@ -77,3 +77,32 @@ internal sealed class TestCommand : Command<TestCommand.Arg>
         });
     }
 }
+
+
+internal sealed class GcovrCommand : Command<GcovrCommand.Arg>
+{
+    public sealed class Arg : CommandSettings
+    {
+        [Description("Gcovr summary.json input file")]
+        [CommandArgument(0, "<input>")]
+        public string SummaryJson { get; set; } = "";
+
+        [Description("output dir")]
+        [CommandArgument(1, "<output>")]
+        public string OutputDir { get; set; } = "";
+    }
+
+    public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
+    {
+        var cwd = Dir.CurrentDirectory;
+        var vfs = new VfsDisk();
+
+        return CliUtil.PrintErrorsAtExit(print =>
+        {
+            var input = Cli.RequireFile(vfs, cwd, print, settings.SummaryJson, "input file");
+            var output = Cli.ToOutputDirectory(cwd, settings.OutputDir);
+            return BadgeCoverage.Convert(print, vfs, input, output);
+        });
+    }
+}
+
