@@ -78,11 +78,6 @@ public class Badge
         return font_size_in_pixels * 0.25f;
     }
 
-    private static string S(float f)
-    {
-        return ((int)f).ToString();
-    }
-
     public string GenerateSvg()
     {
         var pixel_size = FontSize * (96.0f / 72.0f); // Convert points to pixels (assuming 96 DPI)
@@ -94,8 +89,8 @@ public class Badge
 
         var doc = new XmlDocument();
         var svg = doc.CreateElement("svg", SVG_NAMESPACE);
-        svg.SetAttribute("width", S(label_width + value_width));
-        svg.SetAttribute("height", S(height));
+        svg.SetAttribute("width", Svg.S(label_width + value_width));
+        svg.SetAttribute("height", Svg.S(height));
 
         svg.AppendChild(CreateBackgroundRect(doc, LabelColor, 0, 0, label_width, height, make(CornerRadius, Side.Left)));
 
@@ -112,20 +107,20 @@ public class Badge
             => radius == null ? null : new(radius.Value, side);
     }
 
-    private XmlElement CreateBackgroundRect(XmlDocument doc, BadgeColor color, float x, float y, float width, float height, RoundedSide? rounded)
+    private static XmlElement CreateBackgroundRect(XmlDocument doc, BadgeColor color, float x, float y, float width, float height, RoundedSide? rounded)
     {
         var elem = rounded != null ? CreateRoundedRect(doc, x, y, width, height, rounded.Radius, rounded.Side == Side.Left, rounded.Side == Side.Right) : CreateStraightRect(doc, x, y, width, height);
         elem.SetAttribute("fill", ToHexColor(color));
         return elem;
     }
 
-    private XmlElement CreateStraightRect(XmlDocument doc, float x, float y, float width, float height)
+    private static XmlElement CreateStraightRect(XmlDocument doc, float x, float y, float width, float height)
     {
         var elem = doc.CreateElement("rect", SVG_NAMESPACE);
-        elem.SetAttribute("x", S(x));
-        elem.SetAttribute("y", S(y));
-        elem.SetAttribute("width", S(width));
-        elem.SetAttribute("height", S(height));
+        elem.SetAttribute("x", Svg.S(x));
+        elem.SetAttribute("y", Svg.S(y));
+        elem.SetAttribute("width", Svg.S(width));
+        elem.SetAttribute("height", Svg.S(height));
         return elem;
     }
 
@@ -141,37 +136,37 @@ public class Badge
         return builder.ToString();
     }
 
-    private XmlElement CreateRoundedRect(XmlDocument doc, float x, float y, float width, float height, float radius, bool is_left_rounded, bool is_right_rounded)
+    private static XmlElement CreateRoundedRect(XmlDocument doc, float x, float y, float width, float height, float radius, bool is_left_rounded, bool is_right_rounded)
     {
-        var path = new StringBuilder();
-        path.Append($"M{S(x + radius)},{S(y)} ");
-        path.Append($"h{S(width - 2 * radius)} ");
+        var path = new SvgPathBuilder();
+        path.MoveToAbsolute(x + radius, y);
+        path.HorizontalLine(width - 2 * radius);
         if (is_right_rounded)
         {
-            path.Append($"a{S(radius)},{S(radius)} 0 0 1 {S(radius)},{S(radius)} ");
-            path.Append($"v{S(height - 2 * radius)} ");
-            path.Append($"a{S(radius)},{S(radius)} 0 0 1 -{S(radius)},{S(radius)} ");
+            path.Arc(radius, radius, 0, 0, 1, radius , radius);
+            path.VerticalLine(height - 2 * radius);
+            path.Arc(radius, radius, 0, 0, 1, -radius, radius);
         }
         else
         {
-            path.Append($"h{S(radius)} ");
-            path.Append($"v{S(height)} ");
-            path.Append($"h-{S(radius)} ");
+            path.HorizontalLine(radius);
+            path.VerticalLine(height);
+            path.HorizontalLine(-radius);
         }
-        path.Append($"h-{S(width - 2 * radius)} ");
+        path.HorizontalLine(-(width - 2 * radius));
         if (is_left_rounded)
         {
-            path.Append($"a{S(radius)},{S(radius)} 0 0 1 -{S(radius)},-{S(radius)} ");
-            path.Append($"v-{S(height - 2 * radius)} ");
-            path.Append($"a{S(radius)},{S(radius)} 0 0 1 {S(radius)},-{S(radius)} ");
+            path.Arc(radius, radius, 0, 0, 1, -radius, -radius);
+            path.VerticalLine(-(height - 2 * radius));
+            path.Arc(radius, radius, 0 ,0, 1, radius, -radius);
         }
         else
         {
-            path.Append($"h-{S(radius)} ");
-            path.Append($"v-{S(height)} ");
-            path.Append($"h{S(radius)} ");
+            path.HorizontalLine(-radius);
+            path.VerticalLine(-height);
+            path.HorizontalLine(radius);
         }
-        path.Append("z");
+        path.ClosePath();
 
         var elem = doc.CreateElement("path", SVG_NAMESPACE);
 
@@ -183,14 +178,56 @@ public class Badge
     private XmlElement CreateText(XmlDocument doc, string text, float x, float y, float width)
     {
         var elem = doc.CreateElement("text", SVG_NAMESPACE);
-        elem.SetAttribute("x", S(x));
-        elem.SetAttribute("y", S(y));
+        elem.SetAttribute("x", Svg.S(x));
+        elem.SetAttribute("y", Svg.S(y));
         elem.SetAttribute("fill", TextColor);
         elem.SetAttribute("font-family", FontFamily);
-        elem.SetAttribute("font-size", S(FontSize));
-        elem.SetAttribute("textLength", S(width));
+        elem.SetAttribute("font-size", Svg.S(FontSize));
+        elem.SetAttribute("textLength", Svg.S(width));
         elem.InnerText = text;
         return elem;
     }
 }
 
+internal class SvgPathBuilder
+{
+    private readonly List<string> path = new ();
+
+    public override string ToString()
+    {
+        return string.Join(' ', path);
+    }
+
+    public void MoveToAbsolute(float x, float y)
+    {
+        path.Add($"M{Svg.S(x)},{Svg.S(y)}");
+    }
+
+    public void HorizontalLine(float dx)
+    {
+        path.Add($"h{Svg.S(dx)}");
+    }
+
+    public void Arc(float rx, float ry, int x_axis_rotation, int large_arc_flag, int sweep_flag, float dx, float dy)
+    {
+        path.Add($"a{Svg.S(rx)},{Svg.S(ry)} {x_axis_rotation} {large_arc_flag} {sweep_flag} {Svg.S(dx)},{Svg.S(dy)}");
+    }
+
+    public void VerticalLine(float dy)
+    {
+        path.Add($"v{Svg.S(dy)}");
+    }
+
+    public void ClosePath()
+    {
+        path.Add("z");
+    }
+}
+
+internal static class Svg
+{
+    public static string S(float f)
+    {
+        return ((int)f).ToString();
+    }
+}
