@@ -46,6 +46,16 @@ internal sealed class TestCommand : Command<TestCommand.Arg>
         [CommandOption("--value")]
         [DefaultValue(BadgeColor.Green)]
         public BadgeColor ValueColor { get; set; }
+
+        [Description("The size of the text")]
+        [CommandOption("--size")]
+        [DefaultValue(11)]
+        public int FontSize { get; set; }
+
+        [Description("The corner radius")]
+        [CommandOption("--radius")]
+        [DefaultValue(6)]
+        public float Radius { get; set; }
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
@@ -61,6 +71,8 @@ internal sealed class TestCommand : Command<TestCommand.Arg>
                 Value = settings.Value,
                 LabelColor = settings.NameColor,
                 ValueColor = settings.ValueColor,
+                FontSize = settings.FontSize,
+                CornerRadius = settings.Radius,
             };
 
             if (settings.HardCorners)
