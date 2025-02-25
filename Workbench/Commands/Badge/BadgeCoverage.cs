@@ -63,6 +63,10 @@ internal static class BadgeCoverage
             Label = display,
             Value = dis.Value,
             ValueColor = dis.Color,
+            FontSize = 10,
+            CornerRadius = 3f,
+            HorizontalPadding = 3,
+            StretchText = false
         };
 
         var svg = b.GenerateSvg();

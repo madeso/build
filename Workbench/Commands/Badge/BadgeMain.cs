@@ -37,6 +37,11 @@ internal sealed class TestCommand : Command<TestCommand.Arg>
         [DefaultValue(false)]
         public bool HardCorners { get; set; }
 
+        [Description("Disable text stretching")]
+        [CommandOption("--no-stretch")]
+        [DefaultValue(false)]
+        public bool DisableTextStretch { get; set; }
+
         [Description("The color of the name tag")]
         [CommandOption("--name")]
         [DefaultValue(BadgeColor.Grey)]
@@ -56,6 +61,16 @@ internal sealed class TestCommand : Command<TestCommand.Arg>
         [CommandOption("--radius")]
         [DefaultValue(6)]
         public float Radius { get; set; }
+
+        [Description("The vertical padding")]
+        [CommandOption("--vpad")]
+        [DefaultValue(10)]
+        public int VerticalPadding { get; set; } = 10;
+
+        [Description("The horizontal padding")]
+        [CommandOption("--hpad")]
+        [DefaultValue(10)]
+        public int HorizontalPadding { get; set; } = 10;
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
@@ -73,12 +88,16 @@ internal sealed class TestCommand : Command<TestCommand.Arg>
                 ValueColor = settings.ValueColor,
                 FontSize = settings.FontSize,
                 CornerRadius = settings.Radius,
+                VerticalPadding = settings.VerticalPadding,
+                HorizontalPadding = settings.HorizontalPadding,
             };
 
             if (settings.HardCorners)
             {
                 b.CornerRadius = null;
             }
+
+            b.StretchText = !settings.DisableTextStretch;
 
             var svg = b.GenerateSvg();
             var file = cwd.GetFile("test.svg");

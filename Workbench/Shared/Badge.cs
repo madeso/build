@@ -44,6 +44,9 @@ public class Badge
     public int VerticalPadding { get; set; } = 10;
     public int HorizontalPadding { get; set; } = 10;
 
+    public bool StretchText { get; set; } = true;
+
+
     // set tp null to make corners sharp
     public float? CornerRadius { get; set; } = 6.0f;
 
@@ -96,8 +99,8 @@ public class Badge
 
         svg.AppendChild(CreateBackgroundRect(doc, ValueColor, label_width, 0, value_width, height, make(CornerRadius, Side.Right)));
 
-        svg.AppendChild(CreateText(doc, Label, HorizontalPadding / 2.0f, height - (VerticalPadding + descent) / 2.0f, label_width - HorizontalPadding));
-        svg.AppendChild(CreateText(doc, Value, label_width + HorizontalPadding / 2.0f, height - (VerticalPadding + descent) / 2.0f, value_width - HorizontalPadding));
+        svg.AppendChild(CreateText(doc, Label, label_width / 2.0f, height - (VerticalPadding + descent) / 2.0f, label_width - HorizontalPadding));
+        svg.AppendChild(CreateText(doc, Value, label_width + value_width / 2.0f, height - (VerticalPadding + descent) / 2.0f, value_width - HorizontalPadding));
 
         doc.AppendChild(svg);
 
@@ -183,7 +186,11 @@ public class Badge
         elem.SetAttribute("fill", TextColor);
         elem.SetAttribute("font-family", FontFamily);
         elem.SetAttribute("font-size", Svg.S(FontSize));
-        elem.SetAttribute("textLength", Svg.S(width));
+        if(StretchText)
+        {
+            elem.SetAttribute("textLength", Svg.S(width));
+        }
+        elem.SetAttribute("text-anchor", "middle");
         elem.InnerText = text;
         return elem;
     }
