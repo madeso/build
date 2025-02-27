@@ -502,7 +502,7 @@ class DescriptionType
                 "internal" => new Internal(x),
                 "sect1" => new Sect1(x),
                 "sect2" => new Sect2(x),
-                _ => throw new Exception("invalid type")
+                _ => throw new Exception($"invalid type {x.Name} not existing in xsd")
             }).ToArray();
     }
 
