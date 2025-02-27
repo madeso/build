@@ -502,6 +502,7 @@ class DescriptionType
                 "internal" => new Internal(x),
                 "sect1" => new Sect1(x),
                 "sect2" => new Sect2(x),
+                "sect3" => new Sect3(x),
                 _ => throw new Exception($"invalid type {x.Name} not existing in xsd")
             }).ToArray();
     }
@@ -553,6 +554,14 @@ class DescriptionType
             // Value = new docSect2Type(x);
         }
         // public docSect2Type Value {get;}
+    };
+    public class Sect3 : Node
+    {
+        public Sect3(XmlElement x)
+        {
+            // Value = new docSect3Type(x);
+        }
+        // public docSect3Type Value {get;}
     };
 
     // elements
