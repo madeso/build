@@ -697,7 +697,7 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
 
                 if (is_note)
                 {
-                    output.Add($"<p>{m.Message.EscapeHtml()}</p>");
+                    output.Add($"<p>{m.Message}</p>");
                 }
 
                 output.Add($"<p><i>{LinkToFile(cwd, m.File)} {m.Line} : {m.Column}</i></p>");
@@ -705,7 +705,7 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
                 output.Add($"<pre>");
                 foreach (var l in m.Code)
                 {
-                    output.Add(l.EscapeHtml());
+                    output.Add(l);
                 }
                 output.Add($"</pre>");
             }
