@@ -547,7 +547,7 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
 
     private string LinkToFile(Dir cwd, Fil source_file)
         => source_file_to_link.TryGetValue(source_file, out var link)
-            ? $"<a href=\"{link.Link}\">{link.Title}</a>"
+            ? $"<a href=\"{link.Link}\">{link.Title.EscapeHtml()}</a>"
             : source_file.GetDisplay(cwd)
             ;
 
@@ -575,14 +575,14 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
             output.Add("<ul>");
             foreach (var (klass, count) in project_counter.MostCommon())
             {
-                output.Add($"<li>{count}x <code>{klass}</code></li>");
+                output.Add($"<li>{count}x <code>{klass.EscapeHtml()}</code></li>");
 
                 if(global_stats.WarningsPerFile.TryGetValue(klass, out var v))
                 {
                     output.Add("<ul>");
                     foreach (var f in v)
                     {
-                        output.Add($"<li>{LinkToFile(cwd, f)}</li>");
+                        output.Add($"<li>{LinkToFile(cwd, f).EscapeHtml()}</li>");
                     }
                     output.Add("</ul>");
                 }
@@ -612,7 +612,7 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
         foreach (var l in root_links.OrderByDescending(l => l.Totals))
         {
             output.Add($"<tr>");
-            output.Add($"<td><a href={l.Link}>{l.Title}</a></td>");
+            output.Add($"<td><a href={l.Link}>{l.Title.EscapeHtml()}</a></td>");
             output.Add($"<td{align}>{Q(l.Categories)}</td>");
             output.Add($"<td{align}>{Q(l.Totals)}</td>");
             output.Add($"<td{align}>{l.TimeTaken.ToHumanString()}</td>");
@@ -625,8 +625,8 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
         {
             output.Add("<h3>Timings</h3>");
             output.Add($"<p><b>average</b>: {tt.AverageValue.ToHumanString()}</p>");
-            output.Add($"<p><b>max</b>: {tt.Max.Value.ToHumanString()} for {LinkToFile(cwd, tt.Max.Key)}</p>");
-            output.Add($"<p><b>min</b>: {tt.Min.Value.ToHumanString()} for {LinkToFile(cwd, tt.Min.Key)}</p>");
+            output.Add($"<p><b>max</b>: {tt.Max.Value.ToHumanString().EscapeHtml()} for {LinkToFile(cwd, tt.Max.Key).EscapeHtml()}</p>");
+            output.Add($"<p><b>min</b>: {tt.Min.Value.ToHumanString().EscapeHtml()} for {LinkToFile(cwd, tt.Min.Key).EscapeHtml()}</p>");
         }
 
         output.Add($"</body>");
@@ -686,18 +686,18 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
                 if (is_note == false)
                 {
                     output.Add("<hr>");
-                    output.Add($"<h3>{m.Type}: {m.Message}</h3>");
+                    output.Add($"<h3>{m.Type.EscapeHtml()}: {m.Message.EscapeHtml()}</h3>");
                 }
 
                 if (m.Category != null)
                 {
-                    output.Add($"<code>[{m.Category}]</code>");
+                    output.Add($"<code>[{m.Category.EscapeHtml()}]</code>");
                     count.Add(m.Category);
                 }
 
                 if (is_note)
                 {
-                    output.Add($"<p>{m.Message}</p>");
+                    output.Add($"<p>{m.Message.EscapeHtml()}</p>");
                 }
 
                 output.Add($"<p><i>{LinkToFile(cwd, m.File)} {m.Line} : {m.Column}</i></p>");
@@ -705,7 +705,7 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
                 output.Add($"<pre>");
                 foreach (var l in m.Code)
                 {
-                    output.Add(l);
+                    output.Add(l.EscapeHtml());
                 }
                 output.Add($"</pre>");
             }

@@ -12,6 +12,15 @@ public static class StringExtensions
         return string.IsNullOrEmpty(s) ? null : s;
     }
 
+    public static string EscapeHtml(this string s)
+    {
+        return s.Replace("&", "&amp;")
+                .Replace("<", "&lt;")
+                .Replace(">", "&gt;")
+                .Replace("\"", "&quot;")
+                .Replace("'", "&#39;");
+    }
+
     public static string GetSafeString(this string str)
     {
         // algorithm inspired by the description of the doxygen version
