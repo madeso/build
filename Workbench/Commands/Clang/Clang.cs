@@ -685,16 +685,16 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
             {
                 var is_note = m.Type == "note";
 
+                foreach (var c in m.GetClasses())
+                {
+                    if (codeLinks.Add(c) == false) continue;
+                    output.Add($"<span id='{c}'>&nbsp;</span>");
+                }
+
                 if (is_note == false)
                 {
                     output.Add("<hr>");
                     output.Add($"<h3>{m.Type.EscapeHtml()}: {m.Message.EscapeHtml()}</h3>");
-                }
-
-                foreach (var c in m.GetClasses())
-                {
-                    if(codeLinks.Add(c) == false) continue;
-                    output.Add($"<span id='{c}'>&nbsp;</span>");
                 }
 
                 if (m.Category != null)
