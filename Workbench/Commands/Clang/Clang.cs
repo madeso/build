@@ -625,8 +625,8 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
         {
             output.Add("<h3>Timings</h3>");
             output.Add($"<p><b>average</b>: {tt.AverageValue.ToHumanString()}</p>");
-            output.Add($"<p><b>max</b>: {tt.Max.Value.ToHumanString().EscapeHtml()} for {LinkToFile(cwd, tt.Max.Key).EscapeHtml()}</p>");
-            output.Add($"<p><b>min</b>: {tt.Min.Value.ToHumanString().EscapeHtml()} for {LinkToFile(cwd, tt.Min.Key).EscapeHtml()}</p>");
+            output.Add($"<p><b>max</b>: {tt.Max.Value.ToHumanString().EscapeHtml()} for {LinkToFile(cwd, tt.Max.Key)}</p>");
+            output.Add($"<p><b>min</b>: {tt.Min.Value.ToHumanString().EscapeHtml()} for {LinkToFile(cwd, tt.Min.Key)}</p>");
         }
 
         output.Add($"</body>");
