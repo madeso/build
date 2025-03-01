@@ -545,9 +545,9 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
         public int Totals { get; }
     }
 
-    private string LinkToFile(Dir cwd, Fil source_file)
+    private string LinkToFile(Dir cwd, Fil source_file, string? hash = null)
         => source_file_to_link.TryGetValue(source_file, out var link)
-            ? $"<a href=\"{link.Link}\">{link.Title.EscapeHtml()}</a>"
+            ? $"<a href=\"{link.Link}{(hash is { } ? "#" + hash : "")}\">{link.Title.EscapeHtml()}</a>"
             : source_file.GetDisplay(cwd)
             ;
 
@@ -582,7 +582,7 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
                     output.Add("<ul>");
                     foreach (var f in v)
                     {
-                        output.Add($"<li>{LinkToFile(cwd, f).EscapeHtml()}</li>");
+                        output.Add($"<li>{LinkToFile(cwd, f, klass)}</li>");
                     }
                     output.Add("</ul>");
                 }
@@ -663,6 +663,8 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
         var name = GetRelative(source_file);
         var target = GetOutput(source_file, ".html");
 
+        var codeLinks = new HashSet<string>();
+
         List<string> output = new();
 
         output.Add($"<html>");
@@ -689,6 +691,12 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
                     output.Add($"<h3>{m.Type.EscapeHtml()}: {m.Message.EscapeHtml()}</h3>");
                 }
 
+                foreach (var c in m.GetClasses())
+                {
+                    if(codeLinks.Add(c) == false) continue;
+                    output.Add($"<span id='{c}'>&nbsp;</span>");
+                }
+
                 if (m.Category != null)
                 {
                     output.Add($"<code>[{m.Category.EscapeHtml()}]</code>");
@@ -697,7 +705,7 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
 
                 if (is_note)
                 {
-                    output.Add($"<p>{m.Message}</p>");
+                    output.Add($"<p>{m.Message.EscapeHtml()}</p>");
                 }
 
                 output.Add($"<p><i>{LinkToFile(cwd, m.File)} {m.Line} : {m.Column}</i></p>");
@@ -705,7 +713,7 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
                 output.Add($"<pre>");
                 foreach (var l in m.Code)
                 {
-                    output.Add(l);
+                    output.Add(l.EscapeHtml());
                 }
                 output.Add($"</pre>");
             }
