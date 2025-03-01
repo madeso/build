@@ -207,7 +207,7 @@ class TidyMessage(Fil a_fil)
     }
 
     public IEnumerable<string> GetClasses()
-        => Category!.Split(',').Select(s => s.Trim());
+        => Category == null ? [] : Category.Split(',').Select(s => s.Trim());
 }
 
 class TidyGroup
