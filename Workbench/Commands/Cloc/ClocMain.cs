@@ -4,13 +4,10 @@ using Spectre.Console;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Workbench.Shared;
-using System.Text.RegularExpressions;
-using System.IO;
-using System.Security.Cryptography.X509Certificates;
 
 namespace Workbench.Commands.Cloc;
 
-public class Main
+public static class Main
 {
     internal static void Configure(IConfigurator config, string name)
     {
@@ -18,12 +15,24 @@ public class Main
     }
 }
 
-class Stat
+internal class LangStat
 {
     public int Files { get; set; } = 0;
     public int TotalLines { get; set; } = 0;
     public int EmptyLines { get; set; } = 0;
 }
+
+internal record LangCollectedInformation(
+    string Language,
+    int FileCount,
+    int EmptyLines,
+    int TotalLines
+    );
+
+internal record LangData(
+    ImmutableArray<LangCollectedInformation> Collected,
+    Dictionary<Language, List<Fil>>? Parsed
+);
 
 [Description("cloc clone")]
 internal sealed class ClocCommand : Command<ClocCommand.Arg>
@@ -34,15 +43,15 @@ internal sealed class ClocCommand : Command<ClocCommand.Arg>
         [CommandArgument(0, "<input files/dirs>")]
         public string[] Files { get; set; } = Array.Empty<string>();
 
-        [Description("Also include unknown sources")]
-        [CommandOption("--unknown")]
-        [DefaultValue(false)]
-        public bool IncludeUnknown { get; set; } = false;
-
         [Description("Display as a historgram instead")]
         [CommandOption("--histogram")]
         [DefaultValue(false)]
         public bool DisplayHistogram { get; set; } = false;
+
+        [Description("Also include unknown sources")]
+        [CommandOption("--unknown")]
+        [DefaultValue(false)]
+        public bool IncludeUnknown { get; set; } = false;
 
         [Description("Add files for language")]
         [CommandOption("--lang")]
@@ -53,20 +62,32 @@ internal sealed class ClocCommand : Command<ClocCommand.Arg>
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg arg)
     {
         var cwd = Dir.CurrentDirectory;
-        var stats = new Dictionary<Language, Stat>();
-        var parsed = new Dictionary<Language, List<Fil>>();
         var vfs = new VfsDisk();
 
-        foreach (var file in FileUtil.ListFilesFromArgs(vfs, cwd, arg.Files))
+        var data = CollectData(cwd, vfs, arg);
+
+        if (arg.DisplayHistogram)
+        {
+            DisplayHistogram(data.Collected);
+        }
+        else
+        {
+            DisplayConsole(data.Collected, data.Parsed, cwd);
+        }
+
+        return 0;
+    }
+
+    private static LangData CollectData(Dir cwd, VfsDisk vfs, Arg arg)
+    {
+        var stats = new Dictionary<Language, LangStat>();
+        var parsed = arg.AddLanguageFiles ? new Dictionary<Language, List<Fil>>() : null;
+
+        foreach (var file in ListFiles(arg, vfs, cwd, arg.Files))
         {
             var lang = FileUtil.ClassifySource(file);
 
-            if (arg.IncludeUnknown == false && lang == Language.Unknown)
-            {
-                continue;
-            }
-
-            if(arg.AddLanguageFiles)
+            if (parsed != null)
             {
                 if (parsed.TryGetValue(lang, out var file_list) == false)
                 {
@@ -75,10 +96,10 @@ internal sealed class ClocCommand : Command<ClocCommand.Arg>
                 }
                 file_list.Add(file);
             }
-            
+
             if (stats.TryGetValue(lang, out var data_values) == false)
             {
-                data_values = new Stat();
+                data_values = new LangStat();
                 stats.Add(lang, data_values);
             }
 
@@ -88,74 +109,95 @@ internal sealed class ClocCommand : Command<ClocCommand.Arg>
             data_values.EmptyLines += lines.Count(string.IsNullOrEmpty);
         }
 
-        var collected = stats.OrderBy(x => x.Value.TotalLines).Select(kvp => new
-        {
-            Language = FileUtil.ToString(kvp.Key),
-            FileCount = kvp.Value.Files,
-            EmptyLines = kvp.Value.EmptyLines,
-            TotalLines = kvp.Value.TotalLines
-        }).ToImmutableArray();
+        var collected = stats.OrderBy(x => x.Value.TotalLines).Select(kvp => new LangCollectedInformation
+        (
+            Language: FileUtil.ToString(kvp.Key),
+            FileCount: kvp.Value.Files,
+            EmptyLines: kvp.Value.EmptyLines,
+            TotalLines: kvp.Value.TotalLines
+        )).ToImmutableArray();
 
-        if (arg.DisplayHistogram)
+        return new LangData(collected, parsed);
+    }
+
+    private static IEnumerable<Fil> ListFiles(Arg arg, VfsDisk vfs, Dir cwd, string[] files_argument)
+    {
+        return FileUtil.ListFilesFromArgs(vfs, cwd, files_argument)
+            .Where(f => arg.IncludeUnknown != false || FileUtil.ClassifySource(f) != Language.Unknown);
+    }
+
+    private static void DisplayConsole(ImmutableArray<LangCollectedInformation> collected, Dictionary<Language, List<Fil>>? parsed, Dir cwd)
+    {
+        var t = new Table();
+        t.AddColumn("Language");
+        t.AddColumn(new TableColumn("Files").RightAligned());
+        t.AddColumn(new TableColumn("Empty lines").RightAligned());
+        t.AddColumn(new TableColumn("Total lines").RightAligned());
+
+        foreach (var cc in collected)
         {
-            if(collected.Length > 0)
-            {
-                AnsiConsole.Write(new BarChart()
-                    .Width(60)
-                    .Label("[green bold underline]Line counts (files)[/]")
-                    .CenterLabel()
-                    .AddItems(collected, item => new BarChartItem(
-                        item.Language, item.TotalLines, Color.Blue)));
-            }
+            t.AddRow(cc.Language,
+                cc.FileCount.ToString("N0"),
+                cc.EmptyLines.ToString("N0"),
+                cc.TotalLines.ToString("N0"));
         }
-        else
+
+        t.AddEmptyRow();
+
+        var sum_file_count = collected.Select(cc => cc.FileCount).Sum();
+        var sum_empty_lines = collected.Select(cc => cc.EmptyLines).Sum();
+        var sum_total_lines = collected.Select(cc => cc.TotalLines).Sum();
+
+        t.AddRow("SUM",
+            sum_file_count.ToString("N0"),
+            sum_empty_lines.ToString("N0"),
+            sum_total_lines.ToString("N0"));
+
+        AnsiConsole.Write(t);
+
+        if (parsed != null)
         {
-            var t = new Table();
-            t.AddColumn("Language");
-            t.AddColumn(new TableColumn("Files").RightAligned());
-            t.AddColumn(new TableColumn("Empty lines").RightAligned());
-            t.AddColumn(new TableColumn("Total lines").RightAligned());
-
-            foreach (var cc in collected)
+            foreach (var (lang, list) in parsed)
             {
-                t.AddRow(cc.Language,
-                    cc.FileCount.ToString("N0"),
-                    cc.EmptyLines.ToString("N0"),
-                    cc.TotalLines.ToString("N0"));
-            }
-
-            t.AddEmptyRow();
-
-            var sum_file_count = collected.Select(cc => cc.FileCount).Sum();
-            var sum_empty_lines = collected.Select(cc => cc.EmptyLines).Sum();
-            var sum_total_lines = collected.Select(cc => cc.TotalLines).Sum();
-
-            t.AddRow("SUM",
-                sum_file_count.ToString("N0"),
-                sum_empty_lines.ToString("N0"),
-                sum_total_lines.ToString("N0"));
-
-            AnsiConsole.Write(t);
-
-            if (arg.AddLanguageFiles)
-            {
-                foreach (var (lang, list) in parsed)
+                var ft = new Table();
+                ft.AddColumn(FileUtil.ToString(lang));
+                foreach (var f in list)
                 {
-                    var ft = new Table();
-                    ft.AddColumn(FileUtil.ToString(lang));
-                    foreach (var f in list)
-                    {
-                        ft.AddRow(f.GetRelative(cwd));
-                    }
-                    AnsiConsole.Write(ft);
+                    ft.AddRow(f.GetRelative(cwd));
                 }
+                AnsiConsole.Write(ft);
             }
-
-            var x = Cocomo.Calculate(sum_total_lines / 1000.0, SoftwareProject.Organic, 1.0f);
-            AnsiConsole.MarkupLineInterpolated($"COCOMO estimation it took [BLUE]{MonthToString(x.PesonMonths)}[/] to make, a team of [BLUE]{(int)Math.Ceiling(x.EffectiveNumberOfPersons)}[/] could do it in [BLUE]{MonthToString(x.DevelopmentTime)}[/]");
         }
 
-        return 0;
+        var x = Cocomo.Calculate(sum_total_lines / 1000.0, SoftwareProject.Organic, 1.0f);
+        AnsiConsole.MarkupLineInterpolated($"COCOMO estimation it took [BLUE]{MonthToString(x.PesonMonths)}[/] to make, a team of [BLUE]{(int)Math.Ceiling(x.EffectiveNumberOfPersons)}[/] could do it in [BLUE]{MonthToString(x.DevelopmentTime)}[/]");
+    }
+
+    private static void DisplayHistogram(ImmutableArray<LangCollectedInformation> collected)
+    {
+        if(collected.Length > 0)
+        {
+            AnsiConsole.Write(new BarChart()
+                .Width(60)
+                .Label("[green bold underline]Line counts (files)[/]")
+                .CenterLabel()
+                .AddItems(collected, item => new BarChartItem(
+                    item.Language, item.TotalLines, Color.Blue)));
+        }
+    }
+
+    static IEnumerable<string> ReadAllLines(Vfs vfs, Fil path, bool discard_empty)
+    {
+        var lines = path.ReadAllLines(vfs);
+
+        if (!discard_empty)
+        {
+            return lines;
+        }
+
+        return lines
+                .Where(line => string.IsNullOrWhiteSpace(line) == false)
+            ;
     }
 
     static string MonthToString(double m)
@@ -174,6 +216,7 @@ internal sealed class ClocCommand : Command<ClocCommand.Arg>
         return years > 0 ? $"{ys}, {ms}" : ms;
     }
 }
+
 
 internal enum SoftwareProject
 {
