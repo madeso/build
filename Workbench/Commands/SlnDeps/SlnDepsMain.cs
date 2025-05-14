@@ -164,7 +164,7 @@ internal sealed class ListCommand : Command<ListCommand.Arg>
 
 internal class Main
 {
-    internal static void Configure(IConfigurator config, string name)
+    internal static void Configure(IConfigurator<CommandSettings> config, string name)
     {
         config.AddBranch(name, git =>
         {

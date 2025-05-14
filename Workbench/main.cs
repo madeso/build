@@ -36,7 +36,13 @@ app.Configure(config =>
     Commands.LineCount.Main.Configure(config, "line-count");
     Commands.Cloc.Main.Configure(config, "cloc");
 
-    Commands.SlnDeps.Main.Configure(config, "slndeps");
+    config.AddBranch("vs", c =>
+    {
+        c.SetDescription("Visual Studio specific commands");
+        Commands.CleanupOutput.Main.Configure(c, "cleanup");
+        Commands.SlnDeps.Main.Configure(c, "slndeps");
+    });
+
     Commands.CodeCity.Main.Configure(config, "code-city");
     Commands.Todo.Main.Configure(config, "todo");
 

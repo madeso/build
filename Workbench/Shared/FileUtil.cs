@@ -203,7 +203,7 @@ internal static class FileUtil
         => file.Path.StartsWith(folder.Path);
 
     public static string RootPath(Dir root, string s)
-        => Path.IsPathFullyQualified(s) ? s : Path.Join(root.Path, s);
+        => Fil.CleanupRelative(Path.IsPathFullyQualified(s) ? s : Path.Join(root.Path, s));
 
     public static string RemoveCurrentDirDotFromDir(string s)
         => Path.GetFullPath(new DirectoryInfo(s).FullName);
