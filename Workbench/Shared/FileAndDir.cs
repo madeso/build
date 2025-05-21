@@ -93,7 +93,7 @@ public class Dir
     public bool HasFile(Fil f) => GetRelativeTo(f).StartsWith("..") == false;
 
 
-    public Fil GetFile(string file) => new(SysPath.Join(Path, file));
+    public Fil GetFile(string file) => new(Fil.CleanupRelative(SysPath.Join(Path, file)));
 
     public Dir GetDir(string sub) => new(SysPath.Join(Path, sub));
 
