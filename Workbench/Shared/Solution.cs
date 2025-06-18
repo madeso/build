@@ -292,9 +292,9 @@ public class Solution
                 {
                     continue;
                 }
-                if (path_to_project_file.Exists(vfs))
+                if (!path_to_project_file.Exists(vfs))
                 {
-                    AnsiConsole.WriteLine($"Unable to open project file: {path_to_project_file}");
+                    AnsiConsole.WriteLine($"Unable to open project file: {path_to_project_file}... (it doesn't exist)");
                     continue;
                 }
                 var document = new XmlDocument();
@@ -341,11 +341,11 @@ public class Solution
                     }
                     else if (inner_text == "library")
                     {
-                        project.Type = ProjectType.Shared;
+                        project.Type = ProjectType.Static;
                     }
                     else
                     {
-                        AnsiConsole.WriteLine($"Unknown build type in {path_to_project_file}: {inner_text}");
+                        AnsiConsole.WriteLine($"Unknown build type in {path_to_project_file}: [{inner_text}]");
                     }
                 }
 
@@ -360,13 +360,18 @@ public class Solution
                     {
                         project.Type = ProjectType.Static;
                     }
+
+                    else if (inner_text == "dynamiclibrary")
+                    {
+                        project.Type = ProjectType.Shared;
+                    }
                     else if (inner_text == "application")
                     {
                         project.Type = ProjectType.Executable;
                     }
                     else
                     {
-                        AnsiConsole.WriteLine($"Unknown build type in {path_to_project_file}: {inner_text}");
+                        AnsiConsole.WriteLine($"Unknown build type in {path_to_project_file}: <{inner_text}>");
                     }
                 }
 
