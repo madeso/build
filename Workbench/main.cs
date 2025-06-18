@@ -10,6 +10,7 @@ app.Configure(config =>
 #endif
     config.UseStrictParsing();
 
+    Commands.MinorCommands.ConfigureRemoveEmoji(config, "remove-emoji");
     Commands.MinorCommands.ConfigureLs(config, "ls");
     Commands.MinorCommands.ConfigureCat(config, "cat");
     Commands.MinorCommands.ConfigureCatDir(config, "cat-dir");
