@@ -83,8 +83,21 @@ internal static class DoxygenUtils
     }
 
     internal static IEnumerable<CompoundDef> IterateClassesInNamespace(DoxygenType dox, CompoundDef ns)
-        => ns.InnerClasses
-            .Select(kr => dox.refidLookup[kr.RefId].DoxygenFile.FirstCompound);
+    {
+        foreach (var kr in ns.InnerClasses)
+        {
+            if(dox.refidLookup.TryGetValue(kr.RefId, out var compound))
+            {
+                yield return compound.DoxygenFile.FirstCompound;
+            }
+            else
+            {
+                // Handle the case where the refid is not found
+                // This could be a warning or an error depending on your needs
+                Console.WriteLine($"Warning: Class with RefId {kr.RefId} not found in Doxygen data, ignored.");
+            }
+        }
+    }
 
     internal static IEnumerable<CompoundDef> IterateNamespacesInNamespace(DoxygenType dox, CompoundDef ns)
         => ns.InnerNamespaces
