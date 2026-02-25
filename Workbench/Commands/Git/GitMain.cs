@@ -233,8 +233,25 @@ internal sealed class RemoveUnknownCommand : AsyncCommand<RemoveUnknownCommand.A
 
 internal sealed class AuthorsCommand : AsyncCommand<AuthorsCommand.Arg>
 {
+    public enum OrderBy
+    {
+        Email, Start, End, Total
+    }
+    public enum OrderDirection
+    {
+        Ascending, Descending
+    }
     public sealed class Arg : CommandSettings
     {
+        [CommandOption("-o|--orderby")]
+        [DefaultValue(OrderBy.Start)]
+        [Description("What to order by")]
+        public OrderBy OrderBy { get; set; } = OrderBy.Start;
+
+        [CommandOption("-d|--direction")]
+        [DefaultValue(OrderDirection.Ascending)]
+        [Description("Order direction")]
+        public OrderDirection Direction { get; set; } = OrderDirection.Ascending;
     }
 
     class State
@@ -251,6 +268,8 @@ internal sealed class AuthorsCommand : AsyncCommand<AuthorsCommand.Arg>
         public DateTime Start { get; private set; }
 
         public string Email { get; }
+
+        public TimeSpan Total => End.Subtract(Start);
 
         public void Expand(DateTime d)
         {
@@ -296,12 +315,43 @@ internal sealed class AuthorsCommand : AsyncCommand<AuthorsCommand.Arg>
                 s.Expand(date);
             }
 
-            foreach (var entry in authors.Values.OrderBy(e => e.Start))
+            var table = new Table();
+            table.AddColumn("Author");
+            table.AddColumn("Start");
+            table.AddColumn("End");
+            table.AddColumn("Total");
+
+            var chart = new BarChart();
+            chart.HideValues();
+
+            var entries = authors.Values.AsEnumerable();
+
+            entries = settings.OrderBy switch
             {
-                var total = entry.End.Subtract(entry.Start);
-                AnsiConsole.MarkupLineInterpolated(
-                    $"[blue]{entry.Email}[/]: {entry.Start} - {entry.End}: [red]{total}[/]");
+                OrderBy.Email => entries.OrderBy(e => e.Email),
+                OrderBy.Start => entries.OrderBy(e => e.Start),
+                OrderBy.End => entries.OrderBy(e => e.End),
+                OrderBy.Total => entries.OrderBy(e => e.Total),
+                _ => throw new ArgumentOutOfRangeException()
+            };
+
+            entries = settings.Direction switch
+            {
+                OrderDirection.Ascending => entries,
+                OrderDirection.Descending => entries.Reverse(),
+                _ => throw new ArgumentOutOfRangeException()
+            };
+
+            foreach (var entry in entries)
+            {
+                table.AddRow(new Text(entry.Email), new Text(entry.Start.ToString()), new Text(entry.End.ToString()), new Text(entry.Total.ToHumanString(large: true)));
+                chart.AddItem(Markup.Escape(entry.Email), entry.Total.TotalDays, Color.Blue);
             }
+            AnsiConsole.Write(table);
+
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine("[yellow]User graph:[/]");
+            AnsiConsole.Write(chart);
 
             return 0;
         });

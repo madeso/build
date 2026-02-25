@@ -83,13 +83,32 @@ internal static class DateExtensions
     }
 
 
-    public static string ToHumanString(this TimeSpan span)
+    public static string ToHumanString(this TimeSpan span, bool large = false)
     {
         var r = new List<string>();
 
-        if (span.Days != 0)
+        var days = span.Days;
+
+        if(large) 
         {
-            r.Add($"{span.Days} days");
+            var years = days / 365;
+            if (years != 0)
+            {
+                r.Add($"{years} years");
+                days -= years * 365;
+            }
+
+            var months = days / 30;
+            if (months != 0)
+            {
+                r.Add($"{months} months");
+                days -= months * 30;
+            }
+        }
+
+        if (days != 0)
+        {
+            r.Add($"{days} days");
         }
 
         if (span.Hours != 0)
