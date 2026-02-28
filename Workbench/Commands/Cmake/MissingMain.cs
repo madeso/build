@@ -8,7 +8,7 @@ using Workbench.Shared.CMake;
 using Workbench.Shared.Extensions;
 using static Workbench.Shared.Reflect;
 
-namespace Workbench.Commands.CheckForMissingInCmake;
+namespace Workbench.Commands.Cmake.Missing;
 
 
 /*
@@ -93,7 +93,7 @@ internal sealed class CheckForMissingInCmakeCommand : AsyncCommand<CheckForMissi
 
 public static class Main
 {
-    public static void Configure(IConfigurator config, string name)
+    public static void Configure(IConfigurator<CommandSettings> config, string name)
     {
         config.AddCommand<CheckForMissingInCmakeCommand>(name);
     }

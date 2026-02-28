@@ -30,7 +30,6 @@
   <ItemGroup>
     <Folder Include="Commands\LineCount\" />
     <Folder Include="Commands\CheckForMissingPragmaOnce\" />
-    <Folder Include="Commands\CheckForMissingInCmake\" />
     <Folder Include="Commands\CheckForNoProjectFolders\" />
     <Folder Include="Commands\CheckFileNames\" />
     <Folder Include="Commands\CodeHistory\" />

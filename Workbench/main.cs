@@ -28,7 +28,6 @@ app.Configure(config =>
     Commands.CppLint.Main.Configure(config, "cpplint");
 
     Commands.CheckForMissingPragmaOnce.Main.Configure(config, "check-missing-pragma-once");
-    Commands.CheckForMissingInCmake.Main.Configure(config, "check-missing-in-cmake");
     Commands.CheckForNoProjectFolders.Main.Configure(config, "check-no-project-folders");
     Commands.CheckFileNames.Main.Configure(config, "check-file-names");
     Commands.CheckOrderInFile.Main.Configure(config, "order-in-file");

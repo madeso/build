@@ -162,6 +162,7 @@ internal class Main
         {
             cmake.AddCommand<TraceCommand>("trace");
             cmake.AddCommand<DotCommand>("dot");
+            Missing.Main.Configure(cmake, "missing");
         });
     }
 }
