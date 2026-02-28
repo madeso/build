@@ -58,7 +58,7 @@ namespace Workbench.Shared.CMake
                     if (parsed is { File: not null })
                     {
                         // file != null ignores the version json object
-                        var traced_file = string.IsNullOrEmpty(parsed.File) ? null : new Fil(parsed.File);
+                        var traced_file = string.IsNullOrEmpty(parsed.File) ? null : new Fil(Fil.CleanupRelative(parsed.File));
                         lines.Add(new CMakeTrace(traced_file, parsed.Line, parsed.Cmd, parsed.Args.ToImmutableArray()));
                     }
                     else
