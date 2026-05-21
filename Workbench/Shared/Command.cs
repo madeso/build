@@ -181,6 +181,12 @@ public class SystemExecutor : Executor
 
 public class ProcessBuilder
 {
+    public override string ToString()
+    {
+        var args = string.Join(", ", arguments.Select(x => $"'{x}'"));
+        return $"{Executable} {WorkingDirectory} [{args}]";
+    }
+
     internal async Task<ProcessExit> RunWithCallbackAsync(Executor exec,
         Dir cwd, IEnumerable<string>? input, Action<string> on_stdout, Action<string> on_stderr, Action<string, Exception> on_fail)
     {

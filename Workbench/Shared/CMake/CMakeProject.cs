@@ -133,20 +133,13 @@ public class CMakeProject
         Core.VerifyDirectoryExists(vfs, log, build_folder);
         command.WorkingDirectory = build_folder;
 
-        if (Core.IsWindows())
+        if (nop)
         {
-            if (nop)
-            {
-                AnsiConsole.WriteLine($"Configuring cmake: {command}");
-            }
-            else
-            {
-                await command.RunAndPrintOutputAsync(exec, cwd, log);
-            }
+            AnsiConsole.WriteLine($"Configuring cmake: {command}");
         }
         else
         {
-            AnsiConsole.WriteLine($"Configuring cmake: {command}");
+            await command.RunAndPrintOutputAsync(exec, cwd, log);
         }
     }
 

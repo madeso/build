@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using Spectre.Console.Cli;
 using Workbench.Shared;
@@ -6,30 +7,42 @@ using Workbench.Shared.CMake;
 
 namespace Workbench.Commands.Build;
 
-[TypeConverter(typeof(EnumTypeConverter<Compiler>))]
-[JsonConverter(typeof(EnumJsonConverter<Compiler>))]
 public enum Compiler
 {
-    // fallbacks are github actions installed compiler
-
-    [EnumString("vs2015")]
-    VisualStudio2015,
-
-    [EnumString("vs2017", "windows-2016")]
-    VisualStudio2017,
-
-    [EnumString("vs2019", "windows-2019")]
-    VisualStudio2019,
-
-    [EnumString("vs2022", "windows-2022")]
-    VisualStudio2022,
+    Gcc, Clang,
+    VisualStudio2015, VisualStudio2017,
+    VisualStudio2019, VisualStudio2022, VisualStudio2026,
 }
 
+public enum Platform { Auto, Win32, X64 }
 
-[TypeConverter(typeof(EnumTypeConverter<Platform>))]
-[JsonConverter(typeof(EnumJsonConverter<Platform>))]
-public enum Platform
+[TypeConverter(typeof(EnumTypeConverter<CompilersAndPlatforms>))]
+[JsonConverter(typeof(EnumJsonConverter<CompilersAndPlatforms>))]
+public enum CompilersAndPlatforms
 {
+    // compilers
+    // fallbacks are github actions installed compiler
+
+    [EnumString("gcc")]
+    Gcc,
+
+    [EnumString("clang")]
+    Clang,
+
+    [EnumString("vs2015")]
+    Vs2015,
+    [EnumString("vs2017", "windows-2016")]
+    Vs2017,
+
+    [EnumString("vs2019", "windows-2019")]
+    Vs2019,
+    [EnumString("vs2022", "windows-2022")]
+    Vs2022,
+    [EnumString("vs2026")]
+    Vs2026,
+    
+
+    // platforms
     [EnumString("auto")]
     Auto,
 
@@ -40,121 +53,87 @@ public enum Platform
     X64,
 }
 
-
-// #[derive(Serialize, Deserialize, Debug)]
-public class BuildEnvironment
-{
-    public Compiler? Compiler { get; set; } = null;
-    public Platform? Platform { get; set; } = null;
-
-    public static BuildEnvironment CreateEmpty()
-    {
-        return new BuildEnvironment();
-    }
-
-    public Generator CreateCmakeGenerator()
-    {
-        if (Compiler == null) { throw new ArgumentNullException(nameof(Compiler)); }
-        if (Platform == null) { throw new ArgumentNullException(nameof(Platform)); }
-        return BuildFunctions.CreateCmakeGenerator(Compiler.Value, Platform.Value);
-    }
-
-    // validate the build environment
-    public bool Validate(Log log)
-    {
-        var status = true;
-
-        if (Compiler == null)
-        {
-            log.Error("Compiler not set");
-            status = false;
-        }
-
-        if (Platform == null)
-        {
-            log.Error("Platform not set");
-            status = false;
-        }
-
-        return status;
-    }
-
-    // update the build environment from an argparse namespace
-    public void UpdateFromArguments(Log log, EnvironmentArgument args)
-    {
-        update_compiler();
-        update_platform();
-        return;
-
-        void update_compiler()
-        {
-            if (args.Compiler == null) { return; }
-
-            if (Compiler == null)
-            {
-                Compiler = args.Compiler;
-                return;
-            }
-
-            if (args.Compiler == Compiler) { return; }
-
-            if (args.ForceChange)
-            {
-                log.Warning($"Compiler changed via argument from {Compiler} to {args.Compiler}");
-                Compiler = args.Compiler;
-            }
-            else
-            {
-                log.Error($"Compiler changed via argument from {Compiler} to {args.Compiler}");
-            }
-        }
-
-        void update_platform()
-        {
-            if (args.Platform == null) { return; }
-
-            if (Platform == null)
-            {
-                Platform = args.Platform;
-                return;
-            }
-
-            if (args.Platform == Platform) { return; }
-
-            if (args.ForceChange)
-            {
-                log.Warning($"Platform changed via argument from {Platform} to {args.Platform}");
-                Platform = args.Platform;
-            }
-            else
-            {
-                log.Error($"Platform changed via argument from {Platform} to {args.Platform}");
-            }
-        }
-    }
-}
-
-
-public class EnvironmentArgument : CommandSettings
-{
-    [Description("The compiler to use")]
-    [CommandOption("--compiler")]
-    [DefaultValue(null)]
-    public Compiler? Compiler { get; set; }
-
-    [Description("The platform to use")]
-    [CommandOption("--platform")]
-    [DefaultValue(null)]
-    public Platform? Platform { get; set; }
-
-    [Description("force a change if the compiler or platform differs from last time")]
-    [CommandOption("--force")]
-    [DefaultValue(false)]
-    public bool ForceChange { get; set; }
-}
+public record class CompilerName(string C, string Cpp);
 
 public static class BuildFunctions
 {
+    internal static bool IsVisualStudio(Compiler c)
+    {
+        return c switch
+        {
+            Compiler.Gcc => false,
+            Compiler.Clang => false,
+            Compiler.VisualStudio2015 => true,
+            Compiler.VisualStudio2017 => true,
+            Compiler.VisualStudio2019 => true,
+            Compiler.VisualStudio2022 => true,
+            Compiler.VisualStudio2026 => true,
+            _ => throw new ArgumentOutOfRangeException(nameof(c), c, null)
+        };
+    }
+
+    internal static CompilerName? find_names(this Compiler c, bool afl)
+    {
+        // are theese names valid???
+        return c switch
+        {
+            Compiler.Gcc => afl ? new CompilerName("afl-gcc", "afl-g++") : new CompilerName("gcc", "g++"),
+            Compiler.Clang => afl ? new CompilerName("afl-clang", "afl-clang+") : new CompilerName("clang", "clang+"),
+            Compiler.VisualStudio2015 => null,
+            Compiler.VisualStudio2017 => null,
+            Compiler.VisualStudio2019 => null,
+            Compiler.VisualStudio2022 => null,
+            Compiler.VisualStudio2026 => null,
+            _ => throw new ArgumentOutOfRangeException(nameof(c), c, null)
+        };
+    }
+
+    internal static string name_of_compiler(this Compiler c)
+    {
+        return c switch
+        {
+            Compiler.Gcc => "gcc",
+            Compiler.Clang => "clang",
+            Compiler.VisualStudio2015 => "v2015",
+            Compiler.VisualStudio2017 => "vs2017",
+            Compiler.VisualStudio2019 => "vs2019",
+            Compiler.VisualStudio2022 => "vs2022",
+            Compiler.VisualStudio2026 => "vs2026",
+            _ => throw new ArgumentOutOfRangeException(nameof(c), c, null)
+        };
+    }
+    internal static Compiler? to_compiler(this CompilersAndPlatforms c)
+    {
+        return c switch
+        {
+            CompilersAndPlatforms.Gcc => Compiler.Gcc,
+            CompilersAndPlatforms.Clang => Compiler.Gcc,
+            CompilersAndPlatforms.Vs2026 => Compiler.VisualStudio2026,
+            CompilersAndPlatforms.Vs2022 => Compiler.VisualStudio2022,
+            CompilersAndPlatforms.Vs2019 => Compiler.VisualStudio2019,
+            CompilersAndPlatforms.Auto => null,
+            CompilersAndPlatforms.Win32 => null,
+            CompilersAndPlatforms.X64 => null,
+            _ => throw new ArgumentOutOfRangeException(nameof(c), c, null)
+        };
+    }
+
+    public static Platform? to_platform(this CompilersAndPlatforms c)
+    {
+        return c switch
+        {
+            CompilersAndPlatforms.Gcc => null,
+            CompilersAndPlatforms.Clang => null,
+            CompilersAndPlatforms.Vs2026 => null,
+            CompilersAndPlatforms.Vs2022 => null,
+            CompilersAndPlatforms.Vs2019 => null,
+            CompilersAndPlatforms.Auto => Platform.Auto,
+            CompilersAndPlatforms.Win32 => Platform.Win32,
+            CompilersAndPlatforms.X64 => Platform.X64,
+            _ => throw new ArgumentOutOfRangeException(nameof(c), c, null)
+        };
+    }
+
     private static bool Is64Bit(Platform platform)
     {
         return platform switch
@@ -192,30 +171,9 @@ public static class BuildFunctions
                 new Generator("Visual Studio 16 2019", GetCmakeArchitectureArgument(platform)),
             Compiler.VisualStudio2022 =>
                 new Generator("Visual Studio 17 2022", GetCmakeArchitectureArgument(platform)),
+            Compiler.Gcc => new Generator("Ninja"),
+            Compiler.Clang => new Generator("Ninja"),
+            Compiler.VisualStudio2026 => new Generator("Visual Studio 18 2026", GetCmakeArchitectureArgument(platform)),
             _ => throw new Exception("Invalid compiler"),
         };
-
-    public static void SaveToFile(Vfs vfs, BuildEnvironment self, Fil path)
-    {
-        path.WriteAllText(vfs, JsonUtil.Write(self));
-    }
-
-    // load build environment from json file
-    public static BuildEnvironment LoadFromFileOrCreateEmpty(Vfs vfs, Fil path, Log log)
-    {
-        if (path.Exists(vfs) == false)
-        {
-            return BuildEnvironment.CreateEmpty();
-        }
-
-        var content = path.ReadAllText(vfs);
-
-        var loaded = JsonUtil.Parse<BuildEnvironment>(log, path, content);
-        if (loaded == null)
-        {
-            return BuildEnvironment.CreateEmpty();
-        }
-
-        return loaded;
-    }
 }

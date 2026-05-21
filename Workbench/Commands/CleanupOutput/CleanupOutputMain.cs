@@ -9,8 +9,8 @@ namespace Workbench.Commands.CleanupOutput;
 
 class Project
 {
-    public int Number { get; set; }
-    public string Name { get; set; }
+    public int Number { get; set; } = 0;
+    public string Name { get; set; } = "";
 
     public List<string> Lines { get; }= [];
 }

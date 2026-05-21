@@ -28,6 +28,15 @@ internal static class Functional
         }
     }
 
+    public static IEnumerable<T> IgnoreNull<T>(this IEnumerable<T?> it) where T : struct
+    {
+        foreach (var t in it)
+        {
+            if (!t.HasValue) continue;
+            yield return t.Value;
+        }
+    }
+
     public static IEnumerable<TDst> SelectNonNull<TSrc, TDst>(
         this IEnumerable<TSrc> it,
         Func<TSrc, TDst?> sel, Action<TSrc> fail)

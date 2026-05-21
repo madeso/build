@@ -52,16 +52,19 @@ public static class Reflect
 
         static TAttribute get_attribute(IEnumerable<Attribute> attributes)
         {
+            var values = new List<string>();
             foreach (var attribute in attributes)
             {
                 if (attribute is TAttribute my)
                 {
                     return my;
                 }
+                values.Add(attribute.ToString() ?? "<???>");
             }
 
             // how should missing attributes be handled?
-            throw new NotImplementedException();
+            var msg = string.Join(',', values);
+            throw new NotImplementedException($"How should missing attributes be handled? [{msg}]" );
         }
     }
 
