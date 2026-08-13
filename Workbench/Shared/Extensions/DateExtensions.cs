@@ -131,7 +131,7 @@ internal static class DateExtensions
     }
 
 
-    private static DateTime NextDate(this DateTime dt, TimeResolution resolution)
+    public static DateTime NextDate(this DateTime dt, TimeResolution resolution)
     {
         return resolution switch
         {
@@ -148,7 +148,7 @@ internal static class DateExtensions
 
 
 
-    private static DateTime MoveToStart(DateTime current, TimeResolution resolution)
+    public static DateTime MoveToStart(this DateTime current, TimeResolution resolution)
     {
         return resolution switch
         {

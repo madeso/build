@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices.Marshalling;
@@ -358,6 +359,132 @@ internal sealed class AuthorsCommand : AsyncCommand<AuthorsCommand.Arg>
     }
 }
 
+internal sealed class ContributorsCommand : AsyncCommand<ContributorsCommand.Arg>
+{
+    public enum DataSource
+    {
+        Commiter, Author
+    }
+    public sealed class Arg : CommandSettings
+    {
+        [CommandOption("-s|--source")]
+        [DefaultValue(DataSource.Commiter)]
+        [Description("What to look at")]
+        public DataSource Source { get; set; } = DataSource.Commiter;
+
+        [CommandOption("-r|--resolution")]
+        [DefaultValue(TimeResolution.Week)]
+        [Description("The resolution of the graph")]
+        public TimeResolution Resolution { get; set; } = TimeResolution.Week;
+
+        [CommandOption("--start")]
+        [DefaultValue(null)]
+        [Description("The start span")]
+        public DateTime? Start{ get; set; } = null;
+
+        [CommandOption("--end")]
+        [Description("The end span")]
+        public DateTime? End { get; set; } = null;
+
+        [CommandOption("--total")]
+        [Description("Display only a total")]
+        public bool DisplayTotal { get; set; } = false;
+    }
+
+    class Ent(DateTime time)
+    {
+        public readonly DateTime Time = time;
+        public int Count { get; set; } = 0;
+    }
+
+    class State(string email, TimeResolution res)
+    {
+        public string Email { get; } = email;
+
+        // todo(Gustav): change to a sorted set
+        public List<Ent> Times { get; } = [];
+
+        public void Expand(DateTime d)
+        {
+            var found = FindValue(d);
+            if (found == null)
+            {
+                found = new Ent(d);
+                Times.Add(found);
+            }
+
+            found.Count += 1;
+        }
+
+        public Ent? FindValue(DateTime d) => Times.Find(e => DateTest.IsSame(res, e.Time, d));
+    }
+
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
+    {
+        return await CliUtil.PrintErrorsAtExitAsync(async log =>
+        {
+            var cwd = Dir.CurrentDirectory;
+            var paths = new Config.RealPaths();
+            var vfs = new VfsDisk();
+            var exec = new SystemExecutor();
+
+            var git_path = paths.GetGitExecutable(vfs, cwd, log);
+            if (git_path == null)
+            {
+                return -1;
+            }
+
+            var authors = new Dictionary<string, State>();
+            await foreach (var e in Shared.Git.LogAsync(exec, cwd, git_path, cwd))
+            {
+                var email = e.AuthorEmail;
+                var date = e.AuthorDate;
+                if (settings.Source == DataSource.Commiter)
+                {
+                    email = e.CommitterEmail;
+                    date = e.CommitterDate;
+                }
+
+                if (settings.DisplayTotal)
+                {
+                    email = "Total";
+                }
+
+                if (false == authors.TryGetValue(email, out var s))
+                {
+                    s = new State(email, settings.Resolution);
+                    authors.Add(email, s);
+                }
+
+                s.Expand(date);
+            }
+
+            var dat = authors.Values.ToImmutableArray();
+
+            var start = settings.Start ?? dat.SelectMany(x => x.Times.Select(y => y.Time)).Min();
+            start = settings.End ?? start.MoveToStart(settings.Resolution);
+            var end = dat.SelectMany(x => x.Times.Select(y => y.Time)).Max();
+            var max = Math.Max(1, dat.SelectMany(x => x.Times.Select(y => y.Count)).Max());
+
+            foreach (var user in dat)
+            {
+                var chart = new BarChart()
+                    .Label($"[bold underline]{user.Email}[/]")
+                    .WithMaxValue(max)
+                    ;
+                for (var d = start; d < end; d = d.NextDate(settings.Resolution))
+                {
+                    var value = user.FindValue(d)?.Count ?? 0;
+                    chart.AddItem(d.ToString(settings.Resolution), value, Color.Green);
+                }
+                AnsiConsole.Write(chart);
+            }
+
+            return 0;
+        });
+    }
+}
+
 internal class Main
 {
     internal static void Configure(IConfigurator config, string name)
@@ -368,6 +495,7 @@ internal class Main
             git.AddCommand<BlameCommand>("blame");
             git.AddCommand<RemoveUnknownCommand>("remove-unknown");
             git.AddCommand<AuthorsCommand>("authors");
+            git.AddCommand<ContributorsCommand>("contributors");
         });
     }
 }
