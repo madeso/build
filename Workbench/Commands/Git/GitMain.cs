@@ -7,7 +7,7 @@ using Spectre.Console.Cli;
 using Workbench.Shared;
 using Workbench.Shared.Extensions;
 
-namespace Workbench.Commands.Git;
+namespace Workbench.Commands.GitMain;
 
 internal sealed class BlameCommand : AsyncCommand<BlameCommand.Arg>
 {
@@ -244,6 +244,11 @@ internal sealed class AuthorsCommand : AsyncCommand<AuthorsCommand.Arg>
     }
     public sealed class Arg : CommandSettings
     {
+        [CommandOption("-s|--source")]
+        [DefaultValue(Git.PersonSource.Commiter)]
+        [Description("What to look at")]
+        public Git.PersonSource Source { get; set; } = Git.PersonSource.Commiter;
+
         [CommandOption("-o|--orderby")]
         [DefaultValue(OrderBy.Start)]
         [Description("What to order by")]
@@ -302,22 +307,21 @@ internal sealed class AuthorsCommand : AsyncCommand<AuthorsCommand.Arg>
             }
 
             var authors = new Dictionary<string, State>();
-            await foreach (var e in Shared.Git.LogAsync(exec, cwd, git_path, cwd))
+            await foreach (var e in Git.LogAsync(exec, cwd, git_path, cwd))
             {
-                var email = e.AuthorEmail;
-                var date = e.AuthorDate;
+                var person = e.GetPerson(settings.Source);
 
-                if (false == authors.TryGetValue(email, out var s))
+                if (false == authors.TryGetValue(person.Mail, out var s))
                 {
-                    s = new State(email, date);
-                    authors.Add(email, s);
+                    s = new State(person.Mail, person.Time);
+                    authors.Add(person.Mail, s);
                 }
 
-                s.Expand(date);
+                s.Expand(person.Time);
             }
 
             var table = new Table();
-            table.AddColumn("Author");
+            table.AddColumn(settings.Source.ToDisplay());
             table.AddColumn("Start");
             table.AddColumn("End");
             table.AddColumn("Total");
@@ -361,16 +365,12 @@ internal sealed class AuthorsCommand : AsyncCommand<AuthorsCommand.Arg>
 
 internal sealed class ContributorsCommand : AsyncCommand<ContributorsCommand.Arg>
 {
-    public enum DataSource
-    {
-        Commiter, Author
-    }
     public sealed class Arg : CommandSettings
     {
         [CommandOption("-s|--source")]
-        [DefaultValue(DataSource.Commiter)]
+        [DefaultValue(Git.PersonSource.Commiter)]
         [Description("What to look at")]
-        public DataSource Source { get; set; } = DataSource.Commiter;
+        public Git.PersonSource Source { get; set; } = Git.PersonSource.Commiter;
 
         [CommandOption("-r|--resolution")]
         [DefaultValue(TimeResolution.Week)]
@@ -435,28 +435,18 @@ internal sealed class ContributorsCommand : AsyncCommand<ContributorsCommand.Arg
             }
 
             var authors = new Dictionary<string, State>();
-            await foreach (var e in Shared.Git.LogAsync(exec, cwd, git_path, cwd))
+            await foreach (var e in Git.LogAsync(exec, cwd, git_path, cwd))
             {
-                var email = e.AuthorEmail;
-                var date = e.AuthorDate;
-                if (settings.Source == DataSource.Commiter)
+                var person = e.GetPerson(settings.Source);
+                var who = settings.DisplayTotal ? person.Mail : "Total";
+
+                if (false == authors.TryGetValue(who, out var s))
                 {
-                    email = e.CommitterEmail;
-                    date = e.CommitterDate;
+                    s = new State(who, settings.Resolution);
+                    authors.Add(who, s);
                 }
 
-                if (settings.DisplayTotal)
-                {
-                    email = "Total";
-                }
-
-                if (false == authors.TryGetValue(email, out var s))
-                {
-                    s = new State(email, settings.Resolution);
-                    authors.Add(email, s);
-                }
-
-                s.Expand(date);
+                s.Expand(person.Time);
             }
 
             var dat = authors.Values.ToImmutableArray();

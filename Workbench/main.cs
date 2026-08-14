@@ -19,7 +19,7 @@ app.Configure(config =>
     Commands.Build.Main.Configure(config, "build");
     Commands.Indent.Main.Configure(config, "indent");
     Commands.Cmake.Main.Configure(config, "cmake");
-    Commands.Git.Main.Configure(config, "git");
+    Commands.GitMain.Main.Configure(config, "git");
     Commands.CompileCommands.Main.Configure(config, "compile-commands");
     Commands.CheckIncludeOrder.Main.Configure(config, "check-includes");
     Commands.Headers.Main.Configure(config, "headers");

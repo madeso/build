@@ -64,12 +64,12 @@ public static class Git
         });
     }
 
-    public record Author(string Name, string Mail, DateTime Time);
+    public record Person(string Name, string Mail, DateTime Time);
 
     public record BlameLine
         (
             string Hash, int OriginalLineNumber, int FinalLineNumber, string Line,
-            Author Author, Author Committer, string Summary, string Filename
+            Person Author, Person Committer, string Summary, string Filename
         );
 
     public static async IAsyncEnumerable<BlameLine> BlameAsync(Executor exec, Dir cwd, Fil git_path, Fil file)
@@ -120,14 +120,14 @@ public static class Git
 
         yield break;
 
-        Author parse_author(string prefix)
+        Person parse_author(string prefix)
         {
             var name = get_arg(prefix, "");
             var mail = get_arg($"{prefix}-mail", "");
             var time_string = get_arg($"{prefix}-time", "0");
             var seconds = int.Parse(time_string);
             var time = DateTime.UnixEpoch.AddSeconds(seconds).ToLocalTime();
-            return new Author(name, mail, time);
+            return new Person(name, mail, time);
         }
 
         string get_arg(string name, string def)
@@ -143,18 +143,33 @@ public static class Git
         }
     }
 
-    public record LogLine
-        (
-            string Hash,
-            string ParentHash,
-            string AuthorName,
-            string AuthorEmail,
-            DateTime AuthorDate,
-            string CommitterName,
-            string CommitterEmail,
-            DateTime CommitterDate,
-            string Subject
-        );
+    public enum PersonSource
+    {
+        Commiter, Author
+    }
+
+    public static string ToDisplay(this PersonSource src) => src switch
+    {
+        PersonSource.Commiter => "Commiter",
+        PersonSource.Author => "Author",
+        _ => throw new ArgumentOutOfRangeException(nameof(src), src, null)
+    };
+
+    public record LogLine(
+        string Hash,
+        string ParentHash,
+        Person Author,
+        Person Committer,
+        string Subject
+    )
+    {
+        public Person GetPerson(PersonSource src) => src switch
+        {
+            PersonSource.Commiter => Committer,
+            PersonSource.Author => Author,
+            _ => throw new ArgumentOutOfRangeException(nameof(src), src, null),
+        };
+    }
 
     public static async IAsyncEnumerable<LogLine> LogAsync(Executor exec, Dir cwd, Fil git_path, Dir folder)
     {
@@ -172,8 +187,8 @@ public static class Git
             var options = line.Split(SEPARATOR, sep_count + 1, StringSplitOptions.TrimEntries);
 
             yield return new LogLine(options[0], options[1],
-                options[2], options[3], DateTime.Parse(options[4]),
-                options[5], options[6], DateTime.Parse(options[7]),
+                new Person(options[2], options[3], DateTime.Parse(options[4])),
+                new Person(options[5], options[6], DateTime.Parse(options[7])),
                 options[8]);
         }
     }
