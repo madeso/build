@@ -572,6 +572,104 @@ internal sealed class HoursCommand : AsyncCommand<HoursCommand.Arg>
 }
 
 
+
+internal sealed class WeekCommand : AsyncCommand<WeekCommand.Arg>
+{
+    public sealed class Arg : CommandSettings
+    {
+        [CommandOption("-s|--source")]
+        [DefaultValue(Git.PersonSource.Commiter)]
+        [Description("What to look at")]
+        public Git.PersonSource Source { get; set; } = Git.PersonSource.Commiter;
+
+        [CommandOption("--total")]
+        [Description("Display only a total")]
+        public bool DisplayTotal { get; set; } = false;
+    }
+
+    class Ent(DayOfWeek time)
+    {
+        public readonly DayOfWeek Time = time;
+        public int Count { get; set; } = 0;
+    }
+
+    class State(string email)
+    {
+        public string Email { get; } = email;
+
+        // todo(Gustav): change to a sorted set
+        public List<Ent> Times { get; } = [];
+
+        public void Expand(DayOfWeek d)
+        {
+            var found = FindValue(d);
+            if (found == null)
+            {
+                found = new Ent(d);
+                Times.Add(found);
+            }
+
+            found.Count += 1;
+        }
+
+        public Ent? FindValue(DayOfWeek d) => Times.Find(e => e.Time == d);
+    }
+
+    public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
+    {
+        return await CliUtil.PrintErrorsAtExitAsync(async log =>
+        {
+            var cwd = Dir.CurrentDirectory;
+            var paths = new Config.RealPaths();
+            var vfs = new VfsDisk();
+            var exec = new SystemExecutor();
+
+            var git_path = paths.GetGitExecutable(vfs, cwd, log);
+            if (git_path == null)
+            {
+                return -1;
+            }
+
+            var authors = new Dictionary<string, State>();
+            await foreach (var e in Git.LogAsync(exec, cwd, git_path, cwd))
+            {
+                var person = e.GetPerson(settings.Source);
+                var who = settings.DisplayTotal ? "Total" : person.Mail;
+
+                if (false == authors.TryGetValue(who, out var s))
+                {
+                    s = new State(who);
+                    authors.Add(who, s);
+                }
+
+                s.Expand(person.Time.DayOfWeek);
+            }
+
+            var dat = authors.Values.ToImmutableArray();
+            var max = Math.Max(1, dat.SelectMany(x => x.Times.Select(y => y.Count)).Max());
+            List<DayOfWeek> week = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday];
+
+            foreach (var user in dat)
+            {
+                var chart = new BarChart()
+                    .Label($"[bold underline]{user.Email}[/]")
+                    .WithMaxValue(max)
+                    ;
+                foreach (var d in week)
+                {
+                    var value = user.FindValue(d)?.Count ?? 0;
+                    chart.AddItem(d.ToString(), value, Color.Green);
+                }
+                AnsiConsole.Write(chart);
+            }
+
+            return 0;
+        });
+    }
+}
+
+
+
 internal class Main
 {
     internal static void Configure(IConfigurator config, string name)
@@ -584,6 +682,7 @@ internal class Main
             git.AddCommand<AuthorsCommand>("authors");
             git.AddCommand<ContributorsCommand>("contributors");
             git.AddCommand<HoursCommand>("hours");
+            git.AddCommand<WeekCommand>("week");
         });
     }
 }
