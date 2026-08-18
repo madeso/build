@@ -489,6 +489,10 @@ internal sealed class HoursCommand : AsyncCommand<HoursCommand.Arg>
         [CommandOption("--total")]
         [Description("Display only a total")]
         public bool DisplayTotal { get; set; } = false;
+
+        [CommandOption("-p|--proportional")]
+        [Description("Display proprtional values")]
+        public bool Proportional { get; set; } = false;
     }
 
     class Ent(int time)
@@ -555,9 +559,13 @@ internal sealed class HoursCommand : AsyncCommand<HoursCommand.Arg>
             foreach (var user in dat)
             {
                 var chart = new BarChart()
-                    .Label($"[bold underline]{user.Email}[/]")
-                    .WithMaxValue(max)
-                    ;
+                    .Label($"[bold underline]{user.Email}[/]");
+
+                if (settings.Proportional)
+                {
+                    chart.WithMaxValue(max);
+                }
+
                 for (var d = 0; d < 24; d += 1)
                 {
                     var value = user.FindValue(d)?.Count ?? 0;
@@ -585,6 +593,10 @@ internal sealed class WeekCommand : AsyncCommand<WeekCommand.Arg>
         [CommandOption("--total")]
         [Description("Display only a total")]
         public bool DisplayTotal { get; set; } = false;
+
+        [CommandOption("-p|--proportional")]
+        [Description("Display proprtional values")]
+        public bool Proportional { get; set; } = false;
     }
 
     class Ent(DayOfWeek time)
@@ -652,9 +664,13 @@ internal sealed class WeekCommand : AsyncCommand<WeekCommand.Arg>
             foreach (var user in dat)
             {
                 var chart = new BarChart()
-                    .Label($"[bold underline]{user.Email}[/]")
-                    .WithMaxValue(max)
-                    ;
+                    .Label($"[bold underline]{user.Email}[/]");
+
+                if (settings.Proportional)
+                {
+                    chart.WithMaxValue(max);
+                }
+
                 foreach (var d in week)
                 {
                     var value = user.FindValue(d)?.Count ?? 0;
