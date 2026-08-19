@@ -314,15 +314,6 @@ internal sealed class AuthorsCommand : AsyncCommand<AuthorsCommand.Arg>
                 s.Expand(person.Time);
             }
 
-            var table = new Table();
-            table.AddColumn(settings.Source.ToDisplay());
-            table.AddColumn("Start");
-            table.AddColumn("End");
-            table.AddColumn("Total");
-
-            var chart = new BarChart();
-            chart.HideValues();
-
             var entries = authors.Values.AsEnumerable();
 
             entries = settings.OrderBy switch
@@ -335,6 +326,15 @@ internal sealed class AuthorsCommand : AsyncCommand<AuthorsCommand.Arg>
             };
 
             entries = entries.InDirection(settings.Direction);
+
+            var table = new Table();
+            table.AddColumn(settings.Source.ToDisplay());
+            table.AddColumn("Start");
+            table.AddColumn("End");
+            table.AddColumn("Total");
+
+            var chart = new BarChart();
+            chart.HideValues();
 
             foreach (var entry in entries)
             {
