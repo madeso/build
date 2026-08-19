@@ -1,9 +1,7 @@
-using System.Collections.Immutable;
-using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices.Marshalling;
 using Spectre.Console;
 using Spectre.Console.Cli;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using Workbench.Shared;
 using Workbench.Shared.Extensions;
 
@@ -238,10 +236,6 @@ internal sealed class AuthorsCommand : AsyncCommand<AuthorsCommand.Arg>
     {
         Email, Start, End, Total
     }
-    public enum OrderDirection
-    {
-        Ascending, Descending
-    }
     public sealed class Arg : CommandSettings
     {
         [CommandOption("-s|--source")]
@@ -340,12 +334,7 @@ internal sealed class AuthorsCommand : AsyncCommand<AuthorsCommand.Arg>
                 _ => throw new ArgumentOutOfRangeException()
             };
 
-            entries = settings.Direction switch
-            {
-                OrderDirection.Ascending => entries,
-                OrderDirection.Descending => entries.Reverse(),
-                _ => throw new ArgumentOutOfRangeException()
-            };
+            entries = entries.InDirection(settings.Direction);
 
             foreach (var entry in entries)
             {
