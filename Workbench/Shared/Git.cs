@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Security.AccessControl;
 using System.Text;
 using System.Text.RegularExpressions;
+using Workbench.Shared.Extensions;
 
 namespace Workbench.Shared;
 
@@ -218,5 +219,57 @@ public static class Git
                 _ => throw new ArgumentOutOfRangeException(nameof(sp), sp[0], null)
             }, new Fil(sp[1])))
             .ToImmutableArray();
+    }
+}
+
+
+internal class Entry<T>(T time)
+{
+    public readonly T Time = time;
+    public int Count { get; set; } = 0;
+}
+
+internal class State<T>(string email, Func<Entry<T>, T, bool> compare)
+{
+    public string Email { get; } = email;
+
+    // todo(Gustav): change to a sorted set
+    public List<Entry<T>> Times { get; } = [];
+
+    public void Expand(T d)
+    {
+        var found = FindValue(d);
+        if (found == null)
+        {
+            found = new Entry<T>(d);
+            Times.Add(found);
+        }
+
+        found.Count += 1;
+    }
+
+    public Entry<T>? FindValue(T d) => Times.Find(e => compare(e, d));
+}
+
+internal class StateCollection<T>(Func<Entry<T>, T, bool> compare)
+{
+    private readonly Dictionary<string, State<T>> authors = new();
+
+    public State<T> Get(string who)
+    {
+        if (false == authors.TryGetValue(who, out var s))
+        {
+            s = new State<T>(who, compare);
+            authors.Add(who, s);
+        }
+
+        return s;
+    }
+
+    public (ImmutableArray<State<T>> dat, int max) Report()
+    {
+        var dat = authors.Values.ToImmutableArray();
+        var max = Math.Max(1, dat.SelectMany(x => x.Times.Select(y => y.Count)).Max());
+        return (dat, max);
     }
 }

@@ -391,34 +391,6 @@ internal sealed class ContributorsCommand : AsyncCommand<ContributorsCommand.Arg
         public bool DisplayTotal { get; set; } = false;
     }
 
-    class Ent(DateTime time)
-    {
-        public readonly DateTime Time = time;
-        public int Count { get; set; } = 0;
-    }
-
-    class State(string email, TimeResolution res)
-    {
-        public string Email { get; } = email;
-
-        // todo(Gustav): change to a sorted set
-        public List<Ent> Times { get; } = [];
-
-        public void Expand(DateTime d)
-        {
-            var found = FindValue(d);
-            if (found == null)
-            {
-                found = new Ent(d);
-                Times.Add(found);
-            }
-
-            found.Count += 1;
-        }
-
-        public Ent? FindValue(DateTime d) => Times.Find(e => DateTest.IsSame(res, e.Time, d));
-    }
-
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
@@ -434,27 +406,20 @@ internal sealed class ContributorsCommand : AsyncCommand<ContributorsCommand.Arg
                 return -1;
             }
 
-            var authors = new Dictionary<string, State>();
+            var authors = new StateCollection<DateTime>((e, d) => DateTest.IsSame(settings.Resolution, e.Time, d));
             await foreach (var e in Git.LogAsync(exec, cwd, git_path, cwd))
             {
                 var person = e.GetPerson(settings.Source);
                 var who = settings.DisplayTotal ? "Total" : person.Mail;
 
-                if (false == authors.TryGetValue(who, out var s))
-                {
-                    s = new State(who, settings.Resolution);
-                    authors.Add(who, s);
-                }
-
+                var s = authors.Get(who);
                 s.Expand(person.Time);
             }
 
-            var dat = authors.Values.ToImmutableArray();
+            var (dat, max) = authors.Report();
 
-            var start = settings.Start ?? dat.SelectMany(x => x.Times.Select(y => y.Time)).Min();
-            start = settings.End ?? start.MoveToStart(settings.Resolution);
-            var end = dat.SelectMany(x => x.Times.Select(y => y.Time)).Max();
-            var max = Math.Max(1, dat.SelectMany(x => x.Times.Select(y => y.Count)).Max());
+            var start = (settings.Start ?? dat.SelectMany(x => x.Times.Select(y => y.Time)).Min()).MoveToStart(settings.Resolution);
+            var end = settings.End ?? dat.SelectMany(x => x.Times.Select(y => y.Time)).Max();
 
             foreach (var user in dat)
             {
@@ -495,34 +460,6 @@ internal sealed class HoursCommand : AsyncCommand<HoursCommand.Arg>
         public bool Proportional { get; set; } = false;
     }
 
-    class Ent(int time)
-    {
-        public readonly int Time = time;
-        public int Count { get; set; } = 0;
-    }
-
-    class State(string email)
-    {
-        public string Email { get; } = email;
-
-        // todo(Gustav): change to a sorted set
-        public List<Ent> Times { get; } = [];
-
-        public void Expand(int d)
-        {
-            var found = FindValue(d);
-            if (found == null)
-            {
-                found = new Ent(d);
-                Times.Add(found);
-            }
-
-            found.Count += 1;
-        }
-
-        public Ent? FindValue(int d) => Times.Find(e => e.Time == d);
-    }
-
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
@@ -538,23 +475,16 @@ internal sealed class HoursCommand : AsyncCommand<HoursCommand.Arg>
                 return -1;
             }
 
-            var authors = new Dictionary<string, State>();
+            var authors = new StateCollection<int>((e,d)=> e.Time == d);
             await foreach (var e in Git.LogAsync(exec, cwd, git_path, cwd))
             {
                 var person = e.GetPerson(settings.Source);
                 var who = settings.DisplayTotal ? "Total" : person.Mail;
-
-                if (false == authors.TryGetValue(who, out var s))
-                {
-                    s = new State(who);
-                    authors.Add(who, s);
-                }
-
+                var s = authors.Get(who);
                 s.Expand(person.Time.Hour);
             }
 
-            var dat = authors.Values.ToImmutableArray();
-            var max = Math.Max(1, dat.SelectMany(x => x.Times.Select(y => y.Count)).Max());
+            var (dat, max) = authors.Report();
 
             foreach (var user in dat)
             {
@@ -599,34 +529,6 @@ internal sealed class WeekCommand : AsyncCommand<WeekCommand.Arg>
         public bool Proportional { get; set; } = false;
     }
 
-    class Ent(DayOfWeek time)
-    {
-        public readonly DayOfWeek Time = time;
-        public int Count { get; set; } = 0;
-    }
-
-    class State(string email)
-    {
-        public string Email { get; } = email;
-
-        // todo(Gustav): change to a sorted set
-        public List<Ent> Times { get; } = [];
-
-        public void Expand(DayOfWeek d)
-        {
-            var found = FindValue(d);
-            if (found == null)
-            {
-                found = new Ent(d);
-                Times.Add(found);
-            }
-
-            found.Count += 1;
-        }
-
-        public Ent? FindValue(DayOfWeek d) => Times.Find(e => e.Time == d);
-    }
-
     public override async Task<int> ExecuteAsync([NotNull] CommandContext context, [NotNull] Arg settings)
     {
         return await CliUtil.PrintErrorsAtExitAsync(async log =>
@@ -642,23 +544,17 @@ internal sealed class WeekCommand : AsyncCommand<WeekCommand.Arg>
                 return -1;
             }
 
-            var authors = new Dictionary<string, State>();
+            var authors = new StateCollection<DayOfWeek>((e, d) => e.Time == d);
+            // var authors = new Dictionary<string, State>();
             await foreach (var e in Git.LogAsync(exec, cwd, git_path, cwd))
             {
                 var person = e.GetPerson(settings.Source);
                 var who = settings.DisplayTotal ? "Total" : person.Mail;
-
-                if (false == authors.TryGetValue(who, out var s))
-                {
-                    s = new State(who);
-                    authors.Add(who, s);
-                }
-
+                var s = authors.Get(who);
                 s.Expand(person.Time.DayOfWeek);
             }
 
-            var dat = authors.Values.ToImmutableArray();
-            var max = Math.Max(1, dat.SelectMany(x => x.Times.Select(y => y.Count)).Max());
+            var (dat, max) = authors.Report();
             List<DayOfWeek> week = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday];
 
             foreach (var user in dat)
