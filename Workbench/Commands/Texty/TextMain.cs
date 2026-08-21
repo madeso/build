@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Workbench.Shared;
+using static Workbench.Commands.Indent.IndentationCommand;
 
 namespace Workbench.Commands.Texty;
 
@@ -27,27 +28,48 @@ public static class Main
     }
 }
 
+internal class FileInput : CommandSettings
+{
+    [Description("File to change")]
+    [CommandArgument(0, "<input file>")]
+    public string Path { get; set; } = "";
+
+    internal string[]? ReadInput()
+    {
+        if (File.Exists(Path))
+        {
+            return File.ReadAllLines(Path);
+        }
+        else
+        {
+            AnsiConsole.MarkupLineInterpolated($"Failed to open '{Path}'");
+            return null;
+        }
+    }
+
+    public void WriteOutput(IEnumerable<string> lines)
+    {
+        File.WriteAllLines(Path, lines);
+    }
+}
 
 internal sealed class RemoveEmojiCommand : Command<RemoveEmojiCommand.Arg>
 {
-    public sealed class Arg : CommandSettings
+    public sealed class Arg : FileInput
     {
-        [Description("File to remove emoji from")]
-        [CommandArgument(0, "<input file>")]
-        public string Path { get; set; } = "";
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        if (File.Exists(settings.Path))
+        var input = settings.ReadInput();
+        if (input == null)
         {
-            var lines = RemoveEmojiFrom(File.ReadAllLines(settings.Path)).ToImmutableArray();
-            File.WriteAllLines(settings.Path, lines);
+            return -1;
         }
-        else
-        {
-            AnsiConsole.MarkupLineInterpolated($"Failed to open '{settings.Path}'");
-        }
+
+        var lines = RemoveEmojiFrom(input);
+
+        settings.WriteOutput(lines);
 
         return 0;
     }
@@ -91,29 +113,22 @@ internal sealed class RemoveEmojiCommand : Command<RemoveEmojiCommand.Arg>
 
 internal sealed class TrimCommand : Command<TrimCommand.Arg>
 {
-    public sealed class Arg : CommandSettings
+    public sealed class Arg : FileInput
     {
-        [Description("File to trim lines from")]
-        [CommandArgument(0, "<input file>")]
-        public string Path { get; set; } = "";
-
         // todo(Gustav): add start/end/both option
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        if (!File.Exists(settings.Path))
+        var src = settings.ReadInput();
+        if (src == null)
         {
-            AnsiConsole.MarkupLineInterpolated($"Failed to open '{settings.Path}'");
             return -1;
         }
-
-        var src = File.ReadAllLines(settings.Path);
         
         var lines = src.Select(x => x.Trim());
 
-        var dst = lines.ToImmutableArray();
-        File.WriteAllLines(settings.Path, dst);
+        settings.WriteOutput(lines);
         return 0;
     }
 }
@@ -122,12 +137,8 @@ internal sealed class TrimCommand : Command<TrimCommand.Arg>
 
 internal sealed class RemoveEmptyCommand : Command<RemoveEmptyCommand.Arg>
 {
-    public sealed class Arg : CommandSettings
+    public sealed class Arg : FileInput
     {
-        [Description("File to remove empty lines from")]
-        [CommandArgument(0, "<input file>")]
-        public string Path { get; set; } = "";
-
         [Description("Also remove lines that are whitespace only")]
         [CommandOption("-w|--whitespace")]
         public bool IncludeWhitespace { get; set; } = false;
@@ -135,18 +146,15 @@ internal sealed class RemoveEmptyCommand : Command<RemoveEmptyCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        if (!File.Exists(settings.Path))
+        var src = settings.ReadInput();
+        if (src == null)
         {
-            AnsiConsole.MarkupLineInterpolated($"Failed to open '{settings.Path}'");
             return -1;
         }
 
-        var src = File.ReadAllLines(settings.Path);
-
         var lines = src.Where(s => (settings.IncludeWhitespace ? string.IsNullOrWhiteSpace(s) : string.IsNullOrEmpty(s)) == false);
 
-        var dst = lines.ToImmutableArray();
-        File.WriteAllLines(settings.Path, dst);
+        settings.WriteOutput(lines);
         return 0;
     }
 }
@@ -155,27 +163,21 @@ internal sealed class RemoveEmptyCommand : Command<RemoveEmptyCommand.Arg>
 
 internal sealed class UniqueCommand : Command<UniqueCommand.Arg>
 {
-    public sealed class Arg : CommandSettings
+    public sealed class Arg : FileInput
     {
-        [Description("File to remove emoji from")]
-        [CommandArgument(0, "<input file>")]
-        public string Path { get; set; } = "";
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        if (!File.Exists(settings.Path))
+        var src = settings.ReadInput();
+        if (src == null)
         {
-            AnsiConsole.MarkupLineInterpolated($"Failed to open '{settings.Path}'");
             return -1;
         }
 
-        var src = File.ReadAllLines(settings.Path);
-
         var lines = src.Distinct();
 
-        var dst = lines.ToImmutableArray();
-        File.WriteAllLines(settings.Path, dst);
+        settings.WriteOutput(lines);
         return 0;
     }
 }
@@ -184,12 +186,8 @@ internal sealed class UniqueCommand : Command<UniqueCommand.Arg>
 
 internal sealed class SortCommand : Command<SortCommand.Arg>
 {
-    public sealed class Arg : CommandSettings
+    public sealed class Arg : FileInput
     {
-        [Description("File to remove emoji from")]
-        [CommandArgument(0, "<input file>")]
-        public string Path { get; set; } = "";
-
         [CommandOption("-d|--direction")]
         [DefaultValue(OrderDirection.Ascending)]
         [Description("Order direction")]
@@ -198,18 +196,15 @@ internal sealed class SortCommand : Command<SortCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        if (!File.Exists(settings.Path))
+        var src = settings.ReadInput();
+        if (src == null)
         {
-            AnsiConsole.MarkupLineInterpolated($"Failed to open '{settings.Path}'");
             return -1;
         }
 
-        var src = File.ReadAllLines(settings.Path);
-
         var lines = src.Order().InDirection(settings.Direction);
 
-        var dst = lines.ToImmutableArray();
-        File.WriteAllLines(settings.Path, dst);
+        settings.WriteOutput(lines);
         return 0;
     }
 }
@@ -218,12 +213,8 @@ internal sealed class SortCommand : Command<SortCommand.Arg>
 
 internal sealed class FilterCommand : Command<FilterCommand.Arg>
 {
-    public sealed class Arg : CommandSettings
+    public sealed class Arg : FileInput
     {
-        [Description("File to remove lines from")]
-        [CommandArgument(0, "<input file>")]
-        public string Path { get; set; } = "";
-
         [Description("Filter used to exclude")]
         [CommandArgument(1, "<filter>")]
         public string Filter { get; set; } = "";
@@ -231,18 +222,15 @@ internal sealed class FilterCommand : Command<FilterCommand.Arg>
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        if (!File.Exists(settings.Path))
+        var src = settings.ReadInput();
+        if (src == null)
         {
-            AnsiConsole.MarkupLineInterpolated($"Failed to open '{settings.Path}'");
             return -1;
         }
 
-        var src = File.ReadAllLines(settings.Path);
-
         var lines = src.Where(x => x.Contains(settings.Filter));
 
-        var dst = lines.ToImmutableArray();
-        File.WriteAllLines(settings.Path, dst);
+        settings.WriteOutput(lines);
         return 0;
     }
 }
@@ -251,27 +239,21 @@ internal sealed class FilterCommand : Command<FilterCommand.Arg>
 
 internal sealed class ReverseCommand : Command<ReverseCommand.Arg>
 {
-    public sealed class Arg : CommandSettings
+    public sealed class Arg : FileInput
     {
-        [Description("File to reverse")]
-        [CommandArgument(0, "<input file>")]
-        public string Path { get; set; } = "";
     }
 
     public override int Execute([NotNull] CommandContext context, [NotNull] Arg settings)
     {
-        if (!File.Exists(settings.Path))
+        var src = settings.ReadInput();
+        if (src == null)
         {
-            AnsiConsole.MarkupLineInterpolated($"Failed to open '{settings.Path}'");
             return -1;
         }
 
-        var src = File.ReadAllLines(settings.Path);
-
         var lines = src.Reverse();
 
-        var dst = lines.ToImmutableArray();
-        File.WriteAllLines(settings.Path, dst);
+        settings.WriteOutput(lines);
         return 0;
     }
 }
