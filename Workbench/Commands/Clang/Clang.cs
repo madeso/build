@@ -860,7 +860,8 @@ public class ClangTidy
 
         var end = DateTime.Now;
         var took = end - start;
-        var ret = new TidyOutput(output.Output.Select(x => x.Line).ToArray(), took);
+        // todo(Gustav): why is non null x null???
+        var ret = new TidyOutput(output.Output.Select(x => x?.Line ?? "").ToArray(), took);
         return ret;
     }
 
