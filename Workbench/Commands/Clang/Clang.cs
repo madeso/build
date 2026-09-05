@@ -8,8 +8,6 @@ using Open.ChannelExtensions;
 using Workbench.Config;
 using Workbench.Shared;
 using static Workbench.Commands.Clang.ClangTidy;
-using System.Xml.Linq;
-
 using Workbench.Shared.Extensions;
 
 namespace Workbench.Commands.Clang;
