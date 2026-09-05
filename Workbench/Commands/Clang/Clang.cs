@@ -708,12 +708,31 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
 
         output.Add($"<h1>{name}</h1>");
 
-        var count = new HashSet<string>();
+        var unique_categories = new HashSet<string>();
+        var message_count = 0;
+
+        var files = report.GroupedMessages.SelectMany(x => x.Messages).Select(x => x.File.Path).ToColCounter();
+
+        if(files.UniqueCount > 0)
+        {
+            output.Add($"<h2>Files</h2>");
+            output.Add($"<ul>");
+            foreach (var (f, count) in files.MostCommon())
+            {
+                output.Add($"<li>{count}: {f.EscapeHtml()}</li>");
+            }
+            output.Add($"</ul>");
+
+            output.Add($"<h2>Warnings</h2>");
+        }
 
         foreach (var g in report.GroupedMessages)
         {
             foreach (var m in g.Messages)
             {
+                files.Add(m.File.Path, 1);
+                message_count += 1;
+
                 var is_note = m.Type == "note";
 
                 foreach (var c in m.GetClasses())
@@ -728,10 +747,15 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
                     output.Add($"<h3>{m.Type.EscapeHtml()}: {m.Message.EscapeHtml()}</h3>");
                 }
 
+                foreach(var n in m.Notes)
+                {
+                    output.Add($"<p>{n}</p>");
+                }
+
                 if (m.Category != null)
                 {
                     output.Add($"<code>[{m.Category.EscapeHtml()}]</code>");
-                    count.Add(m.Category);
+                    unique_categories.Add(m.Category);
                 }
 
                 if (is_note)
@@ -763,9 +787,10 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
 
         target.Directory?.CreateDir(vfs);
         target.WriteAllLines(vfs, output);
-        print.Info($"Wrote html to {target}");
+        print.Info($"Wrote html to {target} with {message_count} message(s)");
+        files.PrintMostCommon(5);
 
-        AddFile(source_file, name, target, report.TimeTaken, report.GroupedMessages.Length, count.Count);
+        AddFile(source_file, name, target, report.TimeTaken, report.GroupedMessages.Length, unique_categories.Count);
         WriteIndexFile(vfs, cwd);
     }
 
