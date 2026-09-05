@@ -946,13 +946,30 @@ public class ClangTidy
 
     private static IEnumerable<string> RemoveStatusLines(IEnumerable<string> output)
     {
+        var re = new Regex("[0-9]+ warnings? and [0-9]+ errors? generated");
         foreach (var line in output)
         {
             if (line.Contains("warnings generated"))
             {
                 // pass;
             }
-            else if (line.Contains("Use -header-filter=.* to display errors"))
+            else if (re.Match(line).Success)
+            {
+                // pass
+            }
+            else if (line.Contains("warning generated"))
+            {
+                // pass;
+            }
+            else if (line.StartsWith("Error while processing"))
+            {
+                // pass;
+            }
+            else if (line.Contains("Use -header-filter=.*"))
+            {
+                // pass
+            }
+            else if (line.StartsWith("Found compiler error"))
             {
                 // pass
             }
