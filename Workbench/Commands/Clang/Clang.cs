@@ -150,29 +150,45 @@ class TidyMessage(Fil a_fil)
     public string Message { get; set; } = string.Empty;
     public string? Category { get; set; } = null;
     public List<string> Code { get; set; } = new();
+    public List<string> Notes { get; set; } = new();
 
     public static IEnumerable<TidyMessage> Parse(Log print, IEnumerable<string> lines)
     {
         var reg = new Regex(@"(?<file>([a-zA-Z]:)?[^:]+):(?<line>[0-9]+):(?<col>[0-9]+): (?<type>[^$]+):(?<mess>[^$]+)");
         TidyMessage? current = null;
-        foreach (var l in lines)
+        var printed_file = false;
+        var act = lines.Where(s => string.IsNullOrEmpty(s) == false).ToImmutableArray();
+        var line_num = -1;
+        foreach (var l in act)
         {
-            if (string.IsNullOrEmpty(l)) continue;
-
+            line_num += 1;
             var is_code = l.TrimStart() != l; // does the line start with space?
             if (is_code)
             {
                 if (current == null)
                 {
-                    print.Warning($"Unexpected code line: '{l}'");
+                    print.Warning($"Unexpected code line at {line_num}: '{l}'");
+                    if (printed_file == false)
+                    {
+                        Console.WriteLine("============ debug ================");
+                        var li = -1;
+                        foreach (var dbg in act)
+                        {
+                            li += 1;
+                            if (li < (line_num - 10)) continue;
+                            if (li > line_num + 10) continue;
+                            Console.WriteLine($"{li}: {dbg}");
+                        }
+
+                        printed_file = true;
+                        Console.WriteLine("============ debug ================");
+                    }
                     continue;
                 }
                 current.Code.Add(l);
             }
             else
             {
-                if (current != null) yield return current;
-
                 var l2 = l;
 
                 var tidy_class = ClangTidyParsing.ClangTidyWarningClass().Match(l2);
@@ -184,14 +200,24 @@ class TidyMessage(Fil a_fil)
                 var parsed = reg.Match(l2);
                 if (parsed.Success == false)
                 {
+                    if (current != null && l.StartsWith("note:"))
+                    {
+                        var note = l.Substring("note:".Length);
+                        current.AddNote(note);
+                        continue;
+                    }
+
                     print.Warning($"Invalid line: '{l}'");
                     current = null;
                     continue;
                 }
+                
                 string? cat = null;
                 if (tidy_class.Success) cat = tidy_class.Groups[1].Value.Trim();
                 if (string.IsNullOrEmpty(cat)) cat = null;
                 var parsed_file = Fil.CleanupRelative(parsed.Groups["file"].Value.Trim());
+
+                if (current != null) yield return current;
                 current = new TidyMessage(new Fil(parsed_file))
                 {
                     Line = int.Parse(parsed.Groups["line"].Value),
@@ -204,6 +230,11 @@ class TidyMessage(Fil a_fil)
         }
 
         if (current != null) yield return current;
+    }
+
+    private void AddNote(string note)
+    {
+        Notes.Add(note);
     }
 
     public IEnumerable<string> GetClasses()

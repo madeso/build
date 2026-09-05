@@ -7,6 +7,8 @@ public class ColCounter<T>
 {
     private readonly Dictionary<T, int> data = new();
 
+    public int UniqueCount => data.Count;
+
     public void Add(T key, int count)
     {
         if (data.TryGetValue(key, out var value) == false)
