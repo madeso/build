@@ -432,6 +432,8 @@ internal interface IOutput
 {
     void WriteFinalReport(Vfs vfs, Dir cwd, GlobalStatistics stats);
     void SingleFileReport(Vfs vfs, Dir cwd, Fil source_file, SingleFileReport report);
+
+    bool ShouldFail();
 }
 
 internal class ConsoleOutput(Args args, Log print) : IOutput
@@ -513,6 +515,11 @@ internal class ConsoleOutput(Args args, Log print) : IOutput
             PrintWarningCounter(print, stats.Classes, source_file.GetDisplay(cwd), c => c);
             print.Info("");
         }
+    }
+
+    public bool ShouldFail()
+    {
+        return true;
     }
 
     private static void PrintReportToConsole(Log print, Dir cwd, GlobalStatistics stats)
@@ -792,6 +799,11 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
         WriteIndexFile(vfs, cwd);
     }
 
+    public bool ShouldFail()
+    {
+        return false;
+    }
+
     private void AddFile(Fil source_file, string name, Fil target, TimeSpan time_taken, int totals, int categories)
     {
         var link = new HtmlLink(name, root_output.RelativeFromTo(target), time_taken, categories, totals);
@@ -1039,7 +1051,7 @@ public class ClangTidy
 
         output.WriteFinalReport(vfs, cwd, stats);
 
-        if (stats.TotalCounter.TotalCount() > 0)
+        if (stats.TotalCounter.TotalCount() > 0 && output.ShouldFail())
         {
             return -1;
         }
