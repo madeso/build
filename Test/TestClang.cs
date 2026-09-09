@@ -32,7 +32,7 @@ public class TestClang : TestBase
         var cwd = new Dir(@"C:\test\");
         var paths = new FakePath(new());
 
-        var args = new ClangTidy.Args(null, 1, false, ["libs"], true, false, false, []);
+        var args = new ClangTidy.Args(null, false, 1, false, ["libs"], true, false, false, []);
         var ret = await tidy.HandleRunClangTidyCommand(no_run_executor, vfs, paths, cwd, new CompileCommandsArguments(), log, false, args);
         using (new AssertionScope())
         {
@@ -60,7 +60,7 @@ public class TestClang : TestBase
 
         AddClangTidyResult(clang_tidy, cwd, foobar, 0);
 
-        var args = new ClangTidy.Args(null, 1, false, ["libs"], false, false, false, []);
+        var args = new ClangTidy.Args(null, false, 1, false, ["libs"], false, false, false, []);
         var ret = await tidy.HandleRunClangTidyCommand(exec, vfs, paths, cwd, new CompileCommandsArguments(), log, false, args);
         using (new AssertionScope(log.Print()))
         {
@@ -99,7 +99,7 @@ public class TestClang : TestBase
             "      | ^"
             );
 
-        var args = new ClangTidy.Args(null, 1, false, ["libs"], false, false, false, []);
+        var args = new ClangTidy.Args(null, false, 1, false, ["libs"], false, false, false, []);
         var ret = await tidy.HandleRunClangTidyCommand(exec, vfs, paths, cwd, new CompileCommandsArguments(), log, false, args);
         using (new AssertionScope(log.Print()))
         {

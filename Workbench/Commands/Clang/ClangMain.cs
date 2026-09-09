@@ -92,6 +92,11 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
         [DefaultValue(false)]
         public bool Force { get; set; }
 
+        [Description("Continue running even if clang-tidy is missing")]
+        [CommandOption("--ignore-missing-tidy")]
+        [DefaultValue(false)]
+        public bool IgnoreMissingTidy { get; set; }
+
         [Description("Only tidy files matching theese")]
         [CommandOption("--only")]
         [DefaultValue(null)]
@@ -131,7 +136,7 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
         return await CliUtil.PrintErrorsAtExitAsync(print => tidy.HandleRunClangTidyCommand(exec, vfs, paths, cwd,
             settings, print,
             settings.Headers,
-            new ClangTidy.Args(html_dir, settings.NumberOfTasks, settings.Fix, settings.Filter, settings.Nop, settings.Short, settings.Force,
+            new ClangTidy.Args(html_dir, settings.IgnoreMissingTidy, settings.NumberOfTasks, settings.Fix, settings.Filter, settings.Nop, settings.Short, settings.Force,
                 (settings.Only ?? Array.Empty<string>()).Where(x => string.IsNullOrWhiteSpace(x) == false).ToArray()
             )));
     }

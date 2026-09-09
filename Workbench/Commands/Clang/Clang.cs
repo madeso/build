@@ -555,6 +555,9 @@ internal class ConsoleOutput(Args args, Log print) : IOutput
     }
 }
 
+// todo(Gustav): create a different html output that organize on source files and only show a single warning
+// html reports also need to report success when there only are tidy warnings
+
 internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
 {
     private readonly string root_name = "Tidy report";
@@ -1000,7 +1003,7 @@ public class ClangTidy
         }
     }
 
-    public class Args(Dir? html_root, int task_count, bool fix, string[] filter, bool nop, bool short_args, bool force, string[] only)
+    public class Args(Dir? html_root, bool ignore_missing_tidy, int task_count, bool fix, string[] filter, bool nop, bool short_args, bool force, string[] only)
     {
         public Dir? HtmlRoot { get; } = html_root;
         public int NumberOfTasks { get; } = task_count;
@@ -1010,6 +1013,7 @@ public class ClangTidy
         public bool Nop { get; } = nop;
         public string[] Filter { get; } = filter;
         public string[] Only { get; } = only;
+        public bool IgnoreMissingTidy = ignore_missing_tidy;
     }
 
     // callback function called when running clang.py tidy
@@ -1018,13 +1022,27 @@ public class ClangTidy
         var clang_tidy = paths.GetClangTidyExecutable(vfs, cwd, print);
         if (clang_tidy == null)
         {
-            return -1;
+            if (args.IgnoreMissingTidy)
+            {
+                clang_tidy = cwd.GetFile("missing-clang-tidy");
+            }
+            else
+            {
+                return -1;
+            }
         }
 
         var cc_file = CompileCommand.FindOrNone(vfs, cwd, cc, print, paths);
         if (cc_file == null)
         {
-            return -1;
+            if (args.IgnoreMissingTidy)
+            {
+                cc_file = cwd.GetFile("missing-cc-file");
+            }
+            else
+            {
+                return -1;
+            }
         }
 
         var project_build_folder = cc_file.Directory;
