@@ -22,28 +22,28 @@ public class Store
         this.Cache = new();
     }
 
-    public Store(JsonStore s)
+    public Store(JsonStore s, Dir root)
     {
-        this.Cache = new(s.Cache.Select(x => new KeyValuePair<Fil, StoredTidyUpdate>(x.File, x.Output)));
+        this.Cache = new(s.Cache.Select(x => new KeyValuePair<Fil, StoredTidyUpdate>(root.GetFile(x.RelativeFile), x.Output)));
     }
 }
 
 public class JsonCacheEntry
 {
     [JsonPropertyName("file")]
-    public Fil File { get; set; }
+    public string RelativeFile { get; set; }
 
     [JsonPropertyName("output")]
     public StoredTidyUpdate Output { get; set; }
 
     public JsonCacheEntry()
     {
-        this.File = Dir.CurrentDirectory.GetFile("missing.txt");
+        this.RelativeFile = "missing.txt";
         this.Output = new(new string[] { }, TimeSpan.Zero, DateTime.Now);
     }
-    public JsonCacheEntry(Fil f, StoredTidyUpdate o)
+    public JsonCacheEntry(string f, StoredTidyUpdate o)
     {
-        this.File = f;
+        this.RelativeFile = f;
         this.Output = o;
     }
 }
@@ -58,9 +58,9 @@ public class JsonStore
         Cache = new();
     }
 
-    public JsonStore(Store s)
+    public JsonStore(Store s, Dir root)
     {
-        this.Cache = new(s.Cache.Select(x => new JsonCacheEntry(x.Key, x.Value)));
+        this.Cache = new(s.Cache.Select(x => new JsonCacheEntry(x.Key.GetRelative(root), x.Value)));
     }
 }
 
@@ -805,7 +805,7 @@ public class ClangTidy
     private static Fil GetPathToStore(Dir build_folder)
         => build_folder.GetFile(FileNames.ClangTidyStore);
 
-    private static Store? LoadStore(Vfs vfs, Log print, Dir build_folder)
+    private static Store? LoadStore(Vfs vfs, Log print, Dir build_folder, Dir root)
     {
         var file_name = GetPathToStore(build_folder);
         AnsiConsole.MarkupLineInterpolated($"Loading store from {file_name}");
@@ -822,13 +822,13 @@ public class ClangTidy
         }
         var loaded = JsonUtil.Parse<JsonStore>(print, file_name, content);
 
-        return loaded != null ? new(loaded) : null;
+        return loaded != null ? new(loaded, root) : null;
     }
 
-    private static void SaveStore(Vfs vfs, Dir build_folder, Store data)
+    private static void SaveStore(Vfs vfs, Dir build_folder, Store data, Dir root)
     {
         var file_name = GetPathToStore(build_folder);
-        file_name.WriteAllText(vfs, JsonUtil.Write(new JsonStore(data)));
+        file_name.WriteAllText(vfs, JsonUtil.Write(new JsonStore(data, root)));
     }
 
     private static bool FileMatchesAllFilters(Fil file, string[]? filters)
@@ -868,7 +868,7 @@ public class ClangTidy
         var data = new StoredTidyUpdate(output.Output, output.Taken,
             GetLastModificationForFiles(vfs, new[] { clang_tidy_source, source_file }));
         store.Cache[source_file] = data;
-        SaveStore(vfs, project_build_folder, store);
+        SaveStore(vfs, project_build_folder, store, root);
         print.Info($"Stored in cache {store.Cache.Count}");
     }
 
@@ -1022,7 +1022,7 @@ public class ClangTidy
             return -1;
         }
 
-        var store = LoadStore(vfs, print, project_build_folder);
+        var store = LoadStore(vfs, print, project_build_folder, cwd);
         if (store == null)
         {
             print.Error("unable to find load store");
