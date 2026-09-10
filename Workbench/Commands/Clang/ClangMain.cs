@@ -67,6 +67,11 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
         [DefaultValue(false)]
         public bool Nop { get; set; }
 
+        [Description("merge all errors files when writing html")]
+        [CommandOption("--html-merged")]
+        [DefaultValue(false)]
+        public bool HtmlMerged { get; set; }
+
         [Description("try to fix the source")]
         [CommandOption("--fix")]
         [DefaultValue(false)]
@@ -136,7 +141,7 @@ internal sealed class RunTidyCommand : AsyncCommand<RunTidyCommand.Arg>
         return await CliUtil.PrintErrorsAtExitAsync(print => tidy.HandleRunClangTidyCommand(exec, vfs, paths, cwd,
             settings, print,
             settings.Headers,
-            new ClangTidy.Args(html_dir, settings.IgnoreMissingTidy, settings.NumberOfTasks, settings.Fix, settings.Filter, settings.Nop, settings.Short, settings.Force,
+            new ClangTidy.Args(settings.HtmlMerged, html_dir, settings.IgnoreMissingTidy, settings.NumberOfTasks, settings.Fix, settings.Filter, settings.Nop, settings.Short, settings.Force,
                 (settings.Only ?? Array.Empty<string>()).Where(x => string.IsNullOrWhiteSpace(x) == false).ToArray()
             )));
     }

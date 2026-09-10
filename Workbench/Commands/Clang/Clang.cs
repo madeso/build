@@ -1,14 +1,16 @@
-using System.Collections.Immutable;
-using System.Collections.Concurrent;
-using Spectre.Console;
-using System.Text.RegularExpressions;
-using System.Text.Json.Serialization;
-using System.Threading.Channels;
 using Open.ChannelExtensions;
+using Spectre.Console;
+using System.Collections.Concurrent;
+using System.Collections.Immutable;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
+using System.Threading.Channels;
+using Workbench.Commands.Hero;
 using Workbench.Config;
 using Workbench.Shared;
-using static Workbench.Commands.Clang.ClangTidy;
 using Workbench.Shared.Extensions;
+using static System.Net.WebRequestMethods;
+using static Workbench.Commands.Clang.ClangTidy;
 
 namespace Workbench.Commands.Clang;
 
@@ -24,7 +26,13 @@ public class Store
 
     public Store(JsonStore s, Dir root)
     {
-        this.Cache = new(s.Cache.Select(x => new KeyValuePair<Fil, StoredTidyUpdate>(root.GetFile(x.RelativeFile), x.Output)));
+        this.Cache = new(s.Cache.Select(x => ReadEntry(x, root)));
+    }
+
+    private static KeyValuePair<Fil, StoredTidyUpdate> ReadEntry(JsonCacheEntry x, Dir root)
+    {
+        var file = root.GetFile(x.RelativeFile);
+        return new KeyValuePair<Fil, StoredTidyUpdate>(file, x.Output);
     }
 }
 
@@ -150,7 +158,7 @@ class TidyMessage(Fil a_fil)
     public List<string> Code { get; set; } = new();
     public List<string> Notes { get; set; } = new();
 
-    public static IEnumerable<TidyMessage> Parse(Log print, IEnumerable<string> lines)
+    public static IEnumerable<TidyMessage> Parse(Log print, IEnumerable<string> lines, Func<string, Fil> file_parser)
     {
         var reg = new Regex(@"(?<file>([a-zA-Z]:)?[^:]+):(?<line>[0-9]+):(?<col>[0-9]+): (?<type>[^$]+):(?<mess>[^$]+)");
         TidyMessage? current = null;
@@ -213,10 +221,10 @@ class TidyMessage(Fil a_fil)
                 string? cat = null;
                 if (tidy_class.Success) cat = tidy_class.Groups[1].Value.Trim();
                 if (string.IsNullOrEmpty(cat)) cat = null;
-                var parsed_file = Fil.CleanupRelative(parsed.Groups["file"].Value.Trim());
+                var parsed_file = parsed.Groups["file"].Value.Trim();
 
                 if (current != null) yield return current;
-                current = new TidyMessage(new Fil(parsed_file))
+                current = new TidyMessage(file_parser(parsed_file))
                 {
                     Line = int.Parse(parsed.Groups["line"].Value),
                     Column = int.Parse(parsed.Groups["col"].Value),
@@ -244,10 +252,10 @@ class TidyGroup
     // todo(Gustav): replace message type with something more appropriate
     public List<TidyMessage> Messages { get; set; } = new();
 
-    public static IEnumerable<TidyGroup> Parse(Log print, IEnumerable<string> lines)
+    public static IEnumerable<TidyGroup> Parse(Log print, IEnumerable<string> lines, Func<string, Fil> file_parser)
     {
         TidyGroup? current = null;
-        foreach (var mess in TidyMessage.Parse(print, lines))
+        foreach (var mess in TidyMessage.Parse(print, lines, file_parser))
         {
             if (current == null || mess.Type != "note")
             {
@@ -414,10 +422,10 @@ internal static partial class ClangTidyParsing
 
 internal class SingleFileReport
 {
-    public SingleFileReport(Log print, TimeSpan taken, IEnumerable<string> lines, FileStats file_stats)
+    public SingleFileReport(Log print, TimeSpan taken, IEnumerable<string> lines, FileStats file_stats, Func<string, Fil> file_parser)
     {
         Messages = [.. lines];
-        GroupedMessages = [.. TidyGroup.Parse(print, Messages)];
+        GroupedMessages = [.. TidyGroup.Parse(print, Messages, file_parser)];
         TimeTaken = taken;
         Stats = file_stats;
     }
@@ -558,10 +566,37 @@ internal class ConsoleOutput(Args args, Log print) : IOutput
 // todo(Gustav): create a different html output that organize on source files and only show a single warning
 // html reports also need to report success when there only are tidy warnings
 
+internal static class SimpleReport
+{
+    public static void BeginHtml(List<string> output, string name)
+    {
+        output.Add($"<html>");
+        output.Add($"<head>");
+        output.Add("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
+        output.Add("<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/water.css@2/out/water.css\">");
+        output.Add($"<title>{name}</title>");
+        output.Add($"</head>");
+        output.Add($"<body>");
+
+        output.Add($"<h1>{name}</h1>");
+    }
+
+    public static void EndHtml(List<string> output)
+    {
+        output.Add($"</body>");
+        output.Add($"</html>");
+    }
+
+    public static void WriteHtml(Vfs vfs, Fil target, List<string> output)
+    {
+        target.Directory?.CreateDir(vfs);
+        target.WriteAllLines(vfs, output);
+    }
+}
+
 internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
 {
     private readonly string root_name = "Tidy report";
-    private readonly Dir root_relative = dcwd;
     private readonly List<HtmlLink> root_links = new();
     private readonly Dictionary<Fil, HtmlLink> source_file_to_link = new();
     private GlobalStatistics? global_stats = null;
@@ -594,15 +629,7 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
     {
         List<string> output = new();
 
-        output.Add($"<html>");
-        output.Add($"<head>");
-        output.Add("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
-        output.Add("<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/water.css@2/out/water.css\">");
-        output.Add($"<title>{root_name}</title>");
-        output.Add($"</head>");
-        output.Add($"<body>");
-
-        output.Add($"<h1>{root_name}</h1>");
+        SimpleReport.BeginHtml(output, root_name);
 
         var tt = global_stats?.GetTimeTaken();
 
@@ -668,13 +695,11 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
             output.Add($"<p><b>min</b>: {tt.Min.Value.ToHumanString().EscapeHtml()} for {LinkToFile(cwd, tt.Min.Key)}</p>");
         }
 
-        output.Add($"</body>");
-        output.Add($"</html>");
+        SimpleReport.EndHtml(output);
 
         var target = root_output.GetFile("index.html");
 
-        target.Directory?.CreateDir(vfs);
-        target.WriteAllLines(vfs, output);
+        SimpleReport.WriteHtml(vfs, target, output);
         print.Info($"Wrote html to {target}");
         return;
 
@@ -685,8 +710,9 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
         ;
     }
 
+
     public string GetRelative(Fil f)
-        => this.root_relative.RelativeFromTo(f);
+        => dcwd.RelativeFromTo(f);
 
     public Fil GetOutput(Fil f, string ext)
         => root_output.GetFile(GetRelative(f)).ChangeExtension(ext);
@@ -706,15 +732,7 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
 
         List<string> output = new();
 
-        output.Add($"<html>");
-        output.Add($"<head>");
-        output.Add("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
-        output.Add("<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/water.css@2/out/water.css\">");
-        output.Add($"<title>{name}</title>");
-        output.Add($"</head>");
-        output.Add($"<body>");
-
-        output.Add($"<h1>{name}</h1>");
+        SimpleReport.BeginHtml(output, name);
 
         var unique_categories = new HashSet<string>();
         var message_count = 0;
@@ -790,11 +808,9 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
         }
         output.Add($"-->");
 
-        output.Add($"</body>");
-        output.Add($"</html>");
+        SimpleReport.EndHtml(output);
 
-        target.Directory?.CreateDir(vfs);
-        target.WriteAllLines(vfs, output);
+        SimpleReport.WriteHtml(vfs, target, output);
         print.Info($"Wrote html to {target} with {message_count} message(s)");
         files.PrintMostCommon(5);
 
@@ -812,6 +828,154 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
         var link = new HtmlLink(name, root_output.RelativeFromTo(target), time_taken, categories, totals);
         root_links.Add(link);
         source_file_to_link.Add(source_file, link);
+    }
+}
+
+internal class FileReport
+{
+    public TimeSpan? TimeTaken { get; set; } = null;
+
+    public HashSet<List<TidyMessage>> Messages { get; set; } = new();
+
+    public void AddReport(List<TidyMessage> g)
+    {
+        Messages.Add(g);
+    }
+}
+
+internal class MergedHtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
+{
+    public string GetRelative(Fil f)
+        => dcwd.RelativeFromTo(f);
+
+    public Fil GetOutput(Fil f, string ext)
+        => root_output.GetFile(GetRelative(f).Replace("..", "_")).ChangeExtension(f.Extension + ext);
+
+    private readonly Dictionary<Fil, FileReport> errors = new();
+
+    private FileReport Get(Fil f)
+    {
+        if (errors.TryGetValue(f, out var ret))
+        {
+            return ret;
+        }
+
+        ret = new FileReport();
+        errors.Add(f, ret);
+        return ret;
+    }
+
+    public void WriteFinalReport(Vfs vfs, Dir cwd, GlobalStatistics stats)
+    {
+        var source_to_html = errors.Keys.ToImmutableDictionary(k => k, k => GetOutput(k, ".html"));
+
+        string link_to_file(Fil from_file, Fil to_file, string? hash = null)
+        {
+            return source_to_html.TryGetValue(to_file, out var link)
+                ? $"<a href=\"{relative_link(from_file, link)}{(hash is { } ? "#" + hash : "")}\">{to_file.GetDisplay(cwd).EscapeHtml()}</a>"
+                : to_file.GetDisplay(cwd).EscapeHtml();
+
+            static string relative_link(Fil from, Fil to)
+            {
+                var root = from.Directory;
+                if (root == null) return string.Empty;
+                return root.GetRelativeTo(to);
+            }
+        }
+
+        foreach (var (f, report) in errors)
+        {
+            var name = GetRelative(f);
+            var target = GetOutput(f, ".html");
+            var output = new List<string>();
+            SimpleReport.BeginHtml(output, name);
+
+            var codeLinks = new HashSet<string>();
+            var unique_categories = new HashSet<string>();
+            foreach (var messages in report.Messages)
+            {
+                int message_count = 0;
+                foreach (var m in messages)
+                {
+                    message_count += 1;
+
+                    var is_note = m.Type == "note";
+
+                    foreach (var c in m.GetClasses())
+                    {
+                        if (codeLinks.Add(c) == false) continue;
+                        output.Add($"<span id='{c}'>&nbsp;</span>");
+                    }
+
+                    if (is_note == false)
+                    {
+                        output.Add("<hr>");
+                        output.Add($"<h3>{m.Type.EscapeHtml()}: {m.Message.EscapeHtml()}</h3>");
+                    }
+
+                    foreach (var n in m.Notes)
+                    {
+                        output.Add($"<p>{n}</p>");
+                    }
+
+                    if (m.Category != null)
+                    {
+                        output.Add($"<code>[{m.Category.EscapeHtml()}]</code>");
+                        unique_categories.Add(m.Category);
+                    }
+
+                    if (is_note)
+                    {
+                        output.Add($"<p>{m.Message.EscapeHtml()}</p>");
+                    }
+
+                    output.Add($"<p><i>{link_to_file(target, m.File)} {m.Line} : {m.Column}</i></p>");
+
+                    output.Add($"<pre>");
+                    foreach (var l in m.Code)
+                    {
+                        output.Add(l.EscapeHtml());
+                    }
+                    output.Add($"</pre>");
+                }
+            }
+
+            SimpleReport.EndHtml(output);
+            SimpleReport.WriteHtml(vfs, target, output);
+            print.Info(null, $"Wrote report html to {target} with {report.Messages.Count} messages");
+        }
+
+        {
+            var target = root_output.GetFile("index.html");
+            var name = "clang-tidy report";
+            var html = new List<string>();
+            SimpleReport.BeginHtml(html, name);
+
+            html.Add("<ul>");
+            foreach (var (f, report) in errors.OrderByDescending(s=> s.Value.Messages.Count))
+            {
+                html.Add($"<li>{link_to_file(target, f)}: {report.Messages.Count}</li>");
+            }
+            html.Add("</ul>");
+
+            SimpleReport.EndHtml(html);
+            SimpleReport.WriteHtml(vfs, target, html);
+            print.Info(null, $"Wrote index html to {target}");
+        }
+    }
+
+    public void SingleFileReport(Vfs vfs, Dir cwd, Fil source_file, SingleFileReport report)
+    {
+        Get(source_file).TimeTaken = report.TimeTaken;
+        foreach (var g in report.GroupedMessages)
+        {
+            Get(g.Messages[0].File).AddReport(g.Messages);
+        }
+    }
+
+    public bool ShouldFail()
+    {
+        return false;
     }
 }
 
@@ -1003,9 +1167,10 @@ public class ClangTidy
         }
     }
 
-    public class Args(Dir? html_root, bool ignore_missing_tidy, int task_count, bool fix, string[] filter, bool nop, bool short_args, bool force, string[] only)
+    public class Args(bool html_merged, Dir? html_root, bool ignore_missing_tidy, int task_count, bool fix, string[] filter, bool nop, bool short_args, bool force, string[] only)
     {
         public Dir? HtmlRoot { get; } = html_root;
+        public bool HtmlMerged { get; } = html_merged;
         public int NumberOfTasks { get; } = task_count;
         public bool Fix { get; } = fix;
         public bool Force { get; } = force;
@@ -1062,10 +1227,27 @@ public class ClangTidy
         ClangTidyFile.WriteTidyFileToDisk(vfs, cwd);
         print.Info($"using clang-tidy: {clang_tidy}");
 
-        IOutput output = args.HtmlRoot == null ? new ConsoleOutput(args, print) : new HtmlOutput(print, args.HtmlRoot, cwd);
+        Func<string, Fil> file_parser = (p) =>
+        {
+            var clean = Fil.CleanupRelative(p);
+            return new Fil(clean);
+        };
+        if (args.IgnoreMissingTidy)
+        {
+            // todo(Gustav): take list of input folders to remap
+            file_parser = (p) =>
+            {
+                var pp = p;
+                var found = pp.IndexOfAny(['/', '\\'], 1);
+                pp = pp.Substring(found + 1);
+                return cwd.GetFile(pp);
+            };
+        }
+
+        IOutput output = args.HtmlRoot == null ? new ConsoleOutput(args, print) : (args.HtmlMerged ? new MergedHtmlOutput(print, args.HtmlRoot, cwd) : new HtmlOutput(print, args.HtmlRoot, cwd));
 
         var files = ClangFiles.MapAllFilesInRootOnFirstDir(vfs, cwd, also_include_headers ? FileUtil.IsHeaderOrSource : FileUtil.IsSource, FileSection.AllExceptThoseIgnoredByClangTidy);
-        var stats = await RunAllFiles(exec, vfs, cwd, print, args, files, store, cwd, clang_tidy, project_build_folder, output);
+        var stats = await RunAllFiles(exec, vfs, cwd, print, args, files, store, cwd, clang_tidy, project_build_folder, output, file_parser);
 
         output.WriteFinalReport(vfs, cwd, stats);
 
@@ -1088,7 +1270,7 @@ public class ClangTidy
     private record TransformRec(string Category, Fil File, TidyOutput tidy_output);
 
     private static async Task<GlobalStatistics> RunAllFiles(Executor exec, Vfs vfs, Dir cwd, Log print, Args args, CategoryAndFiles[] data, Store store, Dir root, Fil clang_tidy,
-        Dir project_build_folder, IOutput html_root)
+        Dir project_build_folder, IOutput html_root, Func<string, Fil> file_parser)
     {
         var files = data.SelectMany(pair => pair.Files.Select(x => new CollectedTidyFil(x, pair.Category)))
             .Where(source_file => FileMatchesAllFilters(source_file.File, args.Filter) == false);
@@ -1101,7 +1283,7 @@ public class ClangTidy
             foreach (var f in files)
             {
                 var tradat = await transform_function(exec, f);
-                read_function(tradat);
+                read_function(tradat, file_parser);
             }
         }
         else
@@ -1113,7 +1295,7 @@ public class ClangTidy
                     maxConcurrency: args.NumberOfTasks,
                     capacity: 100,
                     transform: async source_file => await transform_function(exec, source_file))
-                .ReadAll(read_function);
+                .ReadAll(x => read_function(x, file_parser));
         }
 
         return stats;
@@ -1127,7 +1309,7 @@ public class ClangTidy
             return new(source_file.Category, source_file.File, tidy_output);
         }
 
-        void read_function(TransformRec tuple)
+        void read_function(TransformRec tuple, Func<string, Fil> file_parser)
         {
             var (cat, source_file, tidy_output) = tuple;
             print.Info($"Collecting {source_file}");
@@ -1135,7 +1317,7 @@ public class ClangTidy
             stats.AddTimeTaken(source_file, tidy_output.Taken);
             var file_stats = CreateStatistics(source_file, tidy_output);
 
-            var report = new SingleFileReport(print, tidy_output.Taken, RemoveStatusLines(tidy_output.Output), file_stats);
+            var report = new SingleFileReport(print, tidy_output.Taken, RemoveStatusLines(tidy_output.Output), file_stats, file_parser);
 
             html_root.SingleFileReport(vfs, cwd, source_file, report);
 
