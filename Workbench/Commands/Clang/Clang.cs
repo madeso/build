@@ -595,6 +595,92 @@ internal static class SimpleReport
         target.Directory?.CreateDir(vfs);
         target.WriteAllLines(vfs, output);
     }
+
+    public static void WriteTimings(Dir cwd, TimeTaken? tt, List<string> output, Func<Fil, string> link_to_file)
+    {
+        if(tt != null)
+        {
+            output.Add("<h3>Timings</h3>");
+            output.Add($"<p><b>average</b>: {tt.AverageValue.ToHumanString()}</p>");
+            output.Add($"<p><b>max</b>: {tt.Max.Value.ToHumanString().EscapeHtml()} for {link_to_file(tt.Max.Key)}</p>");
+            output.Add($"<p><b>min</b>: {tt.Min.Value.ToHumanString().EscapeHtml()} for {link_to_file(tt.Min.Key)}</p>");
+        }
+    }
+
+    public static void WriteTable<T>(List<string> output, IEnumerable<T> items, Action<HtmlTable<T>> add_columns)
+    {
+        var table = new HtmlTable<T>();
+        add_columns(table);
+        table.Write(items, output);
+    }
+}
+
+internal class HtmlColumn<T>(string title, int percent, Func<T, string> generator, Align align)
+{
+    public void WriteCol(List<string> output)
+    {
+        output.Add($"<col span=\"1\" style=\"width: {percent}%;\">");
+    }
+
+    private string AlignString => align == Align.Right? " style=\"text-align: end\"" : "";
+
+    public void WriteHeader(List<string> output)
+    {
+        output.Add($"<th{AlignString}>{title}</th>");
+    }
+
+    public void WriteItem(List<string> output, T t)
+    {
+        output.Add($"<td{AlignString}>{generator(t)}</td>");
+    }
+}
+
+internal enum Align
+{
+    Left,
+    Right
+};
+
+internal class HtmlTable<T>()
+{
+    private readonly List<HtmlColumn<T>> columns = new();
+
+    public HtmlTable<T> Add(string title, int percent, Align align, Func<T, string> generator)
+    {
+        columns.Add(new HtmlColumn<T>(title, percent, generator, align));
+        return this;
+    }
+
+    public void Write(IEnumerable<T> items, List<string> output)
+    {
+        output.Add("<table style=\"width: 100%\">");
+        output.Add("<colgroup>");
+        foreach (var c in columns)
+        {
+            c.WriteCol(output);
+        }
+        output.Add("</colgroup>");
+        output.Add("<thead>");
+        output.Add($"<tr>");
+        foreach (var c in columns)
+        {
+            c.WriteHeader(output);
+        }
+        output.Add($"</tr>");
+        output.Add("</thead>");
+        output.Add("<tbody>");
+        foreach (var l in items)
+        {
+            output.Add($"<tr>");
+            foreach (var c in columns)
+            {
+                c.WriteItem(output, l);
+            }
+            output.Add($"</tr>");
+        }
+        output.Add("</tbody>");
+        output.Add("</table>");
+    }
 }
 
 internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
@@ -661,42 +747,9 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
             output.Add("<h2>All files</h2>");
         }
 
-        var align = " style=\"text-align: end\"";
-        output.Add("<table style=\"width: 100%\">");
-        output.Add("<colgroup>");
-        output.Add("<col span=\"1\" style=\"width: 55%;\">");
-        output.Add("<col span=\"1\" style=\"width: 15%;\">");
-        output.Add("<col span=\"1\" style=\"width: 15%;\">");
-        output.Add("<col span=\"1\" style=\"width: 15%;\">");
-        output.Add("</colgroup>");
-        output.Add("<thead>");
-        output.Add($"<tr>");
-        output.Add("<th>File</th>");
-        output.Add($"<th{align}>Categories</th>");
-        output.Add($"<th{align}>Totals</th>");
-        output.Add($"<th{align}>Time</th>");
-        output.Add($"</tr>");
-        output.Add("</thead>");
-        output.Add("<tbody>");
-        foreach (var l in root_links.OrderByDescending(l => l.Totals))
-        {
-            output.Add($"<tr>");
-            output.Add($"<td><a href={l.Link}>{l.Title.EscapeHtml()}</a></td>");
-            output.Add($"<td{align}>{Q(l.Categories)}</td>");
-            output.Add($"<td{align}>{Q(l.Totals)}</td>");
-            output.Add($"<td{align}>{l.TimeTaken.ToHumanString()}</td>");
-            output.Add($"</tr>");
-        }
-        output.Add("</tbody>");
-        output.Add("</table>");
+        WriteSummaryTable(output, root_links);
 
-        if(tt != null)
-        {
-            output.Add("<h3>Timings</h3>");
-            output.Add($"<p><b>average</b>: {tt.AverageValue.ToHumanString()}</p>");
-            output.Add($"<p><b>max</b>: {tt.Max.Value.ToHumanString().EscapeHtml()} for {LinkToFile(cwd, tt.Max.Key)}</p>");
-            output.Add($"<p><b>min</b>: {tt.Min.Value.ToHumanString().EscapeHtml()} for {LinkToFile(cwd, tt.Min.Key)}</p>");
-        }
+        SimpleReport.WriteTimings(cwd, tt, output, f => LinkToFile(cwd, f));
 
         SimpleReport.EndHtml(output);
 
@@ -704,6 +757,16 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
 
         SimpleReport.WriteHtml(vfs, target, output);
         print.Info($"Wrote html to {target}");
+    }
+
+    private static void WriteSummaryTable(List<string> output, IEnumerable<HtmlLink> links)
+    {
+        SimpleReport.WriteTable(output, links.OrderByDescending(l => l.Totals), table =>
+            table.Add("File", 55, Align.Left, l =>$"<a href={l.Link}>{l.Title.EscapeHtml()}</a>")
+                .Add("Categories", 15, Align.Right, l => Q(l.Categories))
+                .Add("Totals", 15, Align.Right, l => Q(l.Totals))
+                .Add("Time", 15, Align.Right, l => l.TimeTaken.ToHumanString())
+        );
         return;
 
         static string Q(int i)
@@ -926,20 +989,16 @@ internal class MergedHtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
             var output = new List<string>();
             SimpleReport.BeginHtml(output, name);
 
-            var codeLinks = new HashSet<string>();
-            var unique_categories = new HashSet<string>();
+            var code_links = new HashSet<string>();
             foreach (var group in report.Messages.OrderBy(x => x.Messages.FirstOrDefault()?.Line))
             {
-                int message_count = 0;
                 foreach (var m in group.Messages)
                 {
-                    message_count += 1;
-
                     var is_note = m.Type == "note";
 
                     foreach (var c in m.GetClasses())
                     {
-                        if (codeLinks.Add(c) == false) continue;
+                        if (code_links.Add(c) == false) continue;
                         output.Add($"<span id='{c}'>&nbsp;</span>");
                     }
 
@@ -957,7 +1016,6 @@ internal class MergedHtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
                     if (m.Category != null)
                     {
                         output.Add($"<code>[{m.Category.EscapeHtml()}]</code>");
-                        unique_categories.Add(m.Category);
                     }
 
                     if (is_note)
@@ -1002,6 +1060,16 @@ internal class MergedHtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
                 html.Add($"<li>{link_to_file(target, f)}: {report.Messages.Count}</li>");
             }
             html.Add("</ul>");
+
+            html.Add("<h3>Timings</h3>");
+            SimpleReport.WriteTable(html, errors
+                    .Select(x => new { File=x.Key, Time = x.Value.TimeTaken })
+                    .Where(x => x.Time != null)
+                    .OrderByDescending(x => x.Time)
+                , table => table
+                .Add("File", 80, Align.Left, x => x.File.GetDisplay(cwd))
+                .Add("Time", 20, Align.Left, x => x.Time?.ToHumanString() ?? "")
+            );
 
             SimpleReport.EndHtml(html);
             SimpleReport.WriteHtml(vfs, target, html);
