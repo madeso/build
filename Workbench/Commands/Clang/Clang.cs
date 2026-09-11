@@ -596,7 +596,7 @@ internal static class SimpleReport
         target.WriteAllLines(vfs, output);
     }
 
-    public static void WriteTimings(Dir cwd, TimeTaken? tt, List<string> output, Func<Fil, string> link_to_file)
+    public static void WriteTimings(TimeTaken? tt, List<string> output, Func<Fil, string> link_to_file)
     {
         if(tt != null)
         {
@@ -612,6 +612,28 @@ internal static class SimpleReport
         var table = new HtmlTable<T>();
         add_columns(table);
         table.Write(items, output);
+    }
+
+    public static void WriteSummary(List<string> output, TimeTaken tt, GlobalStatistics stats, Func<Fil, string, string> link_to_file)
+    {
+        var project_counter = stats.TotalClasses;
+        output.Add($"<p>{project_counter.TotalCount()} warnings in {tt.TimesPerFileCount} files</p>");
+        output.Add("<ul>");
+        foreach (var (klass, count) in project_counter.MostCommon())
+        {
+            output.Add($"<li>{count}x <code>{klass.EscapeHtml()}</code></li>");
+
+            if(stats.WarningsPerFile.TryGetValue(klass, out var v))
+            {
+                output.Add("<ul>");
+                foreach (var f in v)
+                {
+                    output.Add($"<li>{link_to_file(f, klass)}</li>");
+                }
+                output.Add("</ul>");
+            }
+        }
+        output.Add("</ul>");
     }
 }
 
@@ -725,31 +747,14 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
         if(global_stats != null && tt != null)
         {
             output.Add("<h2>Summary</h2>");
-            var project_counter = global_stats.TotalClasses;
-            output.Add($"<p>{project_counter.TotalCount()} warnings in {tt.TimesPerFileCount} files</p>");
-            output.Add("<ul>");
-            foreach (var (klass, count) in project_counter.MostCommon())
-            {
-                output.Add($"<li>{count}x <code>{klass.EscapeHtml()}</code></li>");
-
-                if(global_stats.WarningsPerFile.TryGetValue(klass, out var v))
-                {
-                    output.Add("<ul>");
-                    foreach (var f in v)
-                    {
-                        output.Add($"<li>{LinkToFile(cwd, f, klass)}</li>");
-                    }
-                    output.Add("</ul>");
-                }
-            }
-            output.Add("</ul>");
+            SimpleReport.WriteSummary(output, tt, global_stats, (f, c) => LinkToFile(cwd, f, c));
 
             output.Add("<h2>All files</h2>");
         }
 
         WriteSummaryTable(output, root_links);
 
-        SimpleReport.WriteTimings(cwd, tt, output, f => LinkToFile(cwd, f));
+        SimpleReport.WriteTimings(tt, output, f => LinkToFile(cwd, f));
 
         SimpleReport.EndHtml(output);
 
