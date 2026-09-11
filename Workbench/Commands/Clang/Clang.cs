@@ -1054,14 +1054,15 @@ internal class MergedHtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
             var html = new List<string>();
             SimpleReport.BeginHtml(html, name);
 
-            html.Add("<ul>");
-            foreach (var (f, report) in errors.OrderByDescending(s=> s.Value.Messages.Count))
-            {
-                html.Add($"<li>{link_to_file(target, f)}: {report.Messages.Count}</li>");
-            }
-            html.Add("</ul>");
+            html.Add("<h2>Warnings</h2>");
+            SimpleReport.WriteTable(html,
+                errors.Select(kv => new {File = kv.Key, Report = kv.Value})
+                    .OrderByDescending(x => x.Report.Messages.Count), table => table
+                    .Add("File", 80, Align.Left, x => link_to_file(target, x.File))
+                    .Add("Count", 20, Align.Left, x => $"{x.Report.Messages.Count}")
+                );
 
-            html.Add("<h3>Timings</h3>");
+            html.Add("<h2>Timings</h2>");
             SimpleReport.WriteTable(html, errors
                     .Select(x => new { File=x.Key, Time = x.Value.TimeTaken })
                     .Where(x => x.Time != null)
