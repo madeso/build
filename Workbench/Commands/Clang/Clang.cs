@@ -5,11 +5,9 @@ using System.Collections.Immutable;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
-using Workbench.Commands.Hero;
 using Workbench.Config;
 using Workbench.Shared;
 using Workbench.Shared.Extensions;
-using static System.Net.WebRequestMethods;
 using static Workbench.Commands.Clang.ClangTidy;
 
 namespace Workbench.Commands.Clang;
@@ -245,6 +243,11 @@ class TidyMessage(Fil a_fil)
 
     public IEnumerable<string> GetClasses()
         => Category == null ? [] : Category.Split(',').Select(s => s.Trim());
+
+    public static bool IsSameMessage(TidyMessage lhs, TidyMessage rhs)
+    {
+        return lhs.File.Path == rhs.File.Path && lhs.Line == rhs.Line && lhs.Column == rhs.Column;
+    }
 }
 
 class TidyGroup
@@ -831,15 +834,48 @@ internal class HtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
     }
 }
 
+internal class MessageReport(List<TidyMessage> messages)
+{
+    public List<TidyMessage> Messages { get; } = messages;
+
+    public List<Fil> FoundInFiles { get; } = new();
+
+    public override int GetHashCode()
+    {
+        return Messages.GetHashCode();
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is MessageReport rhs)
+        {
+            return Messages.Equals(rhs.Messages);
+        }
+        else
+        {
+            return false;
+        }
+    }
+}
+
 internal class FileReport
 {
     public TimeSpan? TimeTaken { get; set; } = null;
 
-    public HashSet<List<TidyMessage>> Messages { get; set; } = new();
+    public List<MessageReport> Messages { get; set; } = new();
 
-    public void AddReport(List<TidyMessage> g)
+    public void AddReport(Fil source_file, List<TidyMessage> g)
     {
-        Messages.Add(g);
+        if (g.Count == 0) return;
+
+        var report = Messages.Find(x => TidyMessage.IsSameMessage(x.Messages[0], g[0]));
+        if (report == null)
+        {
+            report = new MessageReport(g);
+            Messages.Add(report);
+        }
+
+        report.FoundInFiles.Add(source_file);
     }
 }
 
@@ -892,10 +928,10 @@ internal class MergedHtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
 
             var codeLinks = new HashSet<string>();
             var unique_categories = new HashSet<string>();
-            foreach (var messages in report.Messages)
+            foreach (var group in report.Messages.OrderBy(x => x.Messages.FirstOrDefault()?.Line))
             {
                 int message_count = 0;
-                foreach (var m in messages)
+                foreach (var m in group.Messages)
                 {
                     message_count += 1;
 
@@ -927,6 +963,15 @@ internal class MergedHtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
                     if (is_note)
                     {
                         output.Add($"<p>{m.Message.EscapeHtml()}</p>");
+                    }
+                    else
+                    {
+                        output.Add("<ul>");
+                        foreach (var linked_file in group.FoundInFiles)
+                        {
+                            output.Add($"<li>Found in {link_to_file(target, linked_file)}</li>");
+                        }
+                        output.Add("</ul>");
                     }
 
                     output.Add($"<p><i>{link_to_file(target, m.File)} {m.Line} : {m.Column}</i></p>");
@@ -969,7 +1014,7 @@ internal class MergedHtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
         Get(source_file).TimeTaken = report.TimeTaken;
         foreach (var g in report.GroupedMessages)
         {
-            Get(g.Messages[0].File).AddReport(g.Messages);
+            Get(g.Messages[0].File).AddReport(source_file, g.Messages);
         }
     }
 
