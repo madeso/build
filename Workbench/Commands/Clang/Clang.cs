@@ -1066,23 +1066,18 @@ internal class MergedHtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
                 html.Add($"<p><b>{num_errors}</b> error{num_errors.S()} in <b>{files}</b> file{files.S()}.</p>");
             }
 
-            html.Add("<h2>Warnings</h2>");
             SimpleReport.WriteTable(html,
                 errors.Select(kv => new {File = kv.Key, Report = kv.Value})
                     .OrderByDescending(x => x.Report.Messages.Count), table => table
                     .Add("File", 80, Align.Left, x => link_to_file(target, x.File))
-                    .Add("Count", 20, Align.Left, x => $"{x.Report.Messages.Count}")
+                    .Add("Count", 10, Align.Left, x => $"{x.Report.Messages.Count}")
+                    .Add("Time", 10, Align.Left, x => $"{x.Report.TimeTaken?.ToHumanString() ?? ""}")
                 );
 
-            html.Add("<h2>Timings</h2>");
-            SimpleReport.WriteTable(html, errors
-                    .Select(x => new { File=x.Key, Time = x.Value.TimeTaken })
-                    .Where(x => x.Time != null)
-                    .OrderByDescending(x => x.Time)
-                , table => table
-                .Add("File", 80, Align.Left, x => x.File.GetDisplay(cwd))
-                .Add("Time", 20, Align.Left, x => x.Time?.ToHumanString() ?? "")
-            );
+            {
+                var time = stats.GetTimeTaken();
+                SimpleReport.WriteTimings(time, html, f => link_to_file(target, f));
+            }
 
             SimpleReport.EndHtml(html);
             SimpleReport.WriteHtml(vfs, target, html);
