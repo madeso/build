@@ -1059,6 +1059,13 @@ internal class MergedHtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
             var html = new List<string>();
             SimpleReport.BeginHtml(html, name);
 
+            {
+                var all = errors.Select(kv => kv.Value.Messages.Count).Where(k => k > 0).ToImmutableArray();
+                var files = all.Length;
+                var num_errors = all.Aggregate(0, (lhs, rhs) => lhs + rhs);
+                html.Add($"<p><b>{num_errors}</b> error{num_errors.S()} in <b>{files}</b> file{files.S()}.</p>");
+            }
+
             html.Add("<h2>Warnings</h2>");
             SimpleReport.WriteTable(html,
                 errors.Select(kv => new {File = kv.Key, Report = kv.Value})

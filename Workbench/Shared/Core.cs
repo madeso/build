@@ -1,7 +1,7 @@
+using Spectre.Console;
 using System.Globalization;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
-using Spectre.Console;
 
 namespace Workbench.Shared;
 
@@ -116,4 +116,6 @@ public static class Core
         var r = num.ToString("n0", CultureInfo.CurrentCulture);
         return r;
     }
+
+    public static string S(this int num) => num != 1 ? "s" : "";
 }
