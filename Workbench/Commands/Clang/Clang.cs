@@ -969,8 +969,29 @@ internal class MergedHtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
         return ret;
     }
 
+    private static IEnumerable<(T?, T, T?)> PrevNext<T>(IEnumerable<T> items) where T: class
+    {
+        using var iter = items.GetEnumerator();
+        if (iter.MoveNext() == false) yield break;
+
+        T? previous = null;
+        while (true)
+        {
+
+            var current = iter.Current;
+            T? next = iter.MoveNext() ? iter.Current : null;
+            yield return (previous, current, next);
+            previous = current;
+            if (next == null)
+            {
+                yield break;
+            }
+        }
+    }
+
     public void WriteFinalReport(Vfs vfs, Dir cwd, GlobalStatistics stats)
     {
+        var index_target = root_output.GetFile("index.html");
         var source_to_html = errors.Keys.ToImmutableDictionary(k => k, k => GetOutput(k, ".html"));
 
         string link_to_file(Fil from_file, Fil to_file, string? hash = null)
@@ -978,24 +999,47 @@ internal class MergedHtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
             return source_to_html.TryGetValue(to_file, out var link)
                 ? $"<a href=\"{relative_link(from_file, link)}{(hash is { } ? "#" + hash : "")}\">{to_file.GetDisplay(cwd).EscapeHtml()}</a>"
                 : to_file.GetDisplay(cwd).EscapeHtml();
-
-            static string relative_link(Fil from, Fil to)
-            {
-                var root = from.Directory;
-                if (root == null) return string.Empty;
-                return root.GetRelativeTo(to);
-            }
         }
 
-        foreach (var (f, report) in errors)
+        static string relative_link(Fil from, Fil to)
         {
-            var name = GetRelative(f);
-            var target = GetOutput(f, ".html");
+            var root = from.Directory;
+            if (root == null) return string.Empty;
+            return root.GetRelativeTo(to);
+        }
+
+        var all_items = errors
+            .Select(kv => new { File = kv.Key, Report = kv.Value })
+            .OrderByDescending(x => x.Report.Messages.Count)
+            .ToImmutableArray();
+
+        foreach (var (prev, curr, next) in PrevNext(all_items))
+        {
+            var name = GetRelative(curr.File);
+            var target = GetOutput(curr.File, ".html");
             var output = new List<string>();
             SimpleReport.BeginHtml(output, name);
 
+            string link(Fil f, string pr, string ne)
+            {
+                var link = link_to_file(target, f);
+                return $"{pr}{link}{ne}";
+            }
+
+            void add_prev_next()
+            {
+                var html_prev = prev != null ? link(prev.File, "<", "") : "";
+                var html_next = next != null ? link(next.File, "", ">") : "";
+
+                var html_index = $"<a href=\"{relative_link(target, index_target)}\">[index]</a>";
+
+                output.Add($"<p>{html_prev} | {html_index} | {html_next}</p>");
+            }
+
+            add_prev_next();
+            
             var code_links = new HashSet<string>();
-            foreach (var group in report.Messages.OrderBy(x => x.Messages.FirstOrDefault()?.Line))
+            foreach (var group in curr.Report.Messages.OrderBy(x => x.Messages.FirstOrDefault()?.Line))
             {
                 foreach (var m in group.Messages)
                 {
@@ -1046,15 +1090,16 @@ internal class MergedHtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
                     }
                     output.Add($"</pre>");
                 }
+
+                add_prev_next();
             }
 
             SimpleReport.EndHtml(output);
             SimpleReport.WriteHtml(vfs, target, output);
-            print.Info(null, $"Wrote report html to {target} with {report.Messages.Count} messages");
+            print.Info(null, $"Wrote report html to {target} with {curr.Report.Messages.Count} messages");
         }
 
         {
-            var target = root_output.GetFile("index.html");
             var name = "clang-tidy report";
             var html = new List<string>();
             SimpleReport.BeginHtml(html, name);
@@ -1067,21 +1112,20 @@ internal class MergedHtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
             }
 
             SimpleReport.WriteTable(html,
-                errors.Select(kv => new {File = kv.Key, Report = kv.Value})
-                    .OrderByDescending(x => x.Report.Messages.Count), table => table
-                    .Add("File", 80, Align.Left, x => link_to_file(target, x.File))
+                all_items, table => table
+                    .Add("File", 80, Align.Left, x => link_to_file(index_target, x.File))
                     .Add("Count", 10, Align.Left, x => $"{x.Report.Messages.Count}")
                     .Add("Time", 10, Align.Left, x => $"{x.Report.TimeTaken?.ToHumanString() ?? ""}")
                 );
 
             {
                 var time = stats.GetTimeTaken();
-                SimpleReport.WriteTimings(time, html, f => link_to_file(target, f));
+                SimpleReport.WriteTimings(time, html, f => link_to_file(index_target, f));
             }
 
             SimpleReport.EndHtml(html);
-            SimpleReport.WriteHtml(vfs, target, html);
-            print.Info(null, $"Wrote index html to {target}");
+            SimpleReport.WriteHtml(vfs, index_target, html);
+            print.Info(null, $"Wrote index html to {index_target}");
         }
     }
 
@@ -1143,7 +1187,7 @@ public class ClangTidy
     private static bool IsModificationTheLatest(Vfs vfs, IEnumerable<Fil> input_files, DateTime output)
         => GetLastModificationForFiles(vfs, input_files) <= output;
 
-    private static TidyOutput? GetExistingOutputOrNull(Vfs vfs, Store store, Dir root, Fil source_file)
+    private static TidyOutput? GetExistingOutputOrNull(Vfs vfs, Store store, Dir root, Fil source_file, bool is_dev_mode)
     {
         var root_file = ClangTidyFile.GetPathToClangTidySource(root);
 
@@ -1152,7 +1196,7 @@ public class ClangTidy
             return null;
         }
 
-        if (IsModificationTheLatest(vfs, new[] { root_file, source_file }, stored.Modified))
+        if (is_dev_mode || IsModificationTheLatest(vfs, new[] { root_file, source_file }, stored.Modified))
         {
             return new TidyOutput(stored.Output, stored.Taken);
         }
@@ -1175,11 +1219,11 @@ public class ClangTidy
     // runs clang-tidy and returns all the text output
     private static async Task<TidyOutput> GetExistingOutputOrCallClangTidy(Executor exec, Vfs vfs, Dir cwd, Store store,
         Log print, Dir root, bool force, Fil tidy_path, Dir project_build_folder,
-        Fil source_file, bool fix)
+        Fil source_file, bool fix, bool is_dev_mode)
     {
         if (false == force)
         {
-            var existing_output = GetExistingOutputOrNull(vfs, store, root, source_file);
+            var existing_output = GetExistingOutputOrNull(vfs, store, root, source_file, is_dev_mode);
             if (existing_output != null)
             {
                 return existing_output;
@@ -1187,7 +1231,10 @@ public class ClangTidy
         }
 
         var ret = await CallClangTidyAsync(exec, cwd, print, tidy_path, project_build_folder, source_file, fix);
-        StoreOutput(print, vfs, store, root, project_build_folder, source_file, ret);
+        if (is_dev_mode == false)
+        {
+            StoreOutput(print, vfs, store, root, project_build_folder, source_file, ret);
+        }
         return ret;
     }
 
@@ -1288,7 +1335,7 @@ public class ClangTidy
         }
     }
 
-    public class Args(bool html_merged, Dir? html_root, bool ignore_missing_tidy, int task_count, bool fix, string[] filter, bool nop, bool short_args, bool force, string[] only)
+    public class Args(bool html_merged, Dir? html_root, bool is_dev_mode, int task_count, bool fix, string[] filter, bool nop, bool short_args, bool force, string[] only)
     {
         public Dir? HtmlRoot { get; } = html_root;
         public bool HtmlMerged { get; } = html_merged;
@@ -1299,7 +1346,7 @@ public class ClangTidy
         public bool Nop { get; } = nop;
         public string[] Filter { get; } = filter;
         public string[] Only { get; } = only;
-        public bool IgnoreMissingTidy = ignore_missing_tidy;
+        public bool IsDevMode { get; } = is_dev_mode;
     }
 
     // callback function called when running clang.py tidy
@@ -1308,7 +1355,7 @@ public class ClangTidy
         var clang_tidy = paths.GetClangTidyExecutable(vfs, cwd, print);
         if (clang_tidy == null)
         {
-            if (args.IgnoreMissingTidy)
+            if (args.IsDevMode)
             {
                 clang_tidy = cwd.GetFile("missing-clang-tidy");
             }
@@ -1321,7 +1368,7 @@ public class ClangTidy
         var cc_file = CompileCommand.FindOrNone(vfs, cwd, cc, print, paths);
         if (cc_file == null)
         {
-            if (args.IgnoreMissingTidy)
+            if (args.IsDevMode)
             {
                 cc_file = cwd.GetFile("missing-cc-file");
             }
@@ -1353,7 +1400,7 @@ public class ClangTidy
             var clean = Fil.CleanupRelative(p);
             return new Fil(clean);
         };
-        if (args.IgnoreMissingTidy)
+        if (args.IsDevMode)
         {
             // todo(Gustav): take list of input folders to remap
             file_parser = (p) =>
@@ -1426,7 +1473,7 @@ public class ClangTidy
             print.Info($"Running {source_file.File}");
             var tidy_output = args.Nop
                 ? new([], new())
-                : await GetExistingOutputOrCallClangTidy(exec, vfs, cwd, store, print, root, args.Force, clang_tidy, project_build_folder, source_file.File, args.Fix);
+                : await GetExistingOutputOrCallClangTidy(exec, vfs, cwd, store, print, root, args.Force, clang_tidy, project_build_folder, source_file.File, args.Fix, args.IsDevMode);
             return new(source_file.Category, source_file.File, tidy_output);
         }
 
