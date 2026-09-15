@@ -571,13 +571,19 @@ internal class ConsoleOutput(Args args, Log print) : IOutput
 
 internal static class SimpleReport
 {
-    public static void BeginHtml(List<string> output, string name)
+    public static void BeginHtml(List<string> output, string name, Action<List<string>>? css = null)
     {
         output.Add($"<html>");
         output.Add($"<head>");
         output.Add("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
         output.Add("<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/water.css@2/out/water.css\">");
         output.Add($"<title>{name}</title>");
+        if (css != null)
+        {
+            output.Add("<style>");
+            css(output);
+            output.Add("</style>");
+        }
         output.Add($"</head>");
         output.Add($"<body>");
 
@@ -1018,22 +1024,41 @@ internal class MergedHtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
             var name = GetRelative(curr.File);
             var target = GetOutput(curr.File, ".html");
             var output = new List<string>();
-            SimpleReport.BeginHtml(output, name);
-
-            string link(Fil f, string pr, string ne)
+            SimpleReport.BeginHtml(output, name, css =>
             {
-                var link = link_to_file(target, f);
-                return $"{pr}{link}{ne}";
+                css.Add(".link-container {");
+                css.Add(" position: relative;");
+                css.Add("}");
+                css.Add(".prev {");
+                css.Add(" position: absolute;");
+                css.Add(" top: 0;");
+                css.Add(" left: 0;");
+                css.Add("}");
+                css.Add(".next {");
+                css.Add(" position: absolute;");
+                css.Add(" top: 0;");
+                css.Add(" right: 0;");
+                css.Add("}");
+                css.Add(".index_link {");
+                css.Add(" text-align: center;");
+                css.Add("}");
+            });
+
+            string link(Fil? f, string pr, string ne, string class_name)
+            {
+                var html_link = f != null ? link_to_file(target, f) : "";
+                var ret = $"{pr.EscapeHtml()}{html_link}{ne.EscapeHtml()}";
+                return $"<div class=\"{class_name}\">{ret}</div>";
             }
 
             void add_prev_next()
             {
-                var html_prev = prev != null ? link(prev.File, "<", "") : "";
-                var html_next = next != null ? link(next.File, "", ">") : "";
+                var html_prev = link(prev?.File, "<", "", "prev");
+                var html_next = link(next?.File, "", ">", "next");
 
                 var html_index = $"<a href=\"{relative_link(target, index_target)}\">[index]</a>";
 
-                output.Add($"<p>{html_prev} | {html_index} | {html_next}</p>");
+                output.Add($"<div class=\"link-container\">{html_prev} <div class=\"index_link\">{html_index}</div> {html_next}</div>");
             }
 
             add_prev_next();
@@ -1090,10 +1115,9 @@ internal class MergedHtmlOutput(Log print, Dir root_output, Dir dcwd) : IOutput
                     }
                     output.Add($"</pre>");
                 }
-
-                add_prev_next();
             }
 
+            add_prev_next();
             SimpleReport.EndHtml(output);
             SimpleReport.WriteHtml(vfs, target, output);
             print.Info(null, $"Wrote report html to {target} with {curr.Report.Messages.Count} messages");
