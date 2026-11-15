@@ -17,7 +17,8 @@ public enum Language
     Swift,
     CMake,
     Razor,
-    Css
+    Css,
+    Lua
 }
 
 internal static class FileUtil
@@ -47,6 +48,8 @@ internal static class FileUtil
             ".razor" => Language.Razor,
             ".css" => Language.Css,
 
+            ".lua" => Language.Lua,
+
             ".jsonc" => Language.JsonConfig,
 
             ".cmake" => Language.CMake,
@@ -73,6 +76,7 @@ internal static class FileUtil
             Language.CppSource or Language.CppHeader => "C/C++",
             Language.ObjectiveCpp => "Objective-C/C++",
             Language.CMake => "CMake",
+            Language.Lua => "Lua",
             Language.Unknown => null,
             // why is a invalid enum value a valid value???
             _ => throw new ArgumentOutOfRangeException()
@@ -94,12 +98,13 @@ internal static class FileUtil
             Language.CppHeader => "C/C++ Header",
             Language.ObjectiveCpp => "Objective-C/C++",
             Language.CMake => "CMake",
+            Language.Lua => "Lua",
             Language.Unknown => "Unknown",
             // why is a invalid enum value a valid value???
             _ => throw new ArgumentOutOfRangeException()
         };
 
-    public static readonly string[] PitchforkFolders = { "apps", "libs", "src", "include" };
+    public static readonly string[] PitchforkFolders = ["apps", "libs", "src", "include"];
 
     public static IEnumerable<Dir> PitchforkBuildFolders(Vfs vfs, Dir root)
     {
